@@ -6,14 +6,14 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
-DISTCHECK_CONFIGURE_FLAGS = --enable-debug --enable-samples
+DISTCHECK_CONFIGURE_FLAGS = --enable-debug
 
 SUBDIRS = \
 	upnp
 
 EXTRA_DIST = \
 	.gitignore \
-	libupnp.pc.in \
+	libnpupnp.pc.in \
 	README.md \
 	bootstrap \
 	libupnp.spec
@@ -22,7 +22,7 @@ EXTRA_DIST = \
 # This variable must have 'exec' in its name, in order to be installed 
 # by 'install-exec' target (instead of default 'install-data')
 pkgconfigexecdir = $(libdir)/pkgconfig
-pkgconfigexec_DATA = libupnp.pc
+pkgconfigexec_DATA = libnpupnp.pc
 
 
 $(pkgconfigexec_DATA): config.status

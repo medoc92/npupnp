@@ -12,13 +12,8 @@ AM_CPPFLAGS = \
 #    AM_CPPFLAGS		+= -DSTATS
 #endif
 
-LDADD = \
-	libupnp.la \
-	$(top_builddir)/ixml/libixml.la 
-
-
-upnpincludedir = $(includedir)/upnp
-upnpinclude_HEADERS = \
+npupnpincludedir = $(includedir)/npupnp
+npupnpinclude_HEADERS = \
 	inc/upnp.h \
 	inc/upnpdebug.h \
 	inc/UpnpGlobal.h \
@@ -27,22 +22,22 @@ upnpinclude_HEADERS = \
 	inc/UpnpStdInt.h \
 	inc/UpnpUniStd.h
 
-nodist_upnpinclude_HEADERS = inc/upnpconfig.h 
+nodist_npupnpinclude_HEADERS = inc/upnpconfig.h 
 if ENABLE_TOOLS
-upnpinclude_HEADERS += inc/upnptools.h 
+npupnpinclude_HEADERS += inc/upnptools.h 
 endif
 
 
-lib_LTLIBRARIES = libupnp.la
+lib_LTLIBRARIES = libnpupnp.la
 
-libupnp_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/src/inc 
+libnpupnp_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/src/inc 
 
-libupnp_la_LDFLAGS = \
+libnpupnp_la_LDFLAGS = \
 	-version-info $(LT_VERSION_UPNP) \
 	-export-symbols-regex '^Upnp.*' \
 	-lixml -lcurl -lmicrohttpd
 
-libupnp_la_SOURCES = \
+libnpupnp_la_SOURCES = \
 	src/inc/FreeList.h \
 	src/inc/LinkedList.h \
 	src/inc/ThreadPool.h \
@@ -76,7 +71,7 @@ libupnp_la_SOURCES = \
 
 # ssdp
 if ENABLE_SSDP
-libupnp_la_SOURCES += \
+libnpupnp_la_SOURCES += \
 	src/ssdp/ssdp_ResultData.h \
 	src/ssdp/ssdp_device.c \
 	src/ssdp/ssdp_ctrlpt.c \
@@ -86,13 +81,13 @@ endif
 
 # soap
 if ENABLE_SOAP
-libupnp_la_SOURCES += \
+libnpupnp_la_SOURCES += \
 	src/soap/soap_device.c \
 	src/soap/soap_ctrlpt.c
 endif
 
 # genlib
-libupnp_la_SOURCES += \
+libnpupnp_la_SOURCES += \
 	src/dispatcher/miniserver.c \
 	src/utils/smallut.cpp \
 	src/utils/util.c \
@@ -102,7 +97,7 @@ libupnp_la_SOURCES += \
 	src/webserver/webserver.c \
 	src/utils/uri.c
 
-libupnp_la_SOURCES += \
+libnpupnp_la_SOURCES += \
 	src/threadutil/FreeList.c \
 	src/threadutil/LinkedList.c \
 	src/threadutil/ThreadPool.c \
@@ -110,7 +105,7 @@ libupnp_la_SOURCES += \
 
 # gena
 if ENABLE_GENA
-libupnp_la_SOURCES += \
+libnpupnp_la_SOURCES += \
 	src/gena/gena_device.c \
 	src/gena/gena_ctrlpt.c \
 	src/gena/service_table.c \
@@ -119,21 +114,21 @@ libupnp_la_SOURCES += \
 endif
 
 # api
-libupnp_la_SOURCES += \
+libnpupnp_la_SOURCES += \
 	src/api/upnpapi.c
 
 if ENABLE_TOOLS
-libupnp_la_SOURCES += src/api/upnptools.c
+libnpupnp_la_SOURCES += src/api/upnptools.c
 endif
 
 if ENABLE_DEBUG
-libupnp_la_SOURCES += src/api/upnpdebug.c 
+libnpupnp_la_SOURCES += src/api/upnpdebug.c 
 endif
 
 
 # uuid
 if ENABLE_UUID
-libupnp_la_SOURCES += \
+libnpupnp_la_SOURCES += \
 	src/utils/uuid/md5.c \
 	src/utils/uuid/sysdep.c \
 	src/utils/uuid/uuid.c
@@ -141,7 +136,7 @@ endif
 
 
 # inet_pton (needed on Win32, compiles to nothing elsewhere)
-libupnp_la_SOURCES += \
+libnpupnp_la_SOURCES += \
 	src/utils/inet_pton.c \
 	src/inc/inet_pton.h
 
@@ -155,10 +150,4 @@ test_url_SOURCES = test/test_url.c
 
 EXTRA_DIST = \
 	m4/libupnp.m4 \
-	src/win_dll.c
-
-
-CLEANFILES = \
-	IUpnpErrFile.txt \
-	IUpnpInfoFile.txt
-
+	src/utils/win_dll.c

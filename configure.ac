@@ -9,18 +9,22 @@
 
 AC_PREREQ(2.60)
 
-AC_INIT([libupnp], [1.6.26], [mroberto@users.sourceforge.net])
+AC_INIT([libnpupnp], [1.0.0], [jfd@recoll.org])
 
-AC_SUBST([LT_VERSION_UPNP],       [10:1:4])
-dnl ############################################################################
-dnl # Repeating the algorithm to place it closer to the modificatin place:
-dnl # 	- library code modified:		revision++
-dnl # 	- interfaces changed/added/removed:	current++ and revision=0
-dnl # 	- interfaces added: 			age++
-dnl # 	- interfaces removed:			age=0
-dnl # *please update only once, before a formal release, not for each change*
-dnl ############################################################################
-
+# - Start with version information of ‘0:0:0’ for each libtool library.
+# - Update the version information only immediately before a public release
+# - If the library source code has changed at all since the last update, then
+#   increment revision (‘c:r:a’ becomes ‘c:r+1:a’).
+# - If any interfaces have been added, removed, or changed since the last
+#   update, increment current, and set revision to 0.
+# - If any interfaces have been added since the last public release, then
+#   increment age.
+# - If any interfaces have been removed or changed since the last public
+#   release, then set age to 0 AND CHANGE PACKAGE NAME. 
+# libupnpp packages are named libupnppX where X is the .so major number
+# (c-a). This allows packages for multiple incompatible ABIs to be
+# installed
+AC_SUBST([LT_VERSION_UPNP],       [0:0:0])
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
@@ -65,7 +69,7 @@ AC_DEFINE_UNQUOTED([UPNP_VERSION_PATCH], $upnppatch, [see upnpconfig.h])
 #
 # Check for DEBUG flag
 #
-RT_BOOL_ARG_ENABLE([debug], [no], [extra debugging code])
+RT_BOOL_ARG_ENABLE([debug], [yes], [extra debugging code])
 if test "x$enable_debug" = xyes ; then
 	AC_DEFINE(UPNP_HAVE_DEBUG, 1, [see upnpconfig.h])
 	AC_DEFINE(DEBUG, 1, [Define to 1 to compile debug code])
@@ -158,6 +162,7 @@ fi
 # Checks for programs
 #
 AC_PROG_CXX
+CC=$CXX
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 AC_PROG_LIBTOOL
 AC_PROG_INSTALL
@@ -337,7 +342,7 @@ PKG_CHECK_MODULES([libmicrohttpd], [libmicrohttpd], [],
 AC_CONFIG_FILES([
 	Makefile
 	upnp/Makefile
-	libupnp.pc
+	libnpupnp.pc
 	])
 
 AC_OUTPUT
