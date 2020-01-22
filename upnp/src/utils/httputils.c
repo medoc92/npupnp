@@ -41,17 +41,19 @@
 
 #include <assert.h>
 #include <ctype.h>
-#include <curl/curl.h>
 #include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include <string>
 #include <sstream>
 #include <iostream>
 #include <regex>
 #include <map>
+
+#include <curl/curl.h>
 
 #ifdef WIN32
 #include <malloc.h>
@@ -66,7 +68,6 @@
 #endif
 
 #include "UpnpInet.h"
-#include "UpnpIntTypes.h"
 #include "UpnpStdInt.h"
 #include "httputils.h"
 #include "smallut.h"

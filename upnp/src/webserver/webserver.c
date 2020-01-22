@@ -46,6 +46,7 @@
 
 #include <map>
 #include <iostream>
+#include <inttypes.h>
 
 #include <upnp/ixml.h>
 
@@ -55,7 +56,6 @@
 #include "statcodes.h"
 #include "upnp.h"
 #include "upnpapi.h"
-#include "UpnpIntTypes.h"
 #include "UpnpStdInt.h"
 #include "upnputil.h"
 #include "VirtualDir.h"
