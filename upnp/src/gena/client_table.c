@@ -48,7 +48,7 @@
 #include "upnp_timeout.h"
 #include "TimerThread.h"
 
-extern TimerThread gTimerThread;
+extern TimerThread *gTimerThread;
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -206,7 +206,7 @@ void free_client_subscription(ClientSubscription *sub)
 		if (renewEventId != -1) {
 			/* do not remove timer event of copy */
 			/* invalid timer event id */
-			if (TimerThreadRemove(&gTimerThread, renewEventId, &tempJob) == 0) {
+			if (gTimerThread->remove(renewEventId, &tempJob) == 0) {
 				event = (upnp_timeout *)tempJob.arg;
 				free_upnp_timeout(event);
 			}

@@ -33,37 +33,17 @@
 #ifndef THREADPOOL_H
 #define THREADPOOL_H
 
-/*!
- * \file
- */
+#include <list>
 
 #include "FreeList.h"
 #include "ithread.h"
-#include "LinkedList.h"
 #include "UpnpInet.h"
 #include "UpnpGlobal.h" /* for UPNP_INLINE, EXPORT_SPEC */
 
 #include <errno.h>
 
-#if defined(WIN32) && !defined(__MINGW32__) && !defined(__MINGW64__)
-	#include <time.h>
-	struct timezone
-	{
-		int  tz_minuteswest; /* minutes W of Greenwich */
-		int  tz_dsttime;     /* type of dst correction */
-	};
-	int gettimeofday(struct timeval *tv, struct timezone *tz);
-#else /* WIN32 */
-	#include <sys/param.h>
-	#include <sys/time.h> /* for gettimeofday() */
-	#if defined(__OSX__) || defined(__APPLE__) || defined(__NetBSD__)
-		#include <sys/resource.h>	/* for setpriority() */
-	#endif
-#endif
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+/*??*/
+#define EOUTOFMEM (-7 & 1<<29)
 
 /*! Size of job free list */
 #define JOBFREELISTSIZE 100
@@ -123,10 +103,6 @@ typedef enum priority {
  */
 #define STATS 1
 
-#ifdef _DEBUG
-	#define DEBUG 1
-#endif
-
 typedef int PolicyType;
 
 #define DEFAULT_POLICY SCHED_OTHER
@@ -137,62 +113,60 @@ typedef void (*free_routine)(void *arg);
 
 /*! Attributes for thread pool. Used to set and change parameters of thread
  * pool. */
-typedef struct THREADPOOLATTR
-{
+struct ThreadPoolAttr {
 	/*! ThreadPool will always maintain at least this many threads. */
-	int minThreads;
+	int minThreads{DEFAULT_MIN_THREADS};
 	/*! ThreadPool will never have more than this number of threads. */
-	int maxThreads;
+	int maxThreads{DEFAULT_MAX_THREADS};
 	/*! This is the minimum stack size allocated for each thread. */
-	size_t stackSize;
+	size_t stackSize{DEFAULT_STACK_SIZE};
 	/*! This is the maximum time a thread will
 	 * remain idle before dying (in milliseconds). */
-	int maxIdleTime;
+	int maxIdleTime{DEFAULT_IDLE_TIME};
 	/*! Jobs per thread to maintain. */
-	int jobsPerThread;
+	int jobsPerThread{DEFAULT_JOBS_PER_THREAD};
 	/*! Maximum number of jobs that can be queued totally. */
-	int maxJobsTotal;
+	int maxJobsTotal{DEFAULT_MAX_JOBS_TOTAL};
 	/*! the time a low priority or med priority job waits before getting
 	 * bumped up a priority (in milliseconds). */
-	int starvationTime;
+	int starvationTime{DEFAULT_STARVATION_TIME};
 	/*! scheduling policy to use. */
-	PolicyType schedPolicy;
-} ThreadPoolAttr;
+	PolicyType schedPolicy{DEFAULT_POLICY};
+};
 
 /*! Internal ThreadPool Job. */
-typedef struct THREADPOOLJOB
-{
+struct  ThreadPoolJob {
 	start_routine func;
 	void *arg;
 	free_routine free_func;
 	struct timeval requestTime;
 	ThreadPriority priority;
 	int jobId;
-} ThreadPoolJob;
+};
 
 /*! Structure to hold statistics. */
-typedef struct TPOOLSTATS
-{
-	double totalTimeHQ;
-	int totalJobsHQ;
-	double avgWaitHQ;
-	double totalTimeMQ;
-	int totalJobsMQ;
-	double avgWaitMQ;
-	double totalTimeLQ;
-	int totalJobsLQ;
-	double avgWaitLQ;
-	double totalWorkTime;
-	double totalIdleTime;
-	int workerThreads;
-	int idleThreads;
-	int persistentThreads;
-	int totalThreads;
-	int maxThreads;
-	int currentJobsHQ;
-	int currentJobsLQ;
-	int currentJobsMQ;
-} ThreadPoolStats;
+struct ThreadPoolStats {
+	double totalTimeHQ{0};
+	int totalJobsHQ{0};
+	double avgWaitHQ{0};
+	double totalTimeMQ{0};
+	int totalJobsMQ{0};
+	double avgWaitMQ{0};
+	double totalTimeLQ{0};
+	int totalJobsLQ{0};
+	double avgWaitLQ{0};
+	double totalWorkTime{0};
+	double totalIdleTime{0};
+	int workerThreads{0};
+	int idleThreads{0};
+	int persistentThreads{0};
+	int totalThreads{0};
+	int maxThreads{0};
+	int currentJobsHQ{0};
+	int currentJobsLQ{0};
+	int currentJobsMQ{0};
+};
+
 
 /*!
  * \brief A thread pool similar to the thread pool in the UPnP SDK.
@@ -209,8 +183,7 @@ typedef struct TPOOLSTATS
  * less than the maximum threads then a new thread will
  * be created.
  */
-typedef struct THREADPOOL
-{
+struct  ThreadPool {
 	/*! Mutex to protect job qs. */
 	ithread_mutex_t mutex;
 	/*! Condition variable to signal Q. */
@@ -230,20 +203,20 @@ typedef struct THREADPOOL
 	/*! number of persistent threads */
 	int persistentThreads;
 	/*! free list of jobs */
-	FreeList jobFreeList;
+	FreeList<ThreadPoolJob> jobFreeList{JOBFREELISTSIZE};
 	/*! low priority job Q */
-	LinkedList lowJobQ;
+	std::list<ThreadPoolJob*> lowJobQ;
 	/*! med priority job Q */
-	LinkedList medJobQ;
+	std::list<ThreadPoolJob*> medJobQ;
 	/*! high priority job Q */
-	LinkedList highJobQ;
+	std::list<ThreadPoolJob*> highJobQ;
 	/*! persistent job */
 	ThreadPoolJob *persistentJob;
 	/*! thread pool attributes */
 	ThreadPoolAttr attr;
 	/*! statistics */
 	ThreadPoolStats stats;
-} ThreadPool;
+};
 
 /*!
  * \brief Initializes and starts ThreadPool. Must be called first and
@@ -334,21 +307,6 @@ int ThreadPoolAdd(
 	/*! id of job. */
 	int *jobId);
 
-/*!
- * \brief Removes a job from the thread pool. Can only remove jobs which
- * are not currently running.
- *
- * \return
- * 	\li \c 0 on success, nonzero on failure.
- * 	\li \c INVALID_JOB_ID if job not found. 
- */
-int ThreadPoolRemove(
-	/*! valid thread pool pointer. */
-	ThreadPool *tp,
-	/*! id of job. */
-	int jobId,
-	/*! space for removed job. */
-	ThreadPoolJob *out);
 
 /*!
  * \brief Shuts the thread pool down. Waits for all threads to finish.
@@ -395,16 +353,6 @@ int TPJobSetFreeFunction(
 	ThreadPoolJob *job,
 	/*! value to set. */
 	free_routine func);
-
-/*!
- * \brief Initializes thread pool attributes. Sets values to defaults defined
- * in ThreadPool.h.
- *
- * \return Always returns 0.
- */
-int TPAttrInit(
-	/*! must be valid thread pool attributes. */
-	ThreadPoolAttr *attr);
 
 /*!
  * \brief Sets the max threads for the thread pool attributes.
@@ -526,10 +474,6 @@ int TPAttrSetMaxJobsTotal(
 	static UPNP_INLINE void ThreadPoolPrintStats(
 		/*! . */
 		ThreadPoolStats *stats) {}
-#endif
-
-#ifdef __cplusplus
-}
 #endif
 
 #endif /* THREADPOOL_H */

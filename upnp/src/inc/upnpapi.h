@@ -34,11 +34,9 @@
 #ifndef UPNPAPI_H
 #define UPNPAPI_H
 
-
-/*!
- * \file
- */
-
+#include <list>
+#include <string>
+#include <vector>
 
 #include "service_table.h"
 #include "upnp.h"
@@ -71,6 +69,8 @@ extern int g_UpnpSdkEQMaxAge;
 #define UPNP_TIMEOUT	30
 
 typedef enum {HND_INVALID=-1,HND_CLIENT,HND_DEVICE} Upnp_Handle_Type;
+
+struct SsdpSearchArg;
 
 /* Data to be stored in handle table for */
 struct Handle_Info
@@ -123,7 +123,7 @@ struct Handle_Info
 	/*! Client subscription list. */
 	ClientSubscription *ClientSubList{nullptr};
 	/*! Active SSDP searches. */
-	LinkedList SsdpSearchList{nullptr,0,0};
+	std::list<SsdpSearchArg*> SsdpSearchList;
 #endif
 };
 
@@ -230,7 +230,7 @@ extern unsigned short LOCAL_PORT_V6;
 extern Upnp_SID gUpnpSdkNLSuuid;
 
 
-extern TimerThread gTimerThread;
+extern TimerThread *gTimerThread;
 extern ThreadPool gRecvThreadPool;
 extern ThreadPool gSendThreadPool;
 extern ThreadPool gMiniServerThreadPool;
@@ -271,9 +271,8 @@ struct  UpnpNonblockParam
 };
 
 
-extern virtualDirList *pVirtualDirList;
+extern std::vector<std::string> virtualDirList;
 extern struct VirtualDirCallbacks virtualDirCallback;
-
 
 typedef enum {
 	WEB_SERVER_DISABLED,

@@ -38,7 +38,6 @@ libnpupnp_la_LDFLAGS = \
 
 libnpupnp_la_SOURCES = \
 	src/inc/FreeList.h \
-	src/inc/LinkedList.h \
 	src/inc/ThreadPool.h \
 	src/inc/TimerThread.h \
 	src/inc/VirtualDir.h \
@@ -97,8 +96,6 @@ libnpupnp_la_SOURCES += \
 	src/utils/uri.c
 
 libnpupnp_la_SOURCES += \
-	src/threadutil/FreeList.c \
-	src/threadutil/LinkedList.c \
 	src/threadutil/ThreadPool.c \
 	src/threadutil/TimerThread.c
 

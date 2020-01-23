@@ -49,6 +49,22 @@
 #include <stdio.h>
 #include <string.h>	/* for memset()*/
 
+#if defined(WIN32) && !defined(__MINGW32__) && !defined(__MINGW64__)
+	#include <time.h>
+	struct timezone
+	{
+		int  tz_minuteswest; /* minutes W of Greenwich */
+		int  tz_dsttime;     /* type of dst correction */
+	};
+	int gettimeofday(struct timeval *tv, struct timezone *tz);
+#else /* WIN32 */
+	#include <sys/param.h>
+	#include <sys/time.h> /* for gettimeofday() */
+	#if defined(__OSX__) || defined(__APPLE__) || defined(__NetBSD__)
+		#include <sys/resource.h>	/* for setpriority() */
+	#endif
+#endif
+
 /*!
  * \brief Returns the difference in milliseconds between two timeval structures.
  *
@@ -76,33 +92,6 @@ static long DiffMillis(
 }
 
 #ifdef STATS
-/*!
- * \brief Initializes the statistics structure.
- *
- * \internal
- */
-static void StatsInit(
-	/*! Must be valid non null stats structure. */
-	ThreadPoolStats *stats)
-{
-	stats->totalIdleTime = 0.0;
-	stats->totalJobsHQ = 0;
-	stats->totalJobsLQ = 0;
-	stats->totalJobsMQ = 0;
-	stats->totalTimeHQ = 0.0;
-	stats->totalTimeMQ = 0.0;
-	stats->totalTimeLQ = 0.0;
-	stats->totalWorkTime = 0.0;
-	stats->totalIdleTime = 0.0;
-	stats->avgWaitHQ = 0.0;
-	stats->avgWaitMQ = 0.0;
-	stats->avgWaitLQ = 0.0;
-	stats->workerThreads = 0;
-	stats->idleThreads = 0;
-	stats->persistentThreads = 0;
-	stats->maxThreads = 0;
-	stats->totalThreads = 0;
-}
 
 /*!
  * \brief 
@@ -207,28 +196,12 @@ static time_t StatsTime(
 	return tv.tv_sec;
 }
 #else /* STATS */
-static UPNP_INLINE void StatsInit(ThreadPoolStats *stats) {}
 static UPNP_INLINE void StatsAccountLQ(ThreadPool *tp, long diffTime) {}
 static UPNP_INLINE void StatsAccountMQ(ThreadPool *tp, long diffTime) {}
 static UPNP_INLINE void StatsAccountHQ(ThreadPool *tp, long diffTime) {}
 static UPNP_INLINE void CalcWaitTime(ThreadPool *tp, ThreadPriority p, ThreadPoolJob *job) {}
 static UPNP_INLINE time_t StatsTime(time_t *t) { return 0; }
 #endif /* STATS */
-
-/*!
- * \brief Compares thread pool jobs.
- *
- * \internal
- */
-static int CmpThreadPoolJob(
-	void *jobA,
-	void *jobB)
-{
-	ThreadPoolJob *a = (ThreadPoolJob *)jobA;
-	ThreadPoolJob *b = (ThreadPoolJob *)jobB;
-
-	return a->jobId == b->jobId;
-}
 
 /*!
  * \brief Deallocates a dynamically allocated ThreadPoolJob.
@@ -241,7 +214,7 @@ static void FreeThreadPoolJob(
 	/*! Must be allocated with CreateThreadPoolJob. */
 	ThreadPoolJob *tpj)
 {
-	FreeListFree(&tp->jobFreeList, tpj);
+	tp->jobFreeList.flfree(tpj);
 }
 
 /*!
@@ -357,27 +330,27 @@ static void BumpPriority(
 
 	gettimeofday(&now, NULL);	
 	while (!done) {
-		if (tp->medJobQ.size) {
-			tempJob = (ThreadPoolJob *)tp->medJobQ.head.next->item;
+		if (tp->medJobQ.size()) {
+			tempJob = tp->medJobQ.front();
 			diffTime = DiffMillis(&now, &tempJob->requestTime);
 			if (diffTime >= tp->attr.starvationTime) {
 				/* If job has waited longer than the starvation time
 				* bump priority (add to higher priority Q) */
 				StatsAccountMQ(tp, diffTime);
-				ListDelNode(&tp->medJobQ, tp->medJobQ.head.next, 0);
-				ListAddTail(&tp->highJobQ, tempJob);
+				tp->medJobQ.pop_front();
+				tp->highJobQ.push_back(tempJob);
 				continue;
 			}
 		}
-		if (tp->lowJobQ.size) {
-			tempJob = (ThreadPoolJob *)tp->lowJobQ.head.next->item;
+		if (tp->lowJobQ.size()) {
+			tempJob = tp->lowJobQ.front();
 			diffTime = DiffMillis(&now, &tempJob->requestTime);
 			if (diffTime >= tp->attr.maxIdleTime) {
 				/* If job has waited longer than the starvation time
 				 * bump priority (add to higher priority Q) */
 				StatsAccountLQ(tp, diffTime);
-				ListDelNode(&tp->lowJobQ, tp->lowJobQ.head.next, 0);
-				ListAddTail(&tp->medJobQ, tempJob);
+				tp->lowJobQ.pop_front();
+				tp->medJobQ.push_back(tempJob);
 				continue;
 			}
 		}
@@ -452,7 +425,6 @@ static void *WorkerThread(
 	time_t start = 0;
 
 	ThreadPoolJob *job = NULL;
-	ListNode *head = NULL;
 
 	struct timespec timeout;
 	int retCode = 0;
@@ -489,9 +461,9 @@ static void *WorkerThread(
 		}
 
 		/* Check for a job or shutdown */
-		while (tp->lowJobQ.size  == 0 &&
-		       tp->medJobQ.size  == 0 &&
-		       tp->highJobQ.size == 0 &&
+		while (tp->lowJobQ.size() == 0 &&
+		       tp->medJobQ.size()  == 0 &&
+		       tp->highJobQ.size() == 0 &&
 		       !tp->persistentJob && !tp->shutdown) {
 			/* If wait timed out and we currently have more than the
 			 * min threads, or if we have more than the max threads
@@ -532,33 +504,18 @@ static void *WorkerThread(
 				tp->stats.workerThreads++;
 				persistent = 0;
 				/* Pick the highest priority job */
-				if (tp->highJobQ.size > 0) {
-					head = ListHead(&tp->highJobQ);
-					if (head == NULL) {
-						tp->stats.workerThreads--;
-						goto exit_function;
-					}
-					job = (ThreadPoolJob *) head->item;
+				if (tp->highJobQ.size() > 0) {
+					job = tp->highJobQ.front();
+					tp->highJobQ.pop_front();
 					CalcWaitTime(tp, HIGH_PRIORITY, job);
-					ListDelNode(&tp->highJobQ, head, 0);
-				} else if (tp->medJobQ.size > 0) {
-					head = ListHead(&tp->medJobQ);
-					if (head == NULL) {
-						tp->stats.workerThreads--;
-						goto exit_function;
-					}
-					job = (ThreadPoolJob *) head->item;
+				} else if (tp->medJobQ.size() > 0) {
+					job = tp->medJobQ.front();
+					tp->medJobQ.pop_front();
 					CalcWaitTime(tp, MED_PRIORITY, job);
-					ListDelNode(&tp->medJobQ, head, 0);
-				} else if (tp->lowJobQ.size > 0) {
-					head = ListHead(&tp->lowJobQ);
-					if (head == NULL) {
-						tp->stats.workerThreads--;
-						goto exit_function;
-					}
-					job = (ThreadPoolJob *) head->item;
+				} else if (tp->lowJobQ.size() > 0) {
+					job = tp->lowJobQ.front();
+					tp->lowJobQ.pop_front();
 					CalcWaitTime(tp, LOW_PRIORITY, job);
-					ListDelNode(&tp->lowJobQ, head, 0);
 				} else {
 					/* Should never get here */
 					tp->stats.workerThreads--;
@@ -604,9 +561,7 @@ static ThreadPoolJob *CreateThreadPoolJob(
 	/*! . */
 	ThreadPool *tp)
 {
-	ThreadPoolJob *newJob = NULL;
-
-	newJob = (ThreadPoolJob *)FreeListAlloc(&tp->jobFreeList);
+	ThreadPoolJob *newJob = tp->jobFreeList.flalloc();
 	if (newJob) {
 		*newJob = *job;
 		newJob->jobId = id;
@@ -682,7 +637,7 @@ static void AddWorker(
 	long jobs = 0;
 	int threads = 0;
 
-	jobs = tp->highJobQ.size + tp->lowJobQ.size + tp->medJobQ.size;
+	jobs = tp->highJobQ.size() + tp->lowJobQ.size() + tp->medJobQ.size();
 	threads = tp->totalThreads - tp->persistentThreads;
 	while (threads == 0 ||
 	       (jobs / threads) >= tp->attr.jobsPerThread ||
@@ -717,8 +672,6 @@ int ThreadPoolInit(ThreadPool *tp, ThreadPoolAttr *attr)
 	}
 	if (attr) {
 		tp->attr = *attr;
-	} else {
-		TPAttrInit(&tp->attr);
 	}
 	if (SetPolicyType(tp->attr.schedPolicy) != 0) {
 		ithread_mutex_unlock(&tp->mutex);
@@ -728,12 +681,7 @@ int ThreadPoolInit(ThreadPool *tp, ThreadPoolAttr *attr)
 
 		return INVALID_POLICY;
 	}
-	retCode += FreeListInit(
-		&tp->jobFreeList, sizeof(ThreadPoolJob), JOBFREELISTSIZE);
-	StatsInit(&tp->stats);
-	retCode += ListInit(&tp->highJobQ, CmpThreadPoolJob, NULL);
-	retCode += ListInit(&tp->medJobQ, CmpThreadPoolJob, NULL);
-	retCode += ListInit(&tp->lowJobQ, CmpThreadPoolJob, NULL);
+	tp->stats = ThreadPoolStats();
 	if (retCode) {
 		retCode = EAGAIN;
 	} else {
@@ -812,7 +760,6 @@ exit_function:
 
 int ThreadPoolAdd(ThreadPool *tp, ThreadPoolJob *job, int *jobId)
 {
-	int rc = EOUTOFMEM;
 	int tempId = -1;
 	long totalJobs;
 	ThreadPoolJob *temp = NULL;
@@ -822,7 +769,7 @@ int ThreadPoolAdd(ThreadPool *tp, ThreadPoolJob *job, int *jobId)
 
 	ithread_mutex_lock(&tp->mutex);
 
-	totalJobs = tp->highJobQ.size + tp->lowJobQ.size + tp->medJobQ.size;
+	totalJobs = tp->highJobQ.size() + tp->lowJobQ.size() + tp->medJobQ.size();
 	if (totalJobs >= tp->attr.maxJobsTotal) {
 		fprintf(stderr, "total jobs = %ld, too many jobs", totalJobs);
 		goto exit_function;
@@ -835,87 +782,24 @@ int ThreadPoolAdd(ThreadPool *tp, ThreadPoolJob *job, int *jobId)
 		goto exit_function;
 	switch (job->priority) {
 	case HIGH_PRIORITY:
-		if (ListAddTail(&tp->highJobQ, temp))
-			rc = 0;
+		tp->highJobQ.push_back(temp);
 		break;
 	case MED_PRIORITY:
-		if (ListAddTail(&tp->medJobQ, temp))
-			rc = 0;
+		tp->medJobQ.push_back(temp);
 		break;
 	default:
-		if (ListAddTail(&tp->lowJobQ, temp))
-			rc = 0;
+		tp->lowJobQ.push_back(temp);
 	}
 	/* AddWorker if appropriate */
 	AddWorker(tp);
 	/* Notify a waiting thread */
-	if (rc == 0)
-		ithread_cond_signal(&tp->condition);
-	else
-		FreeThreadPoolJob(tp, temp);
+	ithread_cond_signal(&tp->condition);
 	*jobId = tp->lastJobId++;
 
 exit_function:
 	ithread_mutex_unlock(&tp->mutex);
 
-	return rc;
-}
-
-int ThreadPoolRemove(ThreadPool *tp, int jobId, ThreadPoolJob *out)
-{
-	int ret = INVALID_JOB_ID;
-	ThreadPoolJob *temp = NULL;
-	ListNode *tempNode = NULL;
-	ThreadPoolJob dummy;
-
-	if (!tp)
-		return EINVAL;
-	if (!out)
-		out = &dummy;
-	dummy.jobId = jobId;
-
-	ithread_mutex_lock(&tp->mutex);
-
-	tempNode = ListFind(&tp->highJobQ, NULL, &dummy);
-	if (tempNode) {
-		temp = (ThreadPoolJob *)tempNode->item;
-		*out = *temp;
-		ListDelNode(&tp->highJobQ, tempNode, 0);
-		FreeThreadPoolJob(tp, temp);
-		ret = 0;
-		goto exit_function;
-	}
-
-	tempNode = ListFind(&tp->medJobQ, NULL, &dummy);
-	if (tempNode) {
-		temp = (ThreadPoolJob *)tempNode->item;
-		*out = *temp;
-		ListDelNode(&tp->medJobQ, tempNode, 0);
-		FreeThreadPoolJob(tp, temp);
-		ret = 0;
-		goto exit_function;
-	}
-	tempNode = ListFind(&tp->lowJobQ, NULL, &dummy);
-	if (tempNode) {
-		temp = (ThreadPoolJob *)tempNode->item;
-		*out = *temp;
-		ListDelNode(&tp->lowJobQ, tempNode, 0);
-		FreeThreadPoolJob(tp, temp);
-		ret = 0;
-		goto exit_function;
-	}
-	if (tp->persistentJob && tp->persistentJob->jobId == jobId) {
-		*out = *tp->persistentJob;
-		FreeThreadPoolJob(tp, tp->persistentJob);
-		tp->persistentJob = NULL;
-		ret = 0;
-		goto exit_function;
-	}
-
-exit_function:
-	ithread_mutex_unlock(&tp->mutex);
-
-	return ret;
+	return 0;
 }
 
 int ThreadPoolGetAttr(ThreadPool *tp, ThreadPoolAttr *out)
@@ -944,8 +828,6 @@ int ThreadPoolSetAttr(ThreadPool *tp, ThreadPoolAttr *attr)
 
 	if (attr)
 		temp = *attr;
-	else
-		TPAttrInit(&temp);
 	if (SetPolicyType(temp.schedPolicy) != 0) {
 		ithread_mutex_unlock(&tp->mutex);
 		return INVALID_POLICY;
@@ -974,54 +856,36 @@ int ThreadPoolSetAttr(ThreadPool *tp, ThreadPoolAttr *attr)
 
 int ThreadPoolShutdown(ThreadPool *tp)
 {
-	ListNode *head = NULL;
 	ThreadPoolJob *temp = NULL;
 
 	if (!tp)
 		return EINVAL;
 	ithread_mutex_lock(&tp->mutex);
-	/* clean up high priority jobs */
-	while (tp->highJobQ.size) {
-		head = ListHead(&tp->highJobQ);
-		if (head == NULL) {
-			ithread_mutex_unlock(&tp->mutex);
-			return EINVAL;
-		}
-		temp = (ThreadPoolJob *)head->item;
+
+	while (tp->highJobQ.size()) {
+		temp = tp->highJobQ.front();
+		tp->highJobQ.pop_front();
 		if (temp->free_func)
 			temp->free_func(temp->arg);
 		FreeThreadPoolJob(tp, temp);
-		ListDelNode(&tp->highJobQ, head, 0);
 	}
-	ListDestroy(&tp->highJobQ, 0);
-	/* clean up med priority jobs */
-	while (tp->medJobQ.size) {
-		head = ListHead(&tp->medJobQ);
-		if (head == NULL) {
-			ithread_mutex_unlock(&tp->mutex);
-			return EINVAL;
-		}
-		temp = (ThreadPoolJob *)head->item;
+
+	while (tp->medJobQ.size()) {
+		temp = tp->medJobQ.front();
+		tp->medJobQ.pop_front();
 		if (temp->free_func)
 			temp->free_func(temp->arg);
 		FreeThreadPoolJob(tp, temp);
-		ListDelNode(&tp->medJobQ, head, 0);
 	}
-	ListDestroy(&tp->medJobQ, 0);
-	/* clean up low priority jobs */
-	while (tp->lowJobQ.size) {
-		head = ListHead(&tp->lowJobQ);
-		if (head == NULL) {
-			ithread_mutex_unlock(&tp->mutex);
-			return EINVAL;
-		}
-		temp = (ThreadPoolJob *)head->item;
+
+	while (tp->lowJobQ.size()) {
+		temp = tp->lowJobQ.front();
+		tp->lowJobQ.pop_front();
 		if (temp->free_func)
 			temp->free_func(temp->arg);
 		FreeThreadPoolJob(tp, temp);
-		ListDelNode(&tp->lowJobQ, head, 0);
 	}
-	ListDestroy(&tp->lowJobQ, 0);
+
 	/* clean up long term job */
 	if (tp->persistentJob) {
 		temp = tp->persistentJob;
@@ -1039,28 +903,12 @@ int ThreadPoolShutdown(ThreadPool *tp)
 	/* destroy condition */
 	while (ithread_cond_destroy(&tp->condition) != 0) {}
 	while (ithread_cond_destroy(&tp->start_and_shutdown) != 0) {}
-	FreeListDestroy(&tp->jobFreeList);
+	tp->jobFreeList.clear();
 
 	ithread_mutex_unlock(&tp->mutex);
 
 	/* destroy mutex */
 	while (ithread_mutex_destroy(&tp->mutex) != 0) {}
-
-	return 0;
-}
-
-int TPAttrInit(ThreadPoolAttr *attr)
-{
-	if (!attr)
-		return EINVAL;
-	attr->jobsPerThread  = DEFAULT_JOBS_PER_THREAD;
-	attr->maxIdleTime    = DEFAULT_IDLE_TIME;
-	attr->maxThreads     = DEFAULT_MAX_THREADS;
-	attr->minThreads     = DEFAULT_MIN_THREADS;
-	attr->stackSize      = DEFAULT_STACK_SIZE;
-	attr->schedPolicy    = DEFAULT_POLICY;
-	attr->starvationTime = DEFAULT_STARVATION_TIME;
-	attr->maxJobsTotal   = DEFAULT_MAX_JOBS_TOTAL;
 
 	return 0;
 }
@@ -1218,9 +1066,9 @@ int ThreadPoolGetStats(ThreadPool *tp, ThreadPoolStats *stats)
 		stats->avgWaitLQ = 0.0;
 	stats->totalThreads = tp->totalThreads;
 	stats->persistentThreads = tp->persistentThreads;
-	stats->currentJobsHQ = (int)ListSize(&tp->highJobQ);
-	stats->currentJobsLQ = (int)ListSize(&tp->lowJobQ);
-	stats->currentJobsMQ = (int)ListSize(&tp->medJobQ);
+	stats->currentJobsHQ = (int)tp->highJobQ.size();
+	stats->currentJobsLQ = (int)tp->lowJobQ.size();
+	stats->currentJobsMQ = (int)tp->medJobQ.size();
 
 	/* if not shutdown then release mutex */
 	if (!tp->shutdown)

@@ -140,13 +140,15 @@ typedef struct ssdpsearchreply
 	SsdpEvent event;
 } SsdpSearchReply;
 
-typedef struct ssdpsearcharg
-{
+struct SsdpSearchArg {
+	SsdpSearchArg(char *st, void *ck, SsdpSearchType rt)
+		: searchTarget(st), cookie(ck), requestType(rt) {
+	}
 	int timeoutEventId;
-	char * searchTarget;
+	std::string searchTarget;
 	void *cookie;
 	enum SsdpSearchType requestType;
-} SsdpSearchArg;
+};
 
 
 /* globals */

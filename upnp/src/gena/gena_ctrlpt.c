@@ -179,12 +179,9 @@ static int ScheduleGenaAutoRenew(
 	TPJobSetPriority(&job, MED_PRIORITY);
 
 	/* Schedule the job */
-	return_code = TimerThreadSchedule(
-		&gTimerThread,
-		TimeOut - AUTO_RENEW_TIME,
-		REL_SEC,
-		&job, SHORT_TERM,
-		&(RenewEvent->eventId));
+	return_code = gTimerThread->schedule(TimeOut - AUTO_RENEW_TIME,
+										 REL_SEC, &job, SHORT_TERM,
+										 &(RenewEvent->eventId));
 	if (return_code != UPNP_E_SUCCESS) {
 		free_upnp_timeout(RenewEvent);
 		goto end_function;
@@ -585,14 +582,12 @@ int genaRenewSubscription(
 	}
 
 	/* remove old events */
-	if (TimerThreadRemove(
-		&gTimerThread,
-		UpnpClientSubscription_get_RenewEventId(sub),
-		&tempJob) == 0 ) {
+	if (gTimerThread->remove(UpnpClientSubscription_get_RenewEventId(sub),
+							 &tempJob) == 0 ) {
 		free_upnp_timeout((upnp_timeout *)tempJob.arg);
 	}
 
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__, "REMOVED AUTO RENEW  EVENT\n");
+	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,"REMOVED AUTO RENEW EVENT\n");
 
 	UpnpClientSubscription_set_RenewEventId(sub, -1);
 	UpnpClientSubscription_assign(sub_copy, sub);

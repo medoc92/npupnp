@@ -100,8 +100,6 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
 	Upnp_EventType event_type;
 	Upnp_FunPtr ctrlpt_callback;
 	void *ctrlpt_cookie;
-	ListNode *node = NULL;
-	SsdpSearchArg *searchArg = NULL;
 	int matched = 0;
 	ResultData *threadData = NULL;
 	ThreadPoolJob job;
@@ -242,9 +240,7 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
 			return;
 		}
 		size_t stlen = strlen(parser.st);
-		node = ListHead(&ctrlpt_info->SsdpSearchList);
-		while (node != NULL) {
-			searchArg = (SsdpSearchArg*)node->item;
+		for (auto searchArg : ctrlpt_info->SsdpSearchList) {
 			/* check for match of ST header and search target */
 			switch (searchArg->requestType) {
 			case SSDP_ALL:
@@ -254,18 +250,19 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
 				matched = (event.RequestType == SSDP_ROOTDEVICE);
 				break;
 			case SSDP_DEVICEUDN:
-				matched = !strncmp(searchArg->searchTarget, parser.st, stlen);
+				matched = !strncmp(searchArg->searchTarget.c_str(),
+								   parser.st, stlen);
 				break;
 			case SSDP_DEVICETYPE:
 			{
-				size_t m = MIN(stlen, strlen(searchArg->searchTarget));
-				matched =!strncmp(searchArg->searchTarget, parser.st, m);
+				size_t m = MIN(stlen, searchArg->searchTarget.size());
+				matched =!strncmp(searchArg->searchTarget.c_str(), parser.st, m);
 				break;
 			}
 			case SSDP_SERVICE:
 			{
-				size_t m = MIN(stlen, strlen(searchArg->searchTarget));
-				matched = !strncmp(searchArg->searchTarget, parser.st, m);
+				size_t m = MIN(stlen, searchArg->searchTarget.size());
+				matched = !strncmp(searchArg->searchTarget.c_str(),parser.st, m);
 				break;
 			}
 			default:
@@ -288,7 +285,6 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
 					}
 				}
 			}
-			node = ListNext(&ctrlpt_info->SsdpSearchList, node);
 		}
 
 		HandleUnlock();
@@ -361,14 +357,11 @@ static void searchExpired(
 	/* [in] . */
 	void *arg)
 {
-
 	int *id = (int *)arg;
 	int handle = -1;
 	struct Handle_Info *ctrlpt_info = NULL;
 
 	/* remove search Target from list and call client back */
-	ListNode *node = NULL;
-	SsdpSearchArg *item;
 	Upnp_FunPtr ctrlpt_callback;
 	void *cookie = NULL;
 	int found = 0;
@@ -382,19 +375,16 @@ static void searchExpired(
 		return;
 	}
 	ctrlpt_callback = ctrlpt_info->Callback;
-	node = ListHead(&ctrlpt_info->SsdpSearchList);
-	while (node != NULL) {
-		item = (SsdpSearchArg *) node->item;
-		if (item->timeoutEventId == (*id)) {
-			free(item->searchTarget);
+	for (auto it = ctrlpt_info->SsdpSearchList.begin();
+		 it != ctrlpt_info->SsdpSearchList.begin(); it++) {
+		SsdpSearchArg *item = *it;
+		if (item->timeoutEventId == *id) {
 			cookie = item->cookie;
 			found = 1;
-			item->searchTarget = NULL;
-			free(item);
-			ListDelNode(&ctrlpt_info->SsdpSearchList, node, 0);
+			delete item;
+			ctrlpt_info->SsdpSearchList.erase(it);
 			break;
 		}
-		node = ListNext(&ctrlpt_info->SsdpSearchList, node);
 	}
 	HandleUnlock();
 
@@ -423,7 +413,6 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
 	struct sockaddr_in6 *destAddr6 = (struct sockaddr_in6 *)&__ss_v6;
 #endif
 	fd_set wrSet;
-	SsdpSearchArg *newArg = NULL;
 	int timeTillRead = 0;
 	int handle;
 	struct Handle_Info *ctrlpt_info = NULL;
@@ -479,19 +468,15 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
 		HandleUnlock();
 		return UPNP_E_INTERNAL_ERROR;
 	}
-	newArg = (SsdpSearchArg *) malloc(sizeof(SsdpSearchArg));
-	newArg->searchTarget = strdup(St);
-	newArg->cookie = Cookie;
-	newArg->requestType = requestType;
+	SsdpSearchArg *newArg = new SsdpSearchArg(St, Cookie, requestType);
 	id = (int *)malloc(sizeof(int));
 	TPJobInit(&job, (start_routine) searchExpired, id);
 	TPJobSetPriority(&job, MED_PRIORITY);
 	TPJobSetFreeFunction(&job, (free_routine) free);
 	/* Schedule a timeout event to remove search Arg */
-	TimerThreadSchedule(&gTimerThread, timeTillRead,
-						REL_SEC, &job, SHORT_TERM, id);
+	gTimerThread->schedule(timeTillRead, REL_SEC, &job, SHORT_TERM, id);
 	newArg->timeoutEventId = *id;
-	ListAddTail(&ctrlpt_info->SsdpSearchList, newArg);
+	ctrlpt_info->SsdpSearchList.push_back(newArg);
 	HandleUnlock();
 	/* End of lock */
 

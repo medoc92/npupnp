@@ -195,7 +195,6 @@ int web_server_init()
 	int ret = 0;
 
 	if (bWebServerState == WEB_SERVER_DISABLED) {
-		pVirtualDirList = NULL;
 
 		/* Initialize callbacks */
 		virtualDirCallback.get_info = NULL;
@@ -287,29 +286,20 @@ static int isFileInVirtualDir(
 	/*! [in] Directory path to be tested for virtual directory. */
 	char *filePath)
 {
-	virtualDirList *pCurVirtualDir;
-	size_t webDirLen;
-
-	pCurVirtualDir = pVirtualDirList;
-	while (pCurVirtualDir != NULL) {
-		webDirLen = strlen(pCurVirtualDir->dirName);
-		if (webDirLen) {
-			if (pCurVirtualDir->dirName[webDirLen - 1] == '/') {
-				if (strncmp(pCurVirtualDir->dirName, filePath,
-						webDirLen) == 0)
-					return !0;
+	for (const auto& vd : virtualDirList) {
+		if (vd.size()) {
+			if (vd[vd.size() - 1] == '/') {
+				if (strncmp(vd.c_str(), filePath, vd.size()) == 0)
+					return 1;
 			} else {
-				if (strncmp(pCurVirtualDir->dirName, filePath,
-						webDirLen) == 0 &&
-				    (filePath[webDirLen] == '/' ||
-				     filePath[webDirLen] == '\0' ||
-				     filePath[webDirLen] == '?'))
-					return !0;
+				if (strncmp(vd.c_str(), filePath, vd.size()) == 0 &&
+				    (filePath[vd.size()] == '/' ||
+				     filePath[vd.size()] == 0 ||
+				     filePath[vd.size()] == '?'))
+					return 1;
 			}
 		}
-		pCurVirtualDir = pCurVirtualDir->next;
 	}
-
 	return 0;
 }
 

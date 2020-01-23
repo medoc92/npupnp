@@ -1,6 +1,6 @@
 /*******************************************************************************
  *
- * Copyright (c) 2000-2003 Intel Corporation 
+ * Copyright (c) 2020 J.F. Dockes <jf@dockes.org>
  * All rights reserved. 
  *
  * Redistribution and use in source and binary forms, with or without 
@@ -32,99 +32,44 @@
 #ifndef FREE_LIST_H
 #define FREE_LIST_H
 
-/*!
- * \file
- */
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <errno.h>
-#include <stdlib.h>
+#include <vector>
 	
-/*!
- * Free list node. points to next free item.
- * Memory for node is borrowed from allocated items.
- * \internal
- */
-typedef struct FREELISTNODE
-{
-	struct FREELISTNODE *next;
-} FreeListNode;
-
-/*!
- * Stores head and size of free list, as well as mutex for protection.
- * \internal
- */
-typedef struct FREELIST
-{
-	FreeListNode *head;
-	size_t element_size;
+template <class T> class FreeList {
+public:
+	FreeList(int maxlen)
+		: maxFreeListLength(maxlen) {}
+	~FreeList() {
+		for (auto& entry : lst) {
+			delete entry;
+		}
+	}
+	void clear() {
+		for (auto& elt : lst) {
+			delete elt;
+		}
+		lst.clear();
+	}
+	T *flalloc() {
+		if (lst.empty()) {
+			return new T;
+		} else {
+			auto elt = lst.back();
+			lst.pop_back();
+			return elt;
+		}
+	}
+	void flfree(T *elt) {
+		if ((int)lst.size() >= maxFreeListLength) {
+			delete elt;
+		} else {
+			lst.push_back(elt);
+		}
+	}
+	
+private:
  	int maxFreeListLength;
-	int freeListLength;
-} FreeList;
-
-/*!
- * \brief Initializes Free List.
- *
- * Must be called first and only once for FreeList.
- *
- * \return:
- *	\li \c 0 on success.
- *	\li \c EINVAL on failure.
- */
-int FreeListInit(
-	/*! Must be valid, non null, pointer to a linked list. */
-	FreeList *free_list,
-	/*! Size of elements to store in free list. */
-	size_t elementSize,
-	/*! Max size that the free list can grow to before returning
-	 * memory to O.S. */
-	int maxFreeListLength);
-
-/*!
- * \brief Allocates chunk of set size.
- *
- * If a free item is available in the list, returnes the stored item,
- * otherwise calls the O.S. to allocate memory.
- *
- * \return Non NULL on success. NULL on failure.
- */
-void *FreeListAlloc(
-	/*! Must be valid, non null, pointer to a linked list. */
-	FreeList *free_list);
-
-/*!
- * \brief Returns an item to the Free List.
- *
- * If the free list is smaller than the max size then adds the item to the
- * free list, otherwise returns the item to the O.S.
- *
- * \return:
- *	\li \c 0 on success.
- *	\li \c EINVAL on failure.
- */
-int FreeListFree(
-	/*! Must be valid, non null, pointer to a free list. */
-	FreeList *free_list,
-	/*! Must be a pointer allocated by FreeListAlloc. */
-	void *element);
-
-/*!
- * \brief Releases the resources stored with the free list.
- *
- * \return:
- *	\li \c 0 on success.
- *	\li \c EINVAL on failure.
- */
-int FreeListDestroy(
-	/*! Must be valid, non null, pointer to a linked list. */
-	FreeList *free_list);
-
-#ifdef __cplusplus
-}
-#endif
+	std::vector<T*> lst;
+};
 
 #endif /* FREE_LIST_H */
 

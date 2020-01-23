@@ -96,11 +96,13 @@ int copy_subscription(subscription *in, subscription *out)
 void RemoveSubscriptionSID(Upnp_SID sid, service_info *service)
 {
 	auto& sublist(service->subscriptionList);
-	for (auto it = sublist.begin(); it != sublist.end(); it++) {
+	for (auto it = sublist.begin(); it != sublist.end(); ) {
         if (!strcmp(sid, it->sid)) {
 			it = sublist.erase(it);
             service->TotalSubscriptions--;
-        }
+        } else {
+			it++;
+		}
     }
 }
 

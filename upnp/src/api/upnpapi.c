@@ -94,8 +94,9 @@
 /*! This structure is for virtual directory callbacks */
 struct VirtualDirCallbacks virtualDirCallback;
 
-/*! Pointer to the virtual directory list. */
-virtualDirList *pVirtualDirList;
+/*! Virtual directory list. This is used with a linear search by the
+    web server to perform prefix matches. */
+std::vector<std::string> virtualDirList;
 
 #ifdef INCLUDE_CLIENT_APIS
 /*! Mutex to synchronize the subscription handling at the client side. */
@@ -112,11 +113,10 @@ ithread_mutex_t gUUIDMutex;
 /*! Initialization mutex. */
 ithread_mutex_t gSDKInitMutex = PTHREAD_MUTEX_INITIALIZER;
 
-/*! Global timer thread. */
-TimerThread gTimerThread;
-
 /*! Send thread pool. */
 ThreadPool gSendThreadPool;
+/*! Global timer thread. */
+TimerThread *gTimerThread;
 
 /*! Receive thread pool. */
 ThreadPool gRecvThreadPool;
@@ -281,7 +281,6 @@ static int UpnpInitThreadPools(void)
 	int ret = UPNP_E_SUCCESS;
 	ThreadPoolAttr attr;
 
-	TPAttrInit(&attr);
 	TPAttrSetMaxThreads(&attr, MAX_THREADS);
 	TPAttrSetMinThreads(&attr, MIN_THREADS);
 	TPAttrSetStackSize(&attr, THREAD_STACK_SIZE);
@@ -388,11 +387,10 @@ static int UpnpInitPreamble(void)
 #endif /* INTERNAL_WEB_SERVER */
 
 	/* Initialize the SDK timer thread. */
-	retVal = TimerThreadInit( &gTimerThread, &gSendThreadPool );
-	if (retVal != UPNP_E_SUCCESS) {
+	gTimerThread = new TimerThread(&gSendThreadPool);
+	if (nullptr == gTimerThread) {
 		UpnpFinish();
-
-		return retVal;
+		return UPNP_E_INIT_FAILED;
 	}
 
 	return UPNP_E_SUCCESS;
@@ -650,7 +648,8 @@ int UpnpFinish(void)
 		break;
 	}
 #endif
-	TimerThreadShutdown(&gTimerThread);
+	gTimerThread->shutdown();
+	delete gTimerThread;
 #if EXCLUDE_MINISERVER == 0
 	StopMiniServer();
 #endif
@@ -837,7 +836,6 @@ int UpnpRegisterRootDevice(
 	HInfo->ServiceList = NULL;
 	HInfo->DescDocument = NULL;
 #ifdef INCLUDE_CLIENT_APIS
-	ListInit(&HInfo->SsdpSearchList, NULL, NULL);
 	HInfo->ClientSubList = NULL;
 #endif /* INCLUDE_CLIENT_APIS */
 	HInfo->MaxSubscriptions = UPNP_INFINITE;
@@ -849,9 +847,6 @@ int UpnpRegisterRootDevice(
 		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
 			"UpnpRegisterRootDevice: error downloading Document: %d\n",
 			retVal);
-#ifdef INCLUDE_CLIENT_APIS
-		ListDestroy(&HInfo->SsdpSearchList, 0);
-#endif /* INCLUDE_CLIENT_APIS */
 		FreeHandle(*Hnd);
 		goto exit_function;
 	}
@@ -863,9 +858,6 @@ int UpnpRegisterRootDevice(
 	HInfo->DeviceList =
 		ixmlDocument_getElementsByTagName(HInfo->DescDocument, "device");
 	if (!HInfo->DeviceList) {
-#ifdef INCLUDE_CLIENT_APIS
-		ListDestroy(&HInfo->SsdpSearchList, 0);
-#endif /* INCLUDE_CLIENT_APIS */
 		ixmlDocument_free(HInfo->DescDocument);
 		FreeHandle(*Hnd);
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
@@ -1004,7 +996,6 @@ int UpnpRegisterRootDevice2(
 	HInfo->DeviceList = NULL;
 	HInfo->ServiceList = NULL;
 #ifdef INCLUDE_CLIENT_APIS
-	ListInit(&HInfo->SsdpSearchList, NULL, NULL);
 	HInfo->ClientSubList = NULL;
 #endif /* INCLUDE_CLIENT_APIS */
 	HInfo->MaxSubscriptions = UPNP_INFINITE;
@@ -1019,9 +1010,6 @@ int UpnpRegisterRootDevice2(
 	HInfo->DeviceList =
 		ixmlDocument_getElementsByTagName( HInfo->DescDocument, "device" );
 	if (!HInfo->DeviceList) {
-#ifdef INCLUDE_CLIENT_APIS
-		ListDestroy(&HInfo->SsdpSearchList, 0);
-#endif /* INCLUDE_CLIENT_APIS */
 		ixmlDocument_free(HInfo->DescDocument);
 		FreeHandle(*Hnd);
 		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
@@ -1152,7 +1140,6 @@ int UpnpRegisterRootDevice4(
 	HInfo->ServiceList = NULL;
 	HInfo->DescDocument = NULL;
 #ifdef INCLUDE_CLIENT_APIS
-	ListInit(&HInfo->SsdpSearchList, NULL, NULL);
 	HInfo->ClientSubList = NULL;
 #endif /* INCLUDE_CLIENT_APIS */
 	HInfo->MaxSubscriptions = UPNP_INFINITE;
@@ -1160,9 +1147,6 @@ int UpnpRegisterRootDevice4(
 	HInfo->DeviceAf = AddressFamily;
 	retVal = UpnpDownloadXmlDoc(HInfo->DescURL, &(HInfo->DescDocument));
 	if (retVal != UPNP_E_SUCCESS) {
-#ifdef INCLUDE_CLIENT_APIS
-		ListDestroy(&HInfo->SsdpSearchList, 0);
-#endif /* INCLUDE_CLIENT_APIS */
 		FreeHandle(*Hnd);
 		goto exit_function;
 	}
@@ -1174,9 +1158,6 @@ int UpnpRegisterRootDevice4(
 	HInfo->DeviceList = ixmlDocument_getElementsByTagName(
 		HInfo->DescDocument, "device");
 	if (!HInfo->DeviceList) {
-#ifdef INCLUDE_CLIENT_APIS
-		ListDestroy(&HInfo->SsdpSearchList, 0);
-#endif /* INCLUDE_CLIENT_APIS */
 		ixmlDocument_free(HInfo->DescDocument);
 		FreeHandle(*Hnd);
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
@@ -1288,9 +1269,6 @@ int UpnpUnRegisterRootDeviceLowPower(UpnpDevice_Handle Hnd, int PowerState,
 	ixmlNodeList_free(HInfo->DeviceList);
 	ixmlNodeList_free(HInfo->ServiceList);
 	ixmlDocument_free(HInfo->DescDocument);
-#ifdef INCLUDE_CLIENT_APIS
-	ListDestroy(&HInfo->SsdpSearchList, 0);
-#endif /* INCLUDE_CLIENT_APIS */
 	switch (HInfo->DeviceAf) {
 	case AF_INET:
 		UpnpSdkDeviceRegisteredV4 = 0;
@@ -1342,7 +1320,6 @@ int UpnpRegisterClient(Upnp_FunPtr Fun, const void *Cookie,
 	HInfo->Callback = Fun;
 	HInfo->Cookie = (char *)Cookie;
 	HInfo->ClientSubList = NULL;
-	ListInit(&HInfo->SsdpSearchList, NULL, NULL);
 #ifdef INCLUDE_DEVICE_APIS
 	HInfo->MaxAge = 0;
 	HInfo->MaxSubscriptions = UPNP_INFINITE;
@@ -1363,8 +1340,6 @@ int UpnpRegisterClient(Upnp_FunPtr Fun, const void *Cookie,
 int UpnpUnRegisterClient(UpnpClient_Handle Hnd)
 {
 	struct Handle_Info *HInfo;
-	ListNode *node = NULL;
-	SsdpSearchArg *searchArg = NULL;
 
 	if (UpnpSdkInit != 1)
 		return UPNP_E_FINISH;
@@ -1391,17 +1366,14 @@ int UpnpUnRegisterClient(UpnpClient_Handle Hnd)
 		break;
 	}
 	/* clean up search list */
-	node = ListHead(&HInfo->SsdpSearchList);
-	while (node != NULL) {
-		searchArg = (SsdpSearchArg *) node->item;
-		if (searchArg) {
-			free(searchArg->searchTarget);
-			free(searchArg);
+	for (auto it = HInfo->SsdpSearchList.begin();
+		 it != HInfo->SsdpSearchList.end(); it++) {
+		if (*it) {
+			delete *it;
 		}
-		ListDelNode(&HInfo->SsdpSearchList, node, 0);
-		node = ListHead(&HInfo->SsdpSearchList);
 	}
-	ListDestroy(&HInfo->SsdpSearchList, 0);
+	HInfo->SsdpSearchList.clear();
+
 	FreeHandle(Hnd);
 	UpnpSdkClientRegistered = 0;
 	HandleUnlock();
@@ -1582,11 +1554,10 @@ int UpnpSendAdvertisementLowPower(UpnpDevice_Handle Hnd, int Exp,
     TPJobInit( &job, ( start_routine ) AutoAdvertise, adEvent );
     TPJobSetFreeFunction( &job, ( free_routine ) free_upnp_timeout );
     TPJobSetPriority( &job, MED_PRIORITY );
-    if( ( retVal = TimerThreadSchedule( &gTimerThread,
-                                        ( ( Exp / 2 ) -
-                                          ( AUTO_ADVERTISEMENT_TIME ) ),
-                                        REL_SEC, &job, SHORT_TERM,
-                                        &( adEvent->eventId ) ) )
+    if( ( retVal = gTimerThread->schedule( ( ( Exp / 2 ) -
+											 ( AUTO_ADVERTISEMENT_TIME ) ),
+										   REL_SEC, &job, SHORT_TERM,
+										   &( adEvent->eventId ) ) )
         != UPNP_E_SUCCESS ) {
         HandleUnlock();
         free_upnp_timeout(adEvent);
@@ -1596,10 +1567,9 @@ int UpnpSendAdvertisementLowPower(UpnpDevice_Handle Hnd, int Exp,
     TPJobInit( &job, ( start_routine ) AutoAdvertise, adEvent );
     TPJobSetFreeFunction( &job, ( free_routine ) free_upnp_timeout );
     TPJobSetPriority( &job, MED_PRIORITY );
-    if( ( retVal = TimerThreadSchedule( &gTimerThread,
-                                        Exp - AUTO_ADVERTISEMENT_TIME,
-                                        REL_SEC, &job, SHORT_TERM,
-                                        &( adEvent->eventId ) ) )
+    if( ( retVal = gTimerThread->schedule(Exp - AUTO_ADVERTISEMENT_TIME,
+										  REL_SEC, &job, SHORT_TERM,
+										  &( adEvent->eventId ) ) )
         != UPNP_E_SUCCESS ) {
         HandleUnlock();
         free_upnp_timeout(adEvent);
@@ -3513,106 +3483,43 @@ int UpnpSetWebServerRootDir(const char *rootDir)
 
 int UpnpAddVirtualDir(const char *newDirName)
 {
-    virtualDirList *pNewVirtualDir;
-    virtualDirList *pLast;
-    virtualDirList *pCurVirtualDir;
-    char dirName[NAME_SIZE];
-
-    memset( dirName, 0, sizeof( dirName ) );
     if( UpnpSdkInit != 1 ) {
         /* SDK is not initialized */
         return UPNP_E_FINISH;
     }
 
-    if( ( newDirName == NULL ) || ( strlen( newDirName ) == ( size_t ) 0 ) ) {
+    if (newDirName == NULL || *newDirName == 0) {
         return UPNP_E_INVALID_PARAM;
     }
 
-    if( *newDirName != '/' ) {
-        if (strlen(newDirName) > sizeof(dirName) - 2)
+    if (*newDirName != '/') {
+        if (strlen(newDirName) > NAME_SIZE - 2)
             return UPNP_E_INVALID_PARAM;
-        dirName[0] = '/';
-        strncpy( dirName + 1, newDirName, sizeof( dirName ) - 2 );
+		virtualDirList.push_back(std::string("/") + newDirName);
     } else {
-        if (strlen(newDirName) > sizeof(dirName) - 1)
+        if (strlen(newDirName) > NAME_SIZE - 1)
             return UPNP_E_INVALID_PARAM;
-        strncpy( dirName, newDirName, sizeof( dirName ) - 1 );
+		virtualDirList.push_back(newDirName);
     }
-
-    pCurVirtualDir = pVirtualDirList;
-    while( pCurVirtualDir != NULL ) {
-        /* already has this entry */
-        if( strcmp( pCurVirtualDir->dirName, dirName ) == 0 ) {
-            return UPNP_E_SUCCESS;
-        }
-
-        pCurVirtualDir = pCurVirtualDir->next;
-    }
-
-    pNewVirtualDir =
-        ( virtualDirList * ) malloc( sizeof( virtualDirList ) );
-    if( pNewVirtualDir == NULL ) {
-        return UPNP_E_OUTOF_MEMORY;
-    }
-    pNewVirtualDir->next = NULL;
-    memset( pNewVirtualDir->dirName, 0, sizeof( pNewVirtualDir->dirName ) );
-    strncpy( pNewVirtualDir->dirName, dirName,
-	sizeof( pNewVirtualDir->dirName ) - 1);
-    *( pNewVirtualDir->dirName + strlen( dirName ) ) = 0;
-
-    if( pVirtualDirList == NULL ) { /* first virtual dir */
-        pVirtualDirList = pNewVirtualDir;
-    } else {
-        pLast = pVirtualDirList;
-        while( pLast->next != NULL ) {
-            pLast = pLast->next;
-        }
-        pLast->next = pNewVirtualDir;
-    }
-
+	
     return UPNP_E_SUCCESS;
 }
 
 
 int UpnpRemoveVirtualDir(const char *dirName)
 {
-    virtualDirList *pPrev;
-    virtualDirList *pCur;
-    int found = 0;
-
-    if( UpnpSdkInit != 1 ) {
+    if (UpnpSdkInit != 1) {
         return UPNP_E_FINISH;
     }
-
-    if( dirName == NULL ) {
+    if (dirName == NULL) {
         return UPNP_E_INVALID_PARAM;
     }
-
-    if( pVirtualDirList == NULL ) {
-        return UPNP_E_INVALID_PARAM;
-    }
-    /* Handle the special case where the directory that we are */
-    /* removing is the first in the list. */
-    if (strcmp( pVirtualDirList->dirName, dirName ) == 0)
-    {
-        pPrev = pVirtualDirList;
-        pVirtualDirList = pVirtualDirList->next;
-        free( pPrev );
-        return UPNP_E_SUCCESS;
-    }
-
-    pCur = pVirtualDirList->next;
-    pPrev = pVirtualDirList;
-
-    while( pCur != NULL ) {
-        if( strcmp( pCur->dirName, dirName ) == 0 ) {
-            pPrev->next = pCur->next;
-            free( pCur );
+	int found = 0;
+	for (auto it = virtualDirList.begin(); it != virtualDirList.end(); it++) {
+        if (*it == dirName) {
+			virtualDirList.erase(it);
             found = 1;
             break;
-        } else {
-            pPrev = pCur;
-            pCur = pCur->next;
         }
     }
 
@@ -3625,23 +3532,7 @@ int UpnpRemoveVirtualDir(const char *dirName)
 
 void UpnpRemoveAllVirtualDirs(void)
 {
-    virtualDirList *pCur;
-    virtualDirList *pNext;
-
-    if( UpnpSdkInit != 1 ) {
-        return;
-    }
-
-    pCur = pVirtualDirList;
-
-    while( pCur != NULL ) {
-        pNext = pCur->next;
-        free( pCur );
-
-        pCur = pNext;
-    }
-
-    pVirtualDirList = NULL;
+    virtualDirList.clear();
 }
 
 

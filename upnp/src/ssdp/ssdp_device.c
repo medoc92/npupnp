@@ -153,8 +153,7 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
         if (mx < 1)
             mx = 1;
         replyTime = rand() % mx;
-        TimerThreadSchedule(&gTimerThread, replyTime, REL_SEC, &job,
-                            SHORT_TERM, NULL);
+        gTimerThread->schedule(replyTime, REL_SEC, &job, SHORT_TERM, NULL);
         start = handle;
     }
 }

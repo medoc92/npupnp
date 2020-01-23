@@ -58,12 +58,5 @@ struct VirtualDirCallbacks
 };
 
 
-typedef struct virtual_Dir_List
-{
-	struct virtual_Dir_List *next;
-	char dirName[NAME_SIZE];
-} virtualDirList;
-
-
 #endif /* VIRTUALDIR_H */
 
