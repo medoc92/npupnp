@@ -81,7 +81,7 @@ static void send_search_result(
 
 static void strnzcpy(char *dest, const char *src, size_t bufsize)
 {
-	strncpy(dest, src, bufsize);
+	strncpy(dest, src, bufsize-1);
 	dest[bufsize-1] = 0;
 }
 

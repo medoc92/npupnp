@@ -288,8 +288,13 @@ static void handle_invoke_action(
 	namecopy(action.ServiceID, soap_info->service_id);
 	action.ActionRequest = req_doc;
 	action.ActionResult = NULL;
-	memcpy(&action.CtrlPtIPAddr, mhdt->client_address,
-		   sizeof(struct sockaddr_storage));
+	if (mhdt->client_address->ss_family == AF_INET) {
+		memcpy(&action.CtrlPtIPAddr, mhdt->client_address,
+			   sizeof(struct sockaddr_in));
+	} else {
+		memcpy(&action.CtrlPtIPAddr, mhdt->client_address,
+			   sizeof(struct sockaddr_in6));
+	}		
 	UpnpPrintf(UPNP_INFO, SOAP, __FILE__, __LINE__, "Calling Callback\n");
 	soap_info->callback(UPNP_CONTROL_ACTION_REQUEST, &action, soap_info->cookie);
 	if (action.ErrCode != UPNP_E_SUCCESS) {
