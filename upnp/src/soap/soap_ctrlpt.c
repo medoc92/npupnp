@@ -407,10 +407,10 @@ int SoapSendActionEx(
 
     UpnpPrintf( UPNP_INFO, SOAP, __FILE__, __LINE__,
         "path=%.*s, hostport=%.*s\n",
-        (int)url.pathquery.size,
-        url.pathquery.buff,
-        (int)url.hostport.text.size,
-        url.hostport.text.buff);
+				(int)url.pathquery.size(),
+				url.pathquery.c_str(),
+				(int)url.hostport.text.size(),
+				url.hostport.text.c_str());
 
 	std::string payload{xml_start};
 	if (header) {

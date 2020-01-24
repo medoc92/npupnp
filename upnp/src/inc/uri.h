@@ -32,17 +32,10 @@
 #ifndef GENLIB_NET_URI_H
 #define GENLIB_NET_URI_H
 
-/*!
- * \file
- */
-
-#if !defined(WIN32)
-	#include <sys/param.h>
-#endif
-
 #include <string>
+#include <vector>
 
-#include "UpnpGlobal.h" /* for */
+#include "UpnpGlobal.h" 
 #include "UpnpInet.h"
 
 #include <ctype.h>
@@ -53,42 +46,23 @@
 #include <sys/types.h>
 #include <time.h>
 
-#ifdef WIN32
-	#ifndef UPNP_USE_MSVCPP
-		/* VC Winsocks2 includes these functions */
-		#include "inet_pton.h"
-	#endif
-#else
-	#include <netdb.h>      /* for struct addrinfo */
-#endif
+#include <netdb.h>
 
-#ifdef WIN32
-#ifndef strncasecmp
-	#define strncasecmp strnicmp
-#endif
-#else
-	/* Other systems have strncasecmp */
-#endif
 
-/*! length for HTTP DATE: "DATE: Sun, 01 Jul 2000 08:15:23 GMT<cr><lf>" */
-#define HTTP_DATE_LENGTH 37
+/*!
+ * \brief Represents a host port: e.g. "127.127.0.1:80" text is a token
+ * pointing to the full string representation.
+ */
+struct hostport_type {
+	/*! Full host port. */
+	std::string text;
+	/* Network Byte Order */
+	struct sockaddr_storage IPaddress;
+};
 
-#define SEPARATORS "()<>@,;:\\\"/[]?={} \t"
-#define MARK "-_.!~*'()"
-
-/*! added {} for compatibility */
-#define RESERVED ";/?:@&=+$,{}"
-
-#define HTTP_SUCCESS 1
-#define FALSE 0
-#define TAB 9
-#define CR 13
-#define LF 10
-#define SOCKET_BUFFER_SIZE 5000
-
-enum hostType {
-	HOSTNAME,
-	IPv4address
+enum uriType  {
+	URITP_ABSOLUTE,
+	URITP_RELATIVE
 };
 
 enum pathType {
@@ -97,196 +71,29 @@ enum pathType {
 	OPAQUE_PART
 };
 
-#ifdef WIN32
-	/* there is a conflict in windows with other symbols. */
-	enum uriType  {
-		absolute,
-		relative
-	};
-#else
-	enum uriType  {
-		ABSOLUTE,
-		RELATIVE
-	};
-#endif
-
-/*! 
- * \brief Buffer used in parsinghttp messages, urls, etc. generally this simply
- * holds a pointer into a larger array.
- */
-typedef struct TOKEN {
-	const char *buff;
-	size_t size;
-} token;
-
-/*!
- * \brief Represents a host port: e.g. "127.127.0.1:80" text is a token
- * pointing to the full string representation.
- */
-typedef struct HOSTPORT {
-	/*! Full host port. */
-	token text;
-	/* Network Byte Order */
-	struct sockaddr_storage IPaddress;
-} hostport_type;
-
 /*!
  * \brief Represents a URI used in parse_uri and elsewhere
  */
-typedef struct URI{
+struct uri_type {
 	enum uriType type;
-	token scheme;
+	std::string scheme;
 	enum pathType path_type;
-	token pathquery;
-	token fragment;
+	std::string pathquery;
+	std::string fragment;
 	hostport_type hostport;
-} uri_type;
+};
 
 inline std::string uri_asurlstr(const uri_type& u)
 {
-	std::string surl(u.scheme.buff, u.scheme.size);
+	std::string surl(u.scheme);
 	surl += "://";
-	surl.append(u.hostport.text.buff, u.hostport.text.size);
-	if (u.pathquery.size == 0)
+	surl += u.hostport.text;
+	if (u.pathquery.size() == 0)
 		surl += "/";
 	else 
-		surl.append(u.pathquery.buff, u.pathquery.size);
+		surl += u.pathquery;
 	return surl;
 }
-
-/*!
- * \brief Represents a list of URLs as in the "callback" header of SUBSCRIBE
- * message in GENA. "char *" URLs holds dynamic memory.
- */
-struct URL_list {
-	/*! */
-	size_t size{0};
-	/*! All the urls, delimited by <> */
-	char *URLs{nullptr};
-	/*! array of url_type */
-	uri_type *parsedURLs{nullptr};
-};
-
-/*!
- * \brief Replaces an escaped sequence with its unescaped version as in
- * http://www.ietf.org/rfc/rfc2396.txt  (RFC explaining URIs)
- *
- * Size of array is NOT checked (MUST be checked by caller)
- *
- * \note This function modifies the string. If the sequence is an escaped
- * sequence it is replaced, the other characters in the string are shifted
- * over, and NULL characters are placed at the end of the string.
- *
- * \return 
- */
-int replace_escaped(
-	/*! [in,out] String of characters. */
-	char *in,
-	/*! [in] Index at which to start checking the characters. */
-	size_t index,
-	/*! [out] . */
-	size_t *max);
-
-/*!
- * \brief Copies one URL_list into another.
- *
- * This includes dynamically allocating the out->URLs field (the full string),
- * and the structures used to hold the parsedURLs. This memory MUST be freed
- * by the caller through: free_URL_list(&out).
- *
- * \return
- * 	\li HTTP_SUCCESS - On Success.
- * 	\li UPNP_E_OUTOF_MEMORY - On Failure to allocate memory.
- */
-int copy_URL_list(
-	/*! [in] Source URL list. */
-	URL_list *in,
-	/*! [out] Destination URL list. */
-	URL_list *out);
-
-/*!
- * \brief Frees the memory associated with a URL_list.
- *
- * Frees the dynamically allocated members of of list. Does NOT free the
- * pointer to the list itself ( i.e. does NOT free(list)).
- */
-void free_URL_list(
-	/*! [in] URL list object. */
-	URL_list *list);
-
-/*!
- * \brief Function useful in debugging for printing a parsed uri.
- */
-#ifdef DEBUG
-void print_uri(
-	/*! [in] URI object to print. */
-	uri_type *in);
-#else
-static UPNP_INLINE void print_uri(uri_type *in)
-{
-	return;
-	in = in;
-}
-#endif
-
-/*!
- * \brief Function useful in debugging for printing a token.
- */
-#ifdef DEBUG
-void print_token(
-	/*! [in] Token object to print. */
-	token *in);
-#else
-static UPNP_INLINE void print_token(
-	/*! [in] Token object to print. */
-	token *in)
-{
-	return;
-	in = in;
-}
-#endif
-
-/*!
- * \brief Compares buffer in the token object with the buffer in in2.
- *
- * \return 
- * 	\li < 0, if string1 is less than string2.
- * 	\li == 0, if string1 is identical to string2 .
- * 	\li > 0, if string1 is greater than string2.
- */
-int token_string_casecmp(
-	/*! [in] Token object whose buffer is to be compared. */
-	token *in1,
-	/*! [in] String of characters to compare with. */
-	const char *in2);
-
-/*!
- * \brief Compares a null terminated string to a token (exact).
- *
- * \return 
- * 	\li < 0, if string1 is less than string2.
- * 	\li == 0, if string1 is identical to string2 .
- * 	\li > 0, if string1 is greater than string2.
- */
-int token_string_cmp(
-	/*! [in] Token object whose buffer is to be compared. */
-	token *in1,
-	/*! [in] String of characters to compare with. */
-	char *in2);
-
-/*!
- * \brief Compares two tokens.
- *
- * \return 
- * 	\li < 0, if string1 is less than string2.
- * 	\li == 0, if string1 is identical to string2 .
- * 	\li > 0, if string1 is greater than string2.
- */
-int token_cmp(
-	/*! [in] First token object whose buffer is to be compared. */
-	token *in1,
-	/*! [in] Second token object used for the comparison. */
-	token *in2);
 
 /*!
  * \brief Removes http escaped characters such as: "%20" and replaces them with
@@ -361,7 +168,7 @@ std::string resolve_rel_url(
  *
  * Caller should check for the pieces they require.
  *
- * \return
+ * \return UPNP_E_SUCCESS / UPNP_E_OTHER
  */
 int parse_uri(
 	/*! [in] Character string containing uri information to be parsed. */
@@ -370,192 +177,6 @@ int parse_uri(
 	size_t max,
 	/*! [out] Output parameter which will have the parsed uri information. */
 	uri_type *out);
-
-/*!
- * \brief Same as parse_uri(), except that all strings are unescaped
- * (%XX replaced by chars).
- *
- * \note This modifies 'pathquery' and 'fragment' parts of the input.
- *
- * \return 
- */
-int parse_uri_and_unescape(
-	/*! [in] Character string containing uri information to be parsed. */
-	char *in,
-	/*! [in] Maximum limit on the number of characters. */
-	size_t max,
-	/*! [out] Output parameter which will have the parsed uri information. */
-	uri_type *out);
-
-/*!
- * \brief 
- *
- * \return 
- */
-int parse_token(
-	/*! [in] . */
-	char *in,
-	/*! [out] . */
-	token *out,
-	/*! [in] . */
-	int max_size);
-
-/* Commented #defines, functions and typdefs */
-
-#if 0
-#define HTTP_E_BAD_URL UPNP_E_INVALID_URL
-#define HTTP_E_READ_SOCKET  UPNP_E_SOCKET_READ
-#define HTTP_E_BIND_SOCKET  UPNP_E_SOCKET_BIND
-#define HTTP_E_WRITE_SOCKET  UPNP_E_SOCKET_WRITE
-#define HTTP_E_CONNECT_SOCKET  UPNP_E_SOCKET_CONNECT
-#define HTTP_E_SOCKET    UPNP_E_OUTOF_SOCKET
-#define HTTP_E_BAD_RESPONSE UPNP_E_BAD_RESPONSE
-#define HTTP_E_BAD_REQUEST UPNP_E_BAD_REQUEST
-#define HTTP_E_BAD_IP_ADDRESS UPNP_E_INVALID_URL
-
-#define RESPONSE_TIMEOUT 30
-#endif
-
-#if 0
-/*!
- * Buffer used to store data read from a socket during an http transfer in
- * function read_bytes.
- */
-typedef struct SOCKET_BUFFER{
-	char buff[SOCKET_BUFFER_SIZE];
-	int size;
-	struct SOCKET_BUFFER *next;
-} socket_buffer;
-
-
-typedef struct HTTP_HEADER {
-	token header;
-	token value;
-	struct HTTP_HEADER * next;
-} http_header;
-
-
-typedef struct HTTP_STATUS_LINE{
-	token http_version;
-	token status_code;
-	token reason_phrase;
-} http_status;
-
-
-typedef struct HTTP_REQUEST_LINE {
-	token http_version;
-	uri_type request_uri;
-	token method;
-} http_request;
-
-
-/*!
- * Represents a parsed HTTP_MESSAGE head_list is dynamically allocated
- */
-typedef struct HTTP_MESSAGE {
-	http_status status;
-	http_request request;
-	http_header * header_list;
-	token content;
-} http_message;
-#endif
-
-
-#if 0
-int transferHTTP(
-	char *request,
-	char *toSend, 
-	int toSendSize,
-	char **out,
-	char *Url);
-
-
-int transferHTTPRaw(
-	char *toSend,
-	int toSendSize, 
-	char **out,
-	char *URL);
-
-
-/*!
- * \brief helper function.
- */
-int transferHTTPparsedURL(
-	char *request, 
-	char *toSend,
-	int toSendSize, 
-	char **out,
-	uri_type *URL);
-
-
-/*!
- * \brief assumes that char * out has enough space ( 38 characters)
- * outputs the current time in the following null terminated string:
- * "DATE: Sun, Jul 06 2000 08:53:01 GMT\r\n"
- */
-void currentTmToHttpDate(
-	char *out);
-
-
-int parse_http_response(
-	char *in,
-	http_message *out,
-	int max_len);
-
-
-int parse_http_request(
-	char *in,
-	http_message *out,
-	int max_len);
-
-
-void print_http_message(
-	http_message *message);
-
-
-int search_for_header(
-	http_message *in,
-	char *header,
-	token *out_value);
-
-
-void print_status_line(
-	http_status *in);
-
-
-void print_request_line(
-	http_request *in);
-
-
-int parse_http_line(
-	char *in,
-	int max_size);
-
-
-int parse_not_LWS(
-	char *in,
-	token *out,
-	int max_size);
-
-
-int parse_LWS(
-	char *in,
-	int max_size);
-
-
-size_t write_bytes(
-	int fd,
-	char *bytes,
-	size_t n,
-	int timeout);
-
-
-void free_http_message(
-	http_message *message);
-
-
-#endif
-
 
 #endif /* GENLIB_NET_URI_H */
 

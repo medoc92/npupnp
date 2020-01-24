@@ -33,12 +33,9 @@
 #ifndef SERVICE_TABLE_H
 #define SERVICE_TABLE_H
 
-/*!
- * \file
- */
 #include <list>
 #include <string>
-
+#include <vector>
 
 #include <stdio.h>
 #include <time.h>
@@ -55,14 +52,12 @@ typedef struct _IXML_Node IXML_Node;
 
 #ifdef INCLUDE_DEVICE_APIS
 
-
-
 struct subscription {
 	Upnp_SID sid; /* char[44] in upnp.h */
 	int ToSendEventKey{0};
 	time_t expireTime{0};
 	int active{0};
-	URL_list DeliveryURLs{0,nullptr,nullptr};
+	std::vector<uri_type> DeliveryURLs;
 	/* List of queued events for this subscription. Only one event job
 	   at a time goes into the thread pool. The first element in the
 	   list is a copy of the active job. Others are activated on job
@@ -107,7 +102,7 @@ struct service_table {
 /*!
  * \brief Makes a copy of the subscription.
  *
- * \return HTTP_SUCCESS on success.
+ * \return UPNP_E_SUCCESS on success.
  */
 int copy_subscription(
 	/*! [in] Source subscription. */

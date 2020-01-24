@@ -167,19 +167,16 @@ struct tm *http_gmtime_r(const time_t *clock, struct tm *result)
 
 int http_FixUrl(uri_type *url, uri_type *fixed_url)
 {
-	const char *temp_path = "/";
-
 	*fixed_url = *url;
-	if (token_string_casecmp(&fixed_url->scheme, "http") != 0) {
+	if (stringlowercmp("http", fixed_url->scheme) != 0) {
 		return UPNP_E_INVALID_URL;
 	}
-	if( fixed_url->hostport.text.size == ( size_t ) 0 ) {
+	if (fixed_url->hostport.text.empty()) {
 		return UPNP_E_INVALID_URL;
 	}
 	/* set pathquery to "/" if it is empty */
-	if (fixed_url->pathquery.size == (size_t)0) {
-		fixed_url->pathquery.buff = temp_path;
-		fixed_url->pathquery.size = (size_t)1;
+	if (fixed_url->pathquery.empty()) {
+		fixed_url->pathquery = "/";
 	}
 
 	return UPNP_E_SUCCESS;
@@ -192,7 +189,7 @@ int http_FixStrUrl(
 {
 	uri_type url;
 
-	if (parse_uri(urlstr, urlstrlen, &url) != HTTP_SUCCESS) {
+	if (parse_uri(urlstr, urlstrlen, &url) != UPNP_E_SUCCESS) {
 		return UPNP_E_INVALID_URL;
 	}
 

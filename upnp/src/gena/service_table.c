@@ -32,11 +32,11 @@
 
 
 /************************************************************************
-* Purpose: This file defines the functions for services. It defines 
-* functions for adding and removing services to and from the service table, 
-* adding and accessing subscription and other attributes pertaining to the 
-* service 
-************************************************************************/
+ * Purpose: This file defines the functions for services. It defines 
+ * functions for adding and removing services to and from the service table, 
+ * adding and accessing subscription and other attributes pertaining to the 
+ * service 
+ ************************************************************************/
 
 #include "config.h"
 
@@ -49,61 +49,57 @@
 
 #if EXCLUDE_GENA == 0
 /************************************************************************
-*	Function :	copy_subscription
-*
-*	Parameters :
-*		subscription *in ;	Source subscription
-*		subscription *out ;	Destination subscription
-*
-*	Description :	Makes a copy of the subscription
-*
-*	Return : int ;
-*		HTTP_SUCCESS - On success
-*
-*	Note :
-************************************************************************/
+ *	Function :	copy_subscription
+ *
+ *	Parameters :
+ *		subscription *in ;	Source subscription
+ *		subscription *out ;	Destination subscription
+ *
+ *	Description :	Makes a copy of the subscription
+ *
+ *	Return : int ;
+ *		UPNP_E_SUCCESS - On success
+ *
+ *	Note :
+ ************************************************************************/
 int copy_subscription(subscription *in, subscription *out)
 {
-    int return_code = HTTP_SUCCESS;
-
-    memcpy(out->sid, in->sid, SID_SIZE);
-    out->sid[SID_SIZE] = 0;
-    out->ToSendEventKey = in->ToSendEventKey;
-    out->expireTime = in->expireTime;
-    out->active = in->active;
-    if ((return_code = copy_URL_list(&in->DeliveryURLs, &out->DeliveryURLs))
-		!= HTTP_SUCCESS)
-        return return_code;
-    return HTTP_SUCCESS;
+	memcpy(out->sid, in->sid, SID_SIZE);
+	out->sid[SID_SIZE] = 0;
+	out->ToSendEventKey = in->ToSendEventKey;
+	out->expireTime = in->expireTime;
+	out->active = in->active;
+	out->DeliveryURLs = in->DeliveryURLs;
+	return UPNP_E_SUCCESS;
 }
 
 /************************************************************************
-*	Function :	RemoveSubscriptionSID
-*
-*	Parameters :
-*		Upnp_SID sid ;	subscription ID
-*		service_info * service ;	service object providing the list of
-*						subscriptions
-*
-*	Description :	Remove the subscription represented by the
-*		const Upnp_SID sid parameter from the service table and update 
-*		the service table.
-*
-*	Return : void ;
-*
-*	Note :
-************************************************************************/
+ *	Function :	RemoveSubscriptionSID
+ *
+ *	Parameters :
+ *		Upnp_SID sid ;	subscription ID
+ *		service_info * service ;	service object providing the list of
+ *						subscriptions
+ *
+ *	Description :	Remove the subscription represented by the
+ *		const Upnp_SID sid parameter from the service table and update 
+ *		the service table.
+ *
+ *	Return : void ;
+ *
+ *	Note :
+ ************************************************************************/
 void RemoveSubscriptionSID(Upnp_SID sid, service_info *service)
 {
 	auto& sublist(service->subscriptionList);
 	for (auto it = sublist.begin(); it != sublist.end(); ) {
-        if (!strcmp(sid, it->sid)) {
+		if (!strcmp(sid, it->sid)) {
 			it = sublist.erase(it);
-            service->TotalSubscriptions--;
-        } else {
+			service->TotalSubscriptions--;
+		} else {
 			it++;
 		}
-    }
+	}
 }
 
 
@@ -113,11 +109,11 @@ subscription *GetSubscriptionSID(const Upnp_SID sid, service_info *service)
 	auto found = find_if(sublist.begin(), sublist.end(),
 						 [sid](const subscription& s)->bool{
 							 return !strcmp(sid, s.sid);});
-    if (found == sublist.end()) {
+	if (found == sublist.end()) {
 		return nullptr;
 	}
 	/*get the current_time */
-    time_t current_time = time(0);
+	time_t current_time = time(0);
 	if ((found->expireTime != 0) && (found->expireTime < current_time)) {
 		sublist.erase(found);
 		service->TotalSubscriptions--;
@@ -133,22 +129,22 @@ std::list<subscription>::iterator GetNextSubscription(
 {
 	auto& sublist(service->subscriptionList);
 
-    time_t current_time = time(0);
+	time_t current_time = time(0);
 	if (!getfirst) {
 		current++;
 	}
-    while (current != sublist.end()) {
+	while (current != sublist.end()) {
 		if ((current->expireTime != 0)
 			&& (current->expireTime < current_time)) {
-            current = sublist.erase(current);
-            service->TotalSubscriptions--;
-        } else if (current->active) {
+			current = sublist.erase(current);
+			service->TotalSubscriptions--;
+		} else if (current->active) {
 			return current;
-        } else {
+		} else {
 			current++;
 		}
-    }
-    return sublist.end();
+	}
+	return sublist.end();
 }
 
 std::list<subscription>::iterator GetFirstSubscription(service_info *service)
@@ -160,27 +156,26 @@ std::list<subscription>::iterator GetFirstSubscription(service_info *service)
 subscription::~subscription()
 {
 	freeSubscriptionQueuedEvents(this);
-	free_URL_list(&DeliveryURLs);
 }
 
 /************************************************************************
-*	Function :	FindServiceId
-*
-*	Parameters :
-*		service_table *table ;	service table
-*		const std::string& serviceId ;string representing the service id 
-*								to be found among those in the table	
-*		const std::string& UDN ;		string representing the UDN 
-*								to be found among those in the table	
-*
-*	Description :	Traverses through the service table and returns a 
-*		pointer to the service node that matches a known service  id 
-*		and a known UDN
-*
-*	Return : service_info * - pointer to the matching service_info node;
-*
-*	Note :
-************************************************************************/
+ *	Function :	FindServiceId
+ *
+ *	Parameters :
+ *		service_table *table ;	service table
+ *		const std::string& serviceId ;string representing the service id 
+ *								to be found among those in the table	
+ *		const std::string& UDN ;		string representing the UDN 
+ *								to be found among those in the table	
+ *
+ *	Description :	Traverses through the service table and returns a 
+ *		pointer to the service node that matches a known service  id 
+ *		and a known UDN
+ *
+ *	Return : service_info * - pointer to the matching service_info node;
+ *
+ *	Note :
+ ************************************************************************/
 service_info *FindServiceId(
 	service_table *table, const std::string& serviceId, const std::string& UDN)
 {
@@ -188,7 +183,7 @@ service_info *FindServiceId(
 		table->serviceList.begin(), table->serviceList.end(),
 		[serviceId,UDN](const service_info& si)->bool{
 			return !serviceId.compare(si.serviceId) && 
-                !UDN.compare(si.UDN);});
+				!UDN.compare(si.UDN);});
 	if (it == table->serviceList.end()) {
 		return nullptr;
 	} else {
@@ -197,31 +192,31 @@ service_info *FindServiceId(
 }
 
 /************************************************************************
-*	Function :	FindServiceEventURLPath
-*
-*	Parameters :
-*		service_table *table ;	service table
-*		char * eventURLPath ;	event URL path used to find a service 
-*								from the table  
-*
-*	Description :	Traverses the service table and finds the node whose
-*		event URL Path matches a know value 
-*
-*	Return : service_info * - pointer to the service list node from the 
-*		service table whose event URL matches a known event URL;
-*
-*	Note :
-************************************************************************/
+ *	Function :	FindServiceEventURLPath
+ *
+ *	Parameters :
+ *		service_table *table ;	service table
+ *		char * eventURLPath ;	event URL path used to find a service 
+ *								from the table	
+ *
+ *	Description :	Traverses the service table and finds the node whose
+ *		event URL Path matches a know value 
+ *
+ *	Return : service_info * - pointer to the service list node from the 
+ *		service table whose event URL matches a known event URL;
+ *
+ *	Note :
+ ************************************************************************/
 service_info *FindServiceEventURLPath(
 	service_table *table, const char *eventURLPath)
 {
-    if (nullptr == table) {
+	if (nullptr == table) {
 		return nullptr;
 	}
 
-    uri_type parsed_url_in;
+	uri_type parsed_url_in;
 	if (parse_uri(eventURLPath, strlen(eventURLPath), &parsed_url_in)
-		!= HTTP_SUCCESS) {
+		!= UPNP_E_SUCCESS) {
 		return nullptr;
 	}
 
@@ -231,46 +226,46 @@ service_info *FindServiceEventURLPath(
 		}
 		uri_type parsed_url;
 		if (parse_uri(entry.eventURL.c_str(), entry.eventURL.size(),
-					  &parsed_url) != HTTP_SUCCESS) {
+					  &parsed_url) != UPNP_E_SUCCESS) {
 			continue;
 		}
 
-		if(!token_cmp(&parsed_url.pathquery, &parsed_url_in.pathquery)) {
+		if (parsed_url.pathquery == parsed_url_in.pathquery) {
 			return &entry;
 		}
-    }
+	}
 
-    return nullptr;
+	return nullptr;
 }
 #endif /* EXCLUDE_GENA */
 
 /************************************************************************
-*	Function :	FindServiceControlURLPath
-*
-*	Parameters :
-*		service_table * table ;	service table
-*		char * controlURLPath ;	control URL path used to find a service 
-*								from the table  
-*
-*	Description :	Traverses the service table and finds the node whose
-*		control URL Path matches a know value 
-*
-*	Return : service_info * - pointer to the service list node from the 
-*		service table whose control URL Path matches a known value;
-*
-*	Note :
-************************************************************************/
+ *	Function :	FindServiceControlURLPath
+ *
+ *	Parameters :
+ *		service_table * table ;	service table
+ *		char * controlURLPath ;	control URL path used to find a service 
+ *								from the table	
+ *
+ *	Description :	Traverses the service table and finds the node whose
+ *		control URL Path matches a know value 
+ *
+ *	Return : service_info * - pointer to the service list node from the 
+ *		service table whose control URL Path matches a known value;
+ *
+ *	Note :
+ ************************************************************************/
 #if EXCLUDE_SOAP == 0
 service_info *FindServiceControlURLPath(
 	service_table *table, const char *controlURLPath)
 {
-    if (nullptr == table) {
+	if (nullptr == table) {
 		return NULL;
 	}
 	
-    uri_type parsed_url_in;
+	uri_type parsed_url_in;
 	if (parse_uri(controlURLPath, strlen(controlURLPath), &parsed_url_in)
-		!= HTTP_SUCCESS) {
+		!= UPNP_E_SUCCESS) {
 		return nullptr;
 	}
 
@@ -280,213 +275,213 @@ service_info *FindServiceControlURLPath(
 		}
 		uri_type parsed_url;
 		if ((parse_uri(entry.controlURL.c_str(), entry.controlURL.size(),
-						   &parsed_url) != HTTP_SUCCESS)) {
+					   &parsed_url) != UPNP_E_SUCCESS)) {
 			continue;
 		}
-		if (!token_cmp(&parsed_url.pathquery, &parsed_url_in.pathquery)) {
+		if (parsed_url.pathquery == parsed_url_in.pathquery) {
 			return &entry;
 		}
 	}
 
-    return nullptr;
+	return nullptr;
 }
 #endif /* EXCLUDE_SOAP */
 
 /************************************************************************
-*	Function :	printService
-*
-*	Parameters :
-*		service_info *service ;Service whose information is to be printed
-*		Upnp_LogLevel level ; Debug level specified to the print function
-*		Dbg_Module module ;	Debug module specified to the print function
-*
-*	Description :	For debugging purposes prints information from the 
-*		service passed into the function.
-*
-*	Return : void ;
-*
-*	Note :
-************************************************************************/
+ *	Function :	printService
+ *
+ *	Parameters :
+ *		service_info *service ;Service whose information is to be printed
+ *		Upnp_LogLevel level ; Debug level specified to the print function
+ *		Dbg_Module module ;	Debug module specified to the print function
+ *
+ *	Description :	For debugging purposes prints information from the 
+ *		service passed into the function.
+ *
+ *	Return : void ;
+ *
+ *	Note :
+ ************************************************************************/
 #ifdef DEBUG
 void printService(
-    const service_info *service, Upnp_LogLevel level, Dbg_Module module)
+	const service_info *service, Upnp_LogLevel level, Dbg_Module module)
 {
-    if(service) {
+	if(service) {
 		UpnpPrintf(level, module, __FILE__, __LINE__,
-					"serviceType: %s\n", service->serviceType.c_str());
+				   "serviceType: %s\n", service->serviceType.c_str());
 		UpnpPrintf(level, module, __FILE__, __LINE__,
-					"serviceId: %s\n", service->serviceId.c_str());
+				   "serviceId: %s\n", service->serviceId.c_str());
 		UpnpPrintf(level, module, __FILE__, __LINE__,
-					"SCPDURL: %s\n", service->SCPDURL.c_str());
+				   "SCPDURL: %s\n", service->SCPDURL.c_str());
 		UpnpPrintf(level, module, __FILE__, __LINE__,
-					"controlURL: %s\n", service->controlURL.c_str());
+				   "controlURL: %s\n", service->controlURL.c_str());
 		UpnpPrintf(level, module, __FILE__, __LINE__,
-					"eventURL: %s\n", service->eventURL.c_str());
+				   "eventURL: %s\n", service->eventURL.c_str());
 		UpnpPrintf(level, module, __FILE__, __LINE__,
-					"UDN: %s\n\n", service->UDN.c_str());
-	if(service->active) {
-            UpnpPrintf(level, module, __FILE__, __LINE__,
-            "Service is active\n");
-        } else {
-            UpnpPrintf(level, module, __FILE__, __LINE__,
-            "Service is inactive\n");
-        }
-    }
+				   "UDN: %s\n\n", service->UDN.c_str());
+		if(service->active) {
+			UpnpPrintf(level, module, __FILE__, __LINE__,
+					   "Service is active\n");
+		} else {
+			UpnpPrintf(level, module, __FILE__, __LINE__,
+					   "Service is inactive\n");
+		}
+	}
 }
 
 /************************************************************************
-*	Function :	printServiceList
-*
-*	Parameters :
-*		service_info *service ;	Service whose information is to be printed
-*		Upnp_LogLevel level ;	Debug level specified to the print function
-*		Dbg_Module module ;	Debug module specified to the print function
-*
-*	Description :	For debugging purposes prints information of each 
-*		service from the service table passed into the function.
-*
-*	Return : void ;
-*
-*	Note :
-************************************************************************/
+ *	Function :	printServiceList
+ *
+ *	Parameters :
+ *		service_info *service ;	Service whose information is to be printed
+ *		Upnp_LogLevel level ;	Debug level specified to the print function
+ *		Dbg_Module module ;	Debug module specified to the print function
+ *
+ *	Description :	For debugging purposes prints information of each 
+ *		service from the service table passed into the function.
+ *
+ *	Return : void ;
+ *
+ *	Note :
+ ************************************************************************/
 void printServiceList(
-    service_table *table, Upnp_LogLevel level, Dbg_Module module)
+	service_table *table, Upnp_LogLevel level, Dbg_Module module)
 {
 	for (const auto& entry: table->serviceList) {
 		printService(&entry, level, module);
-    }
+	}
 }
 
 /************************************************************************
-*	Function :	printServiceTable
-*
-*	Parameters :
-*		service_table * table ;	Service table to be printed
-*		Upnp_LogLevel level ;	Debug level specified to the print function
-*		Dbg_Module module ;	Debug module specified to the print function
-*
-*	Description :	For debugging purposes prints the URL base of the table
-*		and information of each service from the service table passed into 
-*		the function.
-*
-*	Return : void ;
-*
-*	Note :
-************************************************************************/
+ *	Function :	printServiceTable
+ *
+ *	Parameters :
+ *		service_table * table ;	Service table to be printed
+ *		Upnp_LogLevel level ;	Debug level specified to the print function
+ *		Dbg_Module module ;	Debug module specified to the print function
+ *
+ *	Description :	For debugging purposes prints the URL base of the table
+ *		and information of each service from the service table passed into 
+ *		the function.
+ *
+ *	Return : void ;
+ *
+ *	Note :
+ ************************************************************************/
 void printServiceTable(
-    service_table * table,
-    Upnp_LogLevel level,
-    Dbg_Module module)
+	service_table * table,
+	Upnp_LogLevel level,
+	Dbg_Module module)
 {
-    UpnpPrintf(level, module, __FILE__, __LINE__,
+	UpnpPrintf(level, module, __FILE__, __LINE__,
 			   "URL_BASE: %s\n", table->URLBase.c_str());
-    UpnpPrintf(level, module, __FILE__, __LINE__,  "Services: \n");
-    printServiceList(table, level, module);}
+	UpnpPrintf(level, module, __FILE__, __LINE__,  "Services: \n");
+	printServiceList(table, level, module);}
 #endif
 
 #if EXCLUDE_GENA == 0
 
 /************************************************************************
-*	Function :	freeServiceTable
-*
-*	Parameters :
-*		service_table * table ;	Service table whose memory needs to be 
-*								freed
-*
-*	Description : Free's dynamic memory in table.
-*		(does not free table, only memory within the structure)
-*
-*	Return : void ;
-*
-*	Note :
-************************************************************************/
+ *	Function :	freeServiceTable
+ *
+ *	Parameters :
+ *		service_table * table ;	Service table whose memory needs to be 
+ *								freed
+ *
+ *	Description : Free's dynamic memory in table.
+ *		(does not free table, only memory within the structure)
+ *
+ *	Return : void ;
+ *
+ *	Note :
+ ************************************************************************/
 void freeServiceTable(service_table *table)
 {
-    table->serviceList.clear();
+	table->serviceList.clear();
 }
 
 /************************************************************************
-*	Function :	getElementValue
-*
-*	Parameters :
-*		IXML_Node *node ;	Input node which provides the list of child 
-*							nodes
-*
-*	Description :	Returns the clone of the element value
-*
-*	Return : std::string
-*
-*	Note : value must be freed with DOMString_free
-************************************************************************/
+ *	Function :	getElementValue
+ *
+ *	Parameters :
+ *		IXML_Node *node ;	Input node which provides the list of child 
+ *							nodes
+ *
+ *	Description :	Returns the clone of the element value
+ *
+ *	Return : std::string
+ *
+ *	Note : value must be freed with DOMString_free
+ ************************************************************************/
 static std::string getElementValue(IXML_Node * node)
 {
-    IXML_Node *child = (IXML_Node *)ixmlNode_getFirstChild(node);
-    if (child && ixmlNode_getNodeType(child) == eTEXT_NODE) {
+	IXML_Node *child = (IXML_Node *)ixmlNode_getFirstChild(node);
+	if (child && ixmlNode_getNodeType(child) == eTEXT_NODE) {
 		return ixmlNode_getNodeValue(child);
-    } else {
-        return std::string();
-    }
+	} else {
+		return std::string();
+	}
 }
 
 /************************************************************************
-*	Function :	getSubElement
-*
-*	Parameters :
-*		const char *element_name ;	sub element name to be searched for
-*		IXML_Node *node ;	Input node which provides the list of child 
-*							nodes
-*		IXML_Node **out ;	Ouput node to which the matched child node is
-*							returned.
-*
-*	Description :	Traverses through a list of XML nodes to find the 
-*		node with the known element name.
-*
-*	Return : int ;
-*		1 - On Success
-*		0 - On Failure
-*
-*	Note :
-************************************************************************/
+ *	Function :	getSubElement
+ *
+ *	Parameters :
+ *		const char *element_name ;	sub element name to be searched for
+ *		IXML_Node *node ;	Input node which provides the list of child 
+ *							nodes
+ *		IXML_Node **out ;	Ouput node to which the matched child node is
+ *							returned.
+ *
+ *	Description :	Traverses through a list of XML nodes to find the 
+ *		node with the known element name.
+ *
+ *	Return : int ;
+ *		1 - On Success
+ *		0 - On Failure
+ *
+ *	Note :
+ ************************************************************************/
 int getSubElement(const char *element_name, IXML_Node *node, IXML_Node **out)
 {
-    IXML_Node *child = (IXML_Node *) ixmlNode_getFirstChild(node);
+	IXML_Node *child = (IXML_Node *) ixmlNode_getFirstChild(node);
 
-    *out = nullptr;
+	*out = nullptr;
 
-    while  (child != nullptr) {
-        switch (ixmlNode_getNodeType(child)) {
-            case eELEMENT_NODE:
-			{
-				const DOMString NodeName = ixmlNode_getNodeName(child);
-                if(!strcmp(NodeName, element_name)) {
-                    *out = child;
-                    return 1;
-                }
+	while  (child != nullptr) {
+		switch (ixmlNode_getNodeType(child)) {
+		case eELEMENT_NODE:
+		{
+			const DOMString NodeName = ixmlNode_getNodeName(child);
+			if(!strcmp(NodeName, element_name)) {
+				*out = child;
+				return 1;
 			}
+		}
+		break;
+
+		default:
 			break;
+		}
+		child = (IXML_Node *)ixmlNode_getNextSibling(child);
+	}
 
-            default:
-                break;
-        }
-        child = (IXML_Node *)ixmlNode_getNextSibling(child);
-    }
-
-    return 0;
+	return 0;
 }
 
 /************************************************************************
-*	Function :	getServiceList
-*
-*	Parameters :
-*		IXML_Node *node ;	"device" element.
-*		service_table stable ; entry to update.
-*
-*	Description: adds the device's services to the serviceList
-*
-*	Return:
-*
-*	Note :
-************************************************************************/
+ *	Function :	getServiceList
+ *
+ *	Parameters :
+ *		IXML_Node *node ;	"device" element.
+ *		service_table stable ; entry to update.
+ *
+ *	Description: adds the device's services to the serviceList
+ *
+ *	Return:
+ *
+ *	Note :
+ ************************************************************************/
 int getServiceList(IXML_Node *node, service_table *stable)
 {
 	IXML_Node *serviceList = NULL;
@@ -504,7 +499,7 @@ int getServiceList(IXML_Node *node, service_table *stable)
 	int fail = 0;
 
 	if (!getSubElement("UDN", node, &UDN) ||
-	    !getSubElement("serviceList", node, &serviceList)) {
+		!getSubElement("serviceList", node, &serviceList)) {
 		return 0;
 	}
 
@@ -563,18 +558,18 @@ int getServiceList(IXML_Node *node, service_table *stable)
 }
 
 /************************************************************************
-* Function : getAllServiceList
-*
-* Parameters :
-*	IXML_Node *node ;	description "root" node.
-*	service_table servtable the service_table on which to update the services
-*
-* Description:
-*
-* Return : 
-*
-* Note :
-************************************************************************/
+ * Function : getAllServiceList
+ *
+ * Parameters :
+ *	IXML_Node *node ;	description "root" node.
+ *	service_table servtable the service_table on which to update the services
+ *
+ * Description:
+ *
+ * Return : 
+ *
+ * Note :
+ ************************************************************************/
 int getAllServiceList(IXML_Node *node, service_table *servtable)
 {
 	servtable->serviceList.clear();
@@ -595,32 +590,32 @@ int getAllServiceList(IXML_Node *node, service_table *servtable)
 }
 
 /************************************************************************
-*	Function :	removeServiceTable
-*
-*	Parameters :
-*		IXML_Node *node ;	description top node.
-*		service_table *in ;	service table from which services will be 
-*							removed
-*
-*	Description :	This function assumes that services for a particular 
-*		root device are placed linearly in the service table, and in the 
-*		order in which they are found in the description document
-*		all services for this root device are removed from the list
-*
-*	Return : int ;
-*
-*	Note :
-************************************************************************/
+ *	Function :	removeServiceTable
+ *
+ *	Parameters :
+ *		IXML_Node *node ;	description top node.
+ *		service_table *in ;	service table from which services will be 
+ *							removed
+ *
+ *	Description :	This function assumes that services for a particular 
+ *		root device are placed linearly in the service table, and in the 
+ *		order in which they are found in the description document
+ *		all services for this root device are removed from the list
+ *
+ *	Return : int ;
+ *
+ *	Note :
+ ************************************************************************/
 int removeServiceTable(IXML_Node *node, service_table *stable)
 {
-    IXML_Node *root = NULL;
-    IXML_Node *currentUDN = NULL;
+	IXML_Node *root = NULL;
+	IXML_Node *currentUDN = NULL;
 	auto& servlist = stable->serviceList;
 
-    if (!getSubElement("root", node, &root)) {
+	if (!getSubElement("root", node, &root)) {
 		return 1;
 	}
-    IXML_NodeList *deviceList = 
+	IXML_NodeList *deviceList = 
 		ixmlElement_getElementsByTagName((IXML_Element *) root, "device");
 	if (deviceList == NULL) {
 		return 1;
@@ -648,7 +643,7 @@ int removeServiceTable(IXML_Node *node, service_table *stable)
 	}
 
 	ixmlNodeList_free(deviceList);
-    return 1;
+	return 1;
 }
 
 
@@ -656,7 +651,7 @@ int removeServiceTable(IXML_Node *node, service_table *stable)
  * Function : getServiceTable
  *
  * Parameters :
- * 	IXML_Node *node ;	XML node information
+ *	IXML_Node *node ;	XML node information
  *	service_table *out ;	output parameter which will contain the
  *				service list and URL
  *	const char *DefaultURLBase ; Default base URL on which the URL
@@ -666,16 +661,16 @@ int removeServiceTable(IXML_Node *node, service_table *stable)
  *
  * Return : 0 for failure, 1 if ok
  *
-************************************************************************/
+ ************************************************************************/
 int getServiceTable(
 	IXML_Node *node, service_table *out, const char *DefaultURLBase)
 {
-    IXML_Node *root = NULL;
-    if (!getSubElement("root", node, &root)) {
+	IXML_Node *root = NULL;
+	if (!getSubElement("root", node, &root)) {
 		return 0;
 	}
 
-    IXML_Node *URLBase;
+	IXML_Node *URLBase;
 	if (getSubElement("URLBase", root, &URLBase)) {
 		out->URLBase = getElementValue(URLBase);
 	} else {

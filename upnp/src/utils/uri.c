@@ -36,7 +36,7 @@
  *
  * \brief Contains functions for uri, url parsing utility.
  */
-
+#include <iostream>
 
 #ifdef __FreeBSD__
 	#include <osreldate.h>
@@ -59,15 +59,55 @@
 #include "upnpapi.h"
 
 
+#define MARK "-_.!~*'()"
+/*! added {} for compatibility */
+#define RESERVED ";/?:@&=+$,{}"
+
+
+/*! 
+ * \brief Buffer used in parsinghttp messages, urls, etc. generally this simply
+ * holds a pointer into a larger array.
+ */
+struct token {
+	const char *buff;
+	size_t size;
+};
+
+/*!
+ * \brief Compares buffer in the token object with the buffer in in2.
+ *
+ * \return 
+ * 	\li < 0, if string1 is less than string2.
+ * 	\li == 0, if string1 is identical to string2 .
+ * 	\li > 0, if string1 is greater than string2.
+ */
+int token_string_casecmp(
+	/*! [in] Token object whose buffer is to be compared. */
+	token *in1,
+	/*! [in] String of characters to compare with. */
+	const char *in2);
+
+/*!
+ * \brief Compares two tokens.
+ *
+ * \return 
+ * 	\li < 0, if string1 is less than string2.
+ * 	\li == 0, if string1 is identical to string2 .
+ * 	\li > 0, if string1 is greater than string2.
+ */
+int token_cmp(
+	/*! [in] First token object whose buffer is to be compared. */
+	token *in1,
+	/*! [in] Second token object used for the comparison. */
+	token *in2);
+
 /*!
  * \brief Returns a 1 if a char is a RESERVED char as defined in 
  * http://www.ietf.org/rfc/rfc2396.txt RFC explaining URIs).
  *
  * \return 1 if char is a RESERVED char.
  */
-static int is_reserved(
-	/*! [in] Char to be matched for RESERVED characters. */
-	char in)
+static int is_reserved(char in)
 {
 	if (strchr(RESERVED, (int)in)) {
 		return 1;
@@ -83,9 +123,7 @@ static int is_reserved(
  *
  * \return 1 if char is a MARKED char.
  */
-int is_mark(
-	/*! [in] Char to be matched for MARKED characters. */
-	char in)
+int is_mark(char in)
 {
 	if (strchr(MARK, (int)in)) {
 		return 1;
@@ -101,9 +139,7 @@ int is_mark(
  *
  * \return 1 if char is a UNRESERVED char.
  */
-int is_unreserved(
-	/*! [in] Char to be matched for UNRESERVED characters. */
-	char in)
+int is_unreserved(char in)
 {
 	if (isalnum(in) || is_mark(in)) {
 		return 1;
@@ -121,9 +157,7 @@ int is_unreserved(
  *
  * \return 1 if char is a ESCAPED char.
  */
-int is_escaped(
-	/*! [in] Char sequence to be matched for ESCAPED characters. */
-	const char *in)
+int is_escaped(const char *in)
 {
 	if (in[0] == '%' && isxdigit(in[1]) && isxdigit(in[2])) {
 		return 1;
@@ -132,18 +166,31 @@ int is_escaped(
 	}
 }
 
-int replace_escaped(char *in, size_t index, size_t *max)
+/*!
+ * \brief Replaces an escaped sequence with its unescaped version as in
+ * http://www.ietf.org/rfc/rfc2396.txt  (RFC explaining URIs)
+ *
+ * Size of array is NOT checked (MUST be checked by caller)
+ *
+ * \note This function modifies the string. If the sequence is an escaped
+ * sequence it is replaced, the other characters in the string are shifted
+ * over, and NULL characters are placed at the end of the string.
+ *
+ * \return 
+ */
+static void replace_escaped(char *in, size_t index, size_t *max)
 {
 	int tempInt = 0;
 	char tempChar = 0;
 	size_t i = (size_t)0;
 	size_t j = (size_t)0;
 
-	if (in[index] == '%' && isxdigit(in[index + (size_t)1]) && isxdigit(in[index + (size_t)2])) {
+	if (in[index] == '%' && isxdigit(in[index + (size_t)1]) &&
+		isxdigit(in[index + (size_t)2])) {
 		/* Note the "%2x", makes sure that we convert a maximum of two
 		 * characters. */
 		if (sscanf(&in[index + (size_t)1], "%2x", &tempInt) != 1) {
-			return 0;
+			return;
 		}
 		tempChar = (char)tempInt;
 		for (i = index + (size_t)3, j = index; j < *max; i++, j++) {
@@ -155,9 +202,6 @@ int replace_escaped(char *in, size_t index, size_t *max)
 			}
 		}
 		*max -= (size_t)2;
-		return 1;
-	} else {
-		return 0;
 	}
 }
 
@@ -191,101 +235,6 @@ static size_t parse_uric(
 }
 
 
-/*!
- * \brief Tokens are generally pointers into other strings. This copies the
- * offset and size from a token (in) relative to one string (in_base) into
- * a token (out) relative to another string (out_base).
- */
-static void copy_token(
-	/*! [in] Source token. */
-	const token *in,
-	/*! [in] . */
-	const char *in_base,
-	/*! [out] Destination token. */
-	token *out,
-	/*! [in] . */
-	char *out_base)
-{
-	out->size = in->size;
-	out->buff = out_base + (in->buff - in_base);
-}
-
-
-int copy_URL_list(URL_list *in, URL_list *out)
-{
-    size_t len = strlen(in->URLs) + (size_t)1;
-    size_t i = (size_t)0;
-
-    out->URLs = NULL;
-    out->parsedURLs = NULL;
-    out->size = (size_t)0;
-
-    out->URLs = (char*)malloc(len);
-    out->parsedURLs = (uri_type*)malloc(sizeof(uri_type) * in->size);
-
-    if ( !out->URLs || !out->parsedURLs)
-        return UPNP_E_OUTOF_MEMORY;
-    memcpy(out->URLs, in->URLs, len);
-    for( i = (size_t)0; i < in->size; i++ ) {
-        /*copy the parsed uri */
-        out->parsedURLs[i].type = in->parsedURLs[i].type;
-        copy_token( &in->parsedURLs[i].scheme, in->URLs,
-                    &out->parsedURLs[i].scheme, out->URLs );
-        out->parsedURLs[i].path_type = in->parsedURLs[i].path_type;
-        copy_token( &in->parsedURLs[i].pathquery, in->URLs,
-                    &out->parsedURLs[i].pathquery, out->URLs );
-        copy_token( &in->parsedURLs[i].fragment, in->URLs,
-                    &out->parsedURLs[i].fragment, out->URLs );
-        copy_token( &in->parsedURLs[i].hostport.text,
-                    in->URLs, &out->parsedURLs[i].hostport.text,
-                    out->URLs );
-        memcpy( &out->parsedURLs[i].hostport.IPaddress,
-            &in->parsedURLs[i].hostport.IPaddress, 
-            sizeof(struct sockaddr_storage) );
-    }
-    out->size = in->size;
-
-    return HTTP_SUCCESS;
-}
-
-
-void free_URL_list(URL_list *list)
-{
-	if (list->URLs) {
-		free(list->URLs);
-	}
-	if (list->parsedURLs) {
-		free(list->parsedURLs);
-	}
-	list->size = (size_t)0;
-}
-
-
-#ifdef DEBUG
-void print_uri(uri_type *in)
-{
-	print_token(&in->scheme);
-	print_token(&in->hostport.text);
-	print_token(&in->pathquery);
-	print_token(&in->fragment);
-}
-#endif /* DEBUG */
-
-
-#ifdef DEBUG
-void print_token(token * in)
-{
-	size_t i = 0;
-
-	printf("Token Size : %" PRIzu "\n\'", in->size);
-	for (i = 0; i < in->size; i++)
-		putchar(in->buff[i]);
-	putchar('\'');
-	putchar('\n');
-}
-#endif /* DEBUG */
-
-
 int token_string_casecmp(token *in1, const char *in2)
 {
 	size_t in2_length = strlen(in2);
@@ -295,15 +244,6 @@ int token_string_casecmp(token *in1, const char *in2)
 		return strncasecmp(in1->buff, in2, in1->size);
 }
 
-
-int token_string_cmp(token * in1, char *in2)
-{
-	size_t in2_length = strlen(in2);
-	if (in1->size != in2_length)
-		return 1;
-	else
-		return strncmp(in1->buff, in2, in1->size);
-}
 
 int token_cmp(token *in1, token *in2)
 {
@@ -449,8 +389,7 @@ found:
 	/* Check if address was converted successfully. */
 	if (ret <= 0)
 		return UPNP_E_INVALID_URL;
-	out->text.size = hostport_size;
-	out->text.buff = in;
+	out->text.assign(in, hostport_size);
 
 	return (int)hostport_size;
 }
@@ -602,14 +541,14 @@ std::string resolve_rel_url(const char *base_url, const char *rel_url)
 	}
 
 	size_t len_rel = strlen(rel_url);
-	if (parse_uri(rel_url, len_rel, &rel) != HTTP_SUCCESS)
+	if (parse_uri(rel_url, len_rel, &rel) != UPNP_E_SUCCESS)
 		return std::string();
-	if (rel.type == (enum uriType)ABSOLUTE)
+	if (rel.type == (enum uriType)URITP_ABSOLUTE)
 		return rel_url;
 
 	size_t len_base = strlen(base_url);
-	if ((parse_uri(base_url, len_base, &base) != HTTP_SUCCESS)
-		|| (base.type != (enum uriType)ABSOLUTE))
+	if ((parse_uri(base_url, len_base, &base) != UPNP_E_SUCCESS)
+		|| (base.type != (enum uriType)URITP_ABSOLUTE))
 		return std::string();
 	if (len_rel == (size_t)0)
 		return base_url;
@@ -623,14 +562,15 @@ std::string resolve_rel_url(const char *base_url, const char *rel_url)
 	char *path;
 	
 	/* scheme */
-	rv = snprintf(out_finger, len, "%.*s:", (int)base.scheme.size, base.scheme.buff);
+	rv = snprintf(out_finger, len, "%.*s:",
+				  (int)base.scheme.size(), base.scheme.c_str());
 	if (rv < 0 || rv >= (int)len)
 		goto error;
 	out_finger += rv;
 	len -= (size_t)rv;
 
 	/* authority */
-	if (rel.hostport.text.size > (size_t)0) {
+	if (rel.hostport.text.size() > (size_t)0) {
 		rv = snprintf(out_finger, len, "%s", rel_url);
 		if (rv < 0 || rv >= (int)len)
 			goto error;
@@ -640,8 +580,9 @@ std::string resolve_rel_url(const char *base_url, const char *rel_url)
 			return sout;
 		}
 	}
-	if (base.hostport.text.size > (size_t)0) {
-		rv = snprintf(out_finger, len, "//%.*s", (int)base.hostport.text.size, base.hostport.text.buff);
+	if (base.hostport.text.size() > (size_t)0) {
+		rv = snprintf(out_finger, len, "//%.*s",
+					  (int)base.hostport.text.size(),base.hostport.text.c_str());
 		if (rv < 0 || rv >= (int)len)
 			goto error;
 		out_finger += rv;
@@ -652,32 +593,34 @@ std::string resolve_rel_url(const char *base_url, const char *rel_url)
 	path = out_finger;
 	if (rel.path_type == (enum pathType)ABS_PATH) {
 		rv = snprintf(out_finger, len, "%s", rel_url);
-	} else if (base.pathquery.size == (size_t)0) {
+	} else if (base.pathquery.empty()) {
 		rv = snprintf(out_finger, len, "/%s", rel_url);
 	} else {
-		if (rel.pathquery.size == (size_t)0) {
-			rv = snprintf(out_finger, len, "%.*s", (int)base.pathquery.size, base.pathquery.buff);
+		if (rel.pathquery.empty()) {
+			rv = snprintf(out_finger, len, "%.*s",
+						  (int)base.pathquery.size(), base.pathquery.c_str());
 		} else {
-			if (len < base.pathquery.size)
+			if (len < base.pathquery.size())
 				goto error;
 			size_t i = (size_t)0, prefix = (size_t)1;
-			while (i < base.pathquery.size) {
-				out_finger[i] = base.pathquery.buff[i];
-				switch (base.pathquery.buff[i++]) {
+			while (i < base.pathquery.size()) {
+				out_finger[i] = base.pathquery[i];
+				switch (base.pathquery[i++]) {
 				case '/':
 					prefix = i;
 					/* fall-through */
 				default:
 					continue;
 				case '?': /* query */
-					if (rel.pathquery.buff[0] == '?')
+					if (rel.pathquery[0] == '?')
 						prefix = --i;
 				}
 				break;
 			}
 			out_finger += prefix;
 			len -= prefix;
-			rv = snprintf(out_finger, len, "%.*s", (int)rel.pathquery.size, rel.pathquery.buff);
+			rv = snprintf(out_finger, len, "%.*s",
+						  (int)rel.pathquery.size(), rel.pathquery.c_str());
 		}
 		if (rv < 0 || rv >= (int)len)
 			goto error;
@@ -685,10 +628,12 @@ std::string resolve_rel_url(const char *base_url, const char *rel_url)
 		len -= (size_t)rv;
 
 		/* fragment */
-		if (rel.fragment.size > (size_t)0)
-			rv = snprintf(out_finger, len, "#%.*s", (int)rel.fragment.size, rel.fragment.buff);
-		else if (base.fragment.size > (size_t)0)
-			rv = snprintf(out_finger, len, "#%.*s", (int)base.fragment.size, base.fragment.buff);
+		if (rel.fragment.size() > (size_t)0)
+			rv = snprintf(out_finger, len, "#%.*s",
+						  (int)rel.fragment.size(), rel.fragment.c_str());
+		else if (base.fragment.size() > (size_t)0)
+			rv = snprintf(out_finger, len, "#%.*s",
+						  (int)base.fragment.size(), base.fragment.c_str());
 		else
 			rv = 0;
 	}
@@ -718,62 +663,44 @@ int parse_uri(const char *in, size_t max, uri_type *out)
 	size_t begin_hostport = (size_t)0;
 	size_t begin_fragment = (size_t)0;
 
-	begin_hostport = parse_scheme(in, max, &out->scheme);
+	token scm;
+	begin_hostport = parse_scheme(in, max, &scm);
 	if (begin_hostport) {
-		out->type = ABSOLUTE;
+		out->scheme.assign(scm.buff, scm.size);
+		out->type = URITP_ABSOLUTE;
 		out->path_type = OPAQUE_PART;
 		begin_hostport++;
 	} else {
-		out->type = RELATIVE;
+		out->type = URITP_RELATIVE;
 		out->path_type = REL_PATH;
 	}
-	if (begin_hostport + (size_t)1 < max &&
-	    in[begin_hostport] == '/' &&
+	if (begin_hostport + (size_t)1 < max && in[begin_hostport] == '/' &&
 	    in[begin_hostport + (size_t)1] == '/') {
 		begin_hostport += (size_t)2;
-		begin_path = parse_hostport(&in[begin_hostport],
-			&out->hostport);
+		begin_path = parse_hostport(&in[begin_hostport], &out->hostport);
 		if (begin_path >= 0) {
 			begin_path += (int)begin_hostport;
-		} else
+		} else {
 			return begin_path;
+		}
 	} else {
-		memset(&out->hostport, 0, sizeof(out->hostport));
 		begin_path = (int)begin_hostport;
 	}
+	token ptq;
 	begin_fragment = parse_uric(&in[begin_path],
 		max - (size_t)begin_path,
-		&out->pathquery) + (size_t)begin_path;
-	if (out->pathquery.size && out->pathquery.buff[0] == '/') {
+		&ptq) + (size_t)begin_path;
+	out->pathquery.assign(ptq.buff, ptq.size);
+	if (out->pathquery.size() && out->pathquery[0] == '/') {
 		out->path_type = ABS_PATH;
 	}
 	if (begin_fragment < max && in[begin_fragment] == '#') {
 		begin_fragment++;
+		token frag;
 		parse_uric(&in[begin_fragment], max - begin_fragment,
-			   &out->fragment);
-	} else {
-		out->fragment.buff = NULL;
-		out->fragment.size = (size_t)0;
+			   &frag);
+		out->fragment.assign(frag.buff, frag.size);
 	}
 
-	return HTTP_SUCCESS;
+	return UPNP_E_SUCCESS;
 }
-
-int parse_uri_and_unescape(char *in, size_t max, uri_type *out)
-{
-	int ret = parse_uri(in, max, out);
-
-	if (ret != HTTP_SUCCESS) {
-		return ret;
-	}
-
-	if (out->pathquery.size > (size_t)0) {
-		remove_escaped_chars((char *)out->pathquery.buff, &out->pathquery.size);
-	}
-	if (out->fragment.size > (size_t)0) {
-		remove_escaped_chars((char *)out->fragment.buff, &out->fragment.size);
-	}
-
-	return HTTP_SUCCESS;
-}
-

@@ -36,6 +36,7 @@
 #ifdef INCLUDE_DEVICE_APIS
 
 #include <sstream>
+#include <iostream>
 
 #include <curl/curl.h>
 
@@ -65,8 +66,7 @@ int genaUnregisterDevice(
 	HandleLock();
 	if (GetHandleInfo(device_handle, &handle_info) != HND_DEVICE) {
 		UpnpPrintf(UPNP_CRITICAL, GENA, __FILE__, __LINE__,
-			"genaUnregisterDevice: BAD Handle: %d\n",
-			device_handle);
+			"genaUnregisterDevice: BAD Handle: %d\n", device_handle);
 		ret = GENA_E_BAD_HANDLE;
 	} else {
 		freeServiceTable(&handle_info->ServiceTable);
@@ -131,15 +131,12 @@ static int genaNotify(
 	const std::string& propertySet,
 	const subscription *sub)
 {
-	size_t i;
 	std::string mid_msg;
-	uri_type *url;
 	int return_code = -1;
 
 	long http_code = 0;
 	/* send a notify to each url until one goes thru */
-	for (i = 0; i < sub->DeliveryURLs.size; i++) {
-		url = &sub->DeliveryURLs.parsedURLs[i];
+	for (const auto& url : sub->DeliveryURLs) {
 		CURL *easy = curl_easy_init();
 		char curlerrormessage[CURL_ERROR_SIZE];
 
@@ -168,7 +165,7 @@ static int genaNotify(
 		curl_easy_setopt(easy, CURLOPT_HTTPHEADER, list);
 	
 		/* Compute and set string URL. */
-		curl_easy_setopt(easy, CURLOPT_URL, uri_asurlstr(*url).c_str());
+		curl_easy_setopt(easy, CURLOPT_URL, uri_asurlstr(url).c_str());
 
 		CURLcode code = curl_easy_perform(easy);
 		if (code == CURLE_OK) {
@@ -256,7 +253,7 @@ static void genaNotifyThread(void *input)
 								  in->servId, in->UDN)) ||
 	    !service->active ||
 	    !(sub = GetSubscriptionSID(in->sid, service)) ||
-	    copy_subscription(sub, &sub_copy) != HTTP_SUCCESS) {
+	    copy_subscription(sub, &sub_copy) != UPNP_E_SUCCESS) {
 		free_notify_struct(in);
 		HandleUnlock();
 		return;
@@ -635,93 +632,29 @@ static int respond_ok(MHDTransaction *mhdt, int time_out, subscription *sub)
 /*!
  * \brief Function to parse the Callback header value in subscription requests.
  *
- * Takes in a buffer containing URLS delimited by '<' and '>'. The entire buffer
- * is copied into dynamic memory and stored in the URL_list. Pointers to the
- * individual urls within this buffer are allocated and stored in the URL_list.
- * Only URLs with network addresses are considered (i.e. host:port or domain name).
+ * Takes in a buffer containing URLS delimited by '<' and '>'. The
+ * entire buffer is copied into dynamic memory and stored in the
+ * URL_list. Pointers to the individual urls within this buffer are
+ * allocated and stored in the URL_list.  Only URLs with network
+ * addresses are considered (i.e. host:port or domain name).
  *
- * \return The number of URLs parsed if successful, otherwise UPNP_E_OUTOF_MEMORY.
+ * \return The number of URLs parsed if successful, otherwise
+ * UPNP_E_OUTOF_MEMORY.
  */
-static int create_url_list(
-	/*! [in] . */
-	const std::string& url_list,
-	/*! [out] . */
-	URL_list *out)
+static int create_url_list(const std::string& url_list,
+						   std::vector<uri_type> *out)
 {
-    size_t URLcount = 0, URLcount2 = 0;
-    size_t i;
-    int return_code = 0;
-    uri_type temp;
-    token urls;
-    token *URLS;
-
-    urls.buff = url_list.c_str();
-    urls.size = url_list.size();
-    URLS = &urls;
-
-    out->size = 0;
-    out->URLs = NULL;
-    out->parsedURLs = NULL;
-
-    for( i = 0; i < URLS->size; i++ ) {
-        if( ( URLS->buff[i] == '<' ) && ( i + 1 < URLS->size ) ) {
-            if( ( ( return_code = parse_uri( &URLS->buff[i + 1],
-                                             URLS->size - i + 1,
-                                             &temp ) ) == HTTP_SUCCESS )
-                && ( temp.hostport.text.size != 0 ) ) {
-                URLcount++;
-            } else {
-                if( return_code == UPNP_E_OUTOF_MEMORY ) {
-                    return return_code;
-                }
+    for (size_t i = 0; i < url_list.size(); i++) {
+        if ((url_list[i] == '<') && (i + 1 < url_list.size())) {
+			uri_type temp;
+            if (((parse_uri(url_list.c_str() + i + 1, url_list.size() - i + 1,
+							&temp)) == UPNP_E_SUCCESS)
+                && (temp.hostport.text.size() != 0)) {
+				out->push_back(temp);
             }
         }
     }
-
-    if( URLcount > 0 ) {
-        out->URLs = (char*)malloc(URLS->size + 1);
-        out->parsedURLs = (uri_type*)malloc(sizeof(uri_type) * URLcount);
-        if (!out->URLs || !out->parsedURLs) {
-            free(out->URLs);
-            free(out->parsedURLs);
-            out->URLs = NULL;
-            out->parsedURLs = NULL;
-            return UPNP_E_OUTOF_MEMORY;
-        }
-        memcpy( out->URLs, URLS->buff, URLS->size );
-        out->URLs[URLS->size] = 0;
-        for( i = 0; i < URLS->size; i++ ) {
-            if( ( URLS->buff[i] == '<' ) && ( i + 1 < URLS->size ) ) {
-                if( ( ( return_code =
-                        parse_uri( &out->URLs[i + 1], URLS->size - i + 1,
-                                   &out->parsedURLs[URLcount2] ) ) ==
-                      HTTP_SUCCESS )
-                    && ( out->parsedURLs[URLcount2].hostport.text.size !=
-                         0 ) ) {
-                    URLcount2++;
-                    if (URLcount2 >= URLcount)
-                        /*
-                         * break early here in case there is a bogus URL that
-                         * was skipped above. This prevents to access
-                         * out->parsedURLs[URLcount] which is beyond the
-                         * allocation.
-                         */
-                        break;
-                } else {
-                    if( return_code == UPNP_E_OUTOF_MEMORY ) {
-                        free( out->URLs );
-                        free( out->parsedURLs );
-                        out->URLs = NULL;
-                        out->parsedURLs = NULL;
-                        return return_code;
-                    }
-                }
-            }
-        }
-    }
-    out->size = URLcount;
-
-    return (int)URLcount;
+    return (int)out->size();
 }
 
 
@@ -754,13 +687,13 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
 	stringtolower(ntvalue);
 	if (ntvalue != "upnp:event") {
 		http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
-		goto exit_function;
+		return;
 	}
 
 	/* if a SID is present, bad request "incompatible headers" */
 	if (mhdt->headers.find("sid") != mhdt->headers.end()) {
 		http_SendStatusResponse(mhdt, HTTP_BAD_REQUEST);
-		goto exit_function;
+		return;
 	}
 	/* look up service by eventURL */
 	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
@@ -773,13 +706,13 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
 			&device_handle, &handle_info, &service) != HND_DEVICE) {
 		http_SendStatusResponse(mhdt, HTTP_INTERNAL_SERVER_ERROR);
 		HandleUnlock();
-		goto exit_function;
+		return;
 	}
 
 	if (service == NULL || !service->active) {
 		http_SendStatusResponse(mhdt, HTTP_NOT_FOUND);
 		HandleUnlock();
-		goto exit_function;
+		return;
 	}
 
 	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
@@ -792,14 +725,14 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
 	    service->TotalSubscriptions >= handle_info->MaxSubscriptions) {
 		http_SendStatusResponse(mhdt, HTTP_INTERNAL_SERVER_ERROR);
 		HandleUnlock();
-		goto exit_function;
+		return;
 	}
 	/* generate new subscription */
 	sub = service->subscriptionList.emplace(service->subscriptionList.end());
 	if (sub == service->subscriptionList.end()) {
 		http_SendStatusResponse(mhdt, HTTP_INTERNAL_SERVER_ERROR);
 		HandleUnlock();
-		goto exit_function;
+		return;
 	}
 
 	/* check for valid callbacks */
@@ -809,20 +742,20 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
 			http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
 			service->subscriptionList.pop_back();
 			HandleUnlock();
-			goto exit_function;
+			return;
 		}
 		return_code = create_url_list(itcb->second, &sub->DeliveryURLs);
 		if (return_code == 0) {
 			http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
 			service->subscriptionList.pop_back();
 			HandleUnlock();
-			goto exit_function;
+			return;
 		}
 		if (return_code == UPNP_E_OUTOF_MEMORY) {
 			http_SendStatusResponse(mhdt, HTTP_INTERNAL_SERVER_ERROR);
 			service->subscriptionList.pop_back();
 			HandleUnlock();
-			goto exit_function;
+			return;
 		}
 	}
 
@@ -854,7 +787,7 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
 		respond_ok(mhdt, time_out, &(*sub)) != UPNP_E_SUCCESS) {
 		service->subscriptionList.pop_back();
 		HandleUnlock();
-		goto exit_function;
+		return;
 	}
 	service->TotalSubscriptions++;
 
@@ -874,9 +807,6 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
 	/* in the future should find a way of mainting that the handle */
 	/* is not unregistered in the middle of a callback */
 	callback_fun(UPNP_EVENT_SUBSCRIPTION_REQUEST, &request_struct, cookie);
-
-exit_function:
-	return;
 }
 
 

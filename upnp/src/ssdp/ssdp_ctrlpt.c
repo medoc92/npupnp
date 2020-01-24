@@ -168,11 +168,11 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
 	event.UDN[0] = '\0';
 	event.DeviceType[0] = '\0';
 	event.ServiceType[0] = '\0';
-	nt_found = FALSE;
+	nt_found = 0;
 	if (parser.nt) {
 		nt_found = (ssdp_request_type(parser.nt, &event) == 0);
 	}
-	usn_found = FALSE;
+	usn_found = 0;
 	if (parser.usn) {
 		usn_found = (unique_service_name(parser.usn, &event) == 0);
 	}
@@ -224,7 +224,7 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
 	} else {
 		/* reply (to a SEARCH) */
 		/* only checking to see if there is a valid ST header */
-		st_found = FALSE;
+		st_found = 0;
 		if (parser.st) {
 			st_found = ssdp_request_type(parser.st, &event) == 0;
 		}
