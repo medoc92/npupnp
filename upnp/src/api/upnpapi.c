@@ -832,8 +832,6 @@ int UpnpRegisterRootDevice(
 	HInfo->Callback = Fun;
 	HInfo->Cookie = (char *)Cookie;
 	HInfo->MaxAge = DEFAULT_MAXAGE;
-	HInfo->DeviceList = NULL;
-	HInfo->DescDocument = NULL;
 #ifdef INCLUDE_CLIENT_APIS
 	HInfo->ClientSubList = NULL;
 #endif /* INCLUDE_CLIENT_APIS */
@@ -841,7 +839,8 @@ int UpnpRegisterRootDevice(
 	HInfo->MaxSubscriptionTimeOut = UPNP_INFINITE;
 	HInfo->DeviceAf = AF_INET;
 
-	retVal = UpnpDownloadXmlDoc(HInfo->DescURL, &(HInfo->DescDocument));
+	char *descstr;
+	retVal = UpnpDownloadUrlItem(HInfo->DescURL, &descstr, 0);
 	if (retVal != UPNP_E_SUCCESS) {
 		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
 			"UpnpRegisterRootDevice: error downloading Document: %d\n",
@@ -849,21 +848,18 @@ int UpnpRegisterRootDevice(
 		FreeHandle(*Hnd);
 		goto exit_function;
 	}
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"UpnpRegisterRootDevice: Valid Description\n"
-		"UpnpRegisterRootDevice: DescURL : %s\n",
-		HInfo->DescURL);
-
-	HInfo->DeviceList =
-		ixmlDocument_getElementsByTagName(HInfo->DescDocument, "device");
-	if (!HInfo->DeviceList) {
-		ixmlDocument_free(HInfo->DescDocument);
+	HInfo->devdesc = UPnPDeviceDesc(HInfo->DescURL, descstr);
+	free(descstr);
+	if (!HInfo->devdesc.ok) {
 		FreeHandle(*Hnd);
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
 			"UpnpRegisterRootDevice: No devices found for RootDevice\n");
 		retVal = UPNP_E_INVALID_DESC;
 		goto exit_function;
 	}
+	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+		"UpnpRegisterRootDevice: Valid Description\n"
+		"UpnpRegisterRootDevice: DescURL : %s\n", HInfo->DescURL);
 
 #if EXCLUDE_GENA == 0
 	/*
@@ -871,15 +867,13 @@ int UpnpRegisterRootDevice(
 	 */
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
 		"UpnpRegisterRootDevice: Gena Check\n");
-	hasServiceTable = getServiceTable(
-		(IXML_Node *)HInfo->DescDocument,
-		&HInfo->ServiceTable,
-		HInfo->DescURL);
+	hasServiceTable = getServiceTable(HInfo->devdesc, &HInfo->ServiceTable,
+									  HInfo->DescURL);
 	if (hasServiceTable) {
 		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
 			"UpnpRegisterRootDevice: GENA Service Table\n"
 			"Here are the known services:\n");
-		printServiceTable( &HInfo->ServiceTable, UPNP_ALL, API );
+		printServiceTable(&HInfo->ServiceTable, UPNP_ALL, API );
 	} else {
 		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
 			"\nUpnpRegisterRootDevice: Empty service table\n");
@@ -913,7 +907,7 @@ static int GetDescDocumentAndURL(
 	/* [in] . */
 	int AddressFamily,
 	/* [out] . */
-	IXML_Document **xmlDoc,
+	UPnPDeviceDesc& desc,
 	/* [out] . */
 	char descURL[LINE_SIZE]);
 
@@ -969,7 +963,7 @@ int UpnpRegisterRootDevice2(
 	retVal = GetDescDocumentAndURL(
 		descriptionType, description,
 		config_baseURL, AF_INET, 
-		&HInfo->DescDocument, HInfo->DescURL);
+		HInfo->devdesc, HInfo->DescURL);
 	if (retVal != UPNP_E_SUCCESS) {
 		FreeHandle(*Hnd);
 		goto exit_function;
@@ -985,7 +979,6 @@ int UpnpRegisterRootDevice2(
 	HInfo->Callback = Fun;
 	HInfo->Cookie = (char *)Cookie;
 	HInfo->MaxAge = DEFAULT_MAXAGE;
-	HInfo->DeviceList = NULL;
 #ifdef INCLUDE_CLIENT_APIS
 	HInfo->ClientSubList = NULL;
 #endif /* INCLUDE_CLIENT_APIS */
@@ -998,27 +991,14 @@ int UpnpRegisterRootDevice2(
 		"UpnpRegisterRootDevice2: DescURL : %s\n",
 		HInfo->DescURL);
 
-	HInfo->DeviceList =
-		ixmlDocument_getElementsByTagName( HInfo->DescDocument, "device" );
-	if (!HInfo->DeviceList) {
-		ixmlDocument_free(HInfo->DescDocument);
-		FreeHandle(*Hnd);
-		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			"UpnpRegisterRootDevice2: No devices found for RootDevice\n" );
-		retVal = UPNP_E_INVALID_DESC;
-		goto exit_function;
-	}
-	
 #if EXCLUDE_GENA == 0
 	/*
 	 * GENA SET UP
 	 */
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
 		"UpnpRegisterRootDevice2: Gena Check\n" );
-	hasServiceTable = getServiceTable(
-		(IXML_Node *)HInfo->DescDocument,
-		&HInfo->ServiceTable,
-		HInfo->DescURL);
+	hasServiceTable = getServiceTable(HInfo->devdesc, &HInfo->ServiceTable,
+									  HInfo->DescURL);
 	if (hasServiceTable) {
 		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
 			"UpnpRegisterRootDevice2: GENA Service Table\n"
@@ -1120,17 +1100,29 @@ int UpnpRegisterRootDevice4(
 	HInfo->Callback = Fun;
 	HInfo->Cookie = (char *)Cookie;
 	HInfo->MaxAge = DEFAULT_MAXAGE;
-	HInfo->DeviceList = NULL;
-	HInfo->DescDocument = NULL;
 #ifdef INCLUDE_CLIENT_APIS
 	HInfo->ClientSubList = NULL;
 #endif /* INCLUDE_CLIENT_APIS */
 	HInfo->MaxSubscriptions = UPNP_INFINITE;
 	HInfo->MaxSubscriptionTimeOut = UPNP_INFINITE;
 	HInfo->DeviceAf = AddressFamily;
-	retVal = UpnpDownloadXmlDoc(HInfo->DescURL, &(HInfo->DescDocument));
+
+	char *descstr;
+	retVal = UpnpDownloadUrlItem(HInfo->DescURL, &descstr, 0);
 	if (retVal != UPNP_E_SUCCESS) {
+		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+			"UpnpRegisterRootDevice: error downloading Document: %d\n",
+			retVal);
 		FreeHandle(*Hnd);
+		goto exit_function;
+	}
+	HInfo->devdesc = UPnPDeviceDesc(HInfo->DescURL, descstr);
+	free(descstr);
+	if (!HInfo->devdesc.ok) {
+		FreeHandle(*Hnd);
+		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
+			"UpnpRegisterRootDevice: No devices found for RootDevice\n");
+		retVal = UPNP_E_INVALID_DESC;
 		goto exit_function;
 	}
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
@@ -1138,27 +1130,14 @@ int UpnpRegisterRootDevice4(
 		"UpnpRegisterRootDevice4: DescURL : %s\n",
 		HInfo->DescURL);
 
-	HInfo->DeviceList = ixmlDocument_getElementsByTagName(
-		HInfo->DescDocument, "device");
-	if (!HInfo->DeviceList) {
-		ixmlDocument_free(HInfo->DescDocument);
-		FreeHandle(*Hnd);
-		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-			"UpnpRegisterRootDevice4: No devices found for RootDevice\n");
-		retVal = UPNP_E_INVALID_DESC;
-		goto exit_function;
-	}
-
 #if EXCLUDE_GENA == 0
 	/*
 	 * GENA SET UP
 	 */
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
 		"UpnpRegisterRootDevice4: Gena Check\n" );
-	hasServiceTable = getServiceTable(
-		(IXML_Node *)HInfo->DescDocument,
-		&HInfo->ServiceTable,
-		HInfo->DescURL);
+	hasServiceTable = getServiceTable(HInfo->devdesc, &HInfo->ServiceTable,
+									  HInfo->DescURL);
 	if (hasServiceTable) {
 		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
 			"UpnpRegisterRootDevice4: GENA Service Table \n"
@@ -1242,8 +1221,6 @@ int UpnpUnRegisterRootDeviceLowPower(UpnpDevice_Handle Hnd, int PowerState,
 	default:
 		break;
 	}
-	ixmlNodeList_free(HInfo->DeviceList);
-	ixmlDocument_free(HInfo->DescDocument);
 	switch (HInfo->DeviceAf) {
 	case AF_INET:
 		UpnpSdkDeviceRegisteredV4 = 0;
@@ -1368,13 +1345,10 @@ static int GetDescDocumentAndURL(
 	char *description,
 	int config_baseURL,
 	int AddressFamily,
-	IXML_Document **xmlDoc,
+	UPnPDeviceDesc& desc,
 	char descURL[LINE_SIZE])
 {
 	int retVal = 0;
-	char aliasStr[LINE_SIZE];
-
-	memset(aliasStr, 0, sizeof(aliasStr));
 	if (description == NULL)
 		return UPNP_E_INVALID_PARAM;
 
@@ -1387,22 +1361,29 @@ static int GetDescDocumentAndURL(
 		return UPNP_E_INVALID_PARAM;
 	}
 
-	/* Get XML doc */
-    retVal = UpnpDownloadXmlDoc(description, xmlDoc);
-    if (retVal != UPNP_E_SUCCESS) {
-        return retVal;
-	}
-
 	/* Manual */
 	if (strlen(description) > LINE_SIZE - 1) {
-		ixmlDocument_free(*xmlDoc);
 		return UPNP_E_URL_TOO_BIG;
 	}
 	strncpy(descURL, description, LINE_SIZE - 1);
 	descURL[LINE_SIZE - 1] = '\0';
 
-	assert(*xmlDoc != NULL);
-
+	/* Get XML doc */
+	char *descstr;
+	retVal = UpnpDownloadUrlItem(description, &descstr, 0);
+	if (retVal != UPNP_E_SUCCESS) {
+		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+			"UpnpRegisterRootDevice: error downloading Document: %d\n",
+			retVal);
+		return retVal;
+	}
+	desc = UPnPDeviceDesc(description, descstr);
+	free(descstr);
+	if (!desc.ok) {
+		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
+			"UpnpRegisterRootDevice: No devices found for RootDevice\n");
+		return UPNP_E_INVALID_DESC;
+	}
 	return UPNP_E_SUCCESS;
 }
 
@@ -2559,7 +2540,7 @@ int UpnpDownloadUrlItem(const char *url, char **outBuf, char *contentType)
 	int ret_code;
 	size_t dummy;
 
-	if (url == NULL || outBuf == NULL || contentType == NULL)
+	if (url == NULL || outBuf == NULL)
 		return UPNP_E_INVALID_PARAM;
 	ret_code = http_Download(url, HTTP_DEFAULT_TIMEOUT, outBuf, &dummy,
 							 contentType);

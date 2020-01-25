@@ -43,6 +43,7 @@ libnpupnp_la_SOURCES = \
 	src/inc/VirtualDir.h \
 	src/inc/client_table.h \
 	src/inc/config.h \
+	src/inc/description.h \
 	src/inc/gena.h \
 	src/inc/gena_ctrlpt.h \
 	src/inc/gena_device.h \
@@ -87,6 +88,7 @@ endif
 # genlib
 libnpupnp_la_SOURCES += \
 	src/dispatcher/miniserver.c \
+	src/utils/description.cpp \
 	src/utils/smallut.cpp \
 	src/utils/util.c \
 	src/utils/sock.c \

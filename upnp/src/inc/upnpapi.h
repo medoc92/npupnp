@@ -42,6 +42,7 @@
 #include "upnp.h"
 #include "VirtualDir.h"		/* for struct VirtualDirCallbacks */
 #include "TimerThread.h"
+#include "description.h"
 
 typedef struct _IXML_Node IXML_Node;
 typedef struct _IXML_NodeList IXML_NodeList;
@@ -102,10 +103,8 @@ struct Handle_Info
 	int SleepPeriod{0};
 	/* Registration State as defined by UPnP Low Power. */
 	int RegistrationState{0};
-	/*! Description parsed in terms of DOM document. */
-	IXML_Document *DescDocument{nullptr};
-	/*! List of devices in the description document. */
-	IXML_NodeList *DeviceList{nullptr};
+	/*! Parsed Device Description document. */
+	UPnPDeviceDesc devdesc;
 	/*! Table holding subscriptions and URL information. */
 	service_table ServiceTable;
 	/*! . */

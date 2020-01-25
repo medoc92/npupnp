@@ -45,6 +45,7 @@
 #include "upnp.h"
 #include "upnpdebug.h"
 #include "ThreadPool.h"
+#include "description.h"
 
 typedef struct _IXML_Node IXML_Node;
 
@@ -277,28 +278,12 @@ void freeServiceTable(
 	service_table *table);
 
 /*!
- * \brief This function assumes that services for a particular root device are
- * placed linearly in the service table, and in the order in which they are
- * found in the description document all services for this root device are
- * removed from the list.
- *
- * \return An integer.
- */
-int removeServiceTable(
-	/*! [in] XML node information. */
-	IXML_Node *node,
-	/*! [in] Service table from which services will be removed. */
-	service_table *in);
-
-
-/*!
  * \brief Retrieve service from the table.
  *
  * \return An integer
  */
 int getServiceTable(
-	/*! [in] XML node information. */
-	IXML_Node *node,
+	const UPnPDeviceDesc& devdesc,
 	/*! [in] Output parameter which will contain the service list and URL. */
 	service_table *out,
 	/*! [in] Default base URL on which the URL will be returned. */
@@ -306,22 +291,6 @@ int getServiceTable(
 
 /*	Misc helper functions	*/
 
-
-/*!
- * \brief Traverses through a list of XML nodes to find the node with the
- * known element name.
- *
- * \return
- * 	\li 1 - On Success
- * 	\li 0 - On Failure
- */
-int getSubElement(
-	/*! [in] Sub element name to be searched for. */
-	const char *element_name,
-	/*! [in] Input node which provides the list of child nodes. */
-	IXML_Node *node, 
-	/*! [out] Ouput node to which the matched child node is returned. */
-	IXML_Node **out);
 
 #endif /* INCLUDE_DEVICE_APIS */
 

@@ -340,13 +340,13 @@ static UPNP_INLINE void ssdp_handle_device_request(
  */
 int DeviceAdvertisement(
 	/* [in] type of the device. */
-	char *DevType,
+	const char *DevType,
 	/* [in] flag to indicate if the device is root device. */
 	int RootDev,
 	/* [in] UDN. */
-	char *Udn, 
+	const char *Udn, 
 	/* [in] Location URL. */
-	char *Location,
+	const char *Location,
 	/* [in] Service duration in sec. */
 	int Duration,
 	/* [in] Device address family. */
@@ -368,13 +368,13 @@ int SendReply(
 	/* [in] destination IP address. */
 	struct sockaddr *DestAddr, 
 	/* [in] Device type. */
-	char *DevType, 
+	const char *DevType, 
 	/* [in] 1 means root device 0 means embedded device. */
 	int RootDev, 
 	/* [in] Device UDN. */
-	char *Udn, 
+	const char *Udn, 
 	/* [in] Location of Device description document. */
-	char *Location, 
+	const char *Location, 
 	/* [in] Life time of this device. */
 	int Duration, 
 	/* [in] . */
@@ -396,13 +396,13 @@ int DeviceReply(
 	/* [in] destination IP address. */
 	struct sockaddr *DestAddr, 
 	/* [in] Device type. */
-	char *DevType, 
+	const char *DevType, 
 	/* [in] 1 means root device 0 means embedded device. */
 	int RootDev, 
 	/* [in] Device UDN. */
-	char *Udn, 
+	const char *Udn, 
 	/* [in] Location of Device description document. */
-	char *Location, 
+	const char *Location, 
 	/* [in] Life time of this device. */
 	int Duration,
 	/* [in] PowerState as defined by UPnP Low Power. */
@@ -420,11 +420,11 @@ int DeviceReply(
  */
 int ServiceAdvertisement(
 	/* [in] Device UDN. */
-	char *Udn, 
+	const char *Udn, 
 	/* [in] Service Type. */
-	char *ServType,
+	const char *ServType,
 	/* [in] Location of Device description document. */
-	char *Location,
+	const char *Location,
 	/* [in] Life time of this device. */
 	int Duration,
 	/* [in] Device address family. */
@@ -446,11 +446,11 @@ int ServiceReply(
 	/* [in] . */
 	struct sockaddr *DestAddr,  
 	/* [in] Service Type. */
-	char *ServType, 
+	const char *ServType, 
 	/* [in] Device UDN. */
-	char *Udn, 
+	const char *Udn, 
 	/* [in] Location of Device description document. */
-	char *Location,
+	const char *Location,
 	/* [in] Life time of this device. */
 	int Duration,
 	/* [in] PowerState as defined by UPnP Low Power. */
@@ -468,11 +468,11 @@ int ServiceReply(
  */
 int ServiceShutdown(
 	/* [in] Device UDN. */
-	char *Udn,
+	const char *Udn,
 	/* [in] Service Type. */
-	char *ServType,
+	const char *ServType,
 	/* [in] Location of Device description document. */
-	char *Location,
+	const char *Location,
 	/* [in] Service duration in sec. */
 	int Duration,
 	/* [in] Device address family. */
@@ -492,13 +492,13 @@ int ServiceShutdown(
  */
 int DeviceShutdown(
 	/* [in] Device Type. */
-	char *DevType, 
+	const char *DevType, 
 	/* [in] 1 means root device. */
 	int RootDev,
 	/* [in] Device UDN. */
-	char *Udn, 
+	const char *Udn, 
 	/* [in] Location URL. */
-	char *Location, 
+	const char *Location, 
 	/* [in] Device duration in sec. */
 	int Duration,
 	/* [in] Device address family. */

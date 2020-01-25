@@ -41,8 +41,9 @@
 #include "config.h"
 
 #include <algorithm>
-#include <upnp/ixml.h>
+#include <iostream>
 
+#include "description.h"
 #include "service_table.h"
 
 #ifdef INCLUDE_DEVICE_APIS
@@ -401,79 +402,9 @@ void freeServiceTable(service_table *table)
 }
 
 /************************************************************************
- *	Function :	getElementValue
- *
- *	Parameters :
- *		IXML_Node *node ;	Input node which provides the list of child 
- *							nodes
- *
- *	Description :	Returns the clone of the element value
- *
- *	Return : std::string
- *
- *	Note : value must be freed with DOMString_free
- ************************************************************************/
-static std::string getElementValue(IXML_Node * node)
-{
-	IXML_Node *child = (IXML_Node *)ixmlNode_getFirstChild(node);
-	if (child && ixmlNode_getNodeType(child) == eTEXT_NODE) {
-		return ixmlNode_getNodeValue(child);
-	} else {
-		return std::string();
-	}
-}
-
-/************************************************************************
- *	Function :	getSubElement
- *
- *	Parameters :
- *		const char *element_name ;	sub element name to be searched for
- *		IXML_Node *node ;	Input node which provides the list of child 
- *							nodes
- *		IXML_Node **out ;	Ouput node to which the matched child node is
- *							returned.
- *
- *	Description :	Traverses through a list of XML nodes to find the 
- *		node with the known element name.
- *
- *	Return : int ;
- *		1 - On Success
- *		0 - On Failure
- *
- *	Note :
- ************************************************************************/
-int getSubElement(const char *element_name, IXML_Node *node, IXML_Node **out)
-{
-	IXML_Node *child = (IXML_Node *) ixmlNode_getFirstChild(node);
-
-	*out = nullptr;
-
-	while  (child != nullptr) {
-		switch (ixmlNode_getNodeType(child)) {
-		case eELEMENT_NODE:
-		{
-			const DOMString NodeName = ixmlNode_getNodeName(child);
-			if(!strcmp(NodeName, element_name)) {
-				*out = child;
-				return 1;
-			}
-		}
-		break;
-
-		default:
-			break;
-		}
-		child = (IXML_Node *)ixmlNode_getNextSibling(child);
-	}
-
-	return 0;
-}
-
-/************************************************************************
  *	Function :	getServiceList
  *
  *	Parameters :
- *		IXML_Node *node ;	"device" element.
  *		service_table stable ; entry to update.
  *
  *	Description: adds the device's services to the serviceList
@@ -482,176 +413,50 @@ int getSubElement(const char *element_name, IXML_Node *node, IXML_Node **out)
  *
  *	Note :
  ************************************************************************/
-int getServiceList(IXML_Node *node, service_table *stable)
+int getServiceList(const UPnPDeviceDesc& dev, service_table *stable)
 {
-	IXML_Node *serviceList = NULL;
-	IXML_Node *current_service = NULL;
-	IXML_Node *UDN = NULL;
-	IXML_Node *serviceType = NULL;
-	IXML_Node *serviceId = NULL;
-	IXML_Node *SCPDURL = NULL;
-	IXML_Node *controlURL = NULL;
-	IXML_Node *eventURL = NULL;
-	std::string tempDOMString;
-	IXML_NodeList *serviceNodeList = NULL;
 
-	long unsigned int i = 0lu;
-	int fail = 0;
-
-	if (!getSubElement("UDN", node, &UDN) ||
-		!getSubElement("serviceList", node, &serviceList)) {
-		return 0;
-	}
-
-	serviceNodeList = ixmlElement_getElementsByTagName(
-		(IXML_Element *)serviceList, "service");
-	if (!serviceNodeList) {
-		return 0;
-	}
-
-	for (i = 0; i < ixmlNodeList_length(serviceNodeList); i++) {
-		current_service = ixmlNodeList_item(serviceNodeList, i);
-		fail = 0;
+	for (const UPnPServiceDesc& sdesc : dev.services) {
+		int fail = 0;
 		std::list<service_info>::iterator current =
 			stable->serviceList.emplace(stable->serviceList.end());
 		current->active = 1;
-		if ((current->UDN = getElementValue(UDN)).empty())
-			fail = 1;
-		if (!getSubElement("serviceType", current_service, &serviceType) ||
-			(current->serviceType = getElementValue(serviceType)).empty())
-			fail = 1;
-		if (!getSubElement("serviceId", current_service, &serviceId) ||
-			(current->serviceId = getElementValue(serviceId)).empty())
-			fail = 1;
-		if (!getSubElement("SCPDURL", current_service, &SCPDURL) ||
-			(tempDOMString = getElementValue(SCPDURL)).empty() ||
-			(current->SCPDURL = resolve_rel_url(
-				stable->URLBase.c_str(), tempDOMString.c_str())).empty())
-			fail = 1;
-		if (!(getSubElement("controlURL", current_service, &controlURL)) ||
-			(tempDOMString = getElementValue(controlURL)).empty() ||
-			(current->controlURL = resolve_rel_url(
-				stable->URLBase.c_str(), tempDOMString.c_str())).empty()) {
+		current->UDN = dev.UDN;
+		current->serviceType = sdesc.serviceType;
+		current->serviceId = sdesc.serviceId;
+		current->SCPDURL = resolve_rel_url(
+			dev.URLBase.c_str(), sdesc.SCPDURL.c_str());
+		//std::cerr<<"getServLst:SCPDURL: "<<current->SCPDURL<<std::endl;
+		if (current->SCPDURL.empty()) {
+			UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
+					   "BAD OR MISSING SCPDURL");
+		}
+		current->controlURL = resolve_rel_url(
+			stable->URLBase.c_str(), sdesc.controlURL.c_str());
+		//std::cerr<<"getServLst:controlURL: "<<current->controlURL<<std::endl;
+		if (current->controlURL.empty()) {
 			UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
 					   "BAD OR MISSING CONTROL URL");
-			UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
-					   "CONTROL URL SET TO NULL IN SERVICE INFO");
 			fail = 1;
 		}
-		if (!getSubElement("eventSubURL", current_service, &eventURL) ||
-			(tempDOMString = getElementValue(eventURL)).empty() ||
-			(current->eventURL = resolve_rel_url(
-				stable->URLBase.c_str(), tempDOMString.c_str())).empty()) {
+		current->eventURL = resolve_rel_url(
+			stable->URLBase.c_str(), sdesc.eventSubURL.c_str());
+		//std::cerr<<"getServLst:eventURL: "<<current->eventURL<<std::endl;
+		if (current->eventURL.empty()) {
 			UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
 					   "BAD OR MISSING EVENT URL");
-			UpnpPrintf(UPNP_INFO, GENA, __FILE__,  __LINE__,
-					   "EVENT URL SET TO NULL IN SERVICE INFO");
-			fail = 1;
 		}
 		if (fail) {
 			stable->serviceList.erase(current);
 		}
 	}
-	ixmlNodeList_free(serviceNodeList);
-
 	return stable->serviceList.size() != 0;
 }
-
-/************************************************************************
- * Function : getAllServiceList
- *
- * Parameters :
- *	IXML_Node *node ;	description "root" node.
- *	service_table servtable the service_table on which to update the services
- *
- * Description:
- *
- * Return : 
- *
- * Note :
- ************************************************************************/
-int getAllServiceList(IXML_Node *node, service_table *servtable)
-{
-	servtable->serviceList.clear();
-
-	IXML_NodeList *deviceList = ixmlElement_getElementsByTagName(
-		(IXML_Element *)node, "device");
-	if (nullptr == deviceList) {
-		return 0;
-	}
-
-	for (long unsigned int i = 0; i < ixmlNodeList_length(deviceList); i++) {
-		IXML_Node *currentDevice = ixmlNodeList_item(deviceList, i);
-		getServiceList(currentDevice, servtable);
-	}
-
-	ixmlNodeList_free(deviceList);
-	return 1;
-}
-
-/************************************************************************
- *	Function :	removeServiceTable
- *
- *	Parameters :
- *		IXML_Node *node ;	description top node.
- *		service_table *in ;	service table from which services will be 
- *							removed
- *
- *	Description :	This function assumes that services for a particular 
- *		root device are placed linearly in the service table, and in the 
- *		order in which they are found in the description document
- *		all services for this root device are removed from the list
- *
- *	Return : int ;
- *
- *	Note :
- ************************************************************************/
-int removeServiceTable(IXML_Node *node, service_table *stable)
-{
-	IXML_Node *root = NULL;
-	IXML_Node *currentUDN = NULL;
-	auto& servlist = stable->serviceList;
-
-	if (!getSubElement("root", node, &root)) {
-		return 1;
-	}
-	IXML_NodeList *deviceList = 
-		ixmlElement_getElementsByTagName((IXML_Element *) root, "device");
-	if (deviceList == NULL) {
-		return 1;
-	}
-
-	for (unsigned i = 0; i < ixmlNodeList_length(deviceList); i++) {
-		std::string UDN;
-		if (!getSubElement("UDN", node, &currentUDN)
-			|| (UDN = getElementValue(currentUDN)).empty()) {
-			continue;
-		}
-
-		/*There used to be an optimization based on the order of
-		  creation of Services. This was somewhat fragile, and not
-		  very useful as these lists are short anyway. Now always
-		  start from the bottom */
-		auto current = servlist.begin();
-		while (current != servlist.end()) {
-			if (current->UDN == UDN) {
-				current = servlist.erase(current);
-			} else {
-				current++;
-			}
-		}
-	}
-
-	ixmlNodeList_free(deviceList);
-	return 1;
-}
-
 
 /************************************************************************
  * Function : getServiceTable
  *
  * Parameters :
- *	IXML_Node *node ;	XML node information
  *	service_table *out ;	output parameter which will contain the
  *				service list and URL
  *	const char *DefaultURLBase ; Default base URL on which the URL
@@ -663,23 +468,16 @@ int removeServiceTable(IXML_Node *node, service_table *stable)
  *
  ************************************************************************/
 int getServiceTable(
-	IXML_Node *node, service_table *out, const char *DefaultURLBase)
+	const UPnPDeviceDesc& devdesc,
+	service_table *out, const char *DefaultURLBase)
 {
-	IXML_Node *root = NULL;
-	if (!getSubElement("root", node, &root)) {
-		return 0;
+	out->serviceList.clear();
+	out->URLBase = devdesc.URLBase;
+	getServiceList(devdesc, out);
+	for (const auto& dev : devdesc.embedded) {
+		getServiceList(dev, out);
 	}
-
-	IXML_Node *URLBase;
-	if (getSubElement("URLBase", root, &URLBase)) {
-		out->URLBase = getElementValue(URLBase);
-	} else {
-		if (DefaultURLBase) {
-			out->URLBase = DefaultURLBase;
-		}
-	}
-
-	return getAllServiceList(root, out);
+	return 1;
 }
 
 #endif /* EXCLUDE_GENA */

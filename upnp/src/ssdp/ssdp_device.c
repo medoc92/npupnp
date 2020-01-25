@@ -260,7 +260,7 @@ static int extractIPv6address(const char *url, char *address, int maxlen)
  *
  * \return 1 if the Url contains an ULA or GUA IPv6 address, 0 otherwise.
  */
-static int isUrlV6UlaGua(char *descdocUrl)
+static int isUrlV6UlaGua(const char *descdocUrl)
 {
     char address[INET6_ADDRSTRLEN+10];
     struct in6_addr v6_addr;
@@ -285,9 +285,9 @@ static void CreateServicePacket(
     /*! [in] ssdp type. */
     const char *nt,
     /*! [in] unique service name ( go in the HTTP Header). */
-    char *usn,
+    const char *usn,
     /*! [in] Location URL. */
-    char *location,
+    const char *location,
     /*! [in] Service duration in sec. */
     int duration,
     /*! [out] Output buffer filled with HTTP statement. */
@@ -367,7 +367,7 @@ static void CreateServicePacket(
     return;
 }
 
-static bool setDestAddr(struct sockaddr_storage& __ss, char *Location,
+static bool setDestAddr(struct sockaddr_storage& __ss, const char *Location,
 						int AddressFamily)
 {
     struct sockaddr_in *DestAddr4 = (struct sockaddr_in *)&__ss;
@@ -394,7 +394,7 @@ static bool setDestAddr(struct sockaddr_storage& __ss, char *Location,
 }
 
 int DeviceAdvertisementOrShutdown(
-	int msgtype, char *DevType, int RootDev, char *Udn, char *Location,
+	int msgtype, const char *DevType, int RootDev, const char *Udn, const char *Location,
 	int Duration, int AddressFamily, int PowerState,
 	int SleepPeriod, int RegistrationState)
 {
@@ -448,7 +448,7 @@ error_handler:
 
 }
 
-int DeviceAdvertisement(char *DevType, int RootDev, char *Udn, char *Location,
+int DeviceAdvertisement(const char *DevType, int RootDev, const char *Udn, const char *Location,
                         int Duration, int AddressFamily, int PowerState,
                         int SleepPeriod, int RegistrationState)
 {
@@ -457,8 +457,8 @@ int DeviceAdvertisement(char *DevType, int RootDev, char *Udn, char *Location,
 		AddressFamily, PowerState, SleepPeriod, RegistrationState);
 }
 
-int DeviceShutdown(char *DevType, int RootDev, char *Udn,
-                   char *Location, int Duration, int AddressFamily,
+int DeviceShutdown(const char *DevType, int RootDev, const char *Udn,
+                   const char *Location, int Duration, int AddressFamily,
                    int PowerState, int SleepPeriod, int RegistrationState)
 {
 	return DeviceAdvertisementOrShutdown(
@@ -466,8 +466,8 @@ int DeviceShutdown(char *DevType, int RootDev, char *Udn,
 		AddressFamily, PowerState, SleepPeriod, RegistrationState);
 }
 
-int SendReply(struct sockaddr *DestAddr, char *DevType, int RootDev,
-              char *Udn, char *Location, int Duration, int ByType,
+int SendReply(struct sockaddr *DestAddr, const char *DevType, int RootDev,
+              const char *Udn, const char *Location, int Duration, int ByType,
               int PowerState, int SleepPeriod, int RegistrationState)
 {
     int ret_code = UPNP_E_OUTOF_MEMORY;
@@ -521,8 +521,8 @@ error_handler:
     return ret_code;
 }
 
-int DeviceReply(struct sockaddr *DestAddr, char *DevType, int RootDev,
-                char *Udn, char *Location, int Duration, int PowerState,
+int DeviceReply(struct sockaddr *DestAddr, const char *DevType, int RootDev,
+                const char *Udn, const char *Location, int Duration, int PowerState,
                 int SleepPeriod, int RegistrationState)
 {
 	std::string szReq[3];
@@ -577,8 +577,9 @@ error_handler:
 }
 
 static int ServiceSend(
-	int tp, struct sockaddr *DestAddr, char *ServType, char *Udn, char *Location,
-	int Duration, int PowerState, int SleepPeriod, int RegistrationState)
+	int tp, struct sockaddr *DestAddr, const char *ServType, const char *Udn,
+	const char *Location, int Duration, int PowerState, int SleepPeriod,
+	int RegistrationState)
 {
     char Mil_Usn[LINE_SIZE];
 	std::string szReq[1];
@@ -599,18 +600,18 @@ error_handler:
     return RetVal;
 }
 
-int ServiceReply(struct sockaddr *DestAddr, char *ServType, char *Udn,
-                 char *Location, int Duration, int PowerState, int SleepPeriod,
-                 int RegistrationState)
+int ServiceReply(struct sockaddr *DestAddr, const char *ServType,
+				 const char *Udn, const char *Location, int Duration,
+				 int PowerState, int SleepPeriod, int RegistrationState)
 {
 	return ServiceSend(
 		MSGTYPE_REPLY, DestAddr, ServType, Udn, Location,
 		Duration, PowerState, SleepPeriod, RegistrationState);
 }
 
-static int ServiceAdvShut(int tp, char *Udn, char *ServType, char *Location,
-                         int Duration, int AddressFamily,
-                         int PowerState, int SleepPeriod, int RegistrationState)
+static int ServiceAdvShut(int tp, const char *Udn, const char *ServType,
+						  const char *Location, int Duration, int AddressFamily,
+						  int PowerState, int SleepPeriod, int RegistrationState)
 {
     struct sockaddr_storage __ss;
 	if (!setDestAddr(__ss, Location, AddressFamily)) {
@@ -623,8 +624,8 @@ static int ServiceAdvShut(int tp, char *Udn, char *ServType, char *Location,
 		Duration, PowerState, SleepPeriod, RegistrationState);
 }
 
-int ServiceAdvertisement(char *Udn, char *ServType, char *Location,
-                         int Duration, int AddressFamily,
+int ServiceAdvertisement(const char *Udn, const char *ServType,
+						 const char *Location, int Duration, int AddressFamily,
                          int PowerState, int SleepPeriod, int RegistrationState)
 {
     return ServiceAdvShut(
@@ -632,8 +633,8 @@ int ServiceAdvertisement(char *Udn, char *ServType, char *Location,
 		PowerState, SleepPeriod, RegistrationState);
 }
 
-int ServiceShutdown(char *Udn, char *ServType, char *Location, int Duration,
-                    int AddressFamily, int PowerState,
+int ServiceShutdown(const char *Udn, const char *ServType, const char *Location,
+					int Duration, int AddressFamily, int PowerState,
                     int SleepPeriod, int RegistrationState)
 {
     return ServiceAdvShut(
