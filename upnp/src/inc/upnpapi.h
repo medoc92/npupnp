@@ -106,8 +106,6 @@ struct Handle_Info
 	IXML_Document *DescDocument{nullptr};
 	/*! List of devices in the description document. */
 	IXML_NodeList *DeviceList{nullptr};
-	/*! List of services in the description document. */
-	IXML_NodeList *ServiceList{nullptr};
 	/*! Table holding subscriptions and URL information. */
 	service_table ServiceTable;
 	/*! . */

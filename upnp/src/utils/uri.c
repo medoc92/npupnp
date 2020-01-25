@@ -36,70 +36,22 @@
  *
  * \brief Contains functions for uri, url parsing utility.
  */
+#include "config.h"
+
 #include <iostream>
 
 #ifdef __FreeBSD__
-	#include <osreldate.h>
-	#if __FreeBSD_version < 601103
-		#include <lwres/netdb.h>
-	#endif
+#include <osreldate.h>
+#if __FreeBSD_version < 601103
+#include <lwres/netdb.h>
 #endif
-#ifdef WIN32
-	#define snprintf _snprintf
 #endif
 #include <assert.h>
 
-
-#include "config.h"
-
-
 #include "uri.h"
-
 #include "upnputil.h"
 #include "upnpapi.h"
 
-
-#define MARK "-_.!~*'()"
-/*! added {} for compatibility */
-#define RESERVED ";/?:@&=+$,{}"
-
-
-/*! 
- * \brief Buffer used in parsinghttp messages, urls, etc. generally this simply
- * holds a pointer into a larger array.
- */
-struct token {
-	const char *buff;
-	size_t size;
-};
-
-/*!
- * \brief Compares buffer in the token object with the buffer in in2.
- *
- * \return 
- * 	\li < 0, if string1 is less than string2.
- * 	\li == 0, if string1 is identical to string2 .
- * 	\li > 0, if string1 is greater than string2.
- */
-int token_string_casecmp(
-	/*! [in] Token object whose buffer is to be compared. */
-	token *in1,
-	/*! [in] String of characters to compare with. */
-	const char *in2);
-
-/*!
- * \brief Compares two tokens.
- *
- * \return 
- * 	\li < 0, if string1 is less than string2.
- * 	\li == 0, if string1 is identical to string2 .
- * 	\li > 0, if string1 is greater than string2.
- */
-int token_cmp(
-	/*! [in] First token object whose buffer is to be compared. */
-	token *in1,
-	/*! [in] Second token object used for the comparison. */
-	token *in2);
 
 /*!
  * \brief Returns a 1 if a char is a RESERVED char as defined in 
@@ -109,6 +61,8 @@ int token_cmp(
  */
 static int is_reserved(char in)
 {
+	/*! added {} for compatibility */
+	static const char *RESERVED = ";/?:@&=+$,{}";
 	if (strchr(RESERVED, (int)in)) {
 		return 1;
 	} else {
@@ -123,8 +77,9 @@ static int is_reserved(char in)
  *
  * \return 1 if char is a MARKED char.
  */
-int is_mark(char in)
+static int is_mark(char in)
 {
+	static const char * MARK = "-_.!~*'()";
 	if (strchr(MARK, (int)in)) {
 		return 1;
 	} else {
@@ -139,7 +94,7 @@ int is_mark(char in)
  *
  * \return 1 if char is a UNRESERVED char.
  */
-int is_unreserved(char in)
+static int is_unreserved(char in)
 {
 	if (isalnum(in) || is_mark(in)) {
 		return 1;
@@ -157,7 +112,7 @@ int is_unreserved(char in)
  *
  * \return 1 if char is a ESCAPED char.
  */
-int is_escaped(const char *in)
+static int is_escaped(const char *in)
 {
 	if (in[0] == '%' && isxdigit(in[1]) && isxdigit(in[2])) {
 		return 1;
@@ -168,7 +123,7 @@ int is_escaped(const char *in)
 
 /*!
  * \brief Replaces an escaped sequence with its unescaped version as in
- * http://www.ietf.org/rfc/rfc2396.txt  (RFC explaining URIs)
+ * http://www.ietf.org/rfc/rfc2396.txt	(RFC explaining URIs)
  *
  * Size of array is NOT checked (MUST be checked by caller)
  *
@@ -209,49 +164,20 @@ static void replace_escaped(char *in, size_t index, size_t *max)
 /*!
  * \brief Parses a string of uric characters starting at in[0] as defined in
  * http://www.ietf.org/rfc/rfc2396.txt (RFC explaining URIs).
- *
- * \return 
  */
-static size_t parse_uric(
-	/*! [in] String of characters. */
-	const char *in,
-	/*! [in] Maximum limit. */
-	size_t max,
-	/*! [out] Token object where the string of characters is copied. */
-	token *out)
+static size_t parse_uric(const char *in, size_t max, std::string& out)
 {
-	size_t i = (size_t)0;
+	size_t i = 0;
 
-	while (i < max &&
-	       (is_unreserved(in[i]) ||
-	        is_reserved(in[i])   ||
-	        ((i + (size_t)2 < max) && is_escaped(&in[i])))) {
+	while (i < max && (is_unreserved(in[i]) || is_reserved(in[i]) ||
+					   ((i + 2 < max) && is_escaped(&in[i])))) {
 		i++;
 	}
 
-	out->size = i;
-	out->buff = in;
+	out.assign(in, i);
 	return i;
 }
 
-
-int token_string_casecmp(token *in1, const char *in2)
-{
-	size_t in2_length = strlen(in2);
-	if (in1->size != in2_length)
-		return 1;
-	else
-		return strncasecmp(in1->buff, in2, in1->size);
-}
-
-
-int token_cmp(token *in1, token *in2)
-{
-	if (in1->size != in2->size)
-		return 1;
-	else
-		return memcmp(in1->buff, in2->buff, in1->size);
-}
 
 /*!
  * \brief Parses a string representing a host and port (e.g. "127.127.0.1:80"
@@ -304,7 +230,7 @@ static int parse_hostport(
 		/* IPv4 address -OR- host name. */
 		srvname = c;
 		while (*c != ':' && *c != '/' &&
-		       (isalnum(*c) || *c == '.' || *c == '-')) {
+			   (isalnum(*c) || *c == '.' || *c == '-')) {
 			if (*c == '.')
 				last_dot = c;
 			c++;
@@ -333,12 +259,12 @@ static int parse_hostport(
 					case AF_INET6:
 						/* Found a valid IPv4 or IPv6 address. */
 						memcpy(&out->IPaddress,
-						       res->ai_addr,
-						       res->ai_addrlen);
+							   res->ai_addr,
+							   res->ai_addrlen);
 						goto found;
 					}
 				}
-found:
+			found:
 				freeaddrinfo(res0);
 				if (res == NULL)
 					/* Didn't find an AF_INET or AF_INET6 address. */
@@ -410,38 +336,37 @@ static size_t parse_scheme(
 	/*! [in] Maximum number of characters. */
 	size_t max,
 	/*! [out] Output parameter whose buffer is filled in with the scheme. */
-	token *out)
+	std::string& out)
 {
-    size_t i = (size_t)0;
+	size_t i = 0;
 
-    out->size = (size_t)0;
-    out->buff = NULL;
+	out.clear();
 
-    if( ( max == (size_t)0 ) || ( !isalpha( in[0] ) ) )
-        return (size_t)0;
+	// A scheme begins with an alphabetic character
+	if (max == 0 || !isalpha(in[0]))
+		return (size_t)0;
+	i++;
 
-    i++;
-    while( ( i < max ) && ( in[i] != ':' ) ) {
-        if( !( isalnum( in[i] ) || ( in[i] == '+' ) || ( in[i] == '-' )
-               || ( in[i] == '.' ) ) )
-            return (size_t)0;
-        i++;
-    }
-    if( i < max ) {
-        out->size = i;
-        out->buff = &in[0];
-        return i;
-    }
+	// [::alphanum::+-.]* follows until ':' if any
+	while (i < max && in[i] != ':') {
+		if (!(isalnum(in[i]) || in[i] == '+' || in[i] == '-' || in[i] == '.'))
+			return 0;
+		i++;
+	}
 
-    return (size_t)0;
+	if (i == max) {
+		// : not found
+		return 0;
+	}
+		
+	out.assign(in, i);
+	return i;
 }
 
 
 int remove_escaped_chars(char *in, size_t *size)
 {
-	size_t i = (size_t)0;
-
-	for (i = (size_t)0; i < *size; i++) {
+	for (size_t i = 0; i < *size; i++) {
 		replace_escaped(in, i, size);
 	}
 
@@ -450,13 +375,13 @@ int remove_escaped_chars(char *in, size_t *size)
 
 
 static UPNP_INLINE int is_end_path(char c) {
-    switch (c) {
+	switch (c) {
 	case '?':
 	case '#':
 	case '\0':
-	    return 1;
-    }
-    return 0;
+		return 1;
+	}
+	return 0;
 }
 
 
@@ -464,67 +389,69 @@ static UPNP_INLINE int is_end_path(char c) {
  * algorithm described in RFC 3986 section 5.2.4. */
 int remove_dots(char *buf, size_t size)
 {
-    char *in = buf;
-    char *out = buf;
-    char *max = buf + size;
+	char *in = buf;
+	char *out = buf;
+	char *max = buf + size;
 
-    while (!is_end_path(in[0])) {
-	assert (buf <= out);
-	assert (out <= in);
-	assert (in < max);
+	while (!is_end_path(in[0])) {
+		assert (buf <= out);
+		assert (out <= in);
+		assert (in < max);
 
-        /* case 2.A: */
-        if (strncmp(in, "./", 2) == 0) {
-            in += 2;
-        } else if (strncmp(in, "../", 3) == 0) {
-            in += 3;
-        /* case 2.B: */
-        } else if (strncmp(in, "/./", 3) == 0) {
-            in += 2;
-        } else if (strncmp(in, "/.", 2) == 0 && is_end_path(in[2])) {
-            in += 1;
-	    in[0] = '/';
-        /* case 2.C: */
-        } else if (strncmp(in, "/../", 4) == 0 || (strncmp(in, "/..", 3) == 0 && is_end_path(in[3]))) {
-            /* Make the next character in the input buffer a '/': */
-            if (is_end_path(in[3])) { /* terminating "/.." case */
-                in += 2;
-                in[0] = '/';
-            } else { /* "/../" prefix case */
-                in += 3;
-            }
-            /* Trim the last component from the output buffer, or empty it. */
-            while (buf < out)
-		if (*--out == '/')
-		    break;
+		/* case 2.A: */
+		if (strncmp(in, "./", 2) == 0) {
+			in += 2;
+		} else if (strncmp(in, "../", 3) == 0) {
+			in += 3;
+			/* case 2.B: */
+		} else if (strncmp(in, "/./", 3) == 0) {
+			in += 2;
+		} else if (strncmp(in, "/.", 2) == 0 && is_end_path(in[2])) {
+			in += 1;
+			in[0] = '/';
+			/* case 2.C: */
+		} else if (strncmp(in, "/../", 4) == 0 || (strncmp(in, "/..", 3) == 0 &&
+												   is_end_path(in[3]))) {
+			/* Make the next character in the input buffer a '/': */
+			if (is_end_path(in[3])) { /* terminating "/.." case */
+				in += 2;
+				in[0] = '/';
+			} else { /* "/../" prefix case */
+				in += 3;
+			}
+			/* Trim the last component from the output buffer, or empty it. */
+			while (buf < out)
+				if (*--out == '/')
+					break;
 #ifdef DEBUG
-	    if (out < in)
-		out[0] = '\0';
+			if (out < in)
+				out[0] = '\0';
 #endif
-        /* case 2.D: */
-        } else if (strncmp(in, ".", 1) == 0 && is_end_path(in[1])) {
-            in += 1;
-	} else if (strncmp(in, "..", 2) == 0 && is_end_path(in[2])) {
-            in += 2;
-        /* case 2.E */
-        } else {
-            /* move initial '/' character (if any) */
-            if (in[0] == '/')
-		*out++ = *in++;
-	    /* move first segment up to, but not including, the next '/' character */
-	    while (in < max && in[0] != '/' && !is_end_path(in[0]))
-		*out++ = *in++;
+			/* case 2.D: */
+		} else if (strncmp(in, ".", 1) == 0 && is_end_path(in[1])) {
+			in += 1;
+		} else if (strncmp(in, "..", 2) == 0 && is_end_path(in[2])) {
+			in += 2;
+			/* case 2.E */
+		} else {
+			/* move initial '/' character (if any) */
+			if (in[0] == '/')
+				*out++ = *in++;
+			/* move first segment up to, but not including, the next
+			 * '/' character */
+			while (in < max && in[0] != '/' && !is_end_path(in[0]))
+				*out++ = *in++;
 #ifdef DEBUG
-	    if (out < in)
-		out[0] = '\0';
+			if (out < in)
+				out[0] = '\0';
 #endif
-        }
-    }
-    while (in < max)
-	*out++ = *in++;
-    if (out < max)
-	out[0] = '\0';
-    return UPNP_E_SUCCESS;
+		}
+	}
+	while (in < max)
+		*out++ = *in++;
+	if (out < max)
+		out[0] = '\0';
+	return UPNP_E_SUCCESS;
 }
 
 
@@ -659,47 +586,39 @@ error:
 
 int parse_uri(const char *in, size_t max, uri_type *out)
 {
-	int begin_path = 0;
-	size_t begin_hostport = (size_t)0;
-	size_t begin_fragment = (size_t)0;
-
-	token scm;
-	begin_hostport = parse_scheme(in, max, &scm);
+	size_t begin_hostport = parse_scheme(in, max, out->scheme);
 	if (begin_hostport) {
-		out->scheme.assign(scm.buff, scm.size);
 		out->type = URITP_ABSOLUTE;
 		out->path_type = OPAQUE_PART;
-		begin_hostport++;
+		begin_hostport++; // Skip ':'
 	} else {
 		out->type = URITP_RELATIVE;
 		out->path_type = REL_PATH;
 	}
-	if (begin_hostport + (size_t)1 < max && in[begin_hostport] == '/' &&
-	    in[begin_hostport + (size_t)1] == '/') {
-		begin_hostport += (size_t)2;
-		begin_path = parse_hostport(&in[begin_hostport], &out->hostport);
+
+	int begin_path = 0;
+	if (begin_hostport + 1 < max && in[begin_hostport] == '/' &&
+		in[begin_hostport + 1] == '/') {
+		begin_hostport += 2;
+		begin_path = parse_hostport(in + begin_hostport, &out->hostport);
 		if (begin_path >= 0) {
-			begin_path += (int)begin_hostport;
+			begin_path += begin_hostport;
 		} else {
 			return begin_path;
 		}
 	} else {
 		begin_path = (int)begin_hostport;
 	}
-	token ptq;
-	begin_fragment = parse_uric(&in[begin_path],
-		max - (size_t)begin_path,
-		&ptq) + (size_t)begin_path;
-	out->pathquery.assign(ptq.buff, ptq.size);
+	
+	size_t begin_fragment =
+		parse_uric(in + begin_path, max - (size_t)begin_path, out->pathquery) +
+		(size_t)begin_path;
 	if (out->pathquery.size() && out->pathquery[0] == '/') {
 		out->path_type = ABS_PATH;
 	}
 	if (begin_fragment < max && in[begin_fragment] == '#') {
 		begin_fragment++;
-		token frag;
-		parse_uric(&in[begin_fragment], max - begin_fragment,
-			   &frag);
-		out->fragment.assign(frag.buff, frag.size);
+		parse_uric(in + begin_fragment, max - begin_fragment, out->fragment);
 	}
 
 	return UPNP_E_SUCCESS;

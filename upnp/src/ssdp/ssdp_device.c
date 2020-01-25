@@ -30,14 +30,6 @@
  *
  **************************************************************************/
 
-/*!
- * \addtogroup SSDPlib
- *
- * @{
- * 
- * \file
- */
-
 #include "config.h"
 
 #ifdef INCLUDE_DEVICE_APIS
@@ -247,42 +239,20 @@ end_NewRequestHandler:
     return ret;
 }
 
-/*!
- * \brief
- *
- * \return 1 if an inet6 @ has been found.
- */
-static int extractIPv6address(char *url, char *address)
+/* return 1 if an inet6 @ has been found. */
+static int extractIPv6address(const char *url, char *address, int maxlen)
 {
-    int i = 0;
-    int j = 0;
-    int ret = 0;
-
-    while (url[i] != '[' && url[i] != '\0') {
-        i++;
+	address[0] = 0;
+    char *op = strchr((char*)url, '[');
+	if (op == 0) 
+		return 0;
+	char *cl = strchr(op, ']');
+	if (cl == NULL || cl <= op + 1 || cl - op >= maxlen) {
+		return 0;
     }
-    if (url[i] == '\0') {
-        goto exit_function;
-    }
-
-    /* bracket has been found, we deal with an IPv6 address */
-    i++;
-    while (url[i] != '\0' && url[i] != ']') {
-        address[j] = url[i];
-        i++;
-        j++;
-    }
-    if (url[i] == '\0') {
-        goto exit_function;
-    }
-
-    if (url[i] == ']') {
-        address[j] = '\0';
-        ret = 1;
-    }
-
-exit_function:
-    return ret;
+	memcpy(address, op + 1, cl - op - 1);
+	address[cl-op] = 0;
+	return 1;
 }
 
 /*!
@@ -292,10 +262,10 @@ exit_function:
  */
 static int isUrlV6UlaGua(char *descdocUrl)
 {
-    char address[INET6_ADDRSTRLEN];
+    char address[INET6_ADDRSTRLEN+10];
     struct in6_addr v6_addr;
 
-    if (extractIPv6address(descdocUrl, address)) {
+    if (extractIPv6address(descdocUrl, address, INET6_ADDRSTRLEN+10)) {
         inet_pton(AF_INET6, address, &v6_addr);
         return !IN6_IS_ADDR_LINKLOCAL(&v6_addr);
     }
@@ -397,21 +367,11 @@ static void CreateServicePacket(
     return;
 }
 
-int DeviceAdvertisement(char *DevType, int RootDev, char *Udn, char *Location,
-                        int Duration, int AddressFamily, int PowerState,
-                        int SleepPeriod, int RegistrationState)
+static bool setDestAddr(struct sockaddr_storage& __ss, char *Location,
+						int AddressFamily)
 {
-    struct sockaddr_storage __ss;
     struct sockaddr_in *DestAddr4 = (struct sockaddr_in *)&__ss;
     struct sockaddr_in6 *DestAddr6 = (struct sockaddr_in6 *)&__ss;
-    /* char Mil_Nt[LINE_SIZE] */
-    char Mil_Usn[LINE_SIZE];
-	std::string msgs[3];
-    int ret_code = UPNP_E_OUTOF_MEMORY;
-    int rc = 0;
-
-    UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
-               "In function DeviceAdvertisement\n");
     memset(&__ss, 0, sizeof(__ss));
     switch (AddressFamily) {
     case AF_INET:
@@ -428,29 +388,46 @@ int DeviceAdvertisement(char *DevType, int RootDev, char *Udn, char *Location,
         DestAddr6->sin6_scope_id = gIF_INDEX;
         break;
     default:
+		return false;
+    }
+	return true;
+}
+
+int DeviceAdvertisementOrShutdown(
+	int msgtype, char *DevType, int RootDev, char *Udn, char *Location,
+	int Duration, int AddressFamily, int PowerState,
+	int SleepPeriod, int RegistrationState)
+{
+    struct sockaddr_storage __ss;
+    char Mil_Usn[LINE_SIZE];
+	std::string msgs[3];
+    int ret_code = UPNP_E_OUTOF_MEMORY;
+    int rc = 0;
+
+	if (!setDestAddr(__ss, Location, AddressFamily)) {
         UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
                    "Invalid device address family.\n");
-    }
-    /* If deviceis a root device , here we need to send 3 advertisement
-     * or reply */
+		return UPNP_E_BAD_REQUEST;
+	}
+
+    /* If deviceis a root device, we need to send 3 messages */
     if (RootDev) {
-        rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::upnp:rootdevice",
-                      Udn);
+        rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::upnp:rootdevice", Udn);
         if (rc < 0 || (unsigned int) rc >= sizeof(Mil_Usn))
             goto error_handler;
-        CreateServicePacket(MSGTYPE_ADVERTISEMENT, "upnp:rootdevice",
+        CreateServicePacket(msgtype, "upnp:rootdevice",
                             Mil_Usn, Location, Duration, msgs[0],
                             AddressFamily, PowerState, SleepPeriod,
                             RegistrationState);
     }
     /* both root and sub-devices need to send these two messages */
-    CreateServicePacket(MSGTYPE_ADVERTISEMENT, Udn, Udn,
+    CreateServicePacket(msgtype, Udn, Udn,
                         Location, Duration, msgs[1], AddressFamily,
                         PowerState, SleepPeriod, RegistrationState);
     rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::%s", Udn, DevType);
     if (rc < 0 || (unsigned int) rc >= sizeof(Mil_Usn))
         goto error_handler;
-    CreateServicePacket(MSGTYPE_ADVERTISEMENT, DevType, Mil_Usn,
+    CreateServicePacket(msgtype, DevType, Mil_Usn,
                         Location, Duration, msgs[2], AddressFamily,
                         PowerState, SleepPeriod, RegistrationState);
     /* check error */
@@ -460,18 +437,33 @@ int DeviceAdvertisement(char *DevType, int RootDev, char *Udn, char *Location,
     /* send packets */
     if (RootDev) {
         /* send 3 msg types */
-        ret_code =
-            NewRequestHandler((struct sockaddr *)&__ss, 3, &msgs[0]);
+        ret_code = NewRequestHandler((struct sockaddr *)&__ss, 3, &msgs[0]);
     } else {        /* sub-device */
-
         /* send 2 msg types */
-        ret_code =
-            NewRequestHandler((struct sockaddr *)&__ss, 2, &msgs[1]);
+        ret_code = NewRequestHandler((struct sockaddr *)&__ss, 2, &msgs[1]);
     }
 
 error_handler:
-
     return ret_code;
+
+}
+
+int DeviceAdvertisement(char *DevType, int RootDev, char *Udn, char *Location,
+                        int Duration, int AddressFamily, int PowerState,
+                        int SleepPeriod, int RegistrationState)
+{
+	return DeviceAdvertisementOrShutdown(
+		MSGTYPE_ADVERTISEMENT, DevType, RootDev, Udn, Location,	Duration,
+		AddressFamily, PowerState, SleepPeriod, RegistrationState);
+}
+
+int DeviceShutdown(char *DevType, int RootDev, char *Udn,
+                   char *Location, int Duration, int AddressFamily,
+                   int PowerState, int SleepPeriod, int RegistrationState)
+{
+	return DeviceAdvertisementOrShutdown(
+		MSGTYPE_SHUTDOWN, DevType, RootDev, Udn, Location, Duration,
+		AddressFamily, PowerState, SleepPeriod, RegistrationState);
 }
 
 int SendReply(struct sockaddr *DestAddr, char *DevType, int RootDev,
@@ -489,8 +481,7 @@ int SendReply(struct sockaddr *DestAddr, char *DevType, int RootDev,
         /* one msg for root device */
         num_msgs = 1;
 
-        rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::upnp:rootdevice",
-                      Udn);
+        rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::upnp:rootdevice", Udn);
         if (rc < 0 || (unsigned int) rc >= sizeof(Mil_Usn))
             goto error_handler;
         CreateServicePacket(MSGTYPE_REPLY, "upnp:rootdevice",
@@ -508,8 +499,7 @@ int SendReply(struct sockaddr *DestAddr, char *DevType, int RootDev,
                                 (int)DestAddr->sa_family, PowerState,
                                 SleepPeriod, RegistrationState);
         } else {
-            rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::%s", Udn,
-                          DevType);
+            rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::%s", Udn, DevType);
             if (rc < 0 || (unsigned int) rc >= sizeof(Mil_Usn))
                 goto error_handler;
             CreateServicePacket(MSGTYPE_REPLY, DevType, Mil_Usn,
@@ -586,47 +576,24 @@ error_handler:
     return RetVal;
 }
 
-int ServiceAdvertisement(char *Udn, char *ServType, char *Location,
-                         int Duration, int AddressFamily,
-                         int PowerState, int SleepPeriod, int RegistrationState)
+static int ServiceSend(
+	int tp, struct sockaddr *DestAddr, char *ServType, char *Udn, char *Location,
+	int Duration, int PowerState, int SleepPeriod, int RegistrationState)
 {
     char Mil_Usn[LINE_SIZE];
 	std::string szReq[1];
     int RetVal = UPNP_E_OUTOF_MEMORY;
-    struct sockaddr_storage __ss;
-    struct sockaddr_in *DestAddr4 = (struct sockaddr_in *)&__ss;
-    struct sockaddr_in6 *DestAddr6 = (struct sockaddr_in6 *)&__ss;
     int rc = 0;
 
-    memset(&__ss, 0, sizeof(__ss));
-    switch (AddressFamily) {
-    case AF_INET:
-        DestAddr4->sin_family = (sa_family_t)AddressFamily;
-        inet_pton(AF_INET, SSDP_IP, &DestAddr4->sin_addr);
-        DestAddr4->sin_port = htons(SSDP_PORT);
-        break;
-    case AF_INET6:
-        DestAddr6->sin6_family = (sa_family_t)AddressFamily;
-        inet_pton(AF_INET6,
-                  (isUrlV6UlaGua(Location)) ? SSDP_IPV6_SITELOCAL :
-                  SSDP_IPV6_LINKLOCAL, &DestAddr6->sin6_addr);
-        DestAddr6->sin6_port = htons(SSDP_PORT);
-        DestAddr6->sin6_scope_id = gIF_INDEX;
-        break;
-    default:
-        UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-                   "Invalid device address family.\n");
-    }
     rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::%s", Udn, ServType);
     if (rc < 0 || (unsigned int) rc >= sizeof(Mil_Usn))
         goto error_handler;
-    CreateServicePacket(MSGTYPE_ADVERTISEMENT, ServType, Mil_Usn,
-                        Location, Duration, szReq[0], AddressFamily,
+    CreateServicePacket(tp, ServType, Mil_Usn,
+                        Location, Duration, szReq[0], (int)DestAddr->sa_family,
                         PowerState, SleepPeriod, RegistrationState);
-    if (szReq[0].empty()) {
+    if (szReq[0].empty())
         goto error_handler;
-    }
-    RetVal = NewRequestHandler((struct sockaddr *)&__ss, 1, szReq);
+    RetVal = NewRequestHandler(DestAddr, 1, szReq);
 
 error_handler:
     return RetVal;
@@ -636,146 +603,43 @@ int ServiceReply(struct sockaddr *DestAddr, char *ServType, char *Udn,
                  char *Location, int Duration, int PowerState, int SleepPeriod,
                  int RegistrationState)
 {
-    char Mil_Usn[LINE_SIZE];
-	std::string szReq[1];
-    int RetVal = UPNP_E_OUTOF_MEMORY;
-    int rc = 0;
+	return ServiceSend(
+		MSGTYPE_REPLY, DestAddr, ServType, Udn, Location,
+		Duration, PowerState, SleepPeriod, RegistrationState);
+}
 
-    rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::%s", Udn, ServType);
-    if (rc < 0 || (unsigned int) rc >= sizeof(Mil_Usn))
-        goto error_handler;
-    CreateServicePacket(MSGTYPE_REPLY, ServType, Mil_Usn,
-                        Location, Duration, szReq[0], (int)DestAddr->sa_family,
-                        PowerState, SleepPeriod, RegistrationState);
-    if (szReq[0].empty())
-        goto error_handler;
-    RetVal = NewRequestHandler(DestAddr, 1, szReq);
+static int ServiceAdvShut(int tp, char *Udn, char *ServType, char *Location,
+                         int Duration, int AddressFamily,
+                         int PowerState, int SleepPeriod, int RegistrationState)
+{
+    struct sockaddr_storage __ss;
+	if (!setDestAddr(__ss, Location, AddressFamily)) {
+        UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
+                   "Invalid device address family.\n");
+		return UPNP_E_BAD_REQUEST;
+	}
+    return ServiceSend(
+		tp, (struct sockaddr *)&__ss, ServType, Udn, Location,
+		Duration, PowerState, SleepPeriod, RegistrationState);
+}
 
-error_handler:
-
-    return RetVal;
+int ServiceAdvertisement(char *Udn, char *ServType, char *Location,
+                         int Duration, int AddressFamily,
+                         int PowerState, int SleepPeriod, int RegistrationState)
+{
+    return ServiceAdvShut(
+		MSGTYPE_ADVERTISEMENT, Udn, ServType, Location, Duration, AddressFamily,
+		PowerState, SleepPeriod, RegistrationState);
 }
 
 int ServiceShutdown(char *Udn, char *ServType, char *Location, int Duration,
                     int AddressFamily, int PowerState,
                     int SleepPeriod, int RegistrationState)
 {
-    char Mil_Usn[LINE_SIZE];
-	std::string szReq[1];
-    struct sockaddr_storage __ss;
-    struct sockaddr_in *DestAddr4 = (struct sockaddr_in *)&__ss;
-    struct sockaddr_in6 *DestAddr6 = (struct sockaddr_in6 *)&__ss;
-    int RetVal = UPNP_E_OUTOF_MEMORY;
-    int rc = 0;
-
-    memset(&__ss, 0, sizeof(__ss));
-    switch (AddressFamily) {
-    case AF_INET:
-        DestAddr4->sin_family = (sa_family_t)AddressFamily;
-        inet_pton(AF_INET, SSDP_IP, &DestAddr4->sin_addr);
-        DestAddr4->sin_port = htons(SSDP_PORT);
-        break;
-    case AF_INET6:
-        DestAddr6->sin6_family = (sa_family_t)AddressFamily;
-        inet_pton(AF_INET6,
-                  (isUrlV6UlaGua(Location)) ? SSDP_IPV6_SITELOCAL :
-                  SSDP_IPV6_LINKLOCAL, &DestAddr6->sin6_addr);
-        DestAddr6->sin6_port = htons(SSDP_PORT);
-        DestAddr6->sin6_scope_id = gIF_INDEX;
-        break;
-    default:
-        UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-                   "Invalid device address family.\n");
-    }
-    /* sprintf(Mil_Nt,"%s",ServType); */
-    rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::%s", Udn, ServType);
-    if (rc < 0 || (unsigned int) rc >= sizeof(Mil_Usn))
-        goto error_handler;
-    CreateServicePacket(MSGTYPE_SHUTDOWN, ServType, Mil_Usn,
-                        Location, Duration, szReq[0], AddressFamily,
-                        PowerState, SleepPeriod, RegistrationState);
-    if (szReq[0].empty())
-        goto error_handler;
-    RetVal = NewRequestHandler((struct sockaddr *)&__ss, 1, szReq);
-
-error_handler:
-    return RetVal;
+    return ServiceAdvShut(
+		MSGTYPE_SHUTDOWN, Udn, ServType, Location, Duration, AddressFamily,
+		PowerState, SleepPeriod, RegistrationState);
 }
 
-int DeviceShutdown(char *DevType, int RootDev, char *Udn,
-                   char *Location, int Duration, int AddressFamily,
-                   int PowerState, int SleepPeriod, int RegistrationState)
-{
-    struct sockaddr_storage __ss;
-    struct sockaddr_in *DestAddr4 = (struct sockaddr_in *)&__ss;
-    struct sockaddr_in6 *DestAddr6 = (struct sockaddr_in6 *)&__ss;
-	std::string msgs[3];
-    char Mil_Usn[LINE_SIZE];
-    int ret_code = UPNP_E_OUTOF_MEMORY;
-    int rc = 0;
-
-    memset(&__ss, 0, sizeof(__ss));
-    switch (AddressFamily) {
-    case AF_INET:
-        DestAddr4->sin_family = (sa_family_t)AddressFamily;
-        inet_pton(AF_INET, SSDP_IP, &DestAddr4->sin_addr);
-        DestAddr4->sin_port = htons(SSDP_PORT);
-        break;
-    case AF_INET6:
-        DestAddr6->sin6_family = (sa_family_t)AddressFamily;
-        inet_pton(AF_INET6,
-                  (isUrlV6UlaGua(Location)) ? SSDP_IPV6_SITELOCAL :
-                  SSDP_IPV6_LINKLOCAL, &DestAddr6->sin6_addr);
-        DestAddr6->sin6_port = htons(SSDP_PORT);
-        DestAddr6->sin6_scope_id = gIF_INDEX;
-        break;
-    default:
-        UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-                   "Invalid device address family.\n");
-    }
-    /* root device has one extra msg */
-    if (RootDev) {
-        rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::upnp:rootdevice",
-                      Udn);
-        if (rc < 0 || (unsigned int) rc >= sizeof(Mil_Usn))
-            goto error_handler;
-        CreateServicePacket(MSGTYPE_SHUTDOWN, "upnp:rootdevice",
-                            Mil_Usn, Location, Duration, msgs[0],
-                            AddressFamily, PowerState, SleepPeriod,
-                            RegistrationState);
-    }
-    UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
-               "In function DeviceShutdown\n");
-    /* both root and sub-devices need to send these two messages */
-    CreateServicePacket(MSGTYPE_SHUTDOWN, Udn, Udn,
-                        Location, Duration, msgs[1], AddressFamily,
-                        PowerState, SleepPeriod, RegistrationState);
-    rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::%s", Udn, DevType);
-    if (rc < 0 || (unsigned int) rc >= sizeof(Mil_Usn))
-        goto error_handler;
-    CreateServicePacket(MSGTYPE_SHUTDOWN, DevType, Mil_Usn,
-                        Location, Duration, msgs[2], AddressFamily,
-                        PowerState, SleepPeriod, RegistrationState);
-    /* check error */
-    if ((RootDev && msgs[0].empty()) || msgs[1].empty() || msgs[2].empty()) {
-        goto error_handler;
-    }
-    /* send packets */
-    if (RootDev) {
-        /* send 3 msg types */
-        ret_code =
-            NewRequestHandler((struct sockaddr *)&__ss, 3, &msgs[0]);
-    } else {
-        /* sub-device */
-        /* send 2 msg types */
-        ret_code =
-            NewRequestHandler((struct sockaddr *)&__ss, 2, &msgs[1]);
-    }
-
-error_handler:
-    return ret_code;
-}
 #endif /* EXCLUDE_SSDP */
 #endif /* INCLUDE_DEVICE_APIS */
-
-/* @} SSDPlib */

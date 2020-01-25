@@ -833,7 +833,6 @@ int UpnpRegisterRootDevice(
 	HInfo->Cookie = (char *)Cookie;
 	HInfo->MaxAge = DEFAULT_MAXAGE;
 	HInfo->DeviceList = NULL;
-	HInfo->ServiceList = NULL;
 	HInfo->DescDocument = NULL;
 #ifdef INCLUDE_CLIENT_APIS
 	HInfo->ClientSubList = NULL;
@@ -864,13 +863,6 @@ int UpnpRegisterRootDevice(
 			"UpnpRegisterRootDevice: No devices found for RootDevice\n");
 		retVal = UPNP_E_INVALID_DESC;
 		goto exit_function;
-	}
-
-	HInfo->ServiceList = ixmlDocument_getElementsByTagName(
-		HInfo->DescDocument, "serviceList");
-	if (!HInfo->ServiceList) {
-		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-			"UpnpRegisterRootDevice: No services found for RootDevice\n");
 	}
 
 #if EXCLUDE_GENA == 0
@@ -994,7 +986,6 @@ int UpnpRegisterRootDevice2(
 	HInfo->Cookie = (char *)Cookie;
 	HInfo->MaxAge = DEFAULT_MAXAGE;
 	HInfo->DeviceList = NULL;
-	HInfo->ServiceList = NULL;
 #ifdef INCLUDE_CLIENT_APIS
 	HInfo->ClientSubList = NULL;
 #endif /* INCLUDE_CLIENT_APIS */
@@ -1017,14 +1008,7 @@ int UpnpRegisterRootDevice2(
 		retVal = UPNP_E_INVALID_DESC;
 		goto exit_function;
 	}
-
-	HInfo->ServiceList = ixmlDocument_getElementsByTagName(
-		HInfo->DescDocument, "serviceList" );
-	if (!HInfo->ServiceList) {
-		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			"UpnpRegisterRootDevice2: No services found for RootDevice\n");
-	}
-
+	
 #if EXCLUDE_GENA == 0
 	/*
 	 * GENA SET UP
@@ -1137,7 +1121,6 @@ int UpnpRegisterRootDevice4(
 	HInfo->Cookie = (char *)Cookie;
 	HInfo->MaxAge = DEFAULT_MAXAGE;
 	HInfo->DeviceList = NULL;
-	HInfo->ServiceList = NULL;
 	HInfo->DescDocument = NULL;
 #ifdef INCLUDE_CLIENT_APIS
 	HInfo->ClientSubList = NULL;
@@ -1164,13 +1147,6 @@ int UpnpRegisterRootDevice4(
 			"UpnpRegisterRootDevice4: No devices found for RootDevice\n");
 		retVal = UPNP_E_INVALID_DESC;
 		goto exit_function;
-	}
-
-	HInfo->ServiceList = ixmlDocument_getElementsByTagName(
-	HInfo->DescDocument, "serviceList" );
-	if (!HInfo->ServiceList) {
-		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-			"UpnpRegisterRootDevice4: No services found for RootDevice\n");
 	}
 
 #if EXCLUDE_GENA == 0
@@ -1267,7 +1243,6 @@ int UpnpUnRegisterRootDeviceLowPower(UpnpDevice_Handle Hnd, int PowerState,
 		break;
 	}
 	ixmlNodeList_free(HInfo->DeviceList);
-	ixmlNodeList_free(HInfo->ServiceList);
 	ixmlDocument_free(HInfo->DescDocument);
 	switch (HInfo->DeviceAf) {
 	case AF_INET:
