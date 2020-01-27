@@ -378,8 +378,8 @@ static int get_mpost_acton_hdrval(MHDTransaction *mhdt, std::string& val)
 		return SREQ_NOT_EXTENDED;
 
 	stringtolower(it->second);
-	char aname[101];
-	int ret = sscanf(it->second.c_str(), " \"%*[^\"]\" ; ns = %100s", aname);
+	char aname[201];
+	int ret = sscanf(it->second.c_str(), " \"%*[^\"]\" ; ns = %200s", aname);
 	if (ret != 1) {
 		return SREQ_NOT_EXTENDED;
 	}
@@ -431,8 +431,8 @@ static int check_soapaction_hdr(MHDTransaction *mhdt,
 	if (hash_pos == std::string::npos) {
 		return ret_code;
 	}
-	char anm[100];
-	if (sscanf(header.c_str() + hash_pos+1, "%100[^\"]", anm) != 1) {
+	char anm[201];
+	if (sscanf(header.c_str() + hash_pos+1, "%200[^\"]", anm) != 1) {
 		return ret_code;
 	}
 	soap_info->action_name = anm;
