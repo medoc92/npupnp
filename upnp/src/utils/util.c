@@ -34,28 +34,31 @@
 
 #include <string.h>
 
-#include "upnp.h"
 #include "upnputil.h"
 
-void linecopy(char dest[LINE_SIZE], const char *src)
+size_t upnp_strlcpy(char *dst, const char *src, size_t dsize)
 {
-	strncpy(dest, src, LINE_SIZE - (size_t)1);
-	/* null-terminate if len(src) >= LINE_SIZE. */
-	dest[LINE_SIZE - 1] = '\0';
-}
+	if (nullptr == dst || 0 == dsize)
+		return strlen(src) + 1;
 
-void namecopy(char dest[NAME_SIZE], const char *src)
-{
-	strncpy(dest, src, NAME_SIZE - (size_t)1);
-	/* null-terminate if len(src) >= NAME_SIZE. */
-	dest[NAME_SIZE - 1] = '\0';
-}
+	// Copy until either output full or end of src. Final zero not copied
+	size_t cnt = dsize;
+	while (*src && cnt > 0) {
+		*dst++ = *src++;
+		cnt--;
+	}
 
-void linecopylen(char dest[LINE_SIZE], const char *src, size_t srclen)
-{
-	size_t len;
-
-	len = srclen < (LINE_SIZE - (size_t)1) ? srclen : (LINE_SIZE - (size_t)1);
-	strncpy(dest, src, len);
-	dest[len] = '\0';
+	if (cnt == 0) {
+		// Stopped because output full. dst now points beyond the
+		// buffer, set the final zero before it, and count how many
+		// more bytes we would need.
+		dst[-1] = 0;
+		while (*src++) {
+			dsize++;
+		}
+	} else {
+		// Stopped because end of input, set the final zero.
+		dst[0] = 0;
+	}
+	return dsize - cnt + 1;
 }

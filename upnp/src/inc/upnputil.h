@@ -33,43 +33,13 @@
  *
  ******************************************************************************/
 
-#include "upnp.h"
+#include <stdlib.h>
+#include <string>
 
-/*!
- * \brief Copy no of bytes spcified by the LINE_SIZE constant, from the
- * source buffer. Null terminate the destination buffer.
- */
-void linecopy(
-	/*! [out] output buffer. */
-	char dest[LINE_SIZE],
-	/*! [in] input buffer. */
-	const char *src);
-
-/*!
- * \brief Copy no of bytes spcified by the NAME_SIZE constant, from the
- * source buffer. Null terminate the destination buffer
- */
-void namecopy(
-	/*! [out] output buffer. */
-	char dest[NAME_SIZE],
-	/*! [in] input buffer. */
-	const char *src);
-
-/*!
- * \brief Determine if the srclen passed in paramter is less than the
- * permitted LINE_SIZE. If it is use the passed parameter, if not
- * use the permitted LINE_SIZE as the length parameter.
- *
- * Copy no of bytes spcified by the LINE_SIZE constant, from the source
- * buffer. Null terminate the destination buffer.
- */
-void linecopylen(
-	/*! [out] output buffer. */
-	char dest[LINE_SIZE],
-	/*! [in] input buffer. */
-	const char *src,
-	/*! [in] bytes to be copied. */
-	size_t srclen);
+extern size_t upnp_strlcpy(char *dst, const char *src, size_t dsize);
+inline size_t upnp_strlcpy(char *dst, const std::string& src, size_t dsize) {
+	return upnp_strlcpy(dst, src.c_str(), dsize);
+}
 
 /* Size of the errorBuffer variable, passed to the strerror_r() function */
 #define ERROR_BUFFER_LEN (size_t)256
@@ -111,8 +81,7 @@ inline char *_check_strerror_r(char *cp, char *) {
 inline int posix_strerror_r(int err, char *buf, size_t len) {
 	char *cp = _check_strerror_r(strerror_r(err, buf, len), buf);
 	if (cp != buf) {
-		strncpy(buf, cp, len-1);
-		buf[len-1] = 0;
+		upnp_strlcpy(buf, cp, len);
 	}
 	return 0;
 }

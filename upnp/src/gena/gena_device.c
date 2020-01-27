@@ -363,8 +363,7 @@ static int genaInitNotifyCommon(
 	thread_struct->servId = servId;
 	thread_struct->UDN = UDN;
 	thread_struct->propertySet = propertySet;
-	memset(thread_struct->sid, 0, sizeof(thread_struct->sid));
-	strncpy(thread_struct->sid, sid, sizeof(thread_struct->sid) - 1);
+	upnp_strlcpy(thread_struct->sid, sid, sizeof(thread_struct->sid));
 	thread_struct->ctime = time(0);
 	thread_struct->device_handle = device_handle;
 
@@ -529,10 +528,7 @@ static int genaNotifyAllCommon(
 		thread_struct->propertySet = propertySet;
 		thread_struct->ctime = time(0);
 		thread_struct->device_handle = device_handle;
-		memset(thread_struct->sid, 0,
-			   sizeof(thread_struct->sid));
-		strncpy(thread_struct->sid, finger->sid,
-				sizeof(thread_struct->sid) - 1);
+		upnp_strlcpy(thread_struct->sid, finger->sid,sizeof(thread_struct->sid));
 
 		maybeDiscardEvents(finger->outgoing);
 
@@ -794,8 +790,7 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
 	/* finally generate callback for init table dump */
 	request_struct.ServiceId = service->serviceId.c_str();
 	request_struct.UDN = service->UDN.c_str();
-	strncpy((char *)request_struct.Sid, sub->sid,
-		sizeof(request_struct.Sid) - 1);
+	upnp_strlcpy(request_struct.Sid, sub->sid, sizeof(request_struct.Sid));
 
 	/* copy callback */
 	callback_fun = handle_info->Callback;

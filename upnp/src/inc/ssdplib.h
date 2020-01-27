@@ -41,6 +41,7 @@
  * \file
  */
 
+#include "upnp.h"
 #include "ssdpparser.h"
 #include "httputils.h"
 #include "miniserver.h"
@@ -50,6 +51,7 @@
 #include <signal.h>
 #include <setjmp.h>
 #include <errno.h>
+#include <string>
 
 #ifdef WIN32
 #else /* WIN32 */
@@ -104,7 +106,7 @@ typedef enum SsdpSearchType {
 #define RQST_TIMEOUT    20
 
 /*! Structure to store the SSDP information */
-typedef struct SsdpEventStruct {
+struct SsdpEvent {
 	enum SsdpSearchType RequestType;
 	int  ErrCode;
 	int  MaxAge;
@@ -119,8 +121,17 @@ typedef struct SsdpEventStruct {
 	char Ext[LINE_SIZE];
 	char Date[LINE_SIZE];
 	struct sockaddr *DestAddr;
-	void * Cookie;
-} SsdpEvent;
+	void *Cookie;
+#if 0
+	void dump(std::ostream& ostr) {
+		ostr <<	" RequestType " << RequestType << " ErrCode " << ErrCode <<
+			" MaxAge " << MaxAge << " Mx " << Mx << " UDN " << UDN << 
+			" DeviceType " << DeviceType << " ServiceType " << ServiceType << 
+			" Location " << Location << " HostAddr " << HostAddr << 
+			" Os " << Os << " Ext " << Ext << " Date " << Date << "\n";
+	}
+#endif
+};
 
 typedef void (* SsdpFunPtr)(SsdpEvent *);
 

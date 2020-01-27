@@ -48,6 +48,7 @@ nnn * Redistribution and use in source and binary forms, with or without
 #include <sstream>
 #include <iostream>
 
+#include "upnp.h"
 #include "ssdpparser.h"
 #include "httputils.h"
 #include "ssdp_ResultData.h"
@@ -77,12 +78,6 @@ static void send_search_result(
 	temp->ctrlpt_callback(UPNP_DISCOVERY_SEARCH_RESULT, &temp->param,
 						  temp->cookie);
 	free(temp);
-}
-
-static void strnzcpy(char *dest, const char *src, size_t bufsize)
-{
-	strncpy(dest, src, bufsize-1);
-	dest[bufsize-1] = 0;
 }
 
 void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
@@ -141,7 +136,7 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
 	/* DATE */
 	param.Date[0] = '\0';
 	if (parser.date) {
-		strnzcpy(param.Date, parser.date, LINE_SIZE);
+		upnp_strlcpy(param.Date, parser.date, LINE_SIZE);
 	}
 	/* dest addr */
 	memcpy(&param.DestAddr, dest_addr, sizeof(struct sockaddr_storage));
@@ -150,14 +145,14 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
 	/* LOCATION */
 	param.Location[0] = '\0';
 	if (parser.location) {
-		strnzcpy(param.Location, parser.location, LINE_SIZE);
+		upnp_strlcpy(param.Location, parser.location, LINE_SIZE);
 	}
 	/* SERVER / USER-AGENT */
 	param.Os[0] = '\0';
 	if (parser.server) {
-		strnzcpy(param.Os, parser.server, LINE_SIZE);
+		upnp_strlcpy(param.Os, parser.server, LINE_SIZE);
 	} else if (parser.user_agent) {
-		strnzcpy(param.Os, parser.user_agent, LINE_SIZE);
+		upnp_strlcpy(param.Os, parser.user_agent, LINE_SIZE);
 	}
 	/* clear everything */
 	memset(param.DeviceId, 0, sizeof(param.DeviceId));
@@ -177,11 +172,11 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
 		usn_found = (unique_service_name(parser.usn, &event) == 0);
 	}
 	if (nt_found || usn_found) {
-		strncpy(param.DeviceId, event.UDN, sizeof(param.DeviceId) - 1);
-		strncpy(param.DeviceType, event.DeviceType,
-				sizeof(param.DeviceType) - 1);
-		strncpy(param.ServiceType, event.ServiceType,
-				sizeof(param.ServiceType) - 1);
+		upnp_strlcpy(param.DeviceId, event.UDN, sizeof(param.DeviceId));
+		upnp_strlcpy(param.DeviceType, event.DeviceType,
+				sizeof(param.DeviceType));
+		upnp_strlcpy(param.ServiceType, event.ServiceType,
+				sizeof(param.ServiceType));
 	}
 	/* ADVERT. OR BYEBYE */
 	if (!parser.isresponse) {

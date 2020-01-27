@@ -206,10 +206,9 @@ static int parse_hostport(
 	int has_port = 0;
 	int ret;
 
-	memset(out, 0, sizeof(hostport_type));
-	memset(workbuf, 0, sizeof(workbuf));
+	*out = hostport_type();
 	/* Work on a copy of the input string. */
-	strncpy(workbuf, in, sizeof(workbuf) - 1);
+	upnp_strlcpy(workbuf, in, sizeof(workbuf));
 	c = workbuf;
 	if (*c == '[') {
 		/* IPv6 addresses are enclosed in square brackets. */

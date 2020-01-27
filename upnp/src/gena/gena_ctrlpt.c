@@ -166,10 +166,8 @@ static int ScheduleGenaAutoRenew(
 	memset(RenewEventStruct, 0, sizeof(struct Upnp_Event_Subscribe));
 	RenewEventStruct->ErrCode = UPNP_E_SUCCESS;
 	RenewEventStruct->TimeOut = TimeOut;
-	strncpy(RenewEventStruct->Sid, tmpSID.c_str(),
-		sizeof(RenewEventStruct->Sid) - 1);
-	strncpy(RenewEventStruct->PublisherUrl,
-			tmpEventURL.c_str(), NAME_SIZE - 1);
+	upnp_strlcpy(RenewEventStruct->Sid, tmpSID, sizeof(RenewEventStruct->Sid));
+	upnp_strlcpy(RenewEventStruct->PublisherUrl, tmpEventURL, NAME_SIZE);
 
 	RenewEvent->handle = client_handle;
 	RenewEvent->Event = RenewEventStruct;
@@ -754,7 +752,7 @@ void gena_process_notification_event(MHDTransaction *mhdt)
 	/* fill event struct */
 	tmpSID = UpnpClientSubscription_get_SID(subscription);
 	memset(event_struct.Sid, 0, sizeof(event_struct.Sid));
-	strncpy(event_struct.Sid, tmpSID.c_str(), sizeof(event_struct.Sid) - 1);
+	upnp_strlcpy(event_struct.Sid, tmpSID, sizeof(event_struct.Sid));
 	event_struct.EventKey = eventKey;
 	event_struct.ChangedVariables = ChangedVars;
 

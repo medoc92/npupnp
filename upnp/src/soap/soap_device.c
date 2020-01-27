@@ -209,12 +209,11 @@ static UPNP_INLINE void handle_query_variable(
 	int err_code;
 	const DOMString var_name;
 
-	variable.ErrCode = UPNP_E_SUCCESS;
-	linecopy(variable.ErrStr, "");
-	namecopy(variable.DevUDN, soap_info->dev_udn);
-	namecopy(variable.ServiceID, soap_info->service_id);
+	memset(&variable, 0, sizeof(variable));
+	upnp_strlcpy(variable.DevUDN, soap_info->dev_udn, NAME_SIZE);
+	upnp_strlcpy(variable.ServiceID, soap_info->service_id, NAME_SIZE);
 	var_name = ixmlNode_getNodeValue(req_node);
-	namecopy(variable.StateVarName, var_name);
+	upnp_strlcpy(variable.StateVarName, var_name, NAME_SIZE);
 	memcpy(&variable.CtrlPtIPAddr, mhdt->client_address,
 		   sizeof(struct sockaddr_storage));
 	variable.CurrentVal = NULL;
@@ -282,10 +281,10 @@ static void handle_invoke_action(
 		goto error_handler;
 	}
 	action.ErrCode = UPNP_E_SUCCESS;
-	linecopy(action.ErrStr, "");
-	namecopy(action.ActionName, soap_info->action_name.c_str());
-	namecopy(action.DevUDN, soap_info->dev_udn);
-	namecopy(action.ServiceID, soap_info->service_id);
+	action.ErrStr[0] = 0;
+	upnp_strlcpy(action.ActionName, soap_info->action_name, NAME_SIZE);
+	upnp_strlcpy(action.DevUDN, soap_info->dev_udn, NAME_SIZE);
+	upnp_strlcpy(action.ServiceID, soap_info->service_id, NAME_SIZE);
 	action.ActionRequest = req_doc;
 	action.ActionResult = NULL;
 	if (mhdt->client_address->ss_family == AF_INET) {
@@ -354,9 +353,9 @@ static int get_dev_service(MHDTransaction *mhdt,
 	if (!serv_info)
 		goto error_handler;
 
-	namecopy(soap_info->dev_udn, serv_info->UDN.c_str());
-	namecopy(soap_info->service_type, serv_info->serviceType.c_str());
-	namecopy(soap_info->service_id, serv_info->serviceId.c_str());
+	upnp_strlcpy(soap_info->dev_udn, serv_info->UDN, NAME_SIZE);
+	upnp_strlcpy(soap_info->service_type, serv_info->serviceType, NAME_SIZE);
+	upnp_strlcpy(soap_info->service_id, serv_info->serviceId, NAME_SIZE);
 	soap_info->callback = device_info->Callback;
 	soap_info->cookie = device_info->Cookie;
 	ret_code = 0;
@@ -451,7 +450,7 @@ static int check_soapaction_hdr(MHDTransaction *mhdt,
 	if (cp2_diff == cp1_diff &&
 		strncmp(soap_info->service_type, serv_type.c_str(), cp1_diff) == 0) {
 		/* for action invocation, update the version information */
-		namecopy(soap_info->service_type, serv_type.c_str());
+		upnp_strlcpy(soap_info->service_type, serv_type, NAME_SIZE);
 	} else if (strcmp(serv_type.c_str(), QUERY_STATE_VAR_URN) == 0 &&
 			   soap_info->action_name.compare("QueryStateVariable") == 0) {
 		/* query variable */

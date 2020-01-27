@@ -533,8 +533,7 @@ int DeviceReply(struct sockaddr *DestAddr, const char *DevType, int RootDev,
     /* create 2 or 3 msgs */
     if (RootDev) {
         /* 3 replies for root device */
-        memset(Mil_Nt, 0, sizeof(Mil_Nt));
-        strncpy(Mil_Nt, "upnp:rootdevice", sizeof(Mil_Nt) - 1);
+        upnp_strlcpy(Mil_Nt, "upnp:rootdevice", sizeof(Mil_Nt));
         rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::upnp:rootdevice", Udn);
         if (rc < 0 || (unsigned int) rc >= sizeof(Mil_Usn))
             goto error_handler;

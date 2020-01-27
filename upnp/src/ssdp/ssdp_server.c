@@ -298,86 +298,50 @@ end_function:
 }
 #endif /* INCLUDE_DEVICE_APIS */
 
+
+// Extract criteria from ssdp packet. Cmd can come from either an USN,
+// NT, or ST field. The possible forms are:
+//   ssdp:all
+//   upnp:rootdevice
+//   urn:domain-name:device:deviceType:v
+//   urn:domain-name:service:serviceType:v
+//   urn:schemas-upnp-org:device:deviceType:v
+//   urn:schemas-upnp-org:service:serviceType:v
+//   uuid:device-UUID
+//   uuid:device-UUID::upnp:rootdevice
+//   uuid:device-UUID::urn:domain-name:device:deviceType:v
+//   uuid:device-UUID::urn:domain-name:service:serviceType:v
+//   uuid:device-UUID::urn:schemas-upnp-org:device:deviceType:v
+//   uuid:device-UUID::urn:schemas-upnp-org:service:serviceType:v
+// We get the UDN, device or service type as available.
 int unique_service_name(const char *cmd, SsdpEvent *Evt)
 {
-	char TempBuf[COMMAND_LEN];
-	char *TempPtr = NULL;
-	char *Ptr = NULL;
-	char *ptr1 = NULL;
-	char *ptr2 = NULL;
-	char *ptr3 = NULL;
 	int CommandFound = 0;
-	size_t n = (size_t)0;
 
-	if (strstr((char*)cmd, "uuid:schemas") != NULL) {
-		ptr1 = strstr((char*)cmd, ":device");
-		if (ptr1 != NULL)
-			ptr2 = strstr(ptr1 + 1, ":");
-		else
-			return -1;
-		if (ptr2 != NULL)
-			ptr3 = strstr(ptr2 + 1, ":");
-		else
-			return -1;
-		if (ptr3 != NULL) {
-			if (strlen("uuid:") + strlen(ptr3 + 1) >= sizeof Evt->UDN)
-				return -1;
-			snprintf(Evt->UDN, sizeof Evt->UDN, "uuid:%s", ptr3 + 1);
-		}
-		else
-			return -1;
-		ptr1 = strstr((char*)cmd, ":");
-		if (ptr1 != NULL) {
-			n = (size_t)ptr3 - (size_t)ptr1;
-			n = n >= sizeof TempBuf ? sizeof TempBuf - 1 : n;
-			strncpy(TempBuf, ptr1, n);
-			TempBuf[n] = '\0';
-			if (strlen("urn") + strlen(TempBuf) >= sizeof(Evt->DeviceType))
-				return -1;
-			snprintf(Evt->DeviceType, sizeof(Evt->DeviceType),
-					 "urn%s", TempBuf);
-		} else
-			return -1;
-		return 0;
-	}
-	if ((TempPtr = strstr((char*)cmd, "uuid")) != NULL) {
-		if ((Ptr = strstr((char*)cmd, "::")) != NULL) {
-			n = (size_t)Ptr - (size_t)TempPtr;
-			n = n >= sizeof Evt->UDN ? sizeof Evt->UDN - 1 : n;
-			strncpy(Evt->UDN, TempPtr, n);
-			Evt->UDN[n] = '\0';
+	if (strstr((char*)cmd, "uuid:") == cmd) {
+		char *theend = strstr((char*)cmd, "::");
+		if (nullptr != theend) {
+			size_t n = theend - cmd;
+			if (n >= sizeof(Evt->UDN))
+				n = sizeof(Evt->UDN) - 1;
+			memcpy(Evt->UDN, cmd, n);
+			Evt->UDN[n] = 0;
 		} else {
-			memset(Evt->UDN, 0, sizeof(Evt->UDN));
-			strncpy(Evt->UDN, TempPtr, sizeof Evt->UDN - 1);
+			upnp_strlcpy(Evt->UDN, cmd, sizeof(Evt->UDN));
 		}
 		CommandFound = 1;
 	}
-	if (strstr((char*)cmd, "urn:") != NULL && strstr((char*)cmd, ":service:") != NULL) {
-		if ((TempPtr = strstr((char*)cmd, "urn")) != NULL) {
-			memset(Evt->ServiceType, 0, sizeof Evt->ServiceType);
-			strncpy(Evt->ServiceType, TempPtr,
-					sizeof Evt->ServiceType - 1);
-			CommandFound = 1;
-		}
+
+	char *urncp = strstr((char*)cmd, "urn:");
+	if (urncp && strstr((char*)cmd, ":service:")) {
+		upnp_strlcpy(Evt->ServiceType, urncp, sizeof(Evt->ServiceType));
+		CommandFound = 1;
 	}
-	if (strstr((char*)cmd, "urn:") != NULL && strstr((char*)cmd, ":device:") != NULL) {
-		if ((TempPtr = strstr((char*)cmd, "urn")) != NULL) {
-			memset(Evt->DeviceType, 0, sizeof Evt->DeviceType);
-			strncpy(Evt->DeviceType, TempPtr,
-					sizeof Evt->DeviceType - 1);
-			CommandFound = 1;
-		}
+	if (urncp && strstr((char*)cmd, ":device:")) {
+		upnp_strlcpy(Evt->DeviceType, urncp, sizeof(Evt->DeviceType));
+		CommandFound = 1;
 	}
-	if ((TempPtr = strstr((char*)cmd, "::upnp:rootdevice")) != NULL) {
-		/* Everything before "::upnp::rootdevice" is the UDN. */
-		if (TempPtr != cmd) {
-			n = (size_t)TempPtr - (size_t)cmd;
-			n = n >= sizeof Evt->UDN ? sizeof Evt->UDN - 1 : n;
-			strncpy(Evt->UDN, cmd, n);
-			Evt->UDN[n] = 0;
-			CommandFound = 1;
-		}
-	}
+
 	if (CommandFound == 0)
 		return -1;
 
@@ -505,7 +469,7 @@ static void ssdp_event_handler_thread(void *the_data)
 	if (method == HTTPMETHOD_NOTIFY || (parser.isresponse &&
 										method == HTTPMETHOD_MSEARCH)) {
 #ifdef INCLUDE_CLIENT_APIS
-		ssdp_handle_ctrlpt_msg(parser, &data->dest_addr, FALSE, NULL);
+		ssdp_handle_ctrlpt_msg(parser, &data->dest_addr, 0, NULL);
 #endif /* INCLUDE_CLIENT_APIS */
 	} else {
 		ssdp_handle_device_request(parser, &data->dest_addr);
@@ -558,9 +522,7 @@ void readFromSSDPSocket(SOCKET socket)
 			break;
 #endif /* UPNP_ENABLE_IPV6 */
 		default:
-			memset(ntop_buf, 0, sizeof(ntop_buf));
-			strncpy(ntop_buf, "<Invalid address family>",
-					sizeof(ntop_buf) - 1);
+			upnp_strlcpy(ntop_buf, "<Invalid address family>", sizeof(ntop_buf));
 		}
 		UpnpPrintf(
 			UPNP_INFO, SSDP, __FILE__, __LINE__,

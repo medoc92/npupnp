@@ -469,17 +469,17 @@ int UpnpInit(const char *HostIP, unsigned short DestPort)
 		HostIP ? HostIP : "", (int)DestPort);
 
 	/* Verify HostIP, if provided, or find it ourselves. */
-	memset(gIF_IPV4, 0, sizeof(gIF_IPV4));
 	if (HostIP != NULL) {
-		strncpy(gIF_IPV4, HostIP, sizeof(gIF_IPV4) - 1);
+		upnp_strlcpy(gIF_IPV4, HostIP, sizeof(gIF_IPV4));
 	} else {
-		if( getlocalhostname( gIF_IPV4, sizeof(gIF_IPV4) - 1 ) != UPNP_E_SUCCESS ) {
+		if (getlocalhostname(gIF_IPV4, sizeof(gIF_IPV4)) != UPNP_E_SUCCESS ){
 			retVal = UPNP_E_INIT_FAILED;
 			goto exit_function;
 		}
 	}
 
-	/* Set the UpnpSdkInit flag to 1 to indicate we're successfully initialized. */
+	/* Set the UpnpSdkInit flag to 1 to indicate we're successfully
+	   initialized. */
 	UpnpSdkInit = 1;
 
 	/* Finish initializing the SDK. */
@@ -824,8 +824,8 @@ int UpnpRegisterRootDevice(
 
 	HInfo->aliasInstalled = 0;
 	HInfo->HType = HND_DEVICE;
-	strncpy(HInfo->DescURL, DescUrl, sizeof(HInfo->DescURL) - 1);
-	strncpy(HInfo->LowerDescURL, DescUrl, sizeof(HInfo->LowerDescURL) - 1);
+	upnp_strlcpy(HInfo->DescURL, DescUrl, sizeof(HInfo->DescURL));
+	upnp_strlcpy(HInfo->LowerDescURL, DescUrl, sizeof(HInfo->LowerDescURL));
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
 		"Following Root Device URL will be used when answering to legacy CPs %s\n",
 		HInfo->LowerDescURL);
@@ -969,8 +969,7 @@ int UpnpRegisterRootDevice2(
 		goto exit_function;
 	}
 
-	strncpy(HInfo->LowerDescURL, HInfo->DescURL,
-		sizeof(HInfo->LowerDescURL) - 1);
+	upnp_strlcpy(HInfo->LowerDescURL,HInfo->DescURL,sizeof(HInfo->LowerDescURL));
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
 		"Following Root Device URL will be used when answering to legacy CPs %s\n",
 		HInfo->LowerDescURL);
@@ -1087,13 +1086,12 @@ int UpnpRegisterRootDevice4(
 		"Root device URL is %s\n", DescUrl);
 	HInfo->aliasInstalled = 0;
 	HInfo->HType = HND_DEVICE;
-	strncpy(HInfo->DescURL, DescUrl, sizeof(HInfo->DescURL) - 1);
+	upnp_strlcpy(HInfo->DescURL, DescUrl, sizeof(HInfo->DescURL));
 	if (LowerDescUrl == NULL)
-		strncpy(HInfo->LowerDescURL, DescUrl,
-			sizeof(HInfo->LowerDescURL) - 1);
+		upnp_strlcpy(HInfo->LowerDescURL, DescUrl, sizeof(HInfo->LowerDescURL));
 	else
-		strncpy(HInfo->LowerDescURL, LowerDescUrl,
-			sizeof(HInfo->LowerDescURL) - 1);
+		upnp_strlcpy(HInfo->LowerDescURL,LowerDescUrl,
+					 sizeof(HInfo->LowerDescURL));
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
 		"Following Root Device URL will be used when answering to legacy CPs %s\n",
 		HInfo->LowerDescURL);
@@ -1365,8 +1363,7 @@ static int GetDescDocumentAndURL(
 	if (strlen(description) > LINE_SIZE - 1) {
 		return UPNP_E_URL_TOO_BIG;
 	}
-	strncpy(descURL, description, LINE_SIZE - 1);
-	descURL[LINE_SIZE - 1] = '\0';
+	upnp_strlcpy(descURL, description, LINE_SIZE);
 
 	/* Get XML doc */
 	char *descstr;
@@ -1411,8 +1408,7 @@ static int GetDescDocumentAndURL(
 	if (strlen(description) > LINE_SIZE - (size_t)1) {
 		return UPNP_E_URL_TOO_BIG;
 	}
-	strncpy(descURL, description, LINE_SIZE - 1);
-	descURL[LINE_SIZE - 1] = '\0';
+	upnp_strlcpy(descURL, description, LINE_SIZE);
 
 	retVal = UpnpDownloadXmlDoc(description, xmlDoc);
 	if (retVal != UPNP_E_SUCCESS) {
@@ -1733,7 +1729,7 @@ int UpnpSubscribeAsync(
 
     Param->FunName = SUBSCRIBE;
     Param->Handle = Hnd;
-    strncpy( Param->Url, EvtUrl, sizeof( Param->Url ) - 1 );
+    upnp_strlcpy(Param->Url, EvtUrl, sizeof(Param->Url));
     Param->TimeOut = TimeOut;
     Param->Fun = Fun;
     Param->Cookie = (char *)Cookie_const;
@@ -1801,8 +1797,7 @@ int UpnpSubscribe(
 	HandleUnlock();
 
 	retVal = genaSubscribe(Hnd, EvtUrl, TimeOut, &SubsIdTmp);
-	memset(SubsId, 0, sizeof(Upnp_SID));
-	strncpy(SubsId, SubsIdTmp.c_str(), sizeof(Upnp_SID) - 1);
+	upnp_strlcpy(SubsId, SubsIdTmp, sizeof(Upnp_SID));
 
 exit_function:
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
@@ -1905,7 +1900,7 @@ int UpnpUnSubscribeAsync(
 
 	Param->FunName = UNSUBSCRIBE;
 	Param->Handle = Hnd;
-	strncpy( Param->SubsId, SubsId, sizeof( Param->SubsId ) - 1 );
+	upnp_strlcpy(Param->SubsId, SubsId, sizeof(Param->SubsId));
 	Param->Fun = Fun;
 	Param->Cookie = (char *)Cookie_const;
 	TPJobInit( &job, ( start_routine ) UpnpThreadDistribution, Param );
@@ -2025,7 +2020,7 @@ int UpnpRenewSubscriptionAsync(
 
     Param->FunName = RENEW;
     Param->Handle = Hnd;
-    strncpy( Param->SubsId, SubsId, sizeof( Param->SubsId ) - 1 );
+    upnp_strlcpy(Param->SubsId, SubsId, sizeof(Param->SubsId));
     Param->Fun = Fun;
     Param->Cookie = (char*)Cookie_const;
     Param->TimeOut = TimeOut;
@@ -2370,9 +2365,8 @@ int UpnpSendActionAsync(
 
     Param->FunName = ACTION;
     Param->Handle = Hnd;
-    strncpy( Param->Url, ActionURL, sizeof ( Param->Url ) - 1 );
-    strncpy( Param->ServiceType, ServiceType,
-	sizeof ( Param->ServiceType ) - 1 );
+    upnp_strlcpy(Param->Url, ActionURL, sizeof (Param->Url));
+    upnp_strlcpy(Param->ServiceType, ServiceType, sizeof(Param->ServiceType));
 
     rc = ixmlParseBufferEx( tmpStr, &( Param->Act ) );
     if( rc != IXML_SUCCESS ) {
@@ -2475,9 +2469,8 @@ int UpnpSendActionExAsync(
 
     Param->FunName = ACTION;
     Param->Handle = Hnd;
-    strncpy( Param->Url, ActionURL, sizeof( Param->Url ) - 1 );
-    strncpy( Param->ServiceType, ServiceType,
-	sizeof ( Param->ServiceType ) - 1 );
+    upnp_strlcpy(Param->Url, ActionURL, sizeof(Param->Url));
+    upnp_strlcpy(Param->ServiceType, ServiceType, sizeof(Param->ServiceType));
     retVal = ixmlParseBufferEx( headerStr, &( Param->Header ) );
     if( retVal != IXML_SUCCESS ) {
         free( Param );
@@ -2662,7 +2655,7 @@ int UpnpGetIfInfo(const char *IfName)
 			return UPNP_E_INVALID_INTERFACE;
 
 		memset(gIF_NAME, 0, sizeof(gIF_NAME));
-		strncpy(gIF_NAME, IfName, sizeof(gIF_NAME) - 1);
+		upnp_strlcpy(gIF_NAME, IfName, sizeof(gIF_NAME));
 		ifname_found = 1;
 	}
 	adapts_item = adapts;
@@ -2684,9 +2677,7 @@ int UpnpGetIfInfo(const char *IfName)
 			wcstombs(gIF_NAME, adapts_item->FriendlyName,
 				sizeof(gIF_NAME));
 #else
-			memset(gIF_NAME, 0, sizeof(gIF_NAME));
-			strncpy(gIF_NAME, adapts_item->FriendlyName,
-				sizeof(gIF_NAME) - 1);
+			upnp_strlcpy(gIF_NAME, adapts_item->FriendlyName, sizeof(gIF_NAME));
 #endif
 			ifname_found = 1;
 		} else {
@@ -2777,8 +2768,7 @@ int UpnpGetIfInfo(const char *IfName)
 		if (strlen(IfName) > sizeof(gIF_NAME))
 			return UPNP_E_INVALID_INTERFACE;
 
-		memset(gIF_NAME, 0, sizeof(gIF_NAME));
-		strncpy(gIF_NAME, IfName, sizeof(gIF_NAME) - 1);
+		upnp_strlcpy(gIF_NAME, IfName, sizeof(gIF_NAME));
 		ifname_found = 1;
 	}
 	/* Get system interface addresses. */
@@ -2798,8 +2788,7 @@ int UpnpGetIfInfo(const char *IfName)
 		}
 		if (ifname_found == 0) {
 			/* We have found a valid interface name. Keep it. */
-			memset(gIF_NAME, 0, sizeof(gIF_NAME));
-			strncpy(gIF_NAME, ifa->ifa_name, sizeof(gIF_NAME) - 1);
+			upnp_strlcpy(gIF_NAME, ifa->ifa_name, sizeof(gIF_NAME));
 			ifname_found = 1;
 		} else {
 			if (strncmp(gIF_NAME, ifa->ifa_name, sizeof(gIF_NAME))
@@ -2865,9 +2854,7 @@ int UpnpGetIfInfo(const char *IfName)
 	if (IfName != NULL) {
 		if (strlen(IfName) > sizeof(gIF_NAME))
 			return UPNP_E_INVALID_INTERFACE;
-
-		memset(gIF_NAME, 0, sizeof(gIF_NAME));
-		strncpy(gIF_NAME, IfName, sizeof(gIF_NAME) - 1);
+		upnp_strlcpy(gIF_NAME, IfName, sizeof(gIF_NAME));
 		ifname_found = 1;
 	}
 	/* Create an unbound datagram socket to do the SIOCGIFADDR ioctl on.  */
@@ -2892,9 +2879,7 @@ int UpnpGetIfInfo(const char *IfName)
 		    (struct ifreq *)((caddr_t) ifConf.ifc_req + i);
 		i += sizeof *pifReq;
 		/* See if this is the sort of interface we want to deal with. */
-		memset(ifReq.ifr_name, 0, sizeof(ifReq.ifr_name));
-		strncpy(ifReq.ifr_name, pifReq->ifr_name,
-			sizeof(ifReq.ifr_name) - 1);
+		upnp_strlcpy(ifReq.ifr_name, pifReq->ifr_name, sizeof(ifReq.ifr_name));
 		if (ioctl(LocalSock, SIOCGIFFLAGS, &ifReq) < 0) {
 			UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
 				   "Can't get interface flags for %s:\n",
@@ -2909,8 +2894,7 @@ int UpnpGetIfInfo(const char *IfName)
 		}
 		if (ifname_found == 0) {
 			/* We have found a valid interface name. Keep it. */
-			memset(gIF_NAME, 0, sizeof(gIF_NAME));
-			strncpy(gIF_NAME, pifReq->ifr_name, sizeof(gIF_NAME) - 1);
+			upnp_strlcpy(gIF_NAME, pifReq->ifr_name, sizeof(gIF_NAME));
 			ifname_found = 1;
 		} else {
 			if (strncmp
@@ -2923,8 +2907,7 @@ int UpnpGetIfInfo(const char *IfName)
 		/* Check address family. */
 		if (pifReq->ifr_addr.sa_family == AF_INET) {
 			/* Copy interface name, IPv4 address and interface index. */
-			memset(gIF_NAME, 0, sizeof(gIF_NAME));
-			strncpy(gIF_NAME, pifReq->ifr_name, sizeof(gIF_NAME) - 1);
+			upnp_strlcpy(gIF_NAME, pifReq->ifr_name, sizeof(gIF_NAME));
 			inet_ntop(AF_INET,
 				  &((struct sockaddr_in *)&pifReq->ifr_addr)->
 				  sin_addr, gIF_IPV4, sizeof(gIF_IPV4));
@@ -2963,28 +2946,18 @@ int UpnpGetIfInfo(const char *IfName)
 				if (inet_pton(AF_INET6, buf, &v6_addr) > 0) {
 					if (IN6_IS_ADDR_ULA(&v6_addr)) {
 						/* Got valid IPv6 ula. */
-						memset(gIF_IPV6_ULA_GUA, 0,
-							sizeof(gIF_IPV6_ULA_GUA));
-						strncpy(gIF_IPV6_ULA_GUA, buf,
-							sizeof
-							(gIF_IPV6_ULA_GUA) - 1);
+						upnp_strlcpy(gIF_IPV6_ULA_GUA, buf,
+									 sizeof(gIF_IPV6_ULA_GUA));
 					} else if (IN6_IS_ADDR_GLOBAL(&v6_addr)
-						   && strlen(gIF_IPV6_ULA_GUA)
-						   == (size_t)0) {
+						   && strlen(gIF_IPV6_ULA_GUA) == 0) {
 						/* got a GUA, should store it while no ULA is found */
-						memset(gIF_IPV6_ULA_GUA, 0,
-                                                        sizeof(gIF_IPV6_ULA_GUA));
-						strncpy(gIF_IPV6_ULA_GUA, buf,
-							sizeof
-							(gIF_IPV6_ULA_GUA) - 1);
+						upnp_strlcpy(gIF_IPV6_ULA_GUA, buf,
+							sizeof(gIF_IPV6_ULA_GUA));
 					} else
 					    if (IN6_IS_ADDR_LINKLOCAL(&v6_addr)
-						&& strlen(gIF_IPV6) == (size_t)0) {
+						&& strlen(gIF_IPV6) == 0) {
 						/* got a Link local IPv6 address. */
-						memset(gIF_IPV6, 0,
-                                                        sizeof(gIF_IPV6));
-						strncpy(gIF_IPV6, buf,
-							sizeof(gIF_IPV6) - 1);
+						upnp_strlcpy(gIF_IPV6, buf,	sizeof(gIF_IPV6));
 					}
 				}
 			}
@@ -3018,14 +2991,11 @@ void UpnpThreadDistribution(struct UpnpNonblockParam *Param)
 		std::string Sid;
 		std::string Url = Param->Url;
 		memset(&Evt, 0, sizeof(Evt));
-		Evt.ErrCode = genaSubscribe(
-			Param->Handle,
-			Url,
-			(int *)&Param->TimeOut,
-			&Sid);
-		strncpy(Evt.PublisherUrl, Param->Url, sizeof(Evt.PublisherUrl) - 1);
+		Evt.ErrCode = genaSubscribe(Param->Handle, Url,	(int *)&Param->TimeOut,
+									&Sid);
+		upnp_strlcpy(Evt.PublisherUrl, Param->Url, sizeof(Evt.PublisherUrl));
 		Evt.TimeOut = Param->TimeOut;
-		strncpy((char *)Evt.Sid, Sid.c_str(), sizeof(Evt.Sid) - 1);
+		upnp_strlcpy((char *)Evt.Sid, Sid, sizeof(Evt.Sid));
 		Param->Fun(UPNP_EVENT_SUBSCRIBE_COMPLETE, &Evt, Param->Cookie);
 		free(Param);
 		break;
@@ -3034,11 +3004,9 @@ void UpnpThreadDistribution(struct UpnpNonblockParam *Param)
 		struct Upnp_Event_Subscribe Evt;
 		std::string Sid = Param->SubsId;
 		memset(&Evt, 0, sizeof(Evt));
-		Evt.ErrCode = genaUnSubscribe(
-			Param->Handle,
-			Sid);
-		strncpy((char *)Evt.Sid, Sid.c_str(), sizeof(Evt.Sid) - 1);
-		strncpy(Evt.PublisherUrl, "", sizeof(Evt.PublisherUrl) - 1);
+		Evt.ErrCode = genaUnSubscribe(Param->Handle, Sid);
+		upnp_strlcpy((char *)Evt.Sid, Sid, sizeof(Evt.Sid));
+		upnp_strlcpy(Evt.PublisherUrl, "", sizeof(Evt.PublisherUrl));
 		Evt.TimeOut = 0;
 		Param->Fun(UPNP_EVENT_UNSUBSCRIBE_COMPLETE, &Evt, Param->Cookie);
 		free(Param);
@@ -3048,12 +3016,9 @@ void UpnpThreadDistribution(struct UpnpNonblockParam *Param)
 		struct Upnp_Event_Subscribe Evt;
 		std::string Sid = Param->SubsId;
 		memset(&Evt, 0, sizeof(Evt));
-		Evt.ErrCode = genaRenewSubscription(
-			Param->Handle,
-			Sid,
-			&Param->TimeOut);
+		Evt.ErrCode = genaRenewSubscription(Param->Handle, Sid, &Param->TimeOut);
 		Evt.TimeOut = Param->TimeOut;
-		strncpy((char *)Evt.Sid, Sid.c_str(), sizeof(Evt.Sid) - 1);
+		upnp_strlcpy((char *)Evt.Sid, Sid, sizeof(Evt.Sid));
 		Param->Fun(UPNP_EVENT_RENEWAL_COMPLETE, &Evt, Param->Cookie);
 		free(Param);
 		break;
@@ -3064,12 +3029,10 @@ void UpnpThreadDistribution(struct UpnpNonblockParam *Param)
 		struct Upnp_Action_Complete Evt;
 		memset(&Evt, 0, sizeof(Evt));
 		Evt.ActionResult = NULL;
-		Evt.ErrCode = SoapSendAction(
-			Param->Url,
-			Param->ServiceType,
-			Param->Act, &Evt.ActionResult);
+		Evt.ErrCode = SoapSendAction(Param->Url, Param->ServiceType,
+									 Param->Act, &Evt.ActionResult);
 		Evt.ActionRequest = Param->Act;
-		strncpy(Evt.CtrlUrl, Param->Url, sizeof(Evt.CtrlUrl) - 1);
+		upnp_strlcpy(Evt.CtrlUrl, Param->Url, sizeof(Evt.CtrlUrl));
 		Param->Fun(UPNP_CONTROL_ACTION_COMPLETE, &Evt, Param->Cookie);
 		ixmlDocument_free(Evt.ActionRequest);
 		ixmlDocument_free(Evt.ActionResult);
@@ -3257,7 +3220,7 @@ int getlocalhostname(char *out, size_t out_len)
 	int ret = UPNP_E_SUCCESS;
 	char tempstr[INET_ADDRSTRLEN];
 	const char *p = NULL;
-
+	
 #ifdef WIN32
 	struct hostent *h = NULL;
 	struct sockaddr_in LocalAddr;
@@ -3265,12 +3228,13 @@ int getlocalhostname(char *out, size_t out_len)
 	memset(&LocalAddr, 0, sizeof(LocalAddr));
 
 	gethostname(out, out_len);
+	out[out_len-1] = 0;
 	h = gethostbyname(out);
 	if (h != NULL) {
 		memcpy(&LocalAddr.sin_addr, h->h_addr_list[0], 4);
 		p = inet_ntop(AF_INET, &LocalAddr.sin_addr, tempstr, sizeof(tempstr));
 		if (p) {
-			strncpy(out, p, out_len);
+			upnp_strlcpy(out, p, out_len);
 		} else {
 			UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
 				"getlocalhostname: inet_ntop returned error\n" );
@@ -3310,14 +3274,14 @@ int getlocalhostname(char *out, size_t out_len)
 				&((struct sockaddr_in *)(ifa->ifa_addr))->sin_addr,
 				tempstr, sizeof(tempstr));
 			if (p) {
-				strncpy(out, p, out_len);
+				upnp_strlcpy(out, p, out_len);
 			} else {
 				UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
 					"getlocalhostname: inet_ntop returned error\n");
 				ret = UPNP_E_INIT;
 			}
 			UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-				"Inside getlocalhostname: after strncpy %s\n", out);
+				"Inside getlocalhostname: after upnp_strlcpy %s\n", out);
 			break;
 		}
 	}
@@ -3364,9 +3328,7 @@ int getlocalhostname(char *out, size_t out_len)
 			(struct ifreq *)((caddr_t)ifConf.ifc_req + i);
 		i += sizeof *pifReq;
 		/* See if this is the sort of interface we want to deal with. */
-		memset(ifReq.ifr_name, 0, sizeof(ifReq.ifr_name));
-		strncpy(ifReq.ifr_name, pifReq->ifr_name,
-			sizeof(ifReq.ifr_name) - 1);
+		upnp_strlcpy(ifReq.ifr_name, pifReq->ifr_name, sizeof(ifReq.ifr_name));
 		if (ioctl(LocalSock, SIOCGIFFLAGS, &ifReq) < 0) {
 			UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
 				"Can't get interface flags for %s:\n",
@@ -3397,14 +3359,14 @@ int getlocalhostname(char *out, size_t out_len)
 
 	p = inet_ntop(AF_INET, &LocalAddr.sin_addr, tempstr, sizeof(tempstr));
 	if (p) {
-		strncpy(out, p, out_len);
+		upnp_strlcpy(out, p, out_len);
 	} else {
 		UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
 			"getlocalhostname: inet_ntop returned error\n" );
 		ret = UPNP_E_INIT;
 	}
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"Inside getlocalhostname: after strncpy %s\n", out);
+		"Inside getlocalhostname: after upnp_strlcpy %s\n", out);
 #endif
 	return ret;
 }

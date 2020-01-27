@@ -273,7 +273,7 @@ int http_Download(const char *url_str,
 		if (it == http_headers.end()) {
 			*content_type = '\0';	/* no content-type */
 		} else {
-			linecopylen(content_type, it->second.c_str(), it->second.size());
+			upnp_strlcpy(content_type, it->second, LINE_SIZE);
 		}
 	}
 
