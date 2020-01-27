@@ -280,27 +280,27 @@ int web_server_set_root_dir(const char *root_dir)
  * \brief Compares filePath with paths from the list of virtual directory
  * lists.
  *
- * \return BOOLEAN.
+ * \return nullptr or entry pointer.
  */
-static int isFileInVirtualDir(
+static const VirtualDirListEntry *isFileInVirtualDir(
 	/*! [in] Directory path to be tested for virtual directory. */
 	char *filePath)
 {
 	for (const auto& vd : virtualDirList) {
-		if (vd.size()) {
-			if (vd[vd.size() - 1] == '/') {
-				if (strncmp(vd.c_str(), filePath, vd.size()) == 0)
-					return 1;
+		if (vd.path.size()) {
+			if (vd.path.back() == '/') {
+				if (strncmp(vd.path.c_str(), filePath, vd.path.size()) == 0)
+					return &vd;
 			} else {
-				if (strncmp(vd.c_str(), filePath, vd.size()) == 0 &&
-				    (filePath[vd.size()] == '/' ||
-				     filePath[vd.size()] == 0 ||
-				     filePath[vd.size()] == '?'))
-					return 1;
+				if (strncmp(vd.path.c_str(), filePath, vd.path.size()) == 0 &&
+				    (filePath[vd.path.size()] == '/' ||
+				     filePath[vd.path.size()] == 0 ||
+				     filePath[vd.path.size()] == '?'))
+					return &vd;
 			}
 		}
 	}
-	return 0;
+	return nullptr;
 }
 
 
@@ -453,7 +453,8 @@ static int process_request(
 	finfo.content_type = NULL;
 	err_code = HTTP_INTERNAL_SERVER_ERROR;	/* default error */
 	using_virtual_dir = FALSE;
-
+	const VirtualDirListEntry *entryp{nullptr};
+	
 	/* remove dots and unescape url */
 	request_doc = strdup(mhdt->url.c_str());
 	if (request_doc == NULL) {
@@ -472,9 +473,11 @@ static int process_request(
 		goto error_handler;
 	}
 
-	if (isFileInVirtualDir(request_doc)) {
+	entryp = isFileInVirtualDir(request_doc);
+	if (entryp) {
 		using_virtual_dir = TRUE;
 		RespInstr->IsVirtualFile = 1;
+		RespInstr->cookie = entryp->cookie;
 		filename = request_doc;
 		if ((code = ExtraHTTPHeaders(mhdt, &extra_headers)) != HTTP_OK) {
 			err_code = code;
@@ -482,7 +485,7 @@ static int process_request(
 		}
 		/* get file info */
 		finfo.extra_headers = extra_headers;
-		if (virtualDirCallback.get_info(filename.c_str(), &finfo) != 0) {
+		if (virtualDirCallback.get_info(filename.c_str(), &finfo, entryp->cookie) != 0) {
 			err_code = HTTP_NOT_FOUND;
 			goto error_handler;
 		}
@@ -496,7 +499,7 @@ static int process_request(
 			}
 			filename += temp_str;
 			/* get info */
-			if ((virtualDirCallback.get_info(filename.c_str(), &finfo)
+			if ((virtualDirCallback.get_info(filename.c_str(), &finfo, entryp->cookie)
 				 != UPNP_E_SUCCESS) || finfo.is_directory) {
 				err_code = HTTP_NOT_FOUND;
 				goto error_handler;
@@ -597,6 +600,7 @@ public:
 	~VFileReaderCtxt() {
 	}
 	UpnpWebFileHandle fp{nullptr};
+	const void *cookie;
 };
 
 static ssize_t vFileReaderCallback(void *cls, uint64_t pos, char *buf,
@@ -607,10 +611,11 @@ static ssize_t vFileReaderCallback(void *cls, uint64_t pos, char *buf,
 		std::cerr << "vFileReaderCallback: fp is null !\n";
 		return -1;
 	}
-	if (virtualDirCallback.seek(ctx->fp, pos, SEEK_SET) != (int64_t)pos) {
+	if (virtualDirCallback.seek(ctx->fp, pos, SEEK_SET, ctx->cookie) !=
+		(int64_t)pos) {
 		return -1;
 	}
-	int ret = virtualDirCallback.read(ctx->fp, buf, max);
+	int ret = virtualDirCallback.read(ctx->fp, buf, max, ctx->cookie);
 	return ret;
 }
 
@@ -657,7 +662,9 @@ void web_server_callback(MHDTransaction *mhdt)
 		case RESP_WEBDOC:
 		{
 			VFileReaderCtxt *ctxt = new VFileReaderCtxt;
-			ctxt->fp = virtualDirCallback.open(filename.c_str(), UPNP_READ);
+			ctxt->fp = virtualDirCallback.open(filename.c_str(), UPNP_READ,
+											   RespInstr.cookie);
+			ctxt->cookie = RespInstr.cookie;
 			mhdt->response = MHD_create_response_from_callback(
 				RespInstr.ReadSendSize, 4096, vFileReaderCallback,
 				ctxt, vFileFreeCallback);

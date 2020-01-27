@@ -43,6 +43,8 @@ struct SendInstruction
 	char AcceptLanguageHeader[200];
 	/*! Read from local source and send on the network. */
 	off_t ReadSendSize;
+	/*! Cookie associated with the virtualDir. */
+	const void *cookie;
 };
 
 

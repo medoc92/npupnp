@@ -267,8 +267,12 @@ struct  UpnpNonblockParam
 	struct DevDesc *Devdesc;
 };
 
-
-extern std::vector<std::string> virtualDirList;
+class VirtualDirListEntry {
+public:
+	std::string path;
+	const void *cookie;
+};
+extern std::vector<VirtualDirListEntry> virtualDirList;
 extern struct VirtualDirCallbacks virtualDirCallback;
 
 typedef enum {

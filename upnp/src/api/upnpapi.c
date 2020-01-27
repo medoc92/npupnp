@@ -41,6 +41,8 @@
 #include "config.h"
 
 #include <string>
+#include <algorithm>
+
 #include <upnp/ixml.h>
 
 #include "upnpapi.h"
@@ -96,7 +98,7 @@ struct VirtualDirCallbacks virtualDirCallback;
 
 /*! Virtual directory list. This is used with a linear search by the
     web server to perform prefix matches. */
-std::vector<std::string> virtualDirList;
+std::vector<VirtualDirListEntry> virtualDirList;
 
 #ifdef INCLUDE_CLIENT_APIS
 /*! Mutex to synchronize the subscription handling at the client side. */
@@ -3399,27 +3401,40 @@ int UpnpSetWebServerRootDir(const char *rootDir)
 #endif /* INTERNAL_WEB_SERVER */
 
 
-int UpnpAddVirtualDir(const char *newDirName)
+int UpnpAddVirtualDir(const char *dirname, const void *cookie,
+					  const void **oldcookie)
 {
     if( UpnpSdkInit != 1 ) {
         /* SDK is not initialized */
         return UPNP_E_FINISH;
     }
 
-    if (newDirName == NULL || *newDirName == 0) {
+    if (dirname == NULL || *dirname == 0) {
         return UPNP_E_INVALID_PARAM;
     }
 
-    if (*newDirName != '/') {
-        if (strlen(newDirName) > NAME_SIZE - 2)
+	VirtualDirListEntry entry; 
+    if (*dirname != '/') {
+        if (strlen(dirname) > NAME_SIZE - 2)
             return UPNP_E_INVALID_PARAM;
-		virtualDirList.push_back(std::string("/") + newDirName);
+		entry.path = std::string("/") + dirname;
     } else {
-        if (strlen(newDirName) > NAME_SIZE - 1)
+        if (strlen(dirname) > NAME_SIZE - 1)
             return UPNP_E_INVALID_PARAM;
-		virtualDirList.push_back(newDirName);
+		entry.path = dirname;
     }
-	
+	auto old = std::find_if(virtualDirList.begin(), virtualDirList.end(),
+							[entry](const VirtualDirListEntry& old) {
+								return entry.path == old.path;
+							});
+	if (old != virtualDirList.end()) {
+		if (oldcookie) {
+			*oldcookie = old->cookie;
+		}
+		*old = entry;
+	} else {
+		virtualDirList.push_back(entry);
+	}
     return UPNP_E_SUCCESS;
 }
 
@@ -3432,19 +3447,14 @@ int UpnpRemoveVirtualDir(const char *dirName)
     if (dirName == NULL) {
         return UPNP_E_INVALID_PARAM;
     }
-	int found = 0;
 	for (auto it = virtualDirList.begin(); it != virtualDirList.end(); it++) {
-        if (*it == dirName) {
+        if (it->path == dirName) {
 			virtualDirList.erase(it);
-            found = 1;
-            break;
+			return UPNP_E_SUCCESS;
         }
     }
 
-    if( found == 1 )
-        return UPNP_E_SUCCESS;
-    else
-        return UPNP_E_INVALID_PARAM;
+	return UPNP_E_INVALID_PARAM;
 }
 
 
