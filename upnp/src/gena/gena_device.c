@@ -48,8 +48,13 @@
 #include "upnpapi.h"
 #include "uuid.h"
 #include "smallut.h"
+#include "upnputil.h"
 
 #define STALE_JOBID (INVALID_JOB_ID -1)
+
+const static char *XML_PROPERTYSET_HEADER =
+	"<e:propertyset xmlns:e=\"urn:schemas-upnp-org:event-1-0\">\n";
+
 
 /*!
  * \brief Unregisters a device.
@@ -757,7 +762,7 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
 
 	/* set the timeout */
 	if (!timeout_header_value(mhdt->headers, &time_out)) {
-		time_out = DEFAULT_TIMEOUT;
+		time_out = GENA_DEFAULT_TIMEOUT;
 	}
 	
 	/* replace infinite timeout with max timeout, if possible */
@@ -865,7 +870,7 @@ void gena_process_subscription_renewal_request(MHDTransaction *mhdt)
     /* set the timeout */
     int time_out;
 	if (!timeout_header_value(mhdt->headers, &time_out)) {
-		time_out = DEFAULT_TIMEOUT;
+		time_out = GENA_DEFAULT_TIMEOUT;
 	}
 
     /* replace infinite timeout with max timeout, if possible */

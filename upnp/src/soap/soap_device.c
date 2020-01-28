@@ -39,16 +39,17 @@
 #ifdef INCLUDE_DEVICE_APIS
 #if EXCLUDE_SOAP == 0
 
-#include "soaplib.h"
-#include "statcodes.h"
-#include "upnpapi.h"
-#include "httputils.h"
 
 #include <assert.h>
 #include <string.h>
 #include <microhttpd.h>
 #include <iostream>
 
+#include "soaplib.h"
+#include "statcodes.h"
+#include "upnpapi.h"
+#include "httputils.h"
+#include "upnputil.h"
 #include "smallut.h"
 
 #define SREQ_HDR_NOT_FOUND	 -1

@@ -78,6 +78,7 @@
 #include "upnpdebug.h"
 #include "uri.h"
 #include "webserver.h"
+#include "upnputil.h"
 
 static const std::string bogus_soap_post{"SMPOST"};
 static const std::map<std::string, int> Http_Method_Table {
@@ -163,6 +164,8 @@ struct tm *http_gmtime_r(const time_t *clock, struct tm *result)
 	*result = *gmtime(clock);
 	return result;
 }
+#else
+#define http_gmtime_r gmtime_r
 #endif
 
 int http_FixUrl(uri_type *url, uri_type *fixed_url)

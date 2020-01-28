@@ -51,7 +51,6 @@ libnpupnp_la_SOURCES = \
 	src/inc/ithread.h \
 	src/inc/md5.h \
 	src/inc/miniserver.h \
-	src/inc/netall.h \
 	src/inc/service_table.h \
 	src/inc/smallut.h \
 	src/inc/soaplib.h \

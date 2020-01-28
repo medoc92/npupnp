@@ -97,13 +97,7 @@ typedef enum SsdpSearchType {
 
 /*! Error codes. */
 #define NO_ERROR_FOUND    0
-#define E_REQUEST_INVALID  	-3
-#define E_RES_EXPIRED		-4
-#define E_MEM_ALLOC		-5
 #define E_HTTP_SYNTEX		-6
-#define E_SOCKET 		-7
-
-#define RQST_TIMEOUT    20
 
 /*! Structure to store the SSDP information */
 struct SsdpEvent {
@@ -135,21 +129,19 @@ struct SsdpEvent {
 
 typedef void (* SsdpFunPtr)(SsdpEvent *);
 
-typedef struct TData
-{
+struct ThreadData {
 	int Mx;
 	void * Cookie;
 	char * Data;
 	struct sockaddr_storage DestAddr;
-} ThreadData;
+};
 
-typedef struct ssdpsearchreply
-{
+struct SsdpSearchReply {
 	int MaxAge;
 	UpnpDevice_Handle handle;
 	struct sockaddr_storage dest_addr;
 	SsdpEvent event;
-} SsdpSearchReply;
+};
 
 struct SsdpSearchArg {
 	SsdpSearchArg(char *st, void *ck, SsdpSearchType rt)

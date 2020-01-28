@@ -226,46 +226,10 @@ extern unsigned short LOCAL_PORT_V6;
 /*! NLS uuid. */
 extern Upnp_SID gUpnpSdkNLSuuid;
 
-
 extern TimerThread *gTimerThread;
 extern ThreadPool gRecvThreadPool;
 extern ThreadPool gSendThreadPool;
 extern ThreadPool gMiniServerThreadPool;
-
-
-typedef enum {
-	SUBSCRIBE,
-	UNSUBSCRIBE,
-	DK_NOTIFY,
-	QUERY,
-	ACTION,
-	STATUS,
-	DEVDESCRIPTION,
-	SERVDESCRIPTION,
-	MINI,
-	RENEW
-} UpnpFunName;
-
-
-struct  UpnpNonblockParam 
-{
-	UpnpFunName FunName;
-	int Handle;
-	int TimeOut;
-	char VarName[NAME_SIZE];
-	char NewVal[NAME_SIZE];
-	char DevType[NAME_SIZE];
-	char DevId[NAME_SIZE];
-	char ServiceType[NAME_SIZE];
-	char ServiceVer[NAME_SIZE];
-	char Url[NAME_SIZE];
-	Upnp_SID SubsId;
-	char *Cookie;
-	Upnp_FunPtr Fun;
-	IXML_Document *Header;
-	IXML_Document *Act;
-	struct DevDesc *Devdesc;
-};
 
 class VirtualDirListEntry {
 public:
@@ -274,15 +238,6 @@ public:
 };
 extern std::vector<VirtualDirListEntry> virtualDirList;
 extern struct VirtualDirCallbacks virtualDirCallback;
-
-typedef enum {
-	WEB_SERVER_DISABLED,
-	WEB_SERVER_ENABLED
-} WebServerState;
-
-
-#define E_HTTP_SYNTAX -6
-
 
 /*!
  * \brief Retrieve interface information and keep it in global variables.
@@ -310,31 +265,6 @@ int UpnpGetIfInfo(
 
 void UpnpThreadDistribution(struct UpnpNonblockParam * Param);
 
-
-/*!
- * \brief This function is a timer thread scheduled by UpnpSendAdvertisement
- * to the send advetisement again.
- */
-void AutoAdvertise(
-	/*! [in] Information provided to the thread. */
-	void *input); 
-
-
-/*!
- * \brief Get local IP address.
- *
- * Gets the ip address for the DEFAULT_INTERFACE interface which is up and not
- * a loopback. Assumes at most MAX_INTERFACES interfaces
- *
- * \return UPNP_E_SUCCESS  if successful or UPNP_E_INIT.
- */
-int getlocalhostname(
-	/*! [out] IP address of the interface. */
-	char *out,
-	/*! [in] Length of the output buffer. */
-	size_t out_len);
-
-
 /*!
  * \brief Print handle info.
  *	
@@ -343,9 +273,6 @@ int getlocalhostname(
 int PrintHandleInfo(
 	/*! [in] Handle index. */
 	UpnpClient_Handle Hnd);
-
-
-extern WebServerState bWebServerState;
 
 
 #endif /* UPNPAPI_H */

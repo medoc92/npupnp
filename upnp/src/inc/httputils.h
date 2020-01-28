@@ -38,7 +38,6 @@
 
 #include <microhttpd.h>
 
-#include "upnputil.h"
 #include "uri.h"
 
 /*! timeout in secs. */
@@ -125,13 +124,6 @@ public:
 #define HDR_RANGE			35
 #define HDR_TE				36
 
-
-
-#ifdef WIN32
-struct tm *http_gmtime_r(const time_t *clock, struct tm *result);
-#else
-#define http_gmtime_r gmtime_r
-#endif
 
 /*!
  * \brief Validates URL.

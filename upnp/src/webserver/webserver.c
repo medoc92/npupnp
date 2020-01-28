@@ -324,14 +324,7 @@ static int CheckOtherHTTPHeaders(
 		if (index >= 0) {
 			switch (index) {
 			case HDR_ACCEPT_LANGUAGE:
-				if (hvalue.size() + 1 >sizeof(RespInstr->AcceptLanguageHeader)) {
-					size_t l = sizeof(RespInstr->AcceptLanguageHeader) - 1;
-					memcpy(RespInstr->AcceptLanguageHeader, hvalue.c_str(), l);
-					RespInstr->AcceptLanguageHeader[l] = '\0';
-				} else {
-					memcpy(RespInstr->AcceptLanguageHeader, hvalue.c_str(),
-						   hvalue.size() + 1);
-				}
+				RespInstr->AcceptLanguageHeader = hvalue;
 				break;
 			default:
 				/*  TODO? */
@@ -631,11 +624,6 @@ void web_server_callback(MHDTransaction *mhdt)
 	std::map<std::string,std::string> headers;
 	std::string filename;
 	struct SendInstruction RespInstr;
-
-	/*Initialize instruction header. */
-	RespInstr.IsVirtualFile = 0;
-	memset(RespInstr.AcceptLanguageHeader, 0,
-	       sizeof(RespInstr.AcceptLanguageHeader));
 
 	/* Process request should create the different kind of header depending 
 	   on the the type of request. */

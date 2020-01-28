@@ -55,6 +55,7 @@
 #include "UpnpUniStd.h" /* for close() */
 #include "uuid.h"
 #include "upnp_timeout.h"
+#include "upnputil.h"
 
 /* Needed for GENA */
 #include "gena.h"
@@ -199,6 +200,22 @@ int UpnpSdkDeviceregisteredV6 = 0;
 Upnp_SID gUpnpSdkNLSuuid;
 #endif /* UPNP_HAVE_OPTSSDP */
 
+// Forward decl.
+void AutoAdvertise(void *input); 
+
+/*!
+ * \brief Get local IP address.
+ *
+ * Gets the ip address for the DEFAULT_INTERFACE interface which is up and not
+ * a loopback. Assumes at most MAX_INTERFACES interfaces
+ *
+ * \return UPNP_E_SUCCESS  if successful or UPNP_E_INIT.
+ */
+int getlocalhostname(
+	/*! [out] IP address of the interface. */
+	char *out,
+	/*! [in] Length of the output buffer. */
+	size_t out_len);
 
 /*!
  * \brief (Windows Only) Initializes the Windows Winsock library.
@@ -1679,6 +1696,40 @@ int UpnpSetMaxSubscriptionTimeOut(UpnpDevice_Handle Hnd, int MaxSubscriptionTime
 
 
 #ifdef INCLUDE_CLIENT_APIS
+
+// Things used to pass data to/from the non-blocking interface threads
+typedef enum {
+	SUBSCRIBE,
+	UNSUBSCRIBE,
+	DK_NOTIFY,
+	QUERY,
+	ACTION,
+	STATUS,
+	DEVDESCRIPTION,
+	SERVDESCRIPTION,
+	MINI,
+	RENEW
+} UpnpFunName;
+
+struct  UpnpNonblockParam {
+	UpnpFunName FunName;
+	int Handle;
+	int TimeOut;
+	char VarName[NAME_SIZE];
+	char NewVal[NAME_SIZE];
+	char DevType[NAME_SIZE];
+	char DevId[NAME_SIZE];
+	char ServiceType[NAME_SIZE];
+	char ServiceVer[NAME_SIZE];
+	char Url[NAME_SIZE];
+	Upnp_SID SubsId;
+	char *Cookie;
+	Upnp_FunPtr Fun;
+	IXML_Document *Header;
+	IXML_Document *Act;
+	struct DevDesc *Devdesc;
+};
+
 int UpnpSubscribeAsync(
 	UpnpClient_Handle Hnd,
 	const char *EvtUrl_const,

@@ -58,15 +58,6 @@
 #include "uri.h"
 
 
-/*!
- * \brief XML version comment. Not used because it is not interopeable with
- * other UPnP vendors.
- */
-#define XML_VERSION "<?xml version='1.0' encoding='ISO-8859-1' ?>\n"
-#define XML_PROPERTYSET_HEADER \
-	"<e:propertyset xmlns:e=\"urn:schemas-upnp-org:event-1-0\">\n"
-
-
 #define UNABLE_MEMORY "HTTP/1.1 500 Internal Server Error\r\n\r\n"
 #define UNABLE_SERVICE_UNKNOWN "HTTP/1.1 404 Not Found\r\n\r\n"
 #define UNABLE_SERVICE_NOT_ACCEPT "HTTP/1.1 503 Service Not Available\r\n\r\n"
@@ -96,17 +87,12 @@
 #define GENA_E_BAD_HANDLE UPNP_E_INVALID_HANDLE
 
 
-#define XML_ERROR -5
 #define XML_SUCCESS UPNP_E_SUCCESS
 #define GENA_SUCCESS UPNP_E_SUCCESS
 
-
-#define CALLBACK_SUCCESS 0
-#define DEFAULT_TIMEOUT 1801
-
+#define GENA_DEFAULT_TIMEOUT 1801
 
 extern ithread_mutex_t GlobalClientSubscribeMutex;
-
 
 /*!
  * \brief Locks the subscription.

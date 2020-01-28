@@ -55,6 +55,7 @@
 #include "sock.h"
 #include "ThreadPool.h"
 #include "upnpapi.h"
+#include "upnputil.h"
 
 #include <stdio.h>
 

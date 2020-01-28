@@ -33,18 +33,26 @@
 #define GENLIB_NET_HTTP_WEBSERVER_H
 
 #include <time.h>
-#include "sock.h"
+#include <string>
+#include <stdint.h>
 #include "httputils.h"
 
 
+typedef enum {
+	WEB_SERVER_DISABLED,
+	WEB_SERVER_ENABLED
+} WebServerState;
+
+extern WebServerState bWebServerState;
+
 struct SendInstruction
 {
-	int IsVirtualFile;
-	char AcceptLanguageHeader[200];
+	int IsVirtualFile{0};
+	std::string AcceptLanguageHeader;
 	/*! Read from local source and send on the network. */
-	off_t ReadSendSize;
+	int64_t ReadSendSize{0};
 	/*! Cookie associated with the virtualDir. */
-	const void *cookie;
+	const void *cookie{nullptr};
 };
 
 
@@ -52,8 +60,6 @@ struct SendInstruction
  * \brief Initilialize the different documents. Initialize the memory
  * for root directory for web server. Call to initialize global XML
  * document. Sets bWebServerState to WEB_SERVER_ENABLED.
- *
- * \note alias_content is not freed here
  *
  * \return
  * \li \c 0 - OK
@@ -68,29 +74,6 @@ int web_server_init(void);
  * to WEB_SERVER_DISABLED.
  */
 void web_server_destroy(void);
-
-
-/*!
- * \brief Replaces current alias with the given alias. To remove the current
- * alias, set alias_name to NULL.
- *
- * \note alias_content is not freed here
- *
- * \return
- * \li \c 0 - OK
- * \li \c UPNP_E_OUTOF_MEMORY
- */
-int web_server_set_alias(
-	/*! [in] Webserver name of alias; created by caller and freed by caller
-	 * (doesn't even have to be malloc()d. */
-	const char* alias_name,
-	/*! [in] The xml doc; this is allocated by the caller; and freed by
-	 * the web server. */
-	const char* alias_content,
-	/*! [in] Length of alias body in bytes. */
-	size_t alias_content_length,
-	/*! [in] Time when the contents of alias were last changed (local time). */
-	time_t last_modified);
 
 
 /*!
