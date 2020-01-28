@@ -614,7 +614,7 @@ static ssize_t vFileReaderCallback(void *cls, uint64_t pos, char *buf,
 
 static void vFileFreeCallback (void *cls)
 {
-	if (ctx) {
+	if (cls) {
 		VFileReaderCtxt *ctx = (VFileReaderCtxt*)cls;
 		virtualDirCallback.close(ctx->fp, ctx->cookie);
 		delete ctx;
