@@ -22,6 +22,7 @@ CLEANFILES =
 
 # Ensure that the working copy is clean
 dist-hook:
-	test ! -d $(top_srcdir)/.git || cd $(top_srcdir) && git diff-index --quiet HEAD
+		test ! -d $(top_srcdir)/.git || cd $(top_srcdir) && \
+			 git diff-index --quiet HEAD
 	vers=`echo $(VERSION) | sed -e 's/~/_/g'`;\
-	git tag -a libnpupnp-v$$vers -m "version $$vers"
+			   git tag -a libnpupnp-v$$vers -m "version $$vers"
