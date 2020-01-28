@@ -44,6 +44,7 @@ libnpupnp_la_SOURCES = \
 	src/inc/client_table.h \
 	src/inc/config.h \
 	src/inc/description.h \
+	src/inc/expatmm.hxx \
 	src/inc/gena.h \
 	src/inc/gena_ctrlpt.h \
 	src/inc/gena_device.h \
@@ -138,13 +139,5 @@ libnpupnp_la_SOURCES += \
 	src/inc/inet_pton.h
 
 
-# check / distcheck tests
-check_PROGRAMS = test_init test_url
-TESTS = test_init test_url
-test_init_SOURCES = test/test_init.c
-test_url_SOURCES = test/test_url.c
-
-
 EXTRA_DIST = \
-	m4/libupnp.m4 \
 	src/utils/win_dll.c

@@ -6,8 +6,6 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
-DISTCHECK_CONFIGURE_FLAGS = --enable-debug
-
 SUBDIRS = \
 	upnp
 
@@ -16,7 +14,7 @@ EXTRA_DIST = \
 	libnpupnp.pc.in \
 	README.md \
 	bootstrap \
-	libupnp.spec
+	libnpupnp.spec
 
 
 # This variable must have 'exec' in its name, in order to be installed 
