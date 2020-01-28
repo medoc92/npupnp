@@ -1,6 +1,6 @@
 # -*- Autoconf -*-
 #
-# Top-level configure.ac file for libupnp
+# Top-level configure.ac file for libnpupnp
 #
 # Process this file with autoconf to produce a configure script.
 #
@@ -24,7 +24,7 @@ AC_INIT([libnpupnp], [1.0.0], [jfd@recoll.org])
 # libupnpp packages are named libupnppX where X is the .so major number
 # (c-a). This allows packages for multiple incompatible ABIs to be
 # installed
-AC_SUBST([LT_VERSION_UPNP],       [0:0:0])
+AC_SUBST([LT_VERSION_NPUPNP],       [0:0:0])
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
@@ -229,8 +229,6 @@ fi
 #
 AC_HEADER_STDC
 if test "$ac_cv_win32" = "no"; then
-# libupnp code doesn't use autoconf variables yet,
-# so just abort if a header file is not found.
 AC_CHECK_HEADERS(
 	[ \
 	arpa/inet.h \
