@@ -1,8 +1,3 @@
-#
-# Top-level "Makefile.am" for libupnp
-#
-# Copyright (C) 2005 Rémi Turboult <r3mi@users.sourceforge.net>
-#
 
 ACLOCAL_AMFLAGS = -I m4
 
@@ -10,11 +5,9 @@ SUBDIRS = \
 	upnp
 
 EXTRA_DIST = \
-	.gitignore \
 	libnpupnp.pc.in \
 	README.md \
-	bootstrap \
-	libnpupnp.spec
+	bootstrap
 
 
 # This variable must have 'exec' in its name, in order to be installed 

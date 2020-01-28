@@ -10,7 +10,7 @@ Build-Depends: debhelper (>= 9~),
  libexpat1-dev, libmicrohttpd-dev, libcurl4-gnutls-dev
 Standards-Version: 3.9.6
 
-Package: libnpupnp
+Package: libnpupnp0
 Architecture: any
 Section: libs
 Depends: ${shlibs:Depends}, ${misc:Depends}
@@ -22,10 +22,10 @@ Description: UPnP library, based on Pupnp code, but extensively
  Play Device Architecture Specification - see http://www.upnp.org/ for
  specifications.
 
-Package: libnpupnp-dev
+Package: libnpupnp0-dev
 Architecture: any
 Section: libdevel
-Depends: libnpupnp (= ${binary:Version}), ${misc:Depends}
+Depends: libnpupnp0 (= ${binary:Version}), ${misc:Depends}
 Description: Development package for the npupnp UPnP library,
  based on Pupnp code, but extensively rewritten. As its predecessor, it
  provides developers with an API and open source code for building control
@@ -33,11 +33,11 @@ Description: Development package for the npupnp UPnP library,
  Universal Plug and Play Device Architecture Specification - see
  http://www.upnp.org/ for specifications.
 
-Package: libnpupnp-dbg
+Package: libnpupnp0-dbg
 Architecture: any
 Section: debug
-Priority: extra
-Depends: libnpupnp (= ${binary:Version}), ${misc:Depends}
+Priority: optional
+Depends: libnpupnp0 (= ${binary:Version}), ${misc:Depends}
 Description: debugging symbols for libnpupnp
  This package contains the debugging symbols associated with libupnp6.
  They will automatically be used by gdb for debugging libupnp-related

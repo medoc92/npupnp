@@ -1,8 +1,3 @@
-#
-# "Makefile.am" for "libupnp/upnp"
-#
-# Copyright (C) 2005 Rémi Turboult <r3mi@users.sourceforge.net>
-#
 
 AM_CPPFLAGS = \
 	-I$(srcdir)/inc
@@ -35,7 +30,7 @@ libnpupnp_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/src/inc
 
 
 libnpupnp_la_LDFLAGS = \
-	-version-info $(LT_VERSION_UPNP) \
+	-version-info $(LT_VERSION_NPUPNP) \
 	$(LIBNPUPNP_LIBS)
 
 libnpupnp_la_SOURCES = \
