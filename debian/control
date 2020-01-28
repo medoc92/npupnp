@@ -1,0 +1,43 @@
+Source: libunupnp
+Section: net
+Priority: optional
+Homepage: http://www.lesbonscomptes.com/upmpdcli/
+Maintainer: J.F. Dockes <jf@dockes.org>
+Build-Depends: debhelper (>= 9~),
+ dh-autoreconf, autoconf, automake, libtool
+Standards-Version: 3.9.6
+
+Package: libnpupnp
+Architecture: any
+Section: libs
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Pre-Depends: ${misc:Pre-Depends}
+Description: UPnP library, based on Pupnp code, but extensively
+ rewritten. As its predecessor, it provides developers with an
+ API and open source code for building control points, devices, and
+ bridges that are compliant with Version 1.0 of the Universal Plug and
+ Play Device Architecture Specification - see http://www.upnp.org/ for
+ specifications.
+
+Package: libnpupnp-dev
+Architecture: any
+Section: libdevel
+Depends: libnpupnp (= ${binary:Version}), ${misc:Depends}
+Description: Development package for the npupnp UPnP library,
+ based on Pupnp code, but extensively rewritten. As its predecessor, it
+ provides developers with an API and open source code for building control
+ points, devices, and bridges that are compliant with Version 1.0 of the
+ Universal Plug and Play Device Architecture Specification - see
+ http://www.upnp.org/ for specifications.
+
+Package: libnpupnp-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Depends: libnpupnp (= ${binary:Version}), ${misc:Depends}
+Description: debugging symbols for libnpupnp
+ This package contains the debugging symbols associated with libupnp6.
+ They will automatically be used by gdb for debugging libupnp-related
+ issues.
+
+

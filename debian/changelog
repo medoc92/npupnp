@@ -1,0 +1,7 @@
+libnpupnp (1.1.0-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Initial rewrite of libupnp/pupnp 1.6 branch, replacing local code with
+    C++ STL structures, libcurl, and libmicrohttpd
+  
+ -- Jean-Francois Dockes <jf@dockes.org>  Tue, 28 01 2020 10:20:00 +0100
+
