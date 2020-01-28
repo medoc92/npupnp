@@ -7,6 +7,8 @@
 AM_CPPFLAGS = \
 	-I$(srcdir)/inc
 
+LIBNPUPNP_LIBS=@LIBNPUPNP_LIBS@
+
 # For thread stats
 #if ENABLE_DEBUG
 #    AM_CPPFLAGS		+= -DSTATS
@@ -31,10 +33,10 @@ lib_LTLIBRARIES = libnpupnp.la
 
 libnpupnp_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/src/inc 
 
+
 libnpupnp_la_LDFLAGS = \
 	-version-info $(LT_VERSION_UPNP) \
-	-export-symbols-regex '^Upnp.*' \
-	-lixml -lcurl -lmicrohttpd
+	$(LIBNPUPNP_LIBS)
 
 libnpupnp_la_SOURCES = \
 	src/inc/FreeList.h \

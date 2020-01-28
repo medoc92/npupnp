@@ -309,6 +309,8 @@ ACX_PTHREAD(
 CC="$PTHREAD_CC"
 CFLAGS="$PTHREAD_CFLAGS $CFLAGS"
 LIBS="$PTHREAD_LIBS $LIBS"
+
+echo "PTHREAD_LIBS $PTHREAD_LIBS"
 #
 # Determine if pthread_rwlock_t is available
 #
@@ -334,15 +336,23 @@ AC_COMPILE_IFELSE(
 			AC_MSG_ERROR([pthread_rwlock_t not available])])])
 echo "-------------------------------------------------------------------------"
 
+AC_CHECK_LIB([pthread], [pthread_create], [], [])
+AC_CHECK_LIB([ixml], [ixmlNode_getNodeName], [], [])
 PKG_CHECK_MODULES([curl], [libcurl], [], AC_MSG_ERROR([libcurl not found]))
+PKG_CHECK_MODULES([expat], [expat], [], AC_MSG_ERROR([libexpat not found]))
 PKG_CHECK_MODULES([libmicrohttpd], [libmicrohttpd], [],
 	[AC_MSG_ERROR([libmicrohttpd not found])])
 
+
+LIBNPUPNP_LIBS="$curl_LIBS $libmicrohttpd_LIBS $expat_LIBS $LIBS"
+echo "LIBNPUPNP_LIBS[" $LIBNPUPNP_LIBS "]"
+AC_SUBST(LIBNPUPNP_LIBS)
 
 AC_CONFIG_FILES([
 	Makefile
 	upnp/Makefile
 	libnpupnp.pc
 	])
+
 
 AC_OUTPUT

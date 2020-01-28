@@ -1,10 +1,13 @@
-Source: libunupnp
+Source: libnpupnp
 Section: net
 Priority: optional
 Homepage: http://www.lesbonscomptes.com/upmpdcli/
 Maintainer: J.F. Dockes <jf@dockes.org>
+# libupnp-dev needed for ixml only
 Build-Depends: debhelper (>= 9~),
- dh-autoreconf, autoconf, automake, libtool
+ dh-autoreconf, autoconf, automake, libtool,
+ libupnp-dev,
+ libexpat1-dev, libmicrohttpd-dev, libcurl4-gnutls-dev
 Standards-Version: 3.9.6
 
 Package: libnpupnp

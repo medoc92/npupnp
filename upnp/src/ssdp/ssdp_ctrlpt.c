@@ -438,7 +438,7 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
 	retVal = CreateClientRequestPacket(ReqBufv6, timeTillRead, St, AF_INET6);
 	if (retVal != UPNP_E_SUCCESS)
 		return retVal;
-	retVal = CreateClientRequestPacketUlaGua(ReqBufv6UlaGua,, timeTillRead,
+	retVal = CreateClientRequestPacketUlaGua(ReqBufv6UlaGua, timeTillRead,
 											 St, AF_INET6);
 	if (retVal != UPNP_E_SUCCESS)
 		return retVal;
