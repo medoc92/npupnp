@@ -39,35 +39,21 @@
  ***************************************************************************/ 
 
 /** The library version (string) e.g. "1.3.0" */
-#undef UPNP_VERSION_STRING
+#undef NPUPNP_VERSION_STRING
 
 /** Major version of the library */
-#undef UPNP_VERSION_MAJOR
+#undef NPUPNP_VERSION_MAJOR
 
 /** Minor version of the library */
-#undef UPNP_VERSION_MINOR
+#undef NPUPNP_VERSION_MINOR
 
 /** Patch version of the library */
-#undef UPNP_VERSION_PATCH
+#undef NPUPNP_VERSION_PATCH
 
 /** The library version (numeric) e.g. 10300 means version 1.3.0 */
-#define UPNP_VERSION	\
-  ((UPNP_VERSION_MAJOR * 100 + UPNP_VERSION_MINOR) * 100 + UPNP_VERSION_PATCH)
+#define NPUPNP_VERSION	\
+  ((NPUPNP_VERSION_MAJOR*100 + NPUPNP_VERSION_MINOR)*100 + NPUPNP_VERSION_PATCH)
 
-
-
-/***************************************************************************
- * Large file support
- ***************************************************************************/
-
-/** File Offset size */
-#undef _FILE_OFFSET_BITS
-
-/** Define to 1 to make fseeko visible on some hosts (e.g. glibc 2.2). */
-#undef _LARGEFILE_SOURCE
-
-/** Large files support */
-#undef _LARGE_FILE_SOURCE
 
 /***************************************************************************
  * Library optional features

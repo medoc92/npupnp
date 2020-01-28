@@ -835,7 +835,7 @@ struct File_Info
 	/** The length of the file. A length less than 0 indicates the size 
 	*  is unknown, and data will be sent until 0 bytes are returned from
 	*  a read call. */
-	off_t file_length;
+	int64_t file_length;
 
 	/** The time at which the contents of the file was modified;
 	*  The time system is always local (not GMT). */
@@ -2418,7 +2418,7 @@ typedef int (*VDCallback_Seek) (
 	/*! [in] The number of bytes to move in the file.  Positive values
 	 * move foward and negative values move backward.  Note that
 	 * this must be positive if the \b origin is \c SEEK_SET. */
-	off_t offset,
+	int64_t offset,
 	/*! [in] The position to move relative to.  It can be \c SEEK_CUR
 	 * to move relative to the current position, \c SEEK_END to
 	 * move relative to the end of the file, or \c SEEK_SET to
