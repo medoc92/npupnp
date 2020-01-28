@@ -17,3 +17,4 @@ upnp/Makefile
 upnp/inc/stamp-h2
 upnp/inc/upnpconfig.h
 .deps/
+.dirstamp
