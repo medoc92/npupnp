@@ -851,9 +851,6 @@ int UpnpRegisterRootDevice(
 	HInfo->Callback = Fun;
 	HInfo->Cookie = (char *)Cookie;
 	HInfo->MaxAge = DEFAULT_MAXAGE;
-#ifdef INCLUDE_CLIENT_APIS
-	HInfo->ClientSubList = NULL;
-#endif /* INCLUDE_CLIENT_APIS */
 	HInfo->MaxSubscriptions = UPNP_INFINITE;
 	HInfo->MaxSubscriptionTimeOut = UPNP_INFINITE;
 	HInfo->DeviceAf = AF_INET;
@@ -997,9 +994,6 @@ int UpnpRegisterRootDevice2(
 	HInfo->Callback = Fun;
 	HInfo->Cookie = (char *)Cookie;
 	HInfo->MaxAge = DEFAULT_MAXAGE;
-#ifdef INCLUDE_CLIENT_APIS
-	HInfo->ClientSubList = NULL;
-#endif /* INCLUDE_CLIENT_APIS */
 	HInfo->MaxSubscriptions = UPNP_INFINITE;
 	HInfo->MaxSubscriptionTimeOut = UPNP_INFINITE;
 	HInfo->DeviceAf = AF_INET;
@@ -1117,9 +1111,6 @@ int UpnpRegisterRootDevice4(
 	HInfo->Callback = Fun;
 	HInfo->Cookie = (char *)Cookie;
 	HInfo->MaxAge = DEFAULT_MAXAGE;
-#ifdef INCLUDE_CLIENT_APIS
-	HInfo->ClientSubList = NULL;
-#endif /* INCLUDE_CLIENT_APIS */
 	HInfo->MaxSubscriptions = UPNP_INFINITE;
 	HInfo->MaxSubscriptionTimeOut = UPNP_INFINITE;
 	HInfo->DeviceAf = AddressFamily;
@@ -1288,7 +1279,6 @@ int UpnpRegisterClient(Upnp_FunPtr Fun, const void *Cookie,
 	HInfo->HType = HND_CLIENT;
 	HInfo->Callback = Fun;
 	HInfo->Cookie = (char *)Cookie;
-	HInfo->ClientSubList = NULL;
 #ifdef INCLUDE_DEVICE_APIS
 	HInfo->MaxAge = 0;
 	HInfo->MaxSubscriptions = UPNP_INFINITE;

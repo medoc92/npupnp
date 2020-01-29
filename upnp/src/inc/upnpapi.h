@@ -43,11 +43,11 @@
 #include "VirtualDir.h"		/* for struct VirtualDirCallbacks */
 #include "TimerThread.h"
 #include "description.h"
+#include "client_table.h"
 
 typedef struct _IXML_Node IXML_Node;
 typedef struct _IXML_NodeList IXML_NodeList;
 
-struct ClientSubscription;
 
 #define MAX_INTERFACES 256
 
@@ -118,7 +118,7 @@ struct Handle_Info
 	/* Client only */
 #ifdef INCLUDE_CLIENT_APIS
 	/*! Client subscription list. */
-	ClientSubscription *ClientSubList{nullptr};
+	std::list<ClientSubscription> ClientSubList;
 	/*! Active SSDP searches. */
 	std::list<SsdpSearchArg*> SsdpSearchList;
 #endif

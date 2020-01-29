@@ -52,8 +52,30 @@
 #include "upnp_timeout.h"
 #include "upnputil.h"
 #include "smallut.h"
+#include "TimerThread.h"
 
 extern ithread_mutex_t GlobalClientSubscribeMutex;
+extern TimerThread *gTimerThread;
+
+static void clientCancelRenew(ClientSubscription *sub)
+{
+	if (nullptr == sub) {
+		return;
+	}
+	int renewEventId = sub->renewEventId;
+	sub->renewEventId = -1;
+	sub->actualSID.clear();
+	sub->eventURL.clear();
+	if (renewEventId != -1) {
+		/* do not remove timer event of copy */
+		/* invalid timer event id */
+		ThreadPoolJob tempJob;
+		if (gTimerThread->remove(renewEventId, &tempJob) == 0) {
+			upnp_timeout *event = (upnp_timeout *)tempJob.arg;
+			free_upnp_timeout(event);
+		}
+	}
+}
 
 /*!
  * \brief This is a thread function to send the renewal just before the
@@ -138,8 +160,8 @@ static int ScheduleGenaAutoRenew(
 	upnp_timeout *RenewEvent = NULL;
 	int return_code = GENA_SUCCESS;
 	ThreadPoolJob job;
-	const std::string& tmpSID = UpnpClientSubscription_get_SID(sub);
-	const std::string& tmpEventURL = UpnpClientSubscription_get_EventURL(sub);
+	const std::string& tmpSID = sub->SID;
+	const std::string& tmpEventURL = sub->eventURL;
 
 	memset(&job, 0, sizeof(job));
 
@@ -185,7 +207,7 @@ static int ScheduleGenaAutoRenew(
 		goto end_function;
 	}
 
-	UpnpClientSubscription_set_RenewEventId(sub, RenewEvent->eventId);
+	sub->renewEventId = RenewEvent->eventId;
 
 	return_code = GENA_SUCCESS;
 
@@ -376,7 +398,6 @@ static int gena_subscribe(
 
 int genaUnregisterClient(UpnpClient_Handle client_handle)
 {
-	ClientSubscription *sub_copy = UpnpClientSubscription_new();
 	int return_code = UPNP_E_SUCCESS;
 	struct Handle_Info *handle_info = NULL;
 
@@ -385,31 +406,24 @@ int genaUnregisterClient(UpnpClient_Handle client_handle)
 
 		if (GetHandleInfo(client_handle, &handle_info) != HND_CLIENT) {
 			HandleUnlock();
-			return_code = GENA_E_BAD_HANDLE;
-			goto exit_function;
+			return GENA_E_BAD_HANDLE;
 		}
-		if (handle_info->ClientSubList == NULL) {
+		if (handle_info->ClientSubList.empty()) {
 			return_code = UPNP_E_SUCCESS;
 			break;
 		}
-		UpnpClientSubscription_assign(sub_copy, handle_info->ClientSubList);
-		RemoveClientSubClientSID(
-			&handle_info->ClientSubList,
-			UpnpClientSubscription_get_SID(sub_copy));
+		ClientSubscription sub_copy = handle_info->ClientSubList.front();
+		RemoveClientSubClientSID(handle_info->ClientSubList, sub_copy.SID);
 
 		HandleUnlock();
 
-		return_code = gena_unsubscribe(
-			UpnpClientSubscription_get_EventURL(sub_copy),
-			UpnpClientSubscription_get_ActualSID(sub_copy));
-		free_client_subscription(sub_copy);
+		return_code = gena_unsubscribe(sub_copy.eventURL, sub_copy.actualSID);
+		clientCancelRenew(&sub_copy);
 	}
 
-	freeClientSubList(handle_info->ClientSubList);
+	handle_info->ClientSubList.clear();
 	HandleUnlock();
 
-exit_function:
-	UpnpClientSubscription_delete(sub_copy);
 	return return_code;
 }
 
@@ -422,7 +436,7 @@ int genaUnSubscribe(
 	ClientSubscription *sub = NULL;
 	int return_code = GENA_SUCCESS;
 	struct Handle_Info *handle_info;
-	ClientSubscription *sub_copy = UpnpClientSubscription_new();
+	ClientSubscription sub_copy;
 
 	/* validate handle and sid */
 	HandleLock();
@@ -432,18 +446,16 @@ int genaUnSubscribe(
 		goto exit_function;
 	}
 	sub = GetClientSubClientSID(handle_info->ClientSubList, in_sid);
-	if (sub == NULL) {
+	if (nullptr == sub) {
 		HandleUnlock();
 		return_code = GENA_E_BAD_SID;
 		goto exit_function;
 	}
-	UpnpClientSubscription_assign(sub_copy, sub);
+	sub_copy = *sub;
 	HandleUnlock();
 
-	return_code = gena_unsubscribe(
-		UpnpClientSubscription_get_EventURL(sub_copy),
-		UpnpClientSubscription_get_ActualSID(sub_copy));
-	free_client_subscription(sub_copy);
+	return_code = gena_unsubscribe(sub_copy.eventURL, sub_copy.actualSID);
+	clientCancelRenew(&sub_copy);
 
 	HandleLock();
 	if (GetHandleInfo(client_handle, &handle_info) != HND_CLIENT) {
@@ -451,11 +463,10 @@ int genaUnSubscribe(
 		return_code = GENA_E_BAD_HANDLE;
 		goto exit_function;
 	}
-	RemoveClientSubClientSID(&handle_info->ClientSubList, in_sid);
+	RemoveClientSubClientSID(handle_info->ClientSubList, in_sid);
 	HandleUnlock();
 
 exit_function:
-	UpnpClientSubscription_delete(sub_copy);
 	return return_code;
 }
 #endif /* INCLUDE_CLIENT_APIS */
@@ -469,7 +480,7 @@ int genaSubscribe(
 	std::string *out_sid)
 {
 	int return_code = GENA_SUCCESS;
-	ClientSubscription *newSubscription = UpnpClientSubscription_new();
+	ClientSubscription newSubscription;
 	uuid_upnp uid;
 	Upnp_SID temp_sid;
 	Upnp_SID temp_sid2;
@@ -523,24 +534,17 @@ int genaSubscribe(
 	/* create event url */
 	EventURL = PublisherURL;
 
-	/* fill subscription */
-	if (newSubscription == NULL) {
-		return_code = UPNP_E_OUTOF_MEMORY;
-		goto error_handler;
-	}
-	UpnpClientSubscription_set_RenewEventId(newSubscription, -1);
-	UpnpClientSubscription_set_SID(newSubscription, *out_sid);
-	UpnpClientSubscription_set_ActualSID(newSubscription, ActualSID);
-	UpnpClientSubscription_set_EventURL(newSubscription, EventURL);
-	UpnpClientSubscription_set_Next(newSubscription, handle_info->ClientSubList);
-	handle_info->ClientSubList = newSubscription;
+	newSubscription.renewEventId = -1;
+	newSubscription.SID = *out_sid;
+	newSubscription.actualSID = ActualSID;
+	newSubscription.eventURL = EventURL;
+	handle_info->ClientSubList.push_front(newSubscription);
 
 	/* schedule expiration event */
-	return_code = ScheduleGenaAutoRenew(client_handle, *TimeOut, newSubscription);
+	return_code = ScheduleGenaAutoRenew(client_handle, *TimeOut,
+										&handle_info->ClientSubList.front());
 
 error_handler:
-	if (return_code != UPNP_E_SUCCESS)
-		UpnpClientSubscription_delete(newSubscription);
 	HandleUnlock();
 	SubscribeUnlock();
 
@@ -556,7 +560,7 @@ int genaRenewSubscription(
 {
 	int return_code = GENA_SUCCESS;
 	ClientSubscription *sub = NULL;
-	ClientSubscription *sub_copy = UpnpClientSubscription_new();
+	ClientSubscription sub_copy;
 	struct Handle_Info *handle_info;
 	std::string ActualSID;
 	ThreadPoolJob tempJob;
@@ -580,23 +584,19 @@ int genaRenewSubscription(
 	}
 
 	/* remove old events */
-	if (gTimerThread->remove(UpnpClientSubscription_get_RenewEventId(sub),
-							 &tempJob) == 0 ) {
+	if (gTimerThread->remove(sub->renewEventId, &tempJob) == 0 ) {
 		free_upnp_timeout((upnp_timeout *)tempJob.arg);
 	}
 
 	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,"REMOVED AUTO RENEW EVENT\n");
 
-	UpnpClientSubscription_set_RenewEventId(sub, -1);
-	UpnpClientSubscription_assign(sub_copy, sub);
+	sub->renewEventId = -1;
+	sub_copy = *sub;
 
 	HandleUnlock();
 
-	return_code = gena_subscribe(
-		UpnpClientSubscription_get_EventURL(sub_copy),
-		TimeOut,
-		UpnpClientSubscription_get_ActualSID(sub_copy),
-		&ActualSID);
+	return_code = gena_subscribe(sub_copy.eventURL, TimeOut, sub_copy.actualSID,
+								 &ActualSID);
 
 	HandleLock();
 
@@ -610,8 +610,8 @@ int genaRenewSubscription(
 	/*GetHandleInfo(client_handle, &handle_info); */
 	if (return_code != UPNP_E_SUCCESS) {
 		/* network failure (remove client sub) */
-		RemoveClientSubClientSID(&handle_info->ClientSubList, in_sid);
-		free_client_subscription(sub_copy);
+		RemoveClientSubClientSID(handle_info->ClientSubList, in_sid);
+		clientCancelRenew(&sub_copy);
 		HandleUnlock();
 		goto exit_function;
 	}
@@ -619,27 +619,24 @@ int genaRenewSubscription(
 	/* get subscription */
 	sub = GetClientSubClientSID(handle_info->ClientSubList, in_sid);
 	if (sub == NULL) {
-		free_client_subscription(sub_copy);
+		clientCancelRenew(&sub_copy);
 		HandleUnlock();
 		return_code = GENA_E_BAD_SID;
 		goto exit_function;
 	}
 
 	/* store actual sid */
-	UpnpClientSubscription_set_ActualSID(sub, ActualSID);
+	sub->actualSID = ActualSID;
 
 	/* start renew subscription timer */
 	return_code = ScheduleGenaAutoRenew(client_handle, *TimeOut, sub);
 	if (return_code != GENA_SUCCESS) {
-		RemoveClientSubClientSID(
-			&handle_info->ClientSubList,
-			UpnpClientSubscription_get_SID(sub));
+		RemoveClientSubClientSID(handle_info->ClientSubList, sub->SID);
 	}
-	free_client_subscription(sub_copy);
+	clientCancelRenew(&sub_copy);
 	HandleUnlock();
 
 exit_function:
-	UpnpClientSubscription_delete(sub_copy);
 	return return_code;
 }
 
@@ -750,7 +747,7 @@ void gena_process_notification_event(MHDTransaction *mhdt)
 	http_SendStatusResponse(mhdt, HTTP_OK);
 
 	/* fill event struct */
-	tmpSID = UpnpClientSubscription_get_SID(subscription);
+	tmpSID = subscription->SID;
 	memset(event_struct.Sid, 0, sizeof(event_struct.Sid));
 	upnp_strlcpy(event_struct.Sid, tmpSID, sizeof(event_struct.Sid));
 	event_struct.EventKey = eventKey;
