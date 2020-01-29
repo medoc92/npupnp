@@ -68,6 +68,10 @@
 
 #include <microhttpd.h>
 
+#if MHD_VERSION < 0x00095300
+#define MHD_USE_INTERNAL_POLLING_THREAD MHD_USE_SELECT_INTERNALLY
+#endif
+
 /*! . */
 #define APPLICATION_LISTENING_PORT 49152
 
