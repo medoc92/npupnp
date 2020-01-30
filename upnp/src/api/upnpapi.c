@@ -461,8 +461,8 @@ static int UpnpInitStartServers(
 	return UPNP_E_SUCCESS;
 }
 
-
-int UpnpInit(const char *HostIP, unsigned short DestPort)
+static int upnpInitCommonV4V6(bool dov6, const char *HostIP,
+							  const char *ifNameForV6, unsigned short DestPort)
 {
 	int retVal = UPNP_E_SUCCESS;
 
@@ -487,16 +487,24 @@ int UpnpInit(const char *HostIP, unsigned short DestPort)
 		"UpnpInit with HostIP=%s, DestPort=%d.\n", 
 		HostIP ? HostIP : "", (int)DestPort);
 
-	/* Verify HostIP, if provided, or find it ourselves. */
-	if (HostIP != NULL) {
-		upnp_strlcpy(gIF_IPV4, HostIP, sizeof(gIF_IPV4));
-	} else {
-		if (getlocalhostname(gIF_IPV4, sizeof(gIF_IPV4)) != UPNP_E_SUCCESS ){
-			retVal = UPNP_E_INIT_FAILED;
+	if (dov6) {
+		/* Retrieve interface information (Addresses, index, etc). */
+		retVal = UpnpGetIfInfo(ifNameForV6);
+		if (retVal != UPNP_E_SUCCESS) {
 			goto exit_function;
 		}
+	} else {
+		/* Verify HostIP, if provided, or find it ourselves. */
+		if (HostIP != NULL) {
+			upnp_strlcpy(gIF_IPV4, HostIP, sizeof(gIF_IPV4));
+		} else {
+			if (getlocalhostname(gIF_IPV4, sizeof(gIF_IPV4)) != UPNP_E_SUCCESS ){
+				retVal = UPNP_E_INIT_FAILED;
+				goto exit_function;
+			}
+		}
 	}
-
+	
 	/* Set the UpnpSdkInit flag to 1 to indicate we're successfully
 	   initialized. */
 	UpnpSdkInit = 1;
@@ -518,52 +526,15 @@ exit_function:
 	return retVal;
 }
 
+int UpnpInit(const char *HostIP, unsigned short DestPort)
+{
+	return upnpInitCommonV4V6(false, HostIP, nullptr, DestPort);
+}
+
 #ifdef UPNP_ENABLE_IPV6
 int UpnpInit2(const char *IfName, unsigned short DestPort)
 {
-	int retVal;
-
-	/* Initializes the ithread library */
-	ithread_initialize_library();
-
-	ithread_mutex_lock(&gSDKInitMutex);
-
-	/* Check if we're already initialized. */
-	if (UpnpSdkInit == 1) {
-		retVal = UPNP_E_INIT;
-		goto exit_function;
-	}
-
-	/* Perform initialization preamble. */
-	retVal = UpnpInitPreamble();
-	if (retVal != UPNP_E_SUCCESS) {
-		goto exit_function;
-	}
-
-	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-		"UpnpInit2 with IfName=%s, DestPort=%d.\n", 
-		IfName ? IfName : "", DestPort);
-
-	/* Retrieve interface information (Addresses, index, etc). */
-	retVal = UpnpGetIfInfo( IfName );
-	if (retVal != UPNP_E_SUCCESS) {
-		goto exit_function;
-	}
-
-	/* Set the UpnpSdkInit flag to 1 to indicate we're successfully initialized. */
-	UpnpSdkInit = 1;
-
-	/* Finish initializing the SDK. */
-	retVal = UpnpInitStartServers(DestPort);
-	if (retVal != UPNP_E_SUCCESS) {
-		UpnpSdkInit = 0;
-		goto exit_function;
-	}
-
-exit_function:
-	ithread_mutex_unlock(&gSDKInitMutex);
-
-	return retVal;
+	return upnpInitCommonV4V6(true, nullptr, IfName, DestPort);
 }
 #endif
 
@@ -752,14 +723,12 @@ char *UpnpGetServerUlaGuaIp6Address(void)
 static int GetFreeHandle()
 {
 	/* Handle 0 is not used as NULL translates to 0 when passed as a handle */
-	int i = 1;
-
-	while (i < NUM_HANDLE && HandleTable[i] != NULL)
-		++i;
-	if (i == NUM_HANDLE)
-		return UPNP_E_OUTOF_HANDLE;
-	else
-		return i;
+	for (int i = 1; i < NUM_HANDLE; i++) {
+		if (HandleTable[i] == NULL) {
+			return i;
+		}
+	}
+	return UPNP_E_OUTOF_HANDLE;
 }
 
 /*!
@@ -795,121 +764,6 @@ static int FreeHandle(
 }
 
 #ifdef INCLUDE_DEVICE_APIS
-int UpnpRegisterRootDevice(
-	const char *DescUrl,
-	Upnp_FunPtr Fun,
-	const void *Cookie,
-	UpnpDevice_Handle *Hnd)
-{
-	struct Handle_Info *HInfo = NULL;
-	int retVal = 0;
-#if EXCLUDE_GENA == 0
-	int hasServiceTable = 0;
-#endif /* EXCLUDE_GENA */
-
-	HandleLock();
-
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"Inside UpnpRegisterRootDevice\n");
-
-	if (UpnpSdkInit != 1) {
-		retVal = UPNP_E_FINISH;
-		goto exit_function;
-	}
-
-	if (Hnd == NULL ||
-	    Fun == NULL ||
-	    DescUrl == NULL ||
-	    strlen(DescUrl) == (size_t)0) {
-		retVal = UPNP_E_INVALID_PARAM;
-		goto exit_function;
-	}
-
-	*Hnd = GetFreeHandle();
-	if (*Hnd == UPNP_E_OUTOF_HANDLE) {
-		retVal = UPNP_E_OUTOF_MEMORY;
-		goto exit_function;
-	}
-
-	HInfo = new Handle_Info;
-	if (HInfo == NULL) {
-		retVal = UPNP_E_OUTOF_MEMORY;
-		goto exit_function;
-	}
-	HandleTable[*Hnd] = HInfo;
-
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"Root device URL is %s\n", DescUrl );
-
-	HInfo->aliasInstalled = 0;
-	HInfo->HType = HND_DEVICE;
-	upnp_strlcpy(HInfo->DescURL, DescUrl, sizeof(HInfo->DescURL));
-	upnp_strlcpy(HInfo->LowerDescURL, DescUrl, sizeof(HInfo->LowerDescURL));
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"Following Root Device URL will be used when answering to legacy CPs %s\n",
-		HInfo->LowerDescURL);
-	HInfo->Callback = Fun;
-	HInfo->Cookie = (char *)Cookie;
-	HInfo->MaxAge = DEFAULT_MAXAGE;
-	HInfo->MaxSubscriptions = UPNP_INFINITE;
-	HInfo->MaxSubscriptionTimeOut = UPNP_INFINITE;
-	HInfo->DeviceAf = AF_INET;
-
-	char *descstr;
-	retVal = UpnpDownloadUrlItem(HInfo->DescURL, &descstr, 0);
-	if (retVal != UPNP_E_SUCCESS) {
-		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			"UpnpRegisterRootDevice: error downloading Document: %d\n",
-			retVal);
-		FreeHandle(*Hnd);
-		goto exit_function;
-	}
-	HInfo->devdesc = UPnPDeviceDesc(HInfo->DescURL, descstr);
-	free(descstr);
-	if (!HInfo->devdesc.ok) {
-		FreeHandle(*Hnd);
-		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-			"UpnpRegisterRootDevice: No devices found for RootDevice\n");
-		retVal = UPNP_E_INVALID_DESC;
-		goto exit_function;
-	}
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"UpnpRegisterRootDevice: Valid Description\n"
-		"UpnpRegisterRootDevice: DescURL : %s\n", HInfo->DescURL);
-
-#if EXCLUDE_GENA == 0
-	/*
-	 * GENA SET UP
-	 */
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"UpnpRegisterRootDevice: Gena Check\n");
-	hasServiceTable = getServiceTable(HInfo->devdesc, &HInfo->ServiceTable,
-									  HInfo->DescURL);
-	if (hasServiceTable) {
-		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			"UpnpRegisterRootDevice: GENA Service Table\n"
-			"Here are the known services:\n");
-		printServiceTable(&HInfo->ServiceTable, UPNP_ALL, API );
-	} else {
-		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			"\nUpnpRegisterRootDevice: Empty service table\n");
-	}
-#endif /* EXCLUDE_GENA */
-
-	UpnpSdkDeviceRegisteredV4 = 1;
-
-	retVal = UPNP_E_SUCCESS;
-
-exit_function:
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"Exiting RegisterRootDevice, return value == %d\n", retVal);
-	HandleUnlock();
-
-	return retVal;
-}
-#endif /* INCLUDE_DEVICE_APIS */
-
-
 /*!
  * \brief Fills the sockadr_in with miniserver information.
  */
@@ -927,16 +781,16 @@ static int GetDescDocumentAndURL(
 	/* [out] . */
 	char descURL[LINE_SIZE]);
 
-
-#ifdef INCLUDE_DEVICE_APIS
-int UpnpRegisterRootDevice2(
+int UpnpRegisterRootDeviceAllForms(
 	Upnp_DescType descriptionType,
 	const char *description_const,
-	size_t bufferLen,   /* ignored */
+	size_t,   /* buflen, ignored */
 	int config_baseURL,
 	Upnp_FunPtr Fun,
 	const void *Cookie,
-	UpnpDevice_Handle *Hnd)
+	UpnpDevice_Handle *Hnd,
+	int AddressFamily,
+	const char *LowerDescUrl)
 {
 	struct Handle_Info *HInfo = NULL;
 	int retVal = 0;
@@ -948,14 +802,15 @@ int UpnpRegisterRootDevice2(
 	HandleLock();
 
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"Inside UpnpRegisterRootDevice2\n");
+		"Inside UpnpRegisterRootDeviceAllForms\n");
 
 	if (UpnpSdkInit != 1) {
 		retVal = UPNP_E_FINISH;
 		goto exit_function;
 	}
 
-	if (Hnd == NULL || Fun == NULL) {
+	if (Hnd == NULL || Fun == NULL || description == NULL || *description == 0 ||
+	    (AddressFamily != AF_INET && AddressFamily != AF_INET6)) {
 		retVal = UPNP_E_INVALID_PARAM;
 		goto exit_function;
 	}
@@ -977,15 +832,19 @@ int UpnpRegisterRootDevice2(
 	HInfo->aliasInstalled = 0;
 
 	retVal = GetDescDocumentAndURL(
-		descriptionType, description,
-		config_baseURL, AF_INET, 
+		descriptionType, description, config_baseURL, AF_INET, 
 		HInfo->devdesc, HInfo->DescURL);
 	if (retVal != UPNP_E_SUCCESS) {
 		FreeHandle(*Hnd);
 		goto exit_function;
 	}
 
-	upnp_strlcpy(HInfo->LowerDescURL,HInfo->DescURL,sizeof(HInfo->LowerDescURL));
+	if (LowerDescUrl == NULL)
+		upnp_strlcpy(HInfo->LowerDescURL, HInfo->DescURL,
+					 sizeof(HInfo->LowerDescURL));
+	else
+		upnp_strlcpy(HInfo->LowerDescURL, LowerDescUrl,
+					 sizeof(HInfo->LowerDescURL));
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
 		"Following Root Device URL will be used when answering to legacy CPs %s\n",
 		HInfo->LowerDescURL);
@@ -996,11 +855,11 @@ int UpnpRegisterRootDevice2(
 	HInfo->MaxAge = DEFAULT_MAXAGE;
 	HInfo->MaxSubscriptions = UPNP_INFINITE;
 	HInfo->MaxSubscriptionTimeOut = UPNP_INFINITE;
-	HInfo->DeviceAf = AF_INET;
+	HInfo->DeviceAf = AddressFamily;
 
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"UpnpRegisterRootDevice2: Valid Description\n"
-		"UpnpRegisterRootDevice2: DescURL : %s\n",
+		"UpnpRegisterRootDeviceAllForms: Valid Description\n"
+		"UpnpRegisterRootDeviceAllForms: DescURL : %s\n",
 		HInfo->DescURL);
 
 #if EXCLUDE_GENA == 0
@@ -1013,147 +872,12 @@ int UpnpRegisterRootDevice2(
 									  HInfo->DescURL);
 	if (hasServiceTable) {
 		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			"UpnpRegisterRootDevice2: GENA Service Table\n"
+			"UpnpRegisterRootDeviceAllForms: GENA Service Table\n"
 			"Here are the known services: \n");
 		printServiceTable(&HInfo->ServiceTable, UPNP_ALL, API);
 	} else {
 		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			"\nUpnpRegisterRootDevice2: Empty service table\n");
-	}
-#endif /* EXCLUDE_GENA */
-
-	UpnpSdkDeviceRegisteredV4 = 1;
-
-	retVal = UPNP_E_SUCCESS;
-
-exit_function:
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"Exiting RegisterRootDevice2, return value == %d\n", retVal);
-	HandleUnlock();
-
-	return retVal;
-	bufferLen = bufferLen;
-}
-#endif /* INCLUDE_DEVICE_APIS */
-
-
-#ifdef INCLUDE_DEVICE_APIS
-int UpnpRegisterRootDevice3(
-	const char *DescUrl,
-	Upnp_FunPtr Fun,
-	const void *Cookie,
-	UpnpDevice_Handle *Hnd,
-	int AddressFamily)
-{
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"Inside UpnpRegisterRootDevice3\n");
-	return UpnpRegisterRootDevice4(DescUrl, Fun, Cookie, Hnd,
-		AddressFamily, NULL);
-}
-#endif /* INCLUDE_DEVICE_APIS */
-
-
-#ifdef INCLUDE_DEVICE_APIS
-int UpnpRegisterRootDevice4(
-	const char *DescUrl,
-	Upnp_FunPtr Fun,
-	const void *Cookie,
-	UpnpDevice_Handle *Hnd,
-	int AddressFamily,
-	const char *LowerDescUrl)
-{
-	struct Handle_Info *HInfo;
-	int retVal = 0;
-#if EXCLUDE_GENA == 0
-	int hasServiceTable = 0;
-#endif /* EXCLUDE_GENA */
-
-	HandleLock();
-
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"Inside UpnpRegisterRootDevice4\n");
-	if (UpnpSdkInit != 1) {
-		retVal = UPNP_E_FINISH;
-		goto exit_function;
-	}
-	if (Hnd == NULL ||
-	    Fun == NULL ||
-	    DescUrl == NULL ||
-	    strlen(DescUrl) == (size_t)0 ||
-	    (AddressFamily != AF_INET && AddressFamily != AF_INET6)) {
-		retVal = UPNP_E_INVALID_PARAM;
-		goto exit_function;
-	}
-	*Hnd = GetFreeHandle();
-	if (*Hnd == UPNP_E_OUTOF_HANDLE) {
-		retVal = UPNP_E_OUTOF_MEMORY;
-		goto exit_function;
-	}
-	HInfo = new Handle_Info;
-	if (HInfo == NULL) {
-		retVal = UPNP_E_OUTOF_MEMORY;
-		goto exit_function;
-	}
-	HandleTable[*Hnd] = HInfo;
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"Root device URL is %s\n", DescUrl);
-	HInfo->aliasInstalled = 0;
-	HInfo->HType = HND_DEVICE;
-	upnp_strlcpy(HInfo->DescURL, DescUrl, sizeof(HInfo->DescURL));
-	if (LowerDescUrl == NULL)
-		upnp_strlcpy(HInfo->LowerDescURL, DescUrl, sizeof(HInfo->LowerDescURL));
-	else
-		upnp_strlcpy(HInfo->LowerDescURL,LowerDescUrl,
-					 sizeof(HInfo->LowerDescURL));
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"Following Root Device URL will be used when answering to legacy CPs %s\n",
-		HInfo->LowerDescURL);
-	HInfo->Callback = Fun;
-	HInfo->Cookie = (char *)Cookie;
-	HInfo->MaxAge = DEFAULT_MAXAGE;
-	HInfo->MaxSubscriptions = UPNP_INFINITE;
-	HInfo->MaxSubscriptionTimeOut = UPNP_INFINITE;
-	HInfo->DeviceAf = AddressFamily;
-
-	char *descstr;
-	retVal = UpnpDownloadUrlItem(HInfo->DescURL, &descstr, 0);
-	if (retVal != UPNP_E_SUCCESS) {
-		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			"UpnpRegisterRootDevice: error downloading Document: %d\n",
-			retVal);
-		FreeHandle(*Hnd);
-		goto exit_function;
-	}
-	HInfo->devdesc = UPnPDeviceDesc(HInfo->DescURL, descstr);
-	free(descstr);
-	if (!HInfo->devdesc.ok) {
-		FreeHandle(*Hnd);
-		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-			"UpnpRegisterRootDevice: No devices found for RootDevice\n");
-		retVal = UPNP_E_INVALID_DESC;
-		goto exit_function;
-	}
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"UpnpRegisterRootDevice4: Valid Description\n"
-		"UpnpRegisterRootDevice4: DescURL : %s\n",
-		HInfo->DescURL);
-
-#if EXCLUDE_GENA == 0
-	/*
-	 * GENA SET UP
-	 */
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"UpnpRegisterRootDevice4: Gena Check\n" );
-	hasServiceTable = getServiceTable(HInfo->devdesc, &HInfo->ServiceTable,
-									  HInfo->DescURL);
-	if (hasServiceTable) {
-		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			"UpnpRegisterRootDevice4: GENA Service Table \n"
-			"Here are the known services: \n" );
-		printServiceTable(&HInfo->ServiceTable, UPNP_ALL, API);
-	} else {
-		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			"\nUpnpRegisterRootDevice4: Empty service table\n");
+			"\nUpnpRegisterRootDeviceAllForms: Empty service table\n");
 	}
 #endif /* EXCLUDE_GENA */
 
@@ -1169,15 +893,60 @@ int UpnpRegisterRootDevice4(
 
 exit_function:
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"Exiting RegisterRootDevice4, return value == %d\n", retVal);
+		"Exiting RegisterRootDeviceAllForms, return value == %d\n", retVal);
 	HandleUnlock();
 
 	return retVal;
 }
-#endif /* INCLUDE_DEVICE_APIS */
 
+int UpnpRegisterRootDevice(
+	const char *DescUrl,
+	Upnp_FunPtr Fun,
+	const void *Cookie,
+	UpnpDevice_Handle *Hnd)
+{
+	return UpnpRegisterRootDeviceAllForms(
+		UPNPREG_URL_DESC, DescUrl, 0, 0, Fun, Cookie, Hnd, AF_INET, nullptr);
+}
 
-#ifdef INCLUDE_DEVICE_APIS
+int UpnpRegisterRootDevice3(
+	const char *DescUrl,
+	Upnp_FunPtr Fun,
+	const void *Cookie,
+	UpnpDevice_Handle *Hnd,
+	int AddressFamily)
+{
+	return UpnpRegisterRootDeviceAllForms(
+		UPNPREG_URL_DESC, DescUrl, 0, 0, Fun, Cookie, Hnd, AddressFamily, NULL);
+}
+
+int UpnpRegisterRootDevice2(
+	Upnp_DescType descriptionType,
+	const char *description_const,
+	size_t,   /* buflen, ignored */
+	int config_baseURL,
+	Upnp_FunPtr Fun,
+	const void *Cookie,
+	UpnpDevice_Handle *Hnd)
+{
+	return UpnpRegisterRootDeviceAllForms(
+		descriptionType, description_const, 0, config_baseURL, Fun,
+		Cookie,	Hnd, AF_INET, nullptr);
+}
+
+int UpnpRegisterRootDevice4(
+	const char *DescUrl,
+	Upnp_FunPtr Fun,
+	const void *Cookie,
+	UpnpDevice_Handle *Hnd,
+	int AddressFamily,
+	const char *LowerDescUrl)
+{
+	return UpnpRegisterRootDeviceAllForms(
+		UPNPREG_URL_DESC, DescUrl, 0, 0, Fun, Cookie, Hnd, AddressFamily,
+		LowerDescUrl);
+}
+
 int UpnpUnRegisterRootDevice(UpnpDevice_Handle Hnd)
 {
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
@@ -1251,7 +1020,7 @@ int UpnpUnRegisterRootDeviceLowPower(UpnpDevice_Handle Hnd, int PowerState,
 
 #ifdef INCLUDE_CLIENT_APIS
 int UpnpRegisterClient(Upnp_FunPtr Fun, const void *Cookie,
-	UpnpClient_Handle *Hnd)
+					   UpnpClient_Handle *Hnd)
 {
 	struct Handle_Info *HInfo;
 
@@ -1293,9 +1062,7 @@ int UpnpRegisterClient(Upnp_FunPtr Fun, const void *Cookie,
 
 	return UPNP_E_SUCCESS;
 }
-#endif /* INCLUDE_CLIENT_APIS */
 
-#ifdef INCLUDE_CLIENT_APIS
 int UpnpUnRegisterClient(UpnpClient_Handle Hnd)
 {
 	struct Handle_Info *HInfo;
