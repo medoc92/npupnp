@@ -45,16 +45,6 @@ typedef enum {
 
 extern WebServerState bWebServerState;
 
-struct SendInstruction
-{
-	int IsVirtualFile{0};
-	std::string AcceptLanguageHeader;
-	/*! Read from local source and send on the network. */
-	int64_t ReadSendSize{0};
-	/*! Cookie associated with the virtualDir. */
-	const void *cookie{nullptr};
-};
-
 
 /*!
  * \brief Initilialize the different documents. Initialize the memory
@@ -87,6 +77,10 @@ int web_server_set_root_dir(
 	/*! [in] String having the root directory for the document. */
 	const char* root_dir);
 
+/* Add a locally served path */
+int web_server_set_localdoc(
+	const std::string& path, const std::string& data, time_t last_modified);
+int web_server_unset_localdoc(const std::string& path);
 
 /*!
  * \brief Main entry point into web server; Handles HTTP GET and HEAD

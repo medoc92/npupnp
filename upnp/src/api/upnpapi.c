@@ -42,6 +42,7 @@
 
 #include <string>
 #include <algorithm>
+#include <sstream>
 
 #include <upnp/ixml.h>
 
@@ -1114,6 +1115,65 @@ int UpnpUnRegisterClient(UpnpClient_Handle Hnd)
 #ifdef INCLUDE_DEVICE_APIS
 #ifdef INTERNAL_WEB_SERVER
 
+static std::string basename(const std::string& name)
+{
+	std::string::size_type slash = name.find_last_of("/");
+	if (slash == std::string::npos) {
+		return name;
+	} else {
+		return name.substr(slash+1);
+	}
+}
+
+static int readFile(const char *path, char **data, time_t *modtime)
+{
+	struct stat st;
+	char *buffer{nullptr};
+	int ret = UPNP_E_SUCCESS;
+	size_t num_read;
+
+	*data = nullptr;
+	if (stat(path, &st) != 0) {
+		return UPNP_E_FILE_NOT_FOUND;
+	}
+	*modtime = st.st_mtime;
+	FILE *fp = fopen(path, "rb");
+	if (nullptr == fp)
+		return UPNP_E_FILE_NOT_FOUND;
+	buffer = (char *)malloc(st.st_size+1);
+	if (nullptr == buffer) {
+		ret = UPNP_E_OUTOF_MEMORY;
+		goto out;
+	}
+	num_read = fread(buffer, 1, st.st_size, fp);
+	if (num_read != (size_t)st.st_size) {
+		ret = UPNP_E_FILE_READ_ERROR;
+		goto out;
+	}
+	buffer[st.st_size + 1] = 0;
+	*data = buffer;
+out:
+	if (fp)
+		fclose(fp);
+	if (ret != UPNP_E_SUCCESS && buffer) {
+		free(buffer);
+	}
+	return ret;
+}
+
+static std::string descurl(int AddressFamily, const std::string& nm)
+{
+	std::ostringstream url;
+	url << "http://";
+	if (AddressFamily == AF_INET) {
+		url << gIF_IPV4 << ":" << LOCAL_PORT_V4;
+	} else {
+		url << gIF_IPV6 << ":" << LOCAL_PORT_V6;
+	}
+	url << "/" << nm;
+	return url.str();
+}
+	
 static int GetDescDocumentAndURL(
 	Upnp_DescType descriptionType,
 	char *description,
@@ -1123,38 +1183,69 @@ static int GetDescDocumentAndURL(
 	char descURL[LINE_SIZE])
 {
 	int retVal = 0;
-	if (description == NULL)
+	if (!description || !*description)
 		return UPNP_E_INVALID_PARAM;
 
-	/* baseURL is not supported any more. The legacy code needed it to
-	   support supplying the description as a file or string. The
-	   latter could probably be fixed, but for now, only accept
-	   URLs */
-	if (descriptionType != (enum Upnp_DescType_e)UPNPREG_URL_DESC ||
-        config_baseURL) {
-		return UPNP_E_INVALID_PARAM;
+	/* We do not support an URLBase set inside the description
+	   document. This was advised against in upnp 1.0 and forbidden in
+	   1.1 */
+	std::string localurl;
+	std::string simplename;
+	std::string descdata;
+	time_t modtime = time(0);
+	switch (descriptionType) {
+	case UPNPREG_URL_DESC:
+	{
+		if (strlen(description) > LINE_SIZE - 1) {
+			return UPNP_E_URL_TOO_BIG;
+		}
+		upnp_strlcpy(descURL, description, LINE_SIZE);
+		char *descstr;
+		retVal = UpnpDownloadUrlItem(description, &descstr, 0);
+		if (retVal != UPNP_E_SUCCESS) {
+			UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+					   "UpnpRegisterRootDevice: error downloading doc: %d\n",
+					   retVal);
+			return retVal;
+		}
+		desc = UPnPDeviceDesc(description, descstr);
+		free(descstr);
+	}
+	break;
+	case UPNPREG_FILENAME_DESC:
+	{
+		char *descstr{nullptr};
+		retVal = readFile(description, &descstr, &modtime);
+		if (retVal == UPNP_E_SUCCESS) {
+			return retVal;
+		}
+		descdata = descstr;
+		free(descstr);
+		simplename = basename(std::string(description));
+		localurl = descurl(AddressFamily, simplename);
+	}
+	break;
+	case UPNPREG_BUF_DESC:
+	{
+		simplename = "description.xml";
+		localurl = descurl(AddressFamily, "description.xml");
+		descdata = description;
+	}
+	break;
 	}
 
-	/* Manual */
-	if (strlen(description) > LINE_SIZE - 1) {
-		return UPNP_E_URL_TOO_BIG;
-	}
-	upnp_strlcpy(descURL, description, LINE_SIZE);
+	if (!localurl.empty()) {
+		upnp_strlcpy(descURL, localurl.c_str(), LINE_SIZE);
+		desc = UPnPDeviceDesc(localurl, descdata);
+		if (desc.ok) {
+			web_server_set_localdoc(std::string("/") + simplename,
+									descdata, modtime);
+		}
+ 	}
 
-	/* Get XML doc */
-	char *descstr;
-	retVal = UpnpDownloadUrlItem(description, &descstr, 0);
-	if (retVal != UPNP_E_SUCCESS) {
-		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			"UpnpRegisterRootDevice: error downloading Document: %d\n",
-			retVal);
-		return retVal;
-	}
-	desc = UPnPDeviceDesc(description, descstr);
-	free(descstr);
 	if (!desc.ok) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-			"UpnpRegisterRootDevice: No devices found for RootDevice\n");
+			"UpnpRegisterRootDevice: description parse failed\n");
 		return UPNP_E_INVALID_DESC;
 	}
 	return UPNP_E_SUCCESS;

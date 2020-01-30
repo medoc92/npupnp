@@ -72,8 +72,17 @@ enum resp_type {
 	RESP_FILEDOC,
 	RESP_HEADERS,
 	RESP_WEBDOC,
+	RESP_XMLDOC,
 };
 
+struct SendInstruction {
+	std::string AcceptLanguageHeader;
+	/*! Read from local source and send on the network. */
+	int64_t ReadSendSize{0};
+	/*! Cookie associated with the virtualDir. */
+	const void *cookie{nullptr};
+	std::string data;
+};
 
 /*!
  * module variables - Globals, static and externs.
@@ -154,7 +163,17 @@ static const std::map<std::string, const char*> gEncodedMediaTypes = {
 
 
 /*! Global variable. A local dir which serves as webserver root. */
-std::string gDocumentRootDir;
+static std::string gDocumentRootDir;
+
+struct LocalDoc {
+	std::string data;
+	time_t last_modified;
+};
+
+// Data which we serve directly: usually description
+// documents. Indexed by path. Content-Type is always text/xml
+// The map is tested after the virtualdir, so the latter has priority.
+static std::map<std::string, LocalDoc> localDocs;
 
 static ithread_mutex_t gWebMutex;
 
@@ -189,6 +208,30 @@ static UPNP_INLINE int get_content_type(
 	return *content_type ? 0 : UPNP_E_OUTOF_MEMORY;
 }
 
+int web_server_set_localdoc(
+	const std::string& path, const std::string& data, time_t last_modified)
+{
+	if (path.empty() || path.front() != '/') {
+		return UPNP_E_INVALID_PARAM;
+	}
+	LocalDoc doc;
+	doc.data = data;
+	doc.last_modified = last_modified;
+	ithread_mutex_lock(&gWebMutex);
+	localDocs[path] = doc;
+	ithread_mutex_unlock(&gWebMutex);
+	return UPNP_E_SUCCESS;
+}
+
+int web_server_unset_localdoc(const std::string& path)
+{
+	ithread_mutex_lock(&gWebMutex);
+	auto it = localDocs.find(path);
+	if (it != localDocs.end())
+		localDocs.erase(it);
+	ithread_mutex_unlock(&gWebMutex);
+	return UPNP_E_SUCCESS;
+}
 
 int web_server_init()
 {
@@ -223,7 +266,7 @@ void web_server_destroy(void)
 {
 	if (bWebServerState == WEB_SERVER_ENABLED) {
 		gDocumentRootDir.clear();
-
+		localDocs.clear();
 		ithread_mutex_destroy(&gWebMutex);
 		bWebServerState = WEB_SERVER_DISABLED;
 	}
@@ -243,9 +286,9 @@ static int get_file_info(
 	if (stat(filename, &s) == -1)
 		return -1;
 	if (S_ISDIR(s.st_mode))
-		info->is_directory = TRUE;
+		info->is_directory = true;
 	else if (S_ISREG(s.st_mode))
-		info->is_directory = FALSE;
+		info->is_directory = false;
 	else
 		return -1;
 	/* check readable */
@@ -427,10 +470,10 @@ static int process_request(
 	int err_code;
 	char *request_doc = NULL;
 	struct File_Info finfo;
-	int using_virtual_dir;
 	size_t dummy;
 	struct Extra_Headers *extra_headers = NULL;
-
+	LocalDoc localdoc;
+	
 	assert(mhdt->method == HTTPMETHOD_GET ||
 	       mhdt->method == HTTPMETHOD_HEAD ||
 	       mhdt->method == HTTPMETHOD_POST ||
@@ -445,7 +488,6 @@ static int process_request(
 	request_doc = NULL;
 	finfo.content_type = NULL;
 	err_code = HTTP_INTERNAL_SERVER_ERROR;	/* default error */
-	using_virtual_dir = FALSE;
 	const VirtualDirListEntry *entryp{nullptr};
 	
 	/* remove dots and unescape url */
@@ -465,11 +507,20 @@ static int process_request(
 		err_code = HTTP_BAD_REQUEST;
 		goto error_handler;
 	}
-
 	entryp = isFileInVirtualDir(request_doc);
+	if (!entryp) {
+		ithread_mutex_lock(&gWebMutex);
+		auto localdocit = localDocs.find(request_doc);
+		// Just make a copy. Could do better using a
+		// map<string,share_ptr> like the original, but I don't think
+		// that the perf impact is significant
+		if (localdocit != localDocs.end()) {
+			localdoc = localdocit->second;
+		}
+		ithread_mutex_unlock(&gWebMutex);
+	}
 	if (entryp) {
-		using_virtual_dir = TRUE;
-		RespInstr->IsVirtualFile = 1;
+		*rtype = RESP_WEBDOC;
 		RespInstr->cookie = entryp->cookie;
 		filename = request_doc;
 		if ((code = ExtraHTTPHeaders(mhdt, &extra_headers)) != HTTP_OK) {
@@ -478,7 +529,8 @@ static int process_request(
 		}
 		/* get file info */
 		finfo.extra_headers = extra_headers;
-		if (virtualDirCallback.get_info(filename.c_str(), &finfo, entryp->cookie) != 0) {
+		if (virtualDirCallback.get_info(filename.c_str(), &finfo,
+										entryp->cookie) != 0) {
 			err_code = HTTP_NOT_FOUND;
 			goto error_handler;
 		}
@@ -492,7 +544,8 @@ static int process_request(
 			}
 			filename += temp_str;
 			/* get info */
-			if ((virtualDirCallback.get_info(filename.c_str(), &finfo, entryp->cookie)
+			if ((virtualDirCallback.get_info(filename.c_str(), &finfo,
+											 entryp->cookie)
 				 != UPNP_E_SUCCESS) || finfo.is_directory) {
 				err_code = HTTP_NOT_FOUND;
 				goto error_handler;
@@ -503,7 +556,16 @@ static int process_request(
 			err_code = HTTP_FORBIDDEN;
 			goto error_handler;
 		}
+	} else if (!localdoc.data.empty()) {
+		*rtype = RESP_XMLDOC;
+		finfo.content_type = strdup("text/xml");
+		finfo.file_length = localdoc.data.size();
+		finfo.is_readable = TRUE;
+		finfo.is_directory = FALSE;
+		finfo.last_modified = localdoc.last_modified;
+		RespInstr->data.swap(localdoc.data);
 	} else {
+		*rtype = RESP_FILEDOC;
 		if (gDocumentRootDir.size() == 0) {
 			goto error_handler;
 		}
@@ -567,12 +629,7 @@ static int process_request(
 
 	if (mhdt->method == HTTPMETHOD_HEAD) {
 		*rtype = RESP_HEADERS;
-	} else if (using_virtual_dir) {
-		*rtype = RESP_WEBDOC;
-	} else {
-		/* GET filename */
-		*rtype = RESP_FILEDOC;
-	}
+	} 
 	/* simple get http 0.9 as specified in http 1.0 */
 	/* don't send headers */
 	if (mhdt->method == HTTPMETHOD_SIMPLEGET) {
@@ -663,6 +720,12 @@ void web_server_callback(MHDTransaction *mhdt)
 			mhdt->httpstatus = 200;
 		}
 		break;
+		case RESP_XMLDOC:
+			mhdt->response = MHD_create_response_from_buffer(
+				RespInstr.data.size(), (void*)(strdup(RespInstr.data.c_str())),
+				MHD_RESPMEM_PERSISTENT);
+			mhdt->httpstatus = 200;
+			break;
 		case RESP_HEADERS:
 			/* headers only */
 			mhdt->response = MHD_create_response_from_buffer(
