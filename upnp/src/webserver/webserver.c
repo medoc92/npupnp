@@ -179,17 +179,10 @@ static ithread_mutex_t gWebMutex;
 
 /*!
  * \brief Based on the extension, returns MIME type as malloc'd char*
- * If content type and sub type are not found, unknown types are used.
- *
- * \return
- * \li \c 0 on success.
- * \li \c UPNP_E_OUTOF_MEMORY - on memory allocation failures.
- */
+ * If content type and sub type are not found, unknown types are used. 
+*/
 static UPNP_INLINE int get_content_type(
-	/*! [in] . */
-	const char *filename,
-	/*! [out] . */
-	DOMString *content_type)
+    const char *filename, DOMString *content_type)
 {
 	const char *ctname = "application/octet-stream";
 
@@ -197,7 +190,8 @@ static UPNP_INLINE int get_content_type(
 
 	/* get ext */
 	const char *e = strrchr(filename, '.');
-	if (e != NULL) {
+	if (e) {
+        e++;
 		std::string le = stringtolower(e);
 		auto it = gEncodedMediaTypes.find(le);
 		if (it != gEncodedMediaTypes.end()) {
@@ -703,7 +697,7 @@ void web_server_callback(MHDTransaction *mhdt)
 			} else {
 				struct stat st;
 				fstat(fd, &st);
-				mhdt->response = MHD_create_response_from_fd(fd, st.st_size);
+				mhdt->response = MHD_create_response_from_fd(st.st_size, fd);
 				mhdt->httpstatus = 200;
 			}
 		}
@@ -739,7 +733,7 @@ void web_server_callback(MHDTransaction *mhdt)
 	}
 	for (const auto& header : headers) {
 		//std::cerr << "process_request: adding header [" << header.first <<
-		//	"]->[" << header.second << "]\n";
+        // "]->[" << header.second << "]\n";
 		MHD_add_response_header(mhdt->response, header.first.c_str(),
 								header.second.c_str());
 	}
