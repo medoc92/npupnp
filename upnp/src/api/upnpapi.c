@@ -2078,6 +2078,78 @@ exit_function:
 	return ret;
 }
 
+int UpnpAcceptSubscriptionExt(
+	UpnpDevice_Handle Hnd,
+	const char *DevID_const,
+	const char *ServName_const,
+	IXML_Document *PropSet,
+	const Upnp_SID SubsId)
+{
+	int ret = 0;
+	int line = 0;
+	struct Handle_Info *SInfo = NULL;
+	char *DevID = (char *)DevID_const;
+	char *ServName = (char *)ServName_const;
+
+	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+		"Inside UpnpAcceptSubscription\n");
+
+	if (UpnpSdkInit != 1) {
+		line = __LINE__;
+		ret = UPNP_E_FINISH;
+		goto exit_function;
+	}
+
+	HandleReadLock();
+
+	switch (GetHandleInfo(Hnd, &SInfo)) {
+	case HND_DEVICE:
+		break;
+	default:
+		HandleUnlock();
+		line = __LINE__;
+		ret = UPNP_E_INVALID_HANDLE;
+		goto exit_function;
+	}
+	if (DevID == NULL) {
+		HandleUnlock();
+		line = __LINE__;
+		ret = UPNP_E_INVALID_PARAM;
+		goto exit_function;
+	}
+	if (ServName == NULL) {
+		HandleUnlock();
+		line = __LINE__;
+		ret = UPNP_E_INVALID_PARAM;
+		goto exit_function;
+	}
+	if (SubsId == NULL) {
+		HandleUnlock();
+		line = __LINE__;
+		ret = UPNP_E_INVALID_PARAM;
+		goto exit_function;
+	}
+	/* Now accepts an empty state list, so the code below is commented out */
+#if 0
+	if (PropSet == NULL) {
+		HandleUnlock();
+		line = __LINE__;
+		ret = UPNP_E_INVALID_PARAM;
+		goto exit_function;
+	}
+#endif
+
+	HandleUnlock();
+
+	line = __LINE__;
+	ret = genaInitNotifyExt(Hnd, DevID, ServName, PropSet, SubsId);
+
+exit_function:
+	UpnpPrintf(UPNP_ALL, API, __FILE__, line,
+		"Exiting UpnpAcceptSubscription, ret = %d.\n", ret);
+
+	return ret;
+}
 
 #endif /* INCLUDE_DEVICE_APIS */
 #endif /* EXCLUDE_GENA == 0 */

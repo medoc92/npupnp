@@ -217,7 +217,7 @@ static int answer_to_connection(
 		return MHD_YES;
 	}
 	UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
-			   "answer_to_connection1: end of upload, postdata:\n%s\n",
+			   "answer_to_connection1: end of upload, postdata:\n[%s]\n",
 			   mhdt->postdata.c_str());
 	
 	/* We now have the full request */

@@ -44,9 +44,8 @@
 #include "upnpconfig.h"
 #include "UpnpGlobal.h"
 #include "UpnpInet.h"
+#include <upnp/ixml.h>
 
-typedef struct _IXML_Document IXML_Document;
-#define DOMString char *
 
 /*
  * \todo Document the exact reason of these include files and solve this
@@ -592,6 +591,7 @@ typedef struct Upnp_Action_Request UpnpActionRequest;
 #define UpnpActionRequest_get_Socket(x) ((x)->Socket)
 #define UpnpActionRequest_get_ErrStr_cstr(x) ((x)->ErrStr)
 #define UpnpActionRequest_set_ErrStr(x, v) (strncpy((x)->ErrStr, v, LINE_SIZE))
+#define UpnpActionRequest_strcpy_ErrStr(x, v) (strncpy((x)->ErrStr, v, LINE_SIZE))
 #define UpnpActionRequest_get_ActionName_cstr(x) ((x)->ActionName)
 #define UpnpActionRequest_get_DevUDN_cstr(x) ((x)->DevUDN)
 #define UpnpActionRequest_get_ServiceID_cstr(x) ((x)->ServiceID)
@@ -822,9 +822,6 @@ typedef struct Upnp_Subscription_Request UpnpSubscriptionRequest;
 
 struct Extra_Headers
 {
-	/** The length of the file. A length less than 0 indicates the size
-	*  is unknown, and data will be sent until 0 bytes are returned from
-	*  a read call. */
 	char *name;
 	char *value;
 	DOMString resp;
@@ -872,6 +869,7 @@ typedef struct File_Info UpnpFileInfo;
 #define UpnpFileInfo_set_IsReadable(x, v) ((x)->is_readable = (v))
 #define UpnpFileInfo_get_ContentType(x) ((x)->content_type)
 #define UpnpFileInfo_set_ContentType(x, v) ((x)->content_type = (v))
+#define UpnpFileInfo_set_ExtraHeaders(x, v) ((x)->extra_headers = (v))
 
 /*!
  *  All callback functions share the same prototype, documented below.
@@ -902,7 +900,7 @@ typedef int (*Upnp_FunPtr)(
 	/*! [in] .*/
 	Upnp_EventType EventType,
 	/*! [in] .*/
-	void *Event,
+	const void *Event,
 	/*! [in] .*/
 	void *Cookie);
 
@@ -1824,7 +1822,7 @@ EXPORT_SPEC int UpnpAcceptSubscriptionExt(
 	 * Plug and Play Device Architecture specification. */
 	IXML_Document *PropSet,
 	/*! [in] The subscription ID of the newly registered control point. */
-	Upnp_SID SubsId);
+	const Upnp_SID SubsId);
 
 /*!
  * \brief Sends out an event change notification to all control points
@@ -1860,6 +1858,39 @@ EXPORT_SPEC int UpnpNotify(
 	const char **NewVal,
 	/*! [in] The count of variables included in this notification. */
 	int cVariables);
+
+/*!
+ * \brief Similar to \b UpnpNotify except that it takes a DOM document for the
+ * event rather than an array of strings.
+ *
+ * This function is synchronous and generates no callbacks.
+ *
+ * This function may be called during a callback function to send out a
+ * notification.
+ *
+ * \return An integer representing one of the following:
+ *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
+ *     \li \c UPNP_E_INVALID_HANDLE: The handle is not a valid device 
+ *             handle.
+ *     \li \c UPNP_E_INVALID_SERVICE: The \b DevId/\b ServId 
+ *             pair refers to an invalid service.
+ *     \li \c UPNP_E_INVALID_PARAM: Either \b VarName, \b NewVal, 
+ *              \b DevID, \b ServID, or \b PropSet 
+ *              is not a valid pointer or \b cVariables is less than zero.
+ *     \li \c UPNP_E_OUTOF_MEMORY: Insufficient resources exist to 
+ *             complete this operation.
+ */
+EXPORT_SPEC int UpnpNotifyExt(
+	/*! [in] The handle to the device sending the event. */
+	UpnpDevice_Handle,
+	/*! [in] The device ID of the subdevice of the service generating the event. */
+	const char *DevID,
+	/*! [in] The unique identifier of the service generating the event. */
+	const char *ServID,
+	/*! [in] The DOM document for the property set. Property set documents must
+	 * conform to the XML schema defined in section 4.3 of the Universal
+	 * Plug and Play Device Architecture specification. */
+	IXML_Document *PropSet);
 
 /*!
  * \brief Renews a subscription that is about to expire.

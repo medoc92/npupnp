@@ -74,7 +74,7 @@ int UpnpInitLog(void)
 		initwascalled = 1;
 	}
 	/* If the user did not ask for logging do nothing */
-	if (setlogwascalled == 0) {
+	if (setlogwascalled == 0 && !getenv("NPUPNP_FORCELOG")) {
 		return UPNP_E_SUCCESS;
 	}
 

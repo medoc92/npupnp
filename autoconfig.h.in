@@ -96,6 +96,18 @@
 /* Define to 1 to prevent compilation of assert() */
 #undef NDEBUG
 
+/* see upnpconfig.h */
+#undef NPUPNP_VERSION_MAJOR
+
+/* see upnpconfig.h */
+#undef NPUPNP_VERSION_MINOR
+
+/* see upnpconfig.h */
+#undef NPUPNP_VERSION_PATCH
+
+/* see upnpconfig.h */
+#undef NPUPNP_VERSION_STRING
+
 /* Name of package */
 #undef PACKAGE
 
@@ -172,18 +184,6 @@
 
 /* Do not use pthread_rwlock_t */
 #undef UPNP_USE_RWLOCK
-
-/* see upnpconfig.h */
-#undef UPNP_VERSION_MAJOR
-
-/* see upnpconfig.h */
-#undef UPNP_VERSION_MINOR
-
-/* see upnpconfig.h */
-#undef UPNP_VERSION_PATCH
-
-/* see upnpconfig.h */
-#undef UPNP_VERSION_STRING
 
 /* Version number of package */
 #undef VERSION

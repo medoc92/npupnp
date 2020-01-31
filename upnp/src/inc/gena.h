@@ -292,6 +292,14 @@ extern int genaInitNotify(
 	int var_count,
 	/*! [in] Subscription ID. */
 	const Upnp_SID sid);
+
+int genaInitNotifyExt(
+	UpnpDevice_Handle device_handle,
+	char *UDN,
+	char *servId,
+	IXML_Document *PropSet,
+	const Upnp_SID sid);
+
 #endif /* INCLUDE_DEVICE_APIS */
 
 
