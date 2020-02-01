@@ -182,9 +182,7 @@ static int NewRequestHandler(
     if (ReplySock == INVALID_SOCKET) {
         posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
         UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
-                   "SSDP_LIB: New Request Handler:"
-                   "Error in socket(): %s\n", errorBuffer);
-
+                   "NewRequestHandler: socket(): %s\n", errorBuffer);
         return UPNP_E_OUTOF_SOCKET;
     }
 
@@ -226,8 +224,7 @@ static int NewRequestHandler(
         if (rc == -1) {
             posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
             UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
-                       "SSDP_LIB: New Request Handler:"
-                       "Error in socket(): %s\n", errorBuffer);
+                       "NewRequestHandler: socket(): %s\n", errorBuffer);
             ret = UPNP_E_SOCKET_WRITE;
             goto end_NewRequestHandler;
         }

@@ -38,13 +38,12 @@
  * \file
  *
  * \brief Implements the functionality and utility functions
- * used by the Miniserver module.
+ * used by the miniserver/dispatcher module.
  *
  * The miniserver is a central point for processing all network requests.
  * It is made of:
  *	 - The SSDP sockets for discovery.
  *	 - The HTTP listeners for description / control / eventing.
- *
  */
 
 #include "miniserver.h"
@@ -74,13 +73,6 @@
 
 /*! . */
 #define APPLICATION_LISTENING_PORT 49152
-
-struct mserv_request_t {
-	/*! Connection handle. */
-	SOCKET connfd;
-	/*! . */
-	struct sockaddr_storage foreign_sockaddr;
-};
 
 /*! . */
 typedef enum {
@@ -149,8 +141,8 @@ static int gather_header(void *cls, enum MHD_ValueKind kind,
 	stringtolower(key);
 	mhtt->headers[key] = value;
 	UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
-			   "gather_header: [%s: %s]\n",  key.c_str(), value);
-    return MHD_YES;
+			   "miniserver:gather_header: [%s: %s]\n",	key.c_str(), value);
+	return MHD_YES;
 }
 
 static const std::map<std::string, http_method_t> strmethtometh {
@@ -175,19 +167,19 @@ void request_completed_callback(
 }
 
 static int answer_to_connection(
-    void *cls, struct MHD_Connection *conn, 
-    const char *url, const char *method, const char *version, 
-    const char *upload_data, size_t *upload_data_size,
-    void **con_cls)
+	void *cls, struct MHD_Connection *conn, 
+	const char *url, const char *method, const char *version, 
+	const char *upload_data, size_t *upload_data_size,
+	void **con_cls)
 {
-    if (NULL == *con_cls) {
+	if (NULL == *con_cls) {
 		UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
 				   "answer_to_connection1: url [%s] method [%s]"
 				   " version [%s]\n", url, method, version);
-        // First call, allocate and set context, get the headers, etc.
+		// First call, allocate and set context, get the headers, etc.
 		MHDTransaction *mhdt = new MHDTransaction;
 		*con_cls = mhdt;
-        MHD_get_connection_values(conn, MHD_HEADER_KIND, &gather_header, mhdt);
+		MHD_get_connection_values(conn, MHD_HEADER_KIND, &gather_header, mhdt);
 		mhdt->client_address =
 			(struct sockaddr_storage*)MHD_get_connection_info (
 				conn, MHD_CONNECTION_INFO_CLIENT_ADDRESS)->client_addr;
@@ -217,7 +209,7 @@ static int answer_to_connection(
 		return MHD_YES;
 	}
 	UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
-			   "answer_to_connection1: end of upload, postdata:\n[%s]\n",
+			   "answer_to_connection: end of upload, postdata:\n[%s]\n",
 			   mhdt->postdata.c_str());
 	
 	/* We now have the full request */
@@ -233,8 +225,6 @@ static int answer_to_connection(
 	case HTTPMETHOD_NOTIFY:
 	case HTTPMETHOD_SUBSCRIBE:
 	case HTTPMETHOD_UNSUBSCRIBE:
-		UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
-				   "miniserver: got GENA msg\n");
 		callback = gGenaCallback;
 		break;
 		/* HTTP server call */
@@ -276,7 +266,7 @@ static void web_server_accept(SOCKET lsock, fd_set *set)
 		if (asock == INVALID_SOCKET) {
 			posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 			UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
-					   "miniserver: Error in accept(): %s\n", errorBuffer);
+					   "miniserver: accept(): %s\n", errorBuffer);
 		} else {
 			if (MHD_add_connection(mhd,asock, (struct sockaddr*)&clientAddr,
 								   clientLen) != MHD_YES) {
@@ -396,7 +386,7 @@ static void RunMiniServer(void *)
 		if (ret == SOCKET_ERROR) {
 			posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 			UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-					   "Error in select(): %s\n", errorBuffer);
+					   "miniserver: select(): %s\n", errorBuffer);
 			continue;
 		} else {
 			web_server_accept(miniSocket->miniServerSock4, &rdSet);
@@ -491,16 +481,14 @@ static int get_miniserver_sockets(
 	if (out->miniServerSock4 == INVALID_SOCKET) {
 		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 		UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
-				   "get_miniserver_sockets: IPv4 socket not available: %s\n",
-				   errorBuffer);
+				   "miniserver: IPv4 socket(): %s\n",  errorBuffer);
 	}
 #ifdef UPNP_ENABLE_IPV6
 	out->miniServerSock6 = socket(AF_INET6, SOCK_STREAM, 0);
 	if (out->miniServerSock6 == INVALID_SOCKET) {
 		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 		UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
-				   "get_miniserver_sockets: IPv6 socket not available: %s\n",
-				   errorBuffer);
+				   "miniserver: IPv6 socket(): %s\n", errorBuffer);
 	} else {
 		int onOff = 1;
 		int sockError = setsockopt(out->miniServerSock6, IPPROTO_IPV6,
@@ -508,8 +496,7 @@ static int get_miniserver_sockets(
 		if (sockError == SOCKET_ERROR) {
 			posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 			UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
-					   "get_miniserver_sockets: unable to set IPv6 socket "
-					   "protocol: %s\n", errorBuffer);
+					   "miniserver: IPv6 setsockopt(): %s\n", errorBuffer);
 			UpnpCloseSocket(out->miniServerSock6);
 			out->miniServerSock6 = INVALID_SOCKET;
 		}
@@ -522,7 +509,7 @@ static int get_miniserver_sockets(
 #endif
 		) {
 		UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
-				   "get_miniserver_sockets: no protocols available\n");
+				   "miniserver: no protocols available\n");
 		return UPNP_E_OUTOF_SOCKET;
 	}
 
@@ -549,128 +536,126 @@ static int get_miniserver_sockets(
 #endif
 
 #ifdef UPNP_MINISERVER_REUSEADDR
-		UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
-				   "get_miniserver_sockets: resuseaddr is set.\n");
-		if (out->miniServerSock4 != INVALID_SOCKET) {
-			if (setsockopt(
-					out->miniServerSock4, SOL_SOCKET, SO_REUSEADDR,
-					(const char *)&reuseaddr_on, sizeof(int)) == SOCKET_ERROR) {
-				ret = UPNP_E_SOCKET_BIND;
-				goto out;
-			}
+	UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+			   "miniserver: resuseaddr is set.\n");
+	if (out->miniServerSock4 != INVALID_SOCKET) {
+		if (setsockopt(
+				out->miniServerSock4, SOL_SOCKET, SO_REUSEADDR,
+				(const char *)&reuseaddr_on, sizeof(int)) == SOCKET_ERROR) {
+			ret = UPNP_E_SOCKET_BIND;
+			goto out;
 		}
-#ifdef UPNP_ENABLE_IPV6
-		if (out->miniServerSock6 != INVALID_SOCKET) {
-			if (setsockopt(
-					out->miniServerSock6, SOL_SOCKET, SO_REUSEADDR,
-					(const char *)&reuseaddr_on, sizeof(int)) == SOCKET_ERROR) {
-				ret = UPNP_E_SOCKET_BIND;
-				goto out;
-			}
-		}
-#endif	/* IPv6 */
 	}
+#ifdef UPNP_ENABLE_IPV6
+	if (out->miniServerSock6 != INVALID_SOCKET) {
+		if (setsockopt(
+				out->miniServerSock6, SOL_SOCKET, SO_REUSEADDR,
+				(const char *)&reuseaddr_on, sizeof(int)) == SOCKET_ERROR) {
+			ret = UPNP_E_SOCKET_BIND;
+			goto out;
+		}
+	}
+#endif	/* IPv6 */
+}
 #endif /* REUSEADDR */
 
-	if (out->miniServerSock4 != INVALID_SOCKET) {
-		uint16_t orig_listen_port4 = listen_port4;
-		int sockError, errCode = 0;
-		do {
-			serverAddr4->sin_port = htons(listen_port4++);
-			sockError = bind(
-				out->miniServerSock4,
-				(struct sockaddr *)serverAddr4, sizeof(*serverAddr4));
-			if (sockError == SOCKET_ERROR) {
-#ifdef _WIN32
-				errCode = WSAGetLastError();
-#else
-				errCode = errno;
-#endif
-				if (errno == EADDRINUSE) {
-					errCode = 1;
-				}
-			} else {
-				errCode = 0;
-			}
-		} while (errCode != 0 && listen_port4 >= orig_listen_port4);
+if (out->miniServerSock4 != INVALID_SOCKET) {
+	uint16_t orig_listen_port4 = listen_port4;
+	int sockError, errCode = 0;
+	do {
+		serverAddr4->sin_port = htons(listen_port4++);
+		sockError = bind(
+			out->miniServerSock4,
+			(struct sockaddr *)serverAddr4, sizeof(*serverAddr4));
 		if (sockError == SOCKET_ERROR) {
-			posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-			UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
-					   "get_miniserver_sockets: Error in IPv4 bind(): %s\n",
-					   errorBuffer);
-			ret = UPNP_E_SOCKET_BIND;
-			goto out;
+#ifdef _WIN32
+			errCode = WSAGetLastError();
+#else
+			errCode = errno;
+#endif
+			if (errno == EADDRINUSE) {
+				errCode = 1;
+			}
+		} else {
+			errCode = 0;
 		}
+	} while (errCode != 0 && listen_port4 >= orig_listen_port4);
+	if (sockError == SOCKET_ERROR) {
+		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
+		UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+				   "miniserver: ipv4 bind(): %s\n", errorBuffer);
+		ret = UPNP_E_SOCKET_BIND;
+		goto out;
 	}
+}
 #ifdef UPNP_ENABLE_IPV6
-	if (out->miniServerSock6 != INVALID_SOCKET) {
-		uint16_t orig_listen_port6 = listen_port6;
-		int sockError, errCode = 0;
-		do {
-			serverAddr6->sin6_port = htons(listen_port6++);
-			sockError = bind(
-				out->miniServerSock6,
-				(struct sockaddr *)serverAddr6,sizeof(*serverAddr6));
-			if (sockError == SOCKET_ERROR) {
-#ifdef _WIN32
-				errCode = WSAGetLastError();
-#else
-				errCode = errno; 
-#endif
-				if (errno == EADDRINUSE) {
-					errCode = 1;
-				}
-			} else {
-				errCode = 0;
-			}
-		} while (errCode != 0 && listen_port6 >= orig_listen_port6);
+if (out->miniServerSock6 != INVALID_SOCKET) {
+	uint16_t orig_listen_port6 = listen_port6;
+	int sockError, errCode = 0;
+	do {
+		serverAddr6->sin6_port = htons(listen_port6++);
+		sockError = bind(
+			out->miniServerSock6,
+			(struct sockaddr *)serverAddr6,sizeof(*serverAddr6));
 		if (sockError == SOCKET_ERROR) {
-			posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-			UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
-					   "get_miniserver_sockets: Error in IPv6 bind(): %s\n",
-					   errorBuffer);
-			ret = UPNP_E_SOCKET_BIND;
-			goto out;
+#ifdef _WIN32
+			errCode = WSAGetLastError();
+#else
+			errCode = errno; 
+#endif
+			if (errno == EADDRINUSE) {
+				errCode = 1;
+			}
+		} else {
+			errCode = 0;
 		}
+	} while (errCode != 0 && listen_port6 >= orig_listen_port6);
+	if (sockError == SOCKET_ERROR) {
+		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
+		UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+				   "miniserver: ipv6 bind(): %s\n", errorBuffer);
+		ret = UPNP_E_SOCKET_BIND;
+		goto out;
 	}
+}
 #endif
 
-	if (out->miniServerSock4 != INVALID_SOCKET) {
-		int ret_code = listen(out->miniServerSock4, SOMAXCONN);
-		if (ret_code == SOCKET_ERROR) {
-			posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-			UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
-					   "mserv start: Error in IPv4 listen(): %s\n", errorBuffer);
-			ret = UPNP_E_LISTEN;
-			goto out;
-		}
-		if (get_port(out->miniServerSock4, &out->miniServerPort4) < 0) {
-			ret = UPNP_E_INTERNAL_ERROR;
-			goto out;
-		}
+if (out->miniServerSock4 != INVALID_SOCKET) {
+	int ret_code = listen(out->miniServerSock4, SOMAXCONN);
+	if (ret_code == SOCKET_ERROR) {
+		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
+		UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+				   "miniserver: ipv4 listen(): %s\n", errorBuffer);
+		ret = UPNP_E_LISTEN;
+		goto out;
 	}
+	if (get_port(out->miniServerSock4, &out->miniServerPort4) < 0) {
+		ret = UPNP_E_INTERNAL_ERROR;
+		goto out;
+	}
+}
 #ifdef UPNP_ENABLE_IPV6
-	if (out->miniServerSock6 != INVALID_SOCKET) {
-		int ret_code = listen(out->miniServerSock6, SOMAXCONN);
-		if (ret_code == SOCKET_ERROR) {
-			posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-			UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
-					   "mserv start: Error in IPv6 listen(): %s\n", errorBuffer);
-			ret = UPNP_E_LISTEN;
-			goto out;
-		}
-		if (get_port(out->miniServerSock6, &out->miniServerPort6) < 0) {
-			ret = UPNP_E_INTERNAL_ERROR;
-			goto out;
-		}
+if (out->miniServerSock6 != INVALID_SOCKET) {
+	int ret_code = listen(out->miniServerSock6, SOMAXCONN);
+	if (ret_code == SOCKET_ERROR) {
+		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
+		UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+				   "miniserver: ipv6 listen(): %s\n", errorBuffer);
+		ret = UPNP_E_LISTEN;
+		goto out;
 	}
+	if (get_port(out->miniServerSock6, &out->miniServerPort6) < 0) {
+		ret = UPNP_E_INTERNAL_ERROR;
+		goto out;
+	}
+}
 #endif
 
-	ret = UPNP_E_SUCCESS;
+ret = UPNP_E_SUCCESS;
 
 out:
-	/* No need to cleanup, our caller will do it */
-	return ret;
+/* No need to cleanup, our caller will do it */
+return ret;
 }
 #endif /* INTERNAL_WEB_SERVER */
 
@@ -696,7 +681,7 @@ static int get_miniserver_stopsock(
 	if (out->miniServerStopSock == INVALID_SOCKET) {
 		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 		UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
-				   "Error in socket(): %s\n", errorBuffer);
+				   "miniserver: stopsock: socket(): %s\n", errorBuffer);
 		return UPNP_E_OUTOF_SOCKET;
 	}
 	/* Bind to local socket. */
@@ -801,17 +786,17 @@ int StartMiniServer(
 #endif
 		MHD_USE_INTERNAL_POLLING_THREAD |
 		MHD_USE_DEBUG,
-        -1, /* No port because we supply the listen fd */
-        NULL, NULL, /* Accept policy callback and arg */
-        /* handler and arg */
-        &answer_to_connection, NULL,
-        MHD_OPTION_NOTIFY_COMPLETED, request_completed_callback, nullptr,
+		-1, /* No port because we supply the listen fd */
+		NULL, NULL, /* Accept policy callback and arg */
+		/* handler and arg */
+		&answer_to_connection, NULL,
+		MHD_OPTION_NOTIFY_COMPLETED, request_completed_callback, nullptr,
 		MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int)UPNP_TIMEOUT,
 #if LET_MHD_LISTEN_ON_SOCK4
 		MHD_OPTION_LISTEN_SOCKET, miniSocket->miniServerSock4,
 #endif
-        MHD_OPTION_END);
-    if (NULL == mhd) {
+		MHD_OPTION_END);
+	if (NULL == mhd) {
 		ret_code = UPNP_E_OUTOF_MEMORY;
 		goto out;
 	}
@@ -844,8 +829,7 @@ int StopMiniServer()
 	if (sock == INVALID_SOCKET) {
 		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 		UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
-				   "SSDP_SERVER: StopSSDPServer: Error in socket() %s\n",
-				   errorBuffer);
+				   "StopMiniserver: socket(): %s\n", errorBuffer);
 		return 0;
 	}
 	while(gMServState != (MiniServerState)MSERV_IDLE) {

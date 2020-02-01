@@ -14,7 +14,7 @@ libnpupnp.pc
 libtool
 stamp-h1
 upnp/Makefile
-upnp/inc/stamp-h2
-upnp/inc/upnpconfig.h
+inc/stamp-h2
+inc/upnpconfig.h
 .deps/
 .dirstamp
