@@ -43,5 +43,35 @@ extern void trimstring(std::string& s, const char *ws = " \t");
 extern void rtrimstring(std::string& s, const char *ws = " \t");
 extern void ltrimstring(std::string& s, const char *ws = " \t");
 
+extern size_t upnp_strlcpy(char *dst, const char *src, size_t dsize);
+inline size_t upnp_strlcpy(char *dst, const std::string& src, size_t dsize) {
+	return upnp_strlcpy(dst, src.c_str(), dsize);
+}
+
+/* Size of the errorBuffer variable, passed to the strerror_r() function */
+#define ERROR_BUFFER_LEN (size_t)256
+#if !defined(_WIN32)
+#include <string.h>
+inline char *_check_strerror_r(int, char *errbuf) {
+	return errbuf;
+}
+inline char *_check_strerror_r(char *cp, char *) {
+	return cp;
+}
+inline int posix_strerror_r(int err, char *buf, size_t len) {
+	char *cp = _check_strerror_r(strerror_r(err, buf, len), buf);
+	if (cp != buf) {
+		upnp_strlcpy(buf, cp, len);
+	}
+	return 0;
+}
+#endif
+
+#ifndef MAX
+#define MAX(a, b)   (((a)>(b))? (a):(b))
+#endif
+#ifndef MIN
+#define MIN(a, b)   (((a)<(b))? (a):(b))
+#endif
 
 #endif /* _SMALLUT_H_INCLUDED_ */

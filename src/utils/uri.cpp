@@ -49,7 +49,7 @@
 #include <assert.h>
 
 #include "uri.h"
-#include "upnputil.h"
+#include "smallut.h"
 #include "upnpapi.h"
 
 

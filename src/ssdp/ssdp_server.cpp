@@ -55,11 +55,9 @@
 #include "sock.h"
 #include "ThreadPool.h"
 #include "upnpapi.h"
-#include "upnputil.h"
+#include "smallut.h"
 
 #include <stdio.h>
-
-#define MAX_TIME_TOREAD  45
 
 #ifdef INCLUDE_CLIENT_APIS
 SOCKET gSsdpReqSocket4 = INVALID_SOCKET;

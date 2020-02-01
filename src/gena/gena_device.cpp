@@ -48,7 +48,6 @@
 #include "upnpapi.h"
 #include "uuid.h"
 #include "smallut.h"
-#include "upnputil.h"
 
 #define STALE_JOBID (INVALID_JOB_ID -1)
 

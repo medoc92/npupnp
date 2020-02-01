@@ -48,7 +48,7 @@
 #include "UpnpStdInt.h" /* for ssize_t */
 
 #include "upnpdebug.h"
-#include "upnputil.h"
+#include "smallut.h"
 
 #include <assert.h>
 #include <errno.h>

@@ -49,7 +49,6 @@
 #include "statcodes.h"
 #include "upnpapi.h"
 #include "httputils.h"
-#include "upnputil.h"
 #include "smallut.h"
 
 #define SREQ_HDR_NOT_FOUND	 -1

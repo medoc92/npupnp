@@ -78,7 +78,6 @@
 #include "upnpdebug.h"
 #include "uri.h"
 #include "webserver.h"
-#include "upnputil.h"
 
 static const std::string bogus_soap_post{"SMPOST"};
 static const std::map<std::string, int> Http_Method_Table {

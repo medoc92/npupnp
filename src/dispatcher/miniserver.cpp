@@ -54,7 +54,6 @@
 #include "statcodes.h"
 #include "ThreadPool.h"
 #include "upnpapi.h"
-#include "upnputil.h"
 #include "smallut.h"
 
 #include <assert.h>

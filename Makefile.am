@@ -57,7 +57,6 @@ libnpupnp_la_SOURCES = \
 	src/inc/sysdep.h \
 	src/inc/upnp_timeout.h \
 	src/inc/upnpapi.h \
-	src/inc/upnputil.h \
 	src/inc/uri.h \
 	src/inc/uuid.h \
 	src/inc/webserver.h
@@ -84,7 +83,6 @@ libnpupnp_la_SOURCES += \
 	src/dispatcher/miniserver.cpp \
 	src/utils/description.cpp \
 	src/utils/smallut.cpp \
-	src/utils/util.cpp \
 	src/utils/sock.cpp \
 	src/utils/httputils.cpp \
 	src/utils/statcodes.cpp \

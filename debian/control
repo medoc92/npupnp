@@ -8,7 +8,7 @@ Build-Depends: debhelper (>= 9~),
  dh-autoreconf, autoconf, automake, libtool,
  libupnp-dev,
  libexpat1-dev, libmicrohttpd-dev, libcurl4-gnutls-dev
-Standards-Version: 3.9.6
+Standards-Version: 4.3.0
 
 Package: libnpupnp0
 Architecture: any

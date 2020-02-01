@@ -35,8 +35,6 @@
 #ifdef INCLUDE_DEVICE_APIS
 #if EXCLUDE_SSDP == 0
 
-#include "upnputil.h"
-
 #include "httputils.h"
 #include "ssdplib.h"
 #include "statcodes.h"
@@ -45,6 +43,7 @@
 #include "UpnpInet.h"
 #include "upnpdebug.h"
 #include "TimerThread.h"
+#include "smallut.h"
 
 #include <assert.h>
 #include <stdio.h>

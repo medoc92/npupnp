@@ -57,7 +57,6 @@
 #include "upnp.h"
 #include "upnpapi.h"
 #include "UpnpStdInt.h"
-#include "upnputil.h"
 #include "VirtualDir.h"
 #include "smallut.h"
 

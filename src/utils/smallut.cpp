@@ -108,3 +108,29 @@ void ltrimstring(string& s, const char *ws)
     s.replace(0, pos, string());
 }
 
+size_t upnp_strlcpy(char *dst, const char *src, size_t dsize)
+{
+	if (nullptr == dst || 0 == dsize)
+		return strlen(src) + 1;
+
+	// Copy until either output full or end of src. Final zero not copied
+	size_t cnt = dsize;
+	while (*src && cnt > 0) {
+		*dst++ = *src++;
+		cnt--;
+	}
+
+	if (cnt == 0) {
+		// Stopped because output full. dst now points beyond the
+		// buffer, set the final zero before it, and count how many
+		// more bytes we would need.
+		dst[-1] = 0;
+		while (*src++) {
+			dsize++;
+		}
+	} else {
+		// Stopped because end of input, set the final zero.
+		dst[0] = 0;
+	}
+	return dsize - cnt + 1;
+}

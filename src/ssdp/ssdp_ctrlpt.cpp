@@ -57,7 +57,6 @@ nnn * Redistribution and use in source and binary forms, with or without
 #include "upnpapi.h"
 #include "UpnpInet.h"
 #include "ThreadPool.h"
-#include "upnputil.h"
 #include "smallut.h"
 
 #ifdef WIN32

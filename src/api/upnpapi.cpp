@@ -56,7 +56,7 @@
 #include "UpnpUniStd.h" /* for close() */
 #include "uuid.h"
 #include "upnp_timeout.h"
-#include "upnputil.h"
+#include "smallut.h"
 
 /* Needed for GENA */
 #include "gena.h"

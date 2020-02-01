@@ -39,7 +39,6 @@
 #include <map>
 #include <string>
 
-#include "upnputil.h"
 #include "statcodes.h"
 
 static const std::map<int, std::string> httpcodes {

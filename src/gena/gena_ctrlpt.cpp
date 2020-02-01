@@ -50,7 +50,6 @@
 #include "uuid.h"
 #include "upnpapi.h"
 #include "upnp_timeout.h"
-#include "upnputil.h"
 #include "smallut.h"
 #include "TimerThread.h"
 
