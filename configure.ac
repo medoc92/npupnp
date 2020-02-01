@@ -28,7 +28,7 @@ AC_SUBST([LT_VERSION_NPUPNP],       [0:0:0])
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
-AC_CONFIG_SRCDIR([upnp/inc/upnp.h])
+AC_CONFIG_SRCDIR([inc/upnp.h])
 
 
 AM_INIT_AUTOMAKE([1.8 -Wall foreign subdir-objects dist-bzip2])
@@ -43,14 +43,14 @@ AC_CANONICAL_HOST
 # There are 3 configuration files :
 # 1) "./autoconfig.h" is auto-generated and used only internally during build
 #    (usually named "config.h" but conflicts with the file below)
-# 2) "./upnp/src/inc/config.h" is static and contains some compile-time 
+# 2) "./src/inc/config.h" is static and contains some compile-time 
 #    parameters. This file was previously in "./upnp/inc" but is no longer 
 #    installed (contains internal definitions only).
-# 3) "./upnp/inc/upnpconfig.h" is auto-generated and installed with the 
+# 3) "./inc/upnpconfig.h" is auto-generated and installed with the 
 #    libraries : it contains information on the configuration of the
 #    installed libraries.
 #
-AC_CONFIG_HEADERS([autoconfig.h upnp/inc/upnpconfig.h])
+AC_CONFIG_HEADERS([autoconfig.h inc/upnpconfig.h])
 AX_SYS_LARGEFILE_SENSITIVE
 
 if test "x$ac_cv_sys_largefile_sensitive" = "xyes"; then
@@ -348,7 +348,6 @@ AC_SUBST(LIBNPUPNP_LIBS)
 
 AC_CONFIG_FILES([
 	Makefile
-	upnp/Makefile
 	libnpupnp.pc
 	])
 
