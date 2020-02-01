@@ -820,12 +820,14 @@ typedef struct Upnp_Subscription_Request UpnpSubscriptionRequest;
 #define UpnpSubscriptionRequest_get_UDN_cstr(x) ((x)->UDN)
 #define UpnpSubscriptionRequest_get_SID_cstr(x) ((x)->Sid)
 
+#ifdef EXTRA_HEADERS_AS_LIST
 struct Extra_Headers
 {
 	char *name;
 	char *value;
 	DOMString resp;
 };
+#endif
 
 struct File_Info
 {
@@ -854,7 +856,13 @@ struct File_Info
 	/** Headers to be modified / added. A modified response must be allocated
 	* by the caller using {\bf ixmlCloneDOMString}.  When finished with it,
 	* the SDK frees all of them. */
+#ifdef EXTRA_HEADERS_AS_LIST
 	struct Extra_Headers *extra_headers;
+#else
+    /* These are set as an strduped string, must be freed when deallocating the 
+       struct */
+    char *extra_headers;
+#endif
 };
 
 /* compat code for libupnp-1.8 */

@@ -69,72 +69,72 @@ libnpupnp_la_SOURCES = \
 if ENABLE_SSDP
 libnpupnp_la_SOURCES += \
 	src/ssdp/ssdp_ResultData.h \
-	src/ssdp/ssdp_device.c \
-	src/ssdp/ssdp_ctrlpt.c \
+	src/ssdp/ssdp_device.cpp \
+	src/ssdp/ssdp_ctrlpt.cpp \
 	src/ssdp/ssdpparser.cpp \
-	src/ssdp/ssdp_server.c
+	src/ssdp/ssdp_server.cpp
 endif
 
 # soap
 if ENABLE_SOAP
 libnpupnp_la_SOURCES += \
-	src/soap/soap_device.c \
-	src/soap/soap_ctrlpt.c
+	src/soap/soap_device.cpp \
+	src/soap/soap_ctrlpt.cpp
 endif
 
 # genlib
 libnpupnp_la_SOURCES += \
-	src/dispatcher/miniserver.c \
+	src/dispatcher/miniserver.cpp \
 	src/utils/description.cpp \
 	src/utils/smallut.cpp \
-	src/utils/util.c \
-	src/utils/sock.c \
-	src/utils/httputils.c \
-	src/utils/statcodes.c \
-	src/webserver/webserver.c \
-	src/utils/uri.c
+	src/utils/util.cpp \
+	src/utils/sock.cpp \
+	src/utils/httputils.cpp \
+	src/utils/statcodes.cpp \
+	src/webserver/webserver.cpp \
+	src/utils/uri.cpp
 
 libnpupnp_la_SOURCES += \
-	src/threadutil/ThreadPool.c \
-	src/threadutil/TimerThread.c
+	src/threadutil/ThreadPool.cpp \
+	src/threadutil/TimerThread.cpp
 
 # gena
 if ENABLE_GENA
 libnpupnp_la_SOURCES += \
-	src/gena/gena_device.c \
-	src/gena/gena_ctrlpt.c \
-	src/gena/service_table.c \
-	src/gena/client_table.c \
-	src/gena/gena_callback2.c
+	src/gena/gena_device.cpp \
+	src/gena/gena_ctrlpt.cpp \
+	src/gena/service_table.cpp \
+	src/gena/client_table.cpp \
+	src/gena/gena_callback2.cpp
 endif
 
 # api
 libnpupnp_la_SOURCES += \
-	src/api/upnpapi.c
+	src/api/upnpapi.cpp
 
 if ENABLE_TOOLS
-libnpupnp_la_SOURCES += src/api/upnptools.c
+libnpupnp_la_SOURCES += src/api/upnptools.cpp
 endif
 
 if ENABLE_DEBUG
-libnpupnp_la_SOURCES += src/api/upnpdebug.c 
+libnpupnp_la_SOURCES += src/api/upnpdebug.cpp 
 endif
 
 
 # uuid
 if ENABLE_UUID
 libnpupnp_la_SOURCES += \
-	src/utils/uuid/md5.c \
-	src/utils/uuid/sysdep.c \
-	src/utils/uuid/uuid.c
+	src/utils/uuid/md5.cpp \
+	src/utils/uuid/sysdep.cpp \
+	src/utils/uuid/uuid.cpp
 endif
 
 
 # inet_pton (needed on Win32, compiles to nothing elsewhere)
 libnpupnp_la_SOURCES += \
-	src/utils/inet_pton.c \
+	src/utils/inet_pton.cpp \
 	src/inc/inet_pton.h
 
 
 EXTRA_DIST = \
-	src/utils/win_dll.c
+	src/utils/win_dll.cpp
