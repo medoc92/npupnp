@@ -231,12 +231,6 @@ extern ThreadPool gRecvThreadPool;
 extern ThreadPool gSendThreadPool;
 extern ThreadPool gMiniServerThreadPool;
 
-class VirtualDirListEntry {
-public:
-	std::string path;
-	const void *cookie;
-};
-extern std::vector<VirtualDirListEntry> virtualDirList;
 extern struct VirtualDirCallbacks virtualDirCallback;
 
 /*!

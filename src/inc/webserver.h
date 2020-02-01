@@ -82,6 +82,11 @@ int web_server_set_localdoc(
 	const std::string& path, const std::string& data, time_t last_modified);
 int web_server_unset_localdoc(const std::string& path);
 
+int web_server_add_virtual_dir(
+	const char *dirname, const void *cookie, const void **oldcookie);
+int web_server_remove_virtual_dir(const char *dirname);
+void web_server_clear_virtual_dirs();
+
 /*!
  * \brief Main entry point into web server; Handles HTTP GET and HEAD
  * requests.

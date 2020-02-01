@@ -97,10 +97,6 @@
 /*! This structure is for virtual directory callbacks */
 struct VirtualDirCallbacks virtualDirCallback;
 
-/*! Virtual directory list. This is used with a linear search by the
-    web server to perform prefix matches. */
-std::vector<VirtualDirListEntry> virtualDirList;
-
 #ifdef INCLUDE_CLIENT_APIS
 /*! Mutex to synchronize the subscription handling at the client side. */
 ithread_mutex_t GlobalClientSubscribeMutex;
@@ -3378,59 +3374,22 @@ int UpnpAddVirtualDir(const char *dirname, const void *cookie,
         /* SDK is not initialized */
         return UPNP_E_FINISH;
     }
-
-    if (dirname == NULL || *dirname == 0) {
-        return UPNP_E_INVALID_PARAM;
-    }
-
-	VirtualDirListEntry entry; 
-    if (*dirname != '/') {
-        if (strlen(dirname) > NAME_SIZE - 2)
-            return UPNP_E_INVALID_PARAM;
-		entry.path = std::string("/") + dirname;
-    } else {
-        if (strlen(dirname) > NAME_SIZE - 1)
-            return UPNP_E_INVALID_PARAM;
-		entry.path = dirname;
-    }
-	auto old = std::find_if(virtualDirList.begin(), virtualDirList.end(),
-							[entry](const VirtualDirListEntry& old) {
-								return entry.path == old.path;
-							});
-	if (old != virtualDirList.end()) {
-		if (oldcookie) {
-			*oldcookie = old->cookie;
-		}
-		*old = entry;
-	} else {
-		virtualDirList.push_back(entry);
-	}
-    return UPNP_E_SUCCESS;
+	return web_server_add_virtual_dir(dirname, cookie, oldcookie);
 }
 
 
-int UpnpRemoveVirtualDir(const char *dirName)
+int UpnpRemoveVirtualDir(const char *dirname)
 {
     if (UpnpSdkInit != 1) {
         return UPNP_E_FINISH;
     }
-    if (dirName == NULL) {
-        return UPNP_E_INVALID_PARAM;
-    }
-	for (auto it = virtualDirList.begin(); it != virtualDirList.end(); it++) {
-        if (it->path == dirName) {
-			virtualDirList.erase(it);
-			return UPNP_E_SUCCESS;
-        }
-    }
-
-	return UPNP_E_INVALID_PARAM;
+	return web_server_remove_virtual_dir(dirname);
 }
 
 
 void UpnpRemoveAllVirtualDirs(void)
 {
-    virtualDirList.clear();
+	web_server_clear_virtual_dirs();
 }
 
 

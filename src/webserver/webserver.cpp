@@ -46,6 +46,8 @@
 
 #include <map>
 #include <iostream>
+#include <algorithm>
+
 #include <inttypes.h>
 
 #include <upnp/ixml.h>
@@ -174,6 +176,15 @@ struct LocalDoc {
 static std::map<std::string, LocalDoc> localDocs;
 
 static ithread_mutex_t gWebMutex;
+
+class VirtualDirListEntry {
+public:
+	std::string path;
+	const void *cookie;
+};
+/* Virtual directory list. This is used with a linear search by the
+   web server to perform prefix matches. */
+static std::vector<VirtualDirListEntry> virtualDirList;
 
 /*!
  * \brief Based on the extension, returns MIME type as malloc'd char*
@@ -309,6 +320,58 @@ int web_server_set_root_dir(const char *root_dir)
 	}
 
 	return 0;
+}
+
+int web_server_add_virtual_dir(
+	const char *dirname, const void *cookie, const void **oldcookie)
+{
+    if (!dirname || !*dirname) {
+        return UPNP_E_INVALID_PARAM;
+    }
+
+	VirtualDirListEntry entry; 
+    if (*dirname != '/') {
+        if (strlen(dirname) > NAME_SIZE - 2)
+            return UPNP_E_INVALID_PARAM;
+		entry.path = std::string("/") + dirname;
+    } else {
+        if (strlen(dirname) > NAME_SIZE - 1)
+            return UPNP_E_INVALID_PARAM;
+		entry.path = dirname;
+    }
+	auto old = std::find_if(virtualDirList.begin(), virtualDirList.end(),
+							[entry](const VirtualDirListEntry& old) {
+								return entry.path == old.path;
+							});
+	if (old != virtualDirList.end()) {
+		if (oldcookie) {
+			*oldcookie = old->cookie;
+		}
+		*old = entry;
+	} else {
+		virtualDirList.push_back(entry);
+	}
+	return UPNP_E_SUCCESS;
+}
+
+int web_server_remove_virtual_dir(const char *dirname)
+{
+    if (dirname == NULL) {
+        return UPNP_E_INVALID_PARAM;
+    }
+	for (auto it = virtualDirList.begin(); it != virtualDirList.end(); it++) {
+        if (it->path == dirname) {
+			virtualDirList.erase(it);
+			return UPNP_E_SUCCESS;
+        }
+    }
+
+	return UPNP_E_INVALID_PARAM;
+}
+
+void web_server_clear_virtual_dirs()
+{
+    virtualDirList.clear();
 }
 
 /*!
