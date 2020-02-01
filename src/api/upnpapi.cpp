@@ -151,9 +151,6 @@ unsigned short LOCAL_PORT_V6;
 #define NUM_HANDLE 200
 static Handle_Info *HandleTable[NUM_HANDLE];
 
-/*! a local dir which serves as webserver root */
-extern std::string gDocumentRootDir;
-
 /*! Maximum content-length (in bytes) that the SDK will process on an incoming
  * packet. Content-Length exceeding this size will be not processed and
  * error 413 (HTTP Error Code) will be returned to the remote end point. */
@@ -1990,6 +1987,49 @@ int UpnpNotify(
     return retVal;
 }
 
+int UpnpNotifyExt(
+	UpnpDevice_Handle Hnd,
+	const char *DevID_const,
+	const char *ServName_const,
+	IXML_Document *PropSet)
+{
+    struct Handle_Info *SInfo = NULL;
+    int retVal;
+    char *DevID = (char *)DevID_const;
+    char *ServName = (char *)ServName_const;
+
+    if( UpnpSdkInit != 1 ) {
+	return UPNP_E_FINISH;
+    }
+
+    UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
+	"Inside UpnpNotify \n" );
+
+    HandleReadLock();
+    switch( GetHandleInfo( Hnd, &SInfo ) ) {
+    case HND_DEVICE:
+	break;
+    default:
+	HandleUnlock();
+	return UPNP_E_INVALID_HANDLE;
+    }
+    if( DevID == NULL ) {
+	HandleUnlock();
+	return UPNP_E_INVALID_PARAM;
+    }
+    if( ServName == NULL ) {
+	HandleUnlock();
+	return UPNP_E_INVALID_PARAM;
+    }
+
+    HandleUnlock();
+    retVal = genaNotifyAllExt( Hnd, DevID, ServName, PropSet );
+
+    UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
+	"Exiting UpnpNotify \n" );
+
+    return retVal;
+}
 
 #endif /* INCLUDE_DEVICE_APIS */
 

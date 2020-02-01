@@ -611,6 +611,41 @@ ExitFunction:
 	return ret;
 }
 
+int genaNotifyAllExt(
+	UpnpDevice_Handle device_handle,
+	char *UDN,
+	char *servId,
+	IXML_Document *PropSet)
+{
+	int ret = GENA_SUCCESS;
+	int line = 0;
+
+	DOMString propertySet = NULL;
+
+	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
+		"GENA BEGIN NOTIFY ALL EXT");
+
+	propertySet = ixmlPrintNode((IXML_Node *)PropSet);
+	if (propertySet == NULL) {
+		line = __LINE__;
+		ret = UPNP_E_INVALID_PARAM;
+		goto ExitFunction;
+	}
+	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
+		"GENERATED PROPERTY SET IN EXT NOTIFY: %s",
+		propertySet);
+
+	ret = genaNotifyAllCommon(device_handle, UDN, servId, propertySet);
+	free(propertySet);
+	
+ExitFunction:
+
+	UpnpPrintf(UPNP_INFO, GENA, __FILE__, line,
+		"GENA END NOTIFY ALL EXT, ret = %d",
+		ret);
+
+	return ret;
+}
 
 int genaNotifyAll(
 	UpnpDevice_Handle device_handle,

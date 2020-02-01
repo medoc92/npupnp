@@ -33,12 +33,10 @@
 /*!
  * \file
  *
- * \brief Defines the Web Server and has functions to carry out
- * operations of the Web Server.
+ * \brief General purpose web server (non-soap/gena/ssdp requests)
  */
 
 #include "config.h"
-
 
 #if EXCLUDE_WEB_SERVER == 0
 
@@ -329,7 +327,8 @@ int web_server_add_virtual_dir(
         return UPNP_E_INVALID_PARAM;
     }
 
-	VirtualDirListEntry entry; 
+	VirtualDirListEntry entry;
+	entry.cookie = cookie;
     if (*dirname != '/') {
         if (strlen(dirname) > NAME_SIZE - 2)
             return UPNP_E_INVALID_PARAM;
@@ -593,6 +592,18 @@ static int process_request(
 			err_code = code;
 			goto error_handler;
 		}
+		std::string qs;
+		if (!mhdt->queryvalues.empty()) {
+			qs = "?";
+			for (const auto& entry : mhdt->queryvalues) {
+				qs += query_encode(entry.first) + "=" +
+					query_encode(entry.second);
+				qs += "&";
+			}
+			qs.pop_back();
+		}
+		std::string bfilename{filename};
+		filename += qs;
 		/* get file info */
 		if (virtualDirCallback.get_info(filename.c_str(), &finfo,
 										entryp->cookie) != 0) {
@@ -602,12 +613,13 @@ static int process_request(
 		/* try index.html if req is a dir */
 		if (finfo.is_directory) {
 			const char *temp_str;
-			if (filename.back() == '/') {
+			if (bfilename.back() == '/') {
 				temp_str = "index.html";
 			} else {
 				temp_str = "/index.html";
 			}
-			filename += temp_str;
+			bfilename += temp_str;
+			filename = bfilename + qs;
 			/* get info */
 			if ((virtualDirCallback.get_info(filename.c_str(), &finfo,
 											 entryp->cookie)
@@ -669,6 +681,8 @@ static int process_request(
 		}
 	}
 	RespInstr->ReadSendSize = finfo.file_length;
+	//std::cerr << "process_request: readsz: " << RespInstr->ReadSendSize <<"\n";
+		
 	/* Check other header field. */
 	if ((code = CheckOtherHTTPHeaders(mhdt, RespInstr, finfo.file_length))
 		!= HTTP_OK) {
@@ -726,11 +740,16 @@ static ssize_t vFileReaderCallback(void *cls, uint64_t pos, char *buf,
 		std::cerr << "vFileReaderCallback: fp is null !\n";
 		return -1;
 	}
+	//std::cerr << "vFileReaderCallback: pos " << pos << " cnt " << max << "\n";
+#if NOT_FOR_GERBERA_IT_LOCKS_UP
 	if (virtualDirCallback.seek(ctx->fp, pos, SEEK_SET, ctx->cookie) !=
 		(int64_t)pos) {
 		return -1;
 	}
+	//std::cerr << "vFileReaderCallback: seek returned\n";
+#endif
 	int ret = virtualDirCallback.read(ctx->fp, buf, max, ctx->cookie);
+	//std::cerr << "vFileReaderCallback: read got " << ret << "\n";
 	return ret;
 }
 

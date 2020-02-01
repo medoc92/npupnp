@@ -433,6 +433,26 @@ std::string get_sdk_info()
 	return ostr.str();
 }
 
+std::string query_encode(const std::string& qs)
+{
+	std::string out;
+    const char *cp = qs.c_str();
+    for (std::string::size_type i = 0; i < qs.size(); i++) {
+        unsigned int c;
+        const char *h = "0123456789ABCDEF";
+        c = cp[i];
+        if ((c >= 'A' && c <= 'Z') ||
+			(c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
+			c == '*' || c == '-' || c== '.' || c == '_') {
+            out += char(c);
+		} else {
+            out += '%';
+            out += h[(c >> 4) & 0xf];
+            out += h[c & 0xf];
+        }
+    }
+    return out;
+}
 
 size_t header_callback_curl(char *buffer, size_t size, size_t nitems, void *s)
 {

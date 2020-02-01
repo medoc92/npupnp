@@ -65,6 +65,8 @@ http_method_t httpmethod_str2enum(const char *methname);
  * always lower-cased, and lower case is expected by the function */
 int httpheader_str2int(const std::string& headername);
 
+std::string query_encode(const std::string& qs);
+
 /* Context for a microhttpd request/response */
 class MHDTransaction {
 public:
@@ -74,6 +76,7 @@ public:
 	http_method_t method;
 	std::string version;
 	std::map<std::string, std::string> headers;
+	std::map<std::string, std::string> queryvalues;
 	std::string postdata;
 	/* Set by callback */
 	struct MHD_Response *response{nullptr};
