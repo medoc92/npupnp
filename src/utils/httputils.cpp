@@ -63,7 +63,6 @@
 #endif
 
 #include "UpnpInet.h"
-#include "UpnpStdInt.h"
 #include "httputils.h"
 #include "smallut.h"
 #include "statcodes.h"

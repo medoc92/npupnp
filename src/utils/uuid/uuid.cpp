@@ -28,7 +28,6 @@
 #include "uuid.h"
 
 #include "UpnpInet.h"
-#include "UpnpStdInt.h"
 
 #include <string.h>
 #include <stdio.h>

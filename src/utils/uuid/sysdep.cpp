@@ -110,7 +110,9 @@ void get_random_info(unsigned char seed[16])
 	MD5Final(seed, &c);
 };
 
-#else /* WIN32 */
+#else /* ! WIN32 -> */
+
+#include <unistd.h>
 
 void get_system_time(uuid_time_t *uuid_time)
 {
@@ -149,4 +151,4 @@ void get_random_info(unsigned char seed[16])
 	MD5Final(seed, &c);
 };
 
-#endif /* WIN32 */
+#endif /* !WIN32 */

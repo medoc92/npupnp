@@ -30,8 +30,6 @@
 /* get MD5 sample implementation from RFC 1321 */
 #include "md5.h"
 
-#include "UpnpStdInt.h"
-
 #include <sys/types.h>
 
 #ifdef WIN32

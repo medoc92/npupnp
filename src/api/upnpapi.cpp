@@ -52,8 +52,6 @@
 #include "soaplib.h"
 #include "sysdep.h"
 #include "ThreadPool.h"
-#include "UpnpStdInt.h"
-#include "UpnpUniStd.h" /* for close() */
 #include "uuid.h"
 #include "upnp_timeout.h"
 #include "smallut.h"
@@ -78,9 +76,10 @@
 #ifdef WIN32
 	/* Do not include these files */
 #else
-	#include <sys/ioctl.h>
-	#include <sys/param.h>
-	#include <sys/types.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <sys/param.h>
+#include <sys/types.h>
 #endif
 
 #ifndef IN6_IS_ADDR_GLOBAL

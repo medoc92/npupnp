@@ -16,7 +16,7 @@
 #define _MD5_H_
 
 #include <stddef.h>
-#include "UpnpStdInt.h"
+#include <stdint.h>
 
 #define	MD5_BLOCK_LENGTH		64
 #define	MD5_DIGEST_LENGTH		16

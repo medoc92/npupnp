@@ -11,9 +11,7 @@ npupnpinclude_HEADERS = \
 	inc/upnp.h \
 	inc/upnpdebug.h \
 	inc/UpnpGlobal.h \
-	inc/UpnpInet.h \
-	inc/UpnpStdInt.h \
-	inc/UpnpUniStd.h
+	inc/UpnpInet.h
 
 nodist_npupnpinclude_HEADERS = inc/upnpconfig.h 
 if ENABLE_TOOLS

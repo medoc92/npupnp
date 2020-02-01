@@ -37,7 +37,6 @@
  */
 
 #include "httputils.h"
-#include "UpnpStdInt.h"
 
 extern SOCKET gMiniServerStopSock;
 

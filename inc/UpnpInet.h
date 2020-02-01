@@ -2,16 +2,9 @@
 #define UPNPINET_H
 
 /*!
- * \addtogroup Sock
- * 
- * @{
- * 
- * \file
- *
- * \brief Provides a platform independent way to include TCP/IP types and functions.
+ * \brief Provides a platform independent way to include TCP/IP types
+ *  and functions.
  */
-
-#include "UpnpUniStd.h" /* for close() */
 
 #ifdef WIN32
 	#include <stdarg.h>

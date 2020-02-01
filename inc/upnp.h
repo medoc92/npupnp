@@ -42,7 +42,6 @@
  */
 
 #include "upnpconfig.h"
-#include "UpnpGlobal.h"
 #include "UpnpInet.h"
 #include <upnp/ixml.h>
 
