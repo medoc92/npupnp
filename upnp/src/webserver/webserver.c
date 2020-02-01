@@ -373,6 +373,7 @@ static int CheckOtherHTTPHeaders(
 	return HTTP_OK;
 }
 
+#ifdef EXTRA_HEADERS_AS_LIST
 /*!
  * \brief Build an array of unrecognized headers.
  *
@@ -416,7 +417,6 @@ static int ExtraHTTPHeaders(MHDTransaction *mhdt,
 	extra_headers->name = extra_headers->value = extra_headers->resp = NULL;
 	return HTTP_OK;
 }
-
 static void FreeExtraHTTPHeaders(
 	/*! [in] extra HTTP headers to free. */
 	struct Extra_Headers *ExtraHeaders)
@@ -436,6 +436,19 @@ static void FreeExtraHTTPHeaders(
 
 	free(ExtraHeaders);
 }
+#else
+static int ExtraHTTPHeaders(MHDTransaction *, char **ExtraHeaders)
+{
+    *ExtraHeaders = nullptr;
+    return HTTP_OK;
+}
+static void FreeExtraHTTPHeaders(char *extraheaders)
+{
+    if (extraheaders)
+        free(extraheaders);
+}
+#endif
+
 
 /*!
  * \brief Processes the request and returns the result in the output parameters.
@@ -465,7 +478,6 @@ static int process_request(
 	char *request_doc = NULL;
 	struct File_Info finfo;
 	size_t dummy;
-	struct Extra_Headers *extra_headers = NULL;
 	LocalDoc localdoc;
 	
 	assert(mhdt->method == HTTPMETHOD_GET ||
@@ -480,7 +492,6 @@ static int process_request(
 	/* init */
 	memset(&finfo, 0, sizeof(finfo));
 	request_doc = NULL;
-	finfo.content_type = NULL;
 	err_code = HTTP_INTERNAL_SERVER_ERROR;	/* default error */
 	const VirtualDirListEntry *entryp{nullptr};
 	
@@ -517,12 +528,11 @@ static int process_request(
 		*rtype = RESP_WEBDOC;
 		RespInstr->cookie = entryp->cookie;
 		filename = request_doc;
-		if ((code = ExtraHTTPHeaders(mhdt, &extra_headers)) != HTTP_OK) {
+		if ((code = ExtraHTTPHeaders(mhdt, &finfo.extra_headers)) != HTTP_OK) {
 			err_code = code;
 			goto error_handler;
 		}
 		/* get file info */
-		finfo.extra_headers = extra_headers;
 		if (virtualDirCallback.get_info(filename.c_str(), &finfo,
 										entryp->cookie) != 0) {
 			err_code = HTTP_NOT_FOUND;
@@ -633,7 +643,7 @@ static int process_request(
 
  error_handler:
 	free(request_doc);
-	FreeExtraHTTPHeaders(extra_headers);
+	FreeExtraHTTPHeaders(finfo.extra_headers);
 	ixmlFreeDOMString(finfo.content_type);
 
 	return err_code;
