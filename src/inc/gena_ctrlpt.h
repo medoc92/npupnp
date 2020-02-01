@@ -32,8 +32,6 @@
 #ifndef GENA_CTRLPT_H
 #define GENA_CTRLPT_H
 
-#include "sock.h"
-
 struct MHDTransaction;
 
 /*!

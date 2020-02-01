@@ -39,10 +39,8 @@
 #include "httputils.h"
 
 
-#include <assert.h>
 #include <ctype.h>
 #include <limits.h>
-#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
@@ -57,13 +55,10 @@
 
 #ifdef WIN32
 #include <malloc.h>
-#define fseeko fseek
-#define snprintf _snprintf
 #else
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/time.h>
-#include <sys/wait.h>
 #include <sys/utsname.h>
 #endif
 
@@ -71,7 +66,6 @@
 #include "UpnpStdInt.h"
 #include "httputils.h"
 #include "smallut.h"
-#include "sock.h"
 #include "statcodes.h"
 #include "upnp.h"
 #include "upnpapi.h"
@@ -312,7 +306,6 @@ int http_Download(const char *url_str,
  * Function: http_SendStatusResponse
  *
  * Parameters:
- *	IN SOCKINFO *info;		Socket information object
  *	IN int http_status_code;	error code returned while making 
  *					or sending the response message
  *	IN int request_major_version;	request major version

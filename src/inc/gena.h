@@ -51,7 +51,6 @@
 #include "httputils.h"
 #include "miniserver.h"
 #include "service_table.h"
-#include "sock.h"
 #include "ThreadPool.h"
 #include "upnp.h"
 

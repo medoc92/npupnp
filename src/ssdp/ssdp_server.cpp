@@ -52,7 +52,6 @@
 #include "ssdpparser.h"
 #include "httputils.h"
 #include "miniserver.h"
-#include "sock.h"
 #include "ThreadPool.h"
 #include "upnpapi.h"
 #include "smallut.h"
@@ -73,6 +72,22 @@ enum Listener {
 	Stopping,
 	Running
 };
+
+static int sock_make_no_blocking(SOCKET sock)
+{
+#ifdef WIN32
+	u_long val = 1;
+	return ioctlsocket(sock, FIONBIO, &val);
+#else /* WIN32 */
+	int val;
+
+	val = fcntl(sock, F_GETFL, 0);
+	if (fcntl(sock, F_SETFL, val | O_NONBLOCK) == -1) {
+		return -1;
+	}
+#endif /* WIN32 */
+	return 0;
+}
 
 #ifdef INCLUDE_DEVICE_APIS
 static const char SERVICELIST_STR[] = "serviceList";

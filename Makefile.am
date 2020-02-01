@@ -49,7 +49,6 @@ libnpupnp_la_SOURCES = \
 	src/inc/service_table.h \
 	src/inc/smallut.h \
 	src/inc/soaplib.h \
-	src/inc/sock.h \
 	src/inc/ssdplib.h \
 	src/inc/ssdpparser.h \
 	src/inc/statcodes.h \
@@ -83,7 +82,6 @@ libnpupnp_la_SOURCES += \
 	src/dispatcher/miniserver.cpp \
 	src/utils/description.cpp \
 	src/utils/smallut.cpp \
-	src/utils/sock.cpp \
 	src/utils/httputils.cpp \
 	src/utils/statcodes.cpp \
 	src/webserver/webserver.cpp \

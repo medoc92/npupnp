@@ -36,7 +36,6 @@
  * \file
  */
 
-#include "sock.h"
 #include "httputils.h"
 #include "UpnpStdInt.h"
 
