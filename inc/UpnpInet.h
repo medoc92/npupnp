@@ -24,8 +24,16 @@
 	#else
 		typedef ADDRESS_FAMILY sa_family_t;
 	#endif
+    #define UPNP_SOCK_GET_LAST_ERROR() WSAGetLastError()
 
-#else /* WIN32 */
+#else /* ! WIN32 -> */
+	#include <syslog.h>
+	#ifndef __APPLE__
+		#include <netinet/in_systm.h>
+		#include <netinet/ip.h>
+		#include <netinet/ip_icmp.h>
+	#endif /* __APPLE__ */
+	#include <sys/time.h>
 	#include <sys/param.h>
 	#if defined(__sun)
 		#include <fcntl.h>
@@ -50,6 +58,8 @@
 
 	/*! select() returns SOCKET_ERROR on win32. */
 	#define SOCKET_ERROR (-1)
+
+    #define UPNP_SOCK_GET_LAST_ERROR() errno
 
 	/*! Alias to close() to make code more WIN32 tolerant. */
 	#define UpnpCloseSocket close

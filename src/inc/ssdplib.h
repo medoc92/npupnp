@@ -33,14 +33,6 @@
  *
  **************************************************************************/
 
-/*!
- * \defgroup SSDPlib SSDP Library
- *
- * @{
- *
- * \file
- */
-
 #include "upnp.h"
 #include "ssdpparser.h"
 #include "httputils.h"
@@ -52,17 +44,6 @@
 #include <setjmp.h>
 #include <errno.h>
 #include <string>
-
-#ifdef WIN32
-#else /* WIN32 */
-	#include <syslog.h>
-	#ifndef __APPLE__
-		#include <netinet/in_systm.h>
-		#include <netinet/ip.h>
-		#include <netinet/ip_icmp.h>
-	#endif /* __APPLE__ */
-	#include <sys/time.h>
-#endif /* WIN32 */
 
 /*! Enumeration to define all different types of ssdp searches */
 typedef enum SsdpSearchType {

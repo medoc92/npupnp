@@ -30,19 +30,6 @@
  *
  **************************************************************************/
 
-/*!
- * \addtogroup SSDPlib
- *
- * @{
- * 
- * \file
- */
-
-#ifndef WIN32
-#include <sys/param.h>
-#else
-#define snprintf _snprintf
-#endif /* WIN32 */
 
 #include "config.h"
 

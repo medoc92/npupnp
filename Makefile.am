@@ -114,12 +114,6 @@ libnpupnp_la_SOURCES += src/api/upnpdebug.cpp
 endif
 
 
-# inet_pton (needed on Win32, compiles to nothing elsewhere)
-libnpupnp_la_SOURCES += \
-	src/utils/inet_pton.cpp \
-	src/inc/inet_pton.h
-
-
 EXTRA_DIST = \
 	libnpupnp.pc.in \
 	README.md \

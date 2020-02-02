@@ -50,7 +50,6 @@
 #include "httputils.h"
 #include "ssdplib.h"
 #include "soaplib.h"
-#include "sysdep.h"
 #include "ThreadPool.h"
 #include "upnp_timeout.h"
 #include "smallut.h"

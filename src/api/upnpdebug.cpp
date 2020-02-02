@@ -189,12 +189,7 @@ static void UpnpDisplayFileAndLine(
 	strftime(timebuf, 26, "%Y-%m-%d %H:%M:%S", timeinfo);
 
 	fprintf(fp, "%s UPNP-%s-%s: Thread:0x%lX [%s:%d]: ", timebuf, smod, slev,
-#ifdef _WIN32
-		(unsigned long int)ithread_self().p
-#else
-		(unsigned long int)ithread_self()
-#endif
-	, DbgFileName, DbgLineNo);
+			ithread_ulong_self(), DbgFileName, DbgLineNo);
 	fflush(fp);
 }
 

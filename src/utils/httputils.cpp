@@ -37,11 +37,12 @@
 #include "config.h"
 
 #include "httputils.h"
-
+#include "UpnpInet.h"
 
 #include <ctype.h>
 #include <limits.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
 
@@ -52,15 +53,6 @@
 #include <map>
 
 #include <curl/curl.h>
-
-#ifdef WIN32
-#include <malloc.h>
-#else
-#include <arpa/inet.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/utsname.h>
-#endif
 
 #include "UpnpInet.h"
 #include "httputils.h"
@@ -145,20 +137,6 @@ int httpheader_str2int(const std::string& headername)
  */
 #define CHUNK_HEADER_SIZE (size_t)10
 #define CHUNK_TAIL_SIZE (size_t)10
-
-#ifdef WIN32
-struct tm *http_gmtime_r(const time_t *clock, struct tm *result)
-{
-	if (clock == NULL || *clock < 0 || result == NULL)
-		return NULL;
-
-	/* gmtime in VC runtime is thread safe. */
-	*result = *gmtime(clock);
-	return result;
-}
-#else
-#define http_gmtime_r gmtime_r
-#endif
 
 int http_FixUrl(uri_type *url, uri_type *fixed_url)
 {
@@ -372,27 +350,6 @@ bool timeout_header_value(std::map<std::string, std::string>& headers,
 	return true;
 }
 
-std::string make_date_string(time_t thetime)
-{
-	const char *weekday_str = "Sun\0Mon\0Tue\0Wed\0Thu\0Fri\0Sat";
-	const char *month_str = "Jan\0Feb\0Mar\0Apr\0May\0Jun\0"
-	    "Jul\0Aug\0Sep\0Oct\0Nov\0Dec";
-
-	time_t curr_time = thetime ? thetime : time(NULL);
-	struct tm date_storage;
-	struct tm *date = http_gmtime_r(&curr_time, &date_storage);
-	if (date == NULL)
-		return std::string();
-	char tempbuf[200];
-	snprintf(tempbuf, sizeof(tempbuf),
-			 "%s, %02d %s %d %02d:%02d:%02d GMT",
-			 &weekday_str[date->tm_wday * 4],
-			 date->tm_mday, &month_str[date->tm_mon * 4],
-			 date->tm_year + 1900, date->tm_hour,
-			 date->tm_min, date->tm_sec);
-	return tempbuf;
-}
-
 /************************************************************************
  * Function: get_sdk_info
  *
@@ -406,7 +363,25 @@ std::string make_date_string(time_t thetime)
  * Return:
  *	UPNP_INLINE void
  ************************************************************************/
-#include <sstream>
+
+#ifdef WIN32
+struct tm *http_gmtime_r(const time_t *clock, struct tm *result)
+{
+	if (clock == NULL || *clock < 0 || result == NULL)
+		return NULL;
+
+	/* gmtime in VC runtime is thread safe. */
+	*result = *gmtime(clock);
+	return result;
+}
+
+#else /* !WIN32 */
+
+#include <sys/utsname.h>
+#define http_gmtime_r gmtime_r
+
+#endif
+
 std::string get_sdk_info()
 {
 	std::ostringstream ostr;
@@ -431,6 +406,27 @@ std::string get_sdk_info()
 #endif
 #endif /* UPNP_ENABLE_UNSPECIFIED_SERVER */
 	return ostr.str();
+}
+
+std::string make_date_string(time_t thetime)
+{
+	const char *weekday_str = "Sun\0Mon\0Tue\0Wed\0Thu\0Fri\0Sat";
+	const char *month_str = "Jan\0Feb\0Mar\0Apr\0May\0Jun\0"
+	    "Jul\0Aug\0Sep\0Oct\0Nov\0Dec";
+
+	time_t curr_time = thetime ? thetime : time(NULL);
+	struct tm date_storage;
+	struct tm *date = http_gmtime_r(&curr_time, &date_storage);
+	if (date == NULL)
+		return std::string();
+	char tempbuf[200];
+	snprintf(tempbuf, sizeof(tempbuf),
+			 "%s, %02d %s %d %02d:%02d:%02d GMT",
+			 &weekday_str[date->tm_wday * 4],
+			 date->tm_mday, &month_str[date->tm_mon * 4],
+			 date->tm_year + 1900, date->tm_hour,
+			 date->tm_min, date->tm_sec);
+	return tempbuf;
 }
 
 std::string query_encode(const std::string& qs)

@@ -244,7 +244,6 @@ STATIC_FOR_C UPNP_INLINE int ithread_initialize_thread(void) {
 	return ret;
 }
 
-
 /****************************************************************************
  * Function: ithread_cleanup_thread
  *
@@ -859,6 +858,14 @@ STATIC_FOR_C UPNP_INLINE int ithread_cleanup_thread(void) {
    ***************************************************************************/
 #define ithread_self pthread_self
 
+STATIC_FOR_C UPNP_INLINE unsigned long ithread_ulong_self()
+{
+#ifdef _WIN32
+	return (unsigned long int)ithread_self().p;
+#else
+	return (unsigned long int)ithread_self();
+#endif
+}
 
   /****************************************************************************
    * Function: ithread_detach

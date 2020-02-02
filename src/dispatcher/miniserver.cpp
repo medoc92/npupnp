@@ -55,6 +55,7 @@
 #include "ThreadPool.h"
 #include "upnpapi.h"
 #include "smallut.h"
+#include "uri.h"
 
 #include <assert.h>
 #include <errno.h>
@@ -581,11 +582,7 @@ if (out->miniServerSock4 != INVALID_SOCKET) {
             out->miniServerSock4,
             (struct sockaddr *)serverAddr4, sizeof(*serverAddr4));
         if (sockError == SOCKET_ERROR) {
-#ifdef _WIN32
-            errCode = WSAGetLastError();
-#else
-            errCode = errno;
-#endif
+			errCode = UPNP_SOCK_GET_LAST_ERROR();
             if (errno == EADDRINUSE) {
                 errCode = 1;
             }
@@ -611,11 +608,7 @@ if (out->miniServerSock6 != INVALID_SOCKET) {
             out->miniServerSock6,
             (struct sockaddr *)serverAddr6,sizeof(*serverAddr6));
         if (sockError == SOCKET_ERROR) {
-#ifdef _WIN32
-            errCode = WSAGetLastError();
-#else
-            errCode = errno; 
-#endif
+			errCode = UPNP_SOCK_GET_LAST_ERROR();
             if (errno == EADDRINUSE) {
                 errCode = 1;
             }

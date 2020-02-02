@@ -59,11 +59,6 @@ nnn * Redistribution and use in source and binary forms, with or without
 #include "ThreadPool.h"
 #include "smallut.h"
 
-#ifdef WIN32
-#include <string.h>
-#define snprintf _snprintf
-#endif /* WIN32 */
-
 /*!
  * \brief Sends a callback to the control point application with a SEARCH
  * result.

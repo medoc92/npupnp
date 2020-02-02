@@ -45,22 +45,6 @@
 #include "UpnpInet.h"
 #include <upnp/ixml.h>
 
-
-/*
- * \todo Document the exact reason of these include files and solve this
- * include mess in an include file like UpnpTime.h
- */
-#ifdef WIN32
-	#include <time.h>
-	#ifndef UPNP_USE_MSVCPP
-		#include <sys/types.h>	/* needed for off_t */
-	#endif
-#elif (defined(BSD) && BSD >= 199306)
-	#include <time.h>
-#else
-	/* Other systems ??? */
-#endif
-
 #define LINE_SIZE  (size_t)180
 #define NAME_SIZE  (size_t)256
 #define UPNP_INFINITE		-1

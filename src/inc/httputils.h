@@ -38,7 +38,7 @@
 
 #include <microhttpd.h>
 
-#include "uri.h"
+struct uri_type;
 
 /*! timeout in secs. */
 #define HTTP_DEFAULT_TIMEOUT	30

@@ -46,7 +46,6 @@
 #include "gena.h"
 #include "httputils.h"
 #include "statcodes.h"
-#include "sysdep.h"
 #include "upnpapi.h"
 #include "upnp_timeout.h"
 #include "smallut.h"

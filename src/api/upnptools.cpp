@@ -33,32 +33,21 @@
 
 #include "config.h"
 
-
-/*!
- * \file
- */
-
-
 #if EXCLUDE_DOM == 0
 
 #include <upnp/ixml.h>
 #include "upnp.h"
 #include "upnptools.h"
-
-
 #include "uri.h"
 
-
+#include <string>
+#include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
 
 
 /*! Maximum action header buffer length. */
 #define HEADER_LENGTH 2000
-
-#ifdef WIN32
-	#define snprintf _snprintf
-#endif
 
 /*!
  * \brief Structure to maintain a error code and string associated with the
