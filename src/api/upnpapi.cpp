@@ -52,12 +52,12 @@
 #include "soaplib.h"
 #include "sysdep.h"
 #include "ThreadPool.h"
-#include "uuid.h"
 #include "upnp_timeout.h"
 #include "smallut.h"
 
 /* Needed for GENA */
 #include "gena.h"
+#include "gena_sids.h"
 #include "miniserver.h"
 #include "service_table.h"
 
@@ -105,9 +105,6 @@ ithread_mutex_t GlobalClientSubscribeMutex;
 /*! rwlock to synchronize handles (root device or control point handle). */
 ithread_rwlock_t GlobalHndRWLock;
 
-
-/*! Mutex to synchronize the uuid creation process. */
-ithread_mutex_t gUUIDMutex;
 
 /*! Initialization mutex. */
 ithread_mutex_t gSDKInitMutex = PTHREAD_MUTEX_INITIALIZER;
@@ -269,9 +266,6 @@ static int UpnpInitMutexes(void)
 		return UPNP_E_INIT_FAILED;
 	}
 
-	if (ithread_mutex_init(&gUUIDMutex, NULL) != 0) {
-		return UPNP_E_INIT_FAILED;
-	}
 	/* initialize subscribe mutex. */
 #ifdef INCLUDE_CLIENT_APIS
 	if (ithread_mutex_init(&GlobalClientSubscribeMutex, NULL) != 0) {
@@ -340,9 +334,6 @@ static int UpnpInitPreamble(void)
 {
 	int retVal = UPNP_E_SUCCESS;
 	int i;
-#ifdef UPNP_HAVE_OPTSSDP
-	uuid_upnp nls_uuid;
-#endif /* UPNP_HAVE_OPTSSDP */
 
 	retVal = WinsockInit();
 	if (retVal != UPNP_E_SUCCESS) {
@@ -369,8 +360,9 @@ static int UpnpInitPreamble(void)
 
 #ifdef UPNP_HAVE_OPTSSDP
 	/* Create the NLS uuid. */
-	uuid_create(&nls_uuid);
-	uuid_unpack(&nls_uuid, gUpnpSdkNLSuuid);
+	// The gena sid generator is quite ok for this.
+	snprintf(gUpnpSdkNLSuuid, sizeof(gUpnpSdkNLSuuid),
+			 "uuid:%s", gena_sid_uuid().c_str());
 #endif /* UPNP_HAVE_OPTSSDP */
 
 	/* Initializes the handle list. */
@@ -652,7 +644,6 @@ int UpnpFinish(void)
 	ithread_mutex_destroy(&GlobalClientSubscribeMutex);
 #endif
 	ithread_rwlock_destroy(&GlobalHndRWLock);
-	ithread_mutex_destroy(&gUUIDMutex);
 	/* remove all virtual dirs */
 	UpnpRemoveAllVirtualDirs();
 	UpnpSdkInit = 0;

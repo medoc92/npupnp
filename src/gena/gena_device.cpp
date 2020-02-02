@@ -46,7 +46,7 @@
 #include "httputils.h"
 #include "statcodes.h"
 #include "upnpapi.h"
-#include "uuid.h"
+#include "gena_sids.h"
 #include "smallut.h"
 
 #define STALE_JOBID (INVALID_JOB_ID -1)
@@ -739,11 +739,9 @@ static int create_url_list(const std::string& url_list,
 void gena_process_subscription_request(MHDTransaction *mhdt)
 {
 	struct Upnp_Subscription_Request request_struct;
-	Upnp_SID temp_sid;
 	int return_code = 1;
 	int time_out = 1801;
 	service_info *service;
-	uuid_upnp uid;
 	struct Handle_Info *handle_info;
 	void *cookie;
 	Upnp_FunPtr callback_fun;
@@ -856,9 +854,7 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
 	}
 
 	/* generate SID */
-	uuid_create(&uid);
-	uuid_unpack(&uid, temp_sid);
-	rc = snprintf(sub->sid, sizeof(sub->sid), "uuid:%s", temp_sid);
+	rc = snprintf(sub->sid, sizeof(sub->sid),"uuid:%s", gena_sid_uuid().c_str());
 
 	/* respond OK */
 	if (rc < 0 || (unsigned int) rc >= sizeof(sub->sid) ||

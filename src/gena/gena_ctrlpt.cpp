@@ -47,11 +47,11 @@
 #include "httputils.h"
 #include "statcodes.h"
 #include "sysdep.h"
-#include "uuid.h"
 #include "upnpapi.h"
 #include "upnp_timeout.h"
 #include "smallut.h"
 #include "TimerThread.h"
+#include "gena_sids.h"
 
 extern ithread_mutex_t GlobalClientSubscribeMutex;
 extern TimerThread *gTimerThread;
@@ -480,16 +480,9 @@ int genaSubscribe(
 {
 	int return_code = GENA_SUCCESS;
 	ClientSubscription newSubscription;
-	uuid_upnp uid;
-	Upnp_SID temp_sid;
-	Upnp_SID temp_sid2;
 	std::string ActualSID;
 	std::string EventURL;
 	struct Handle_Info *handle_info;
-	int rc = 0;
-
-	memset(temp_sid, 0, sizeof(temp_sid));
-	memset(temp_sid2, 0, sizeof(temp_sid2));
 
 	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__, "GENA SUBSCRIBE BEGIN\n");
 
@@ -521,14 +514,7 @@ int genaSubscribe(
 	}
 
 	/* generate client SID */
-	uuid_create(&uid );
-	uuid_unpack(&uid, temp_sid);
-	rc = snprintf(temp_sid2, sizeof(temp_sid2), "uuid:%s", temp_sid);
-	if (rc < 0 || (unsigned int) rc >= sizeof(temp_sid2)) {
-		return_code = UPNP_E_OUTOF_MEMORY;
-		goto error_handler;
-	}
-	out_sid->assign(temp_sid2);
+	out_sid->assign(std::string("uuid:") + gena_sid_uuid());
 
 	/* create event url */
 	EventURL = PublisherURL;

@@ -40,6 +40,7 @@ libnpupnp_la_SOURCES = \
 	src/inc/gena.h \
 	src/inc/gena_ctrlpt.h \
 	src/inc/gena_device.h \
+	src/inc/gena_sids.h \
 	src/inc/httputils.h \
 	src/inc/ithread.h \
 	src/inc/md5.h \
@@ -55,7 +56,6 @@ libnpupnp_la_SOURCES = \
 	src/inc/upnp_timeout.h \
 	src/inc/upnpapi.h \
 	src/inc/uri.h \
-	src/inc/uuid.h \
 	src/inc/webserver.h
 
 # ssdp
@@ -83,6 +83,7 @@ libnpupnp_la_SOURCES += \
 	src/utils/httputils.cpp \
 	src/utils/statcodes.cpp \
 	src/webserver/webserver.cpp \
+	src/utils/md5.cpp \
 	src/utils/uri.cpp
 
 libnpupnp_la_SOURCES += \
@@ -94,6 +95,7 @@ if ENABLE_GENA
 libnpupnp_la_SOURCES += \
 	src/gena/gena_device.cpp \
 	src/gena/gena_ctrlpt.cpp \
+	src/gena/gena_sids.cpp \
 	src/gena/service_table.cpp \
 	src/gena/client_table.cpp \
 	src/gena/gena_callback2.cpp
@@ -109,15 +111,6 @@ endif
 
 if ENABLE_DEBUG
 libnpupnp_la_SOURCES += src/api/upnpdebug.cpp 
-endif
-
-
-# uuid
-if ENABLE_UUID
-libnpupnp_la_SOURCES += \
-	src/utils/uuid/md5.cpp \
-	src/utils/uuid/sysdep.cpp \
-	src/utils/uuid/uuid.cpp
 endif
 
 
