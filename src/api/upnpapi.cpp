@@ -30,19 +30,13 @@
  *
  ******************************************************************************/
 
-/*!
- * \addtogroup UPnPAPI
- * 
- * @{
- * 
- * \file
- */
-
 #include "config.h"
 
 #include <string>
 #include <algorithm>
 #include <sstream>
+#include <vector>
+#include <utility>
 
 #include <upnp/ixml.h>
 
@@ -73,7 +67,7 @@
 #include <string.h>
 
 #ifdef WIN32
-	/* Do not include these files */
+/* Do not include these files */
 #else
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -82,15 +76,15 @@
 #endif
 
 #ifndef IN6_IS_ADDR_GLOBAL
-#define IN6_IS_ADDR_GLOBAL(a) \
-		((((__const uint32_t *) (a))[0] & htonl((uint32_t)0x70000000)) \
-		== htonl ((uint32_t)0x20000000))
+#define IN6_IS_ADDR_GLOBAL(a)										\
+	((((__const uint32_t *) (a))[0] & htonl((uint32_t)0x70000000))	\
+	 == htonl ((uint32_t)0x20000000))
 #endif /* IS ADDR GLOBAL */
 
 #ifndef IN6_IS_ADDR_ULA
-#define IN6_IS_ADDR_ULA(a) \
-		((((__const uint32_t *) (a))[0] & htonl((uint32_t)0xfe000000)) \
-		== htonl ((uint32_t)0xfc000000))
+#define IN6_IS_ADDR_ULA(a)											\
+	((((__const uint32_t *) (a))[0] & htonl((uint32_t)0xfe000000))	\
+	 == htonl ((uint32_t)0xfc000000))
 #endif /* IS ADDR ULA */
 
 /*! This structure is for virtual directory callbacks */
@@ -112,13 +106,16 @@ ithread_mutex_t gSDKInitMutex = PTHREAD_MUTEX_INITIALIZER;
 ThreadPool gSendThreadPool;
 /*! Global timer thread. */
 TimerThread *gTimerThread;
-
 /*! Receive thread pool. */
 ThreadPool gRecvThreadPool;
-
 /*! Mini server thread pool. */
 ThreadPool gMiniServerThreadPool;
-
+static std::vector<std::pair<ThreadPool *, const char *> > o_threadpools{
+	{&gSendThreadPool, "Send thread pool"},
+	{&gRecvThreadPool, "Receive thread pool"},
+	{&gMiniServerThreadPool, "Mini server thread pool"}
+};
+																 
 /*! Flag to indicate the state of web server */
 WebServerState bWebServerState = WEB_SERVER_DISABLED;
 
@@ -143,7 +140,7 @@ unsigned short LOCAL_PORT_V4;
 /*! local IPv6 port for the mini-server */
 unsigned short LOCAL_PORT_V6;
 
-/*! UPnP device and control point handle table  */
+/*! UPnP device and control point handle table	*/
 #define NUM_HANDLE 200
 static Handle_Info *HandleTable[NUM_HANDLE];
 
@@ -153,19 +150,19 @@ static Handle_Info *HandleTable[NUM_HANDLE];
 size_t g_maxContentLength = DEFAULT_SOAP_CONTENT_LENGTH;
 
 /*! Global variable to determines the maximum number of
- *  events which can be queued for a given subscription before events begin
- *  to be discarded. This limits the amount of memory used for a
- *  non-responding subscribed entity. */
+ *	events which can be queued for a given subscription before events begin
+ *	to be discarded. This limits the amount of memory used for a
+ *	non-responding subscribed entity. */
 int g_UpnpSdkEQMaxLen = MAX_SUBSCRIPTION_QUEUED_EVENTS;
 
 /*! Global variable to determine the maximum number of 
- *  seconds which an event can spend on a subscription queue (waiting for the 
- *  event at the head of the queue to be communicated). This parameter will 
- *  have no effect in most situations with the default (low) value of 
- *  MAX_SUBSCRIPTION_QUEUED_EVENTS. However, if MAX_SUBSCRIPTION_QUEUED_EVENTS 
- *  is set to a high value, the AGE parameter will allow pruning the queue in 
- *  good conformance with the UPnP Device Architecture standard, at the 
- *  price of higher potential memory use. */
+ *	seconds which an event can spend on a subscription queue (waiting for the 
+ *	event at the head of the queue to be communicated). This parameter will 
+ *	have no effect in most situations with the default (low) value of 
+ *	MAX_SUBSCRIPTION_QUEUED_EVENTS. However, if MAX_SUBSCRIPTION_QUEUED_EVENTS 
+ *	is set to a high value, the AGE parameter will allow pruning the queue in 
+ *	good conformance with the UPnP Device Architecture standard, at the 
+ *	price of higher potential memory use. */
 int g_UpnpSdkEQMaxAge = MAX_SUBSCRIPTION_EVENT_AGE;
 
 /*! Global variable to denote the state of Upnp SDK == 0 if uninitialized,
@@ -223,7 +220,7 @@ static int WinsockInit(void)
 	err = WSAStartup(wVersionRequested, &wsaData);
 	if (err != 0) {
 		/* Tell the user that we could not find a usable */
-		/* WinSock DLL.                                  */
+		/* WinSock DLL.									 */
 		retVal = UPNP_E_INIT_FAILED;
 		goto exit_function;
 	}
@@ -233,7 +230,7 @@ static int WinsockInit(void)
 	 * 2.2 in wVersion since that is the version we
 	 * requested. */
 	if (LOBYTE(wsaData.wVersion) != 2 ||
-	    HIBYTE(wsaData.wVersion) != 2) {
+		HIBYTE(wsaData.wVersion) != 2) {
 		/* Tell the user that we could not find a usable
 		 * WinSock DLL. */
 		WSACleanup();
@@ -252,7 +249,7 @@ exit_function:
  * \brief Initializes the global mutexes used by the UPnP SDK.
  *
  * \return UPNP_E_SUCCESS on success or UPNP_E_INIT_FAILED if a mutex could not
- * 	be initialized.
+ *	be initialized.
  */
 static int UpnpInitMutexes(void)
 {
@@ -279,7 +276,7 @@ static int UpnpInitMutexes(void)
  * \brief Initializes the global threadm pools used by the UPnP SDK.
  *
  * \return UPNP_E_SUCCESS on success or UPNP_E_INIT_FAILED if a mutex could not
- * 	be initialized.
+ *	be initialized.
  */
 static int UpnpInitThreadPools(void)
 {
@@ -293,27 +290,17 @@ static int UpnpInitThreadPools(void)
 	TPAttrSetIdleTime(&attr, THREAD_IDLE_TIME);
 	TPAttrSetMaxJobsTotal(&attr, MAX_JOBS_TOTAL);
 
-	if (ThreadPoolInit(&gSendThreadPool, &attr) != UPNP_E_SUCCESS) {
-		ret = UPNP_E_INIT_FAILED;
-		goto exit_function;
+	for (const auto& entry : o_threadpools) {
+		if (ThreadPoolInit(entry.first, &attr) != UPNP_E_SUCCESS) {
+			ret = UPNP_E_INIT_FAILED;
+			break;
+		}
 	}
 
-	if (ThreadPoolInit(&gRecvThreadPool, &attr) != UPNP_E_SUCCESS) {
-		ret = UPNP_E_INIT_FAILED;
-		goto exit_function;
-	}
-
-	if (ThreadPoolInit(&gMiniServerThreadPool, &attr) != UPNP_E_SUCCESS) {
-		ret = UPNP_E_INIT_FAILED;
-		goto exit_function;
-	}
-
-exit_function:
 	if (ret != UPNP_E_SUCCESS) {
 		UpnpSdkInit = 0;
 		UpnpFinish();
 	}
-
 	return ret;
 }
 
@@ -405,8 +392,8 @@ static int UpnpInitPreamble(void)
  *	\li The MiniServer is started, if enabled.
  *	\li The WebServer is started, if enabled.
  * 
- * \return UPNP_E_SUCCESS on success or  UPNP_E_INIT_FAILED if a mutex could not
- * 	be initialized.
+ * \return UPNP_E_SUCCESS on success or	 UPNP_E_INIT_FAILED if a mutex could not
+ *	be initialized.
  */
 static int UpnpInitStartServers(
 	/*! [in] Local Port to listen for incoming connections. */
@@ -417,7 +404,7 @@ static int UpnpInitStartServers(
 #endif
 
 	UpnpPrintf( UPNP_INFO, API, __FILE__, __LINE__,
-		"Entering UpnpInitStartServers\n" );
+				"Entering UpnpInitStartServers\n" );
 
 #if EXCLUDE_MINISERVER == 0
 	LOCAL_PORT_V4 = DestPort;
@@ -425,7 +412,7 @@ static int UpnpInitStartServers(
 	retVal = StartMiniServer(&LOCAL_PORT_V4, &LOCAL_PORT_V6);
 	if (retVal != UPNP_E_SUCCESS) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-			"Miniserver failed to start");
+				   "Miniserver failed to start");
 		UpnpFinish();
 		return retVal;
 	}
@@ -440,7 +427,7 @@ static int UpnpInitStartServers(
 #endif
 
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-		"Exiting UpnpInitStartServers\n");
+			   "Exiting UpnpInitStartServers\n");
 
 	return UPNP_E_SUCCESS;
 }
@@ -468,8 +455,8 @@ static int upnpInitCommonV4V6(bool dov6, const char *HostIP,
 	}
 
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-		"UpnpInit with HostIP=%s, DestPort=%d.\n", 
-		HostIP ? HostIP : "", (int)DestPort);
+			   "UpnpInit with HostIP=%s, DestPort=%d.\n", 
+			   HostIP ? HostIP : "", (int)DestPort);
 
 	if (dov6) {
 		/* Retrieve interface information (Addresses, index, etc). */
@@ -501,8 +488,8 @@ static int upnpInitCommonV4V6(bool dov6, const char *HostIP,
 	}
 
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-		"Host Ip: %s Host Port: %d\n", gIF_IPV4,
-		(int)LOCAL_PORT_V4);
+			   "Host Ip: %s Host Port: %d\n", gIF_IPV4,
+			   (int)LOCAL_PORT_V4);
 
 exit_function:
 	ithread_mutex_unlock(&gSDKInitMutex);
@@ -541,38 +528,38 @@ void PrintThreadPoolStats(
 	ThreadPoolStats stats;
 	ThreadPoolGetStats(tp, &stats);
 	UpnpPrintf(UPNP_INFO, API, DbgFileName, DbgLineNo,
-		"%s\n"
-		"High Jobs pending: %d\n"
-		"Med Jobs Pending: %d\n"
-		"Low Jobs Pending: %d\n"
-		"Average wait in High Q in milliseconds: %lf\n"
-		"Average wait in Med Q in milliseconds: %lf\n"
-		"Average wait in Low Q in milliseconds: %lf\n"
-		"Max Threads Used: %d\n"
-		"Worker Threads: %d\n"
-		"Persistent Threads: %d\n"
-		"Idle Threads: %d\n"
-		"Total Threads: %d\n"
-		"Total Work Time: %lf\n"
-		"Total Idle Time: %lf\n",
-		msg,
-		stats.currentJobsHQ,
-		stats.currentJobsMQ,
-		stats.currentJobsLQ,
-		stats.avgWaitHQ,
-		stats.avgWaitMQ,
-		stats.avgWaitLQ,
-		stats.maxThreads,
-		stats.workerThreads,
-		stats.persistentThreads,
-		stats.idleThreads,
-		stats.totalThreads,
-		stats.totalWorkTime,
-		stats.totalIdleTime);
+			   "%s\n"
+			   "High Jobs pending: %d\n"
+			   "Med Jobs Pending: %d\n"
+			   "Low Jobs Pending: %d\n"
+			   "Average wait in High Q in milliseconds: %lf\n"
+			   "Average wait in Med Q in milliseconds: %lf\n"
+			   "Average wait in Low Q in milliseconds: %lf\n"
+			   "Max Threads Used: %d\n"
+			   "Worker Threads: %d\n"
+			   "Persistent Threads: %d\n"
+			   "Idle Threads: %d\n"
+			   "Total Threads: %d\n"
+			   "Total Work Time: %lf\n"
+			   "Total Idle Time: %lf\n",
+			   msg,
+			   stats.currentJobsHQ,
+			   stats.currentJobsMQ,
+			   stats.currentJobsLQ,
+			   stats.avgWaitHQ,
+			   stats.avgWaitMQ,
+			   stats.avgWaitLQ,
+			   stats.maxThreads,
+			   stats.workerThreads,
+			   stats.persistentThreads,
+			   stats.idleThreads,
+			   stats.totalThreads,
+			   stats.totalWorkTime,
+			   stats.totalIdleTime);
 }
 #else
 static UPNP_INLINE void PrintThreadPoolStats(ThreadPool *tp,
-	const char *DbgFileName, int DbgLineNo, const char *msg)
+											 const char *DbgFileName, int DbgLineNo, const char *msg)
 {
 	return;
 	tp = tp;
@@ -595,16 +582,8 @@ int UpnpFinish(void)
 	if (UpnpSdkInit != 1)
 		return UPNP_E_FINISH;
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-		   "Inside UpnpFinish: UpnpSdkInit is %d\n", UpnpSdkInit);
-	if (UpnpSdkInit == 1)
-		UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-			"UpnpFinish: UpnpSdkInit is ONE\n");
-	PrintThreadPoolStats(&gSendThreadPool, __FILE__, __LINE__,
-		"Send Thread Pool");
-	PrintThreadPoolStats(&gRecvThreadPool, __FILE__, __LINE__,
-		"Recv Thread Pool");
-	PrintThreadPoolStats(&gMiniServerThreadPool, __FILE__, __LINE__,
-		"MiniServer Thread Pool");
+			   "Inside UpnpFinish: UpnpSdkInit is %d\n", UpnpSdkInit);
+
 #ifdef INCLUDE_DEVICE_APIS
 	while (GetDeviceHandleInfo(0, AF_INET, &device_handle, &temp) ==  HND_DEVICE) {
 		UpnpUnRegisterRootDevice(device_handle);
@@ -630,15 +609,11 @@ int UpnpFinish(void)
 #if EXCLUDE_WEB_SERVER == 0
 	web_server_destroy();
 #endif
-	ThreadPoolShutdown(&gMiniServerThreadPool);
-	PrintThreadPoolStats(&gMiniServerThreadPool, __FILE__, __LINE__,
-		"MiniServer Thread Pool");
-	ThreadPoolShutdown(&gRecvThreadPool);
-	PrintThreadPoolStats(&gSendThreadPool, __FILE__, __LINE__,
-		"Send Thread Pool");
-	ThreadPoolShutdown(&gSendThreadPool);
-	PrintThreadPoolStats(&gRecvThreadPool, __FILE__, __LINE__,
-		"Recv Thread Pool");
+	for (const auto& entry : o_threadpools) {
+		ThreadPoolShutdown(entry.first);
+		PrintThreadPoolStats(entry.first, __FILE__, __LINE__,
+							 entry.second);
+	}
 #ifdef INCLUDE_CLIENT_APIS
 	ithread_mutex_destroy(&GlobalClientSubscribeMutex);
 #endif
@@ -647,7 +622,7 @@ int UpnpFinish(void)
 	UpnpRemoveAllVirtualDirs();
 	UpnpSdkInit = 0;
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-		"Exiting UpnpFinish: UpnpSdkInit is :%d:\n", UpnpSdkInit);
+			   "Exiting UpnpFinish: UpnpSdkInit is :%d:\n", UpnpSdkInit);
 	UpnpCloseLog();
 	/* Clean-up ithread library resources */
 	ithread_cleanup_library();
@@ -701,7 +676,7 @@ char *UpnpGetServerUlaGuaIp6Address(void)
  * \brief Get a free handle.
  *
  * \return On success, an integer greater than zero or UPNP_E_OUTOF_HANDLE on
- * 	failure.
+ *	failure.
  */
 static int GetFreeHandle()
 {
@@ -726,22 +701,22 @@ static int FreeHandle(
 	int ret = UPNP_E_INVALID_HANDLE;
 
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-		"FreeHandle: entering, Handle is %d\n", Upnp_Handle);
+			   "FreeHandle: entering, Handle is %d\n", Upnp_Handle);
 	if (Upnp_Handle < 1 || Upnp_Handle >= NUM_HANDLE) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-			"FreeHandle: Handle %d is out of range\n",
-			Upnp_Handle);
+				   "FreeHandle: Handle %d is out of range\n",
+				   Upnp_Handle);
 	} else if (HandleTable[Upnp_Handle] == NULL) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-			"FreeHandle: HandleTable[%d] is NULL\n",
-			Upnp_Handle);
+				   "FreeHandle: HandleTable[%d] is NULL\n",
+				   Upnp_Handle);
 	} else {
 		delete HandleTable[Upnp_Handle];
 		HandleTable[Upnp_Handle] = NULL;
 		ret = UPNP_E_SUCCESS;
 	}
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"FreeHandle: exiting, ret = %d.\n", ret);
+			   "FreeHandle: exiting, ret = %d.\n", ret);
 
 	return ret;
 }
@@ -767,7 +742,7 @@ static int GetDescDocumentAndURL(
 int UpnpRegisterRootDeviceAllForms(
 	Upnp_DescType descriptionType,
 	const char *description_const,
-	size_t,   /* buflen, ignored */
+	size_t,	  /* buflen, ignored */
 	int config_baseURL,
 	Upnp_FunPtr Fun,
 	const void *Cookie,
@@ -785,7 +760,7 @@ int UpnpRegisterRootDeviceAllForms(
 	HandleLock();
 
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"Inside UpnpRegisterRootDeviceAllForms\n");
+			   "Inside UpnpRegisterRootDeviceAllForms\n");
 
 	if (UpnpSdkInit != 1) {
 		retVal = UPNP_E_FINISH;
@@ -793,7 +768,7 @@ int UpnpRegisterRootDeviceAllForms(
 	}
 
 	if (Hnd == NULL || Fun == NULL || description == NULL || *description == 0 ||
-	    (AddressFamily != AF_INET && AddressFamily != AF_INET6)) {
+		(AddressFamily != AF_INET && AddressFamily != AF_INET6)) {
 		retVal = UPNP_E_INVALID_PARAM;
 		goto exit_function;
 	}
@@ -829,8 +804,8 @@ int UpnpRegisterRootDeviceAllForms(
 		upnp_strlcpy(HInfo->LowerDescURL, LowerDescUrl,
 					 sizeof(HInfo->LowerDescURL));
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"Following Root Device URL will be used when answering to legacy CPs %s\n",
-		HInfo->LowerDescURL);
+			   "Following Root Device URL will be used when answering to legacy CPs %s\n",
+			   HInfo->LowerDescURL);
 	HInfo->aliasInstalled = config_baseURL != 0;
 	HInfo->HType = HND_DEVICE;
 	HInfo->Callback = Fun;
@@ -841,26 +816,26 @@ int UpnpRegisterRootDeviceAllForms(
 	HInfo->DeviceAf = AddressFamily;
 
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"UpnpRegisterRootDeviceAllForms: Valid Description\n"
-		"UpnpRegisterRootDeviceAllForms: DescURL : %s\n",
-		HInfo->DescURL);
+			   "UpnpRegisterRootDeviceAllForms: Valid Description\n"
+			   "UpnpRegisterRootDeviceAllForms: DescURL : %s\n",
+			   HInfo->DescURL);
 
 #if EXCLUDE_GENA == 0
 	/*
 	 * GENA SET UP
 	 */
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"UpnpRegisterRootDevice2: Gena Check\n" );
+			   "UpnpRegisterRootDevice2: Gena Check\n" );
 	hasServiceTable = getServiceTable(HInfo->devdesc, &HInfo->ServiceTable,
 									  HInfo->DescURL);
 	if (hasServiceTable) {
 		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			"UpnpRegisterRootDeviceAllForms: GENA Service Table\n"
-			"Here are the known services: \n");
+				   "UpnpRegisterRootDeviceAllForms: GENA Service Table\n"
+				   "Here are the known services: \n");
 		printServiceTable(&HInfo->ServiceTable, UPNP_ALL, API);
 	} else {
 		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			"\nUpnpRegisterRootDeviceAllForms: Empty service table\n");
+				   "\nUpnpRegisterRootDeviceAllForms: Empty service table\n");
 	}
 #endif /* EXCLUDE_GENA */
 
@@ -876,7 +851,7 @@ int UpnpRegisterRootDeviceAllForms(
 
 exit_function:
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"Exiting RegisterRootDeviceAllForms, return value == %d\n", retVal);
+			   "Exiting RegisterRootDeviceAllForms, return value == %d\n", retVal);
 	HandleUnlock();
 
 	return retVal;
@@ -906,7 +881,7 @@ int UpnpRegisterRootDevice3(
 int UpnpRegisterRootDevice2(
 	Upnp_DescType descriptionType,
 	const char *description_const,
-	size_t,   /* buflen, ignored */
+	size_t,	  /* buflen, ignored */
 	int config_baseURL,
 	Upnp_FunPtr Fun,
 	const void *Cookie,
@@ -933,12 +908,12 @@ int UpnpRegisterRootDevice4(
 int UpnpUnRegisterRootDevice(UpnpDevice_Handle Hnd)
 {
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-		   "Inside UpnpUnRegisterRootDevice\n");
+			   "Inside UpnpUnRegisterRootDevice\n");
 	return UpnpUnRegisterRootDeviceLowPower(Hnd, -1, -1, -1);
 }
 
 int UpnpUnRegisterRootDeviceLowPower(UpnpDevice_Handle Hnd, int PowerState,
-	int SleepPeriod, int RegistrationState)
+									 int SleepPeriod, int RegistrationState)
 {
 	int retVal = 0;
 	struct Handle_Info *HInfo = NULL;
@@ -946,7 +921,7 @@ int UpnpUnRegisterRootDeviceLowPower(UpnpDevice_Handle Hnd, int PowerState,
 	if (UpnpSdkInit != 1)
 		return UPNP_E_FINISH;
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-		   "Inside UpnpUnRegisterRootDeviceLowPower\n");
+			   "Inside UpnpUnRegisterRootDeviceLowPower\n");
 #if EXCLUDE_GENA == 0
 	if (genaUnregisterDevice(Hnd) != UPNP_E_SUCCESS)
 		return UPNP_E_INVALID_HANDLE;
@@ -969,8 +944,8 @@ int UpnpUnRegisterRootDeviceLowPower(UpnpDevice_Handle Hnd, int PowerState,
 
 #if EXCLUDE_SSDP == 0
 	retVal = AdvertiseAndReply(-1, Hnd, (enum SsdpSearchType)0,
-		(struct sockaddr *)NULL, (char *)NULL, (char *)NULL,
-		(char *)NULL, HInfo->MaxAge);
+							   (struct sockaddr *)NULL, (char *)NULL, (char *)NULL,
+							   (char *)NULL, HInfo->MaxAge);
 #endif
 
 	HandleLock();
@@ -995,7 +970,7 @@ int UpnpUnRegisterRootDeviceLowPower(UpnpDevice_Handle Hnd, int PowerState,
 	HandleUnlock();
 
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-		   "Exiting UpnpUnRegisterRootDeviceLowPower\n");
+			   "Exiting UpnpUnRegisterRootDeviceLowPower\n");
 
 	return retVal;
 }
@@ -1010,7 +985,7 @@ int UpnpRegisterClient(Upnp_FunPtr Fun, const void *Cookie,
 	if (UpnpSdkInit != 1)
 		return UPNP_E_FINISH;
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		   "Inside UpnpRegisterClient \n");
+			   "Inside UpnpRegisterClient \n");
 	if (Fun == NULL || Hnd == NULL)
 		return UPNP_E_INVALID_PARAM;
 
@@ -1041,7 +1016,7 @@ int UpnpRegisterClient(Upnp_FunPtr Fun, const void *Cookie,
 	HandleUnlock();
 
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		   "Exiting UpnpRegisterClient \n");
+			   "Exiting UpnpRegisterClient \n");
 
 	return UPNP_E_SUCCESS;
 }
@@ -1053,7 +1028,7 @@ int UpnpUnRegisterClient(UpnpClient_Handle Hnd)
 	if (UpnpSdkInit != 1)
 		return UPNP_E_FINISH;
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		   "Inside UpnpUnRegisterClient \n");
+			   "Inside UpnpUnRegisterClient \n");
 
 	HandleLock();
 	if (!UpnpSdkClientRegistered) {
@@ -1088,7 +1063,7 @@ int UpnpUnRegisterClient(UpnpClient_Handle Hnd)
 	HandleUnlock();
 
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		   "Exiting UpnpUnRegisterClient \n");
+			   "Exiting UpnpUnRegisterClient \n");
 
 	return UPNP_E_SUCCESS;
 }
@@ -1223,11 +1198,11 @@ static int GetDescDocumentAndURL(
 			web_server_set_localdoc(std::string("/") + simplename,
 									descdata, modtime);
 		}
- 	}
+	}
 
 	if (!desc.ok) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-			"UpnpRegisterRootDevice: description parse failed\n");
+				   "UpnpRegisterRootDevice: description parse failed\n");
 		return UPNP_E_INVALID_DESC;
 	}
 	return UPNP_E_SUCCESS;
@@ -1272,7 +1247,7 @@ static int GetDescDocumentAndURL(
 
 /*******************************************************************************
  *
- *                                  SSDP interface
+ *									SSDP interface
  *
  ******************************************************************************/
 
@@ -1281,108 +1256,108 @@ static int GetDescDocumentAndURL(
 #if EXCLUDE_SSDP == 0
 int UpnpSendAdvertisement(UpnpDevice_Handle Hnd, int Exp)
 {
-    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-        "Inside UpnpSendAdvertisement \n");
-    return UpnpSendAdvertisementLowPower (Hnd, Exp, -1, -1, -1);
+	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+			   "Inside UpnpSendAdvertisement \n");
+	return UpnpSendAdvertisementLowPower (Hnd, Exp, -1, -1, -1);
 }
 
 int UpnpSendAdvertisementLowPower(UpnpDevice_Handle Hnd, int Exp,
-    int PowerState, int SleepPeriod, int RegistrationState)
+								  int PowerState, int SleepPeriod, int RegistrationState)
 {
-    struct Handle_Info *SInfo = NULL;
-    int retVal = 0,
-     *ptrMx;
-    upnp_timeout *adEvent;
-    ThreadPoolJob job;
+	struct Handle_Info *SInfo = NULL;
+	int retVal = 0,
+		*ptrMx;
+	upnp_timeout *adEvent;
+	ThreadPoolJob job;
 
-    memset(&job, 0, sizeof(job));
+	memset(&job, 0, sizeof(job));
 
-    if( UpnpSdkInit != 1 ) {
-        return UPNP_E_FINISH;
-    }
+	if( UpnpSdkInit != 1 ) {
+		return UPNP_E_FINISH;
+	}
 
-    UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
-        "Inside UpnpSendAdvertisementLowPower \n" );
+	UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
+				"Inside UpnpSendAdvertisementLowPower \n" );
 
-    HandleLock();
-    switch( GetHandleInfo( Hnd, &SInfo ) ) {
-    case HND_DEVICE:
-        break;
-    default:
-        HandleUnlock();
-        return UPNP_E_INVALID_HANDLE;
-    }
-    if( Exp < 1 )
-        Exp = DEFAULT_MAXAGE;
-    if( Exp <= AUTO_ADVERTISEMENT_TIME * 2 )
-        Exp = ( AUTO_ADVERTISEMENT_TIME + 1 ) * 2;
-    SInfo->MaxAge = Exp;
-    SInfo->PowerState = PowerState;
-    if( SleepPeriod < 0 )
-        SleepPeriod = -1;
-    SInfo->SleepPeriod = SleepPeriod;
-    SInfo->RegistrationState = RegistrationState;
-    HandleUnlock();
-    retVal = AdvertiseAndReply( 1, Hnd, ( enum SsdpSearchType )0,
-                                ( struct sockaddr * )NULL, ( char * )NULL,
-                                ( char * )NULL, ( char * )NULL, Exp );
+	HandleLock();
+	switch( GetHandleInfo( Hnd, &SInfo ) ) {
+	case HND_DEVICE:
+		break;
+	default:
+		HandleUnlock();
+		return UPNP_E_INVALID_HANDLE;
+	}
+	if( Exp < 1 )
+		Exp = DEFAULT_MAXAGE;
+	if( Exp <= AUTO_ADVERTISEMENT_TIME * 2 )
+		Exp = ( AUTO_ADVERTISEMENT_TIME + 1 ) * 2;
+	SInfo->MaxAge = Exp;
+	SInfo->PowerState = PowerState;
+	if( SleepPeriod < 0 )
+		SleepPeriod = -1;
+	SInfo->SleepPeriod = SleepPeriod;
+	SInfo->RegistrationState = RegistrationState;
+	HandleUnlock();
+	retVal = AdvertiseAndReply( 1, Hnd, ( enum SsdpSearchType )0,
+								( struct sockaddr * )NULL, ( char * )NULL,
+								( char * )NULL, ( char * )NULL, Exp );
 
-    if( retVal != UPNP_E_SUCCESS )
-        return retVal;
-    ptrMx = (int *)malloc(sizeof(int));
-    if( ptrMx == NULL )
-        return UPNP_E_OUTOF_MEMORY;
+	if( retVal != UPNP_E_SUCCESS )
+		return retVal;
+	ptrMx = (int *)malloc(sizeof(int));
+	if( ptrMx == NULL )
+		return UPNP_E_OUTOF_MEMORY;
 
-    adEvent = new upnp_timeout;
-    if( adEvent == NULL ) {
-        free( ptrMx );
-        return UPNP_E_OUTOF_MEMORY;
-    }
-    *ptrMx = Exp;
-    adEvent->handle = Hnd;
-    adEvent->Event = ptrMx;
+	adEvent = new upnp_timeout;
+	if( adEvent == NULL ) {
+		free( ptrMx );
+		return UPNP_E_OUTOF_MEMORY;
+	}
+	*ptrMx = Exp;
+	adEvent->handle = Hnd;
+	adEvent->Event = ptrMx;
 
-    HandleLock();
-    switch( GetHandleInfo( Hnd, &SInfo ) ) {
-    case HND_DEVICE:
-        break;
-    default:
-        HandleUnlock();
-        free_upnp_timeout(adEvent);
-        return UPNP_E_INVALID_HANDLE;
-    }
+	HandleLock();
+	switch( GetHandleInfo( Hnd, &SInfo ) ) {
+	case HND_DEVICE:
+		break;
+	default:
+		HandleUnlock();
+		free_upnp_timeout(adEvent);
+		return UPNP_E_INVALID_HANDLE;
+	}
 #ifdef SSDP_PACKET_DISTRIBUTE
-    TPJobInit( &job, ( start_routine ) AutoAdvertise, adEvent );
-    TPJobSetFreeFunction( &job, ( free_routine ) free_upnp_timeout );
-    TPJobSetPriority( &job, MED_PRIORITY );
-    if( ( retVal = gTimerThread->schedule( ( ( Exp / 2 ) -
+	TPJobInit( &job, ( start_routine ) AutoAdvertise, adEvent );
+	TPJobSetFreeFunction( &job, ( free_routine ) free_upnp_timeout );
+	TPJobSetPriority( &job, MED_PRIORITY );
+	if( ( retVal = gTimerThread->schedule( ( ( Exp / 2 ) -
 											 ( AUTO_ADVERTISEMENT_TIME ) ),
 										   REL_SEC, &job, SHORT_TERM,
 										   &( adEvent->eventId ) ) )
-        != UPNP_E_SUCCESS ) {
-        HandleUnlock();
-        free_upnp_timeout(adEvent);
-        return retVal;
-    }
+		!= UPNP_E_SUCCESS ) {
+		HandleUnlock();
+		free_upnp_timeout(adEvent);
+		return retVal;
+	}
 #else
-    TPJobInit( &job, ( start_routine ) AutoAdvertise, adEvent );
-    TPJobSetFreeFunction( &job, ( free_routine ) free_upnp_timeout );
-    TPJobSetPriority( &job, MED_PRIORITY );
-    if( ( retVal = gTimerThread->schedule(Exp - AUTO_ADVERTISEMENT_TIME,
+	TPJobInit( &job, ( start_routine ) AutoAdvertise, adEvent );
+	TPJobSetFreeFunction( &job, ( free_routine ) free_upnp_timeout );
+	TPJobSetPriority( &job, MED_PRIORITY );
+	if( ( retVal = gTimerThread->schedule(Exp - AUTO_ADVERTISEMENT_TIME,
 										  REL_SEC, &job, SHORT_TERM,
 										  &( adEvent->eventId ) ) )
-        != UPNP_E_SUCCESS ) {
-        HandleUnlock();
-        free_upnp_timeout(adEvent);
-        return retVal;
-    }
+		!= UPNP_E_SUCCESS ) {
+		HandleUnlock();
+		free_upnp_timeout(adEvent);
+		return retVal;
+	}
 #endif
 
-    HandleUnlock();
-    UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
-        "Exiting UpnpSendAdvertisementLowPower \n" );
+	HandleUnlock();
+	UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
+				"Exiting UpnpSendAdvertisementLowPower \n" );
 
-    return retVal;
+	return retVal;
 
 }
 #endif /* EXCLUDE_SSDP == 0 */
@@ -1399,42 +1374,42 @@ int UpnpSearchAsync(
 	const char *Target_const,
 	const void *Cookie_const )
 {
-    struct Handle_Info *SInfo = NULL;
-    char *Target = ( char * )Target_const;
-    int retVal;
+	struct Handle_Info *SInfo = NULL;
+	char *Target = ( char * )Target_const;
+	int retVal;
 
-    if( UpnpSdkInit != 1 ) {
-        return UPNP_E_FINISH;
-    }
+	if( UpnpSdkInit != 1 ) {
+		return UPNP_E_FINISH;
+	}
 
-    UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
-        "Inside UpnpSearchAsync\n" );
+	UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
+				"Inside UpnpSearchAsync\n" );
 
-    HandleReadLock();
-    switch( GetHandleInfo( Hnd, &SInfo ) ) {
-    case HND_CLIENT:
-        break;
-    default:
-        HandleUnlock();
-        return UPNP_E_INVALID_HANDLE;
-    }
-    if( Mx < 1 )
-        Mx = DEFAULT_MX;
+	HandleReadLock();
+	switch( GetHandleInfo( Hnd, &SInfo ) ) {
+	case HND_CLIENT:
+		break;
+	default:
+		HandleUnlock();
+		return UPNP_E_INVALID_HANDLE;
+	}
+	if( Mx < 1 )
+		Mx = DEFAULT_MX;
 
-    if( Target == NULL ) {
-        HandleUnlock();
-        return UPNP_E_INVALID_PARAM;
-    }
+	if( Target == NULL ) {
+		HandleUnlock();
+		return UPNP_E_INVALID_PARAM;
+	}
 
-    HandleUnlock();
-    retVal = SearchByTarget( Mx, Target, ( void * )Cookie_const );
-    if (retVal != 1)
-        return retVal;
+	HandleUnlock();
+	retVal = SearchByTarget( Mx, Target, ( void * )Cookie_const );
+	if (retVal != 1)
+		return retVal;
 
-    UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
-        "Exiting UpnpSearchAsync \n" );
+	UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
+				"Exiting UpnpSearchAsync \n" );
 
-    return UPNP_E_SUCCESS;
+	return UPNP_E_SUCCESS;
 
 }
 #endif /* INCLUDE_CLIENT_APIS */
@@ -1443,7 +1418,7 @@ int UpnpSearchAsync(
 
 /*******************************************************************************
  *
- *                                  GENA interface
+ *									GENA interface
  *
  ******************************************************************************/
 
@@ -1452,35 +1427,35 @@ int UpnpSearchAsync(
 #ifdef INCLUDE_DEVICE_APIS
 int UpnpSetMaxSubscriptions(UpnpDevice_Handle Hnd, int MaxSubscriptions)
 {
-    struct Handle_Info *SInfo = NULL;
+	struct Handle_Info *SInfo = NULL;
 
-    if( UpnpSdkInit != 1 ) {
-        return UPNP_E_FINISH;
-    }
+	if( UpnpSdkInit != 1 ) {
+		return UPNP_E_FINISH;
+	}
 
-    UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
-        "Inside UpnpSetMaxSubscriptions \n" );
+	UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
+				"Inside UpnpSetMaxSubscriptions \n" );
 
-    HandleLock();
-    switch( GetHandleInfo( Hnd, &SInfo ) ) {
-        case HND_DEVICE:
-            break;
-        default:
-            HandleUnlock();
-            return UPNP_E_INVALID_HANDLE;
-    }
-    if( ( MaxSubscriptions != UPNP_INFINITE )
-          && ( MaxSubscriptions < 0 ) ) {
-        HandleUnlock();
-        return UPNP_E_INVALID_HANDLE;
-    }
-    SInfo->MaxSubscriptions = MaxSubscriptions;
-    HandleUnlock();
+	HandleLock();
+	switch( GetHandleInfo( Hnd, &SInfo ) ) {
+	case HND_DEVICE:
+		break;
+	default:
+		HandleUnlock();
+		return UPNP_E_INVALID_HANDLE;
+	}
+	if( ( MaxSubscriptions != UPNP_INFINITE )
+		&& ( MaxSubscriptions < 0 ) ) {
+		HandleUnlock();
+		return UPNP_E_INVALID_HANDLE;
+	}
+	SInfo->MaxSubscriptions = MaxSubscriptions;
+	HandleUnlock();
 
-    UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
-        "Exiting UpnpSetMaxSubscriptions \n" );
+	UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
+				"Exiting UpnpSetMaxSubscriptions \n" );
 
-    return UPNP_E_SUCCESS;
+	return UPNP_E_SUCCESS;
 
 }
 #endif /* INCLUDE_DEVICE_APIS */
@@ -1489,37 +1464,37 @@ int UpnpSetMaxSubscriptions(UpnpDevice_Handle Hnd, int MaxSubscriptions)
 #ifdef INCLUDE_DEVICE_APIS
 int UpnpSetMaxSubscriptionTimeOut(UpnpDevice_Handle Hnd, int MaxSubscriptionTimeOut)
 {
-    struct Handle_Info *SInfo = NULL;
+	struct Handle_Info *SInfo = NULL;
 
-    if( UpnpSdkInit != 1 ) {
-        return UPNP_E_FINISH;
-    }
+	if( UpnpSdkInit != 1 ) {
+		return UPNP_E_FINISH;
+	}
 
-    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-        "Inside UpnpSetMaxSubscriptionTimeOut\n" );
+	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+			   "Inside UpnpSetMaxSubscriptionTimeOut\n" );
 
-    HandleLock();
+	HandleLock();
 
-    switch( GetHandleInfo( Hnd, &SInfo ) ) {
-        case HND_DEVICE:
-            break;
-        default:
-            HandleUnlock();
-            return UPNP_E_INVALID_HANDLE;
-    }
-    if( ( MaxSubscriptionTimeOut != UPNP_INFINITE )
-          && ( MaxSubscriptionTimeOut < 0 ) ) {
-        HandleUnlock();
-        return UPNP_E_INVALID_HANDLE;
-    }
+	switch( GetHandleInfo( Hnd, &SInfo ) ) {
+	case HND_DEVICE:
+		break;
+	default:
+		HandleUnlock();
+		return UPNP_E_INVALID_HANDLE;
+	}
+	if( ( MaxSubscriptionTimeOut != UPNP_INFINITE )
+		&& ( MaxSubscriptionTimeOut < 0 ) ) {
+		HandleUnlock();
+		return UPNP_E_INVALID_HANDLE;
+	}
 
-    SInfo->MaxSubscriptionTimeOut = MaxSubscriptionTimeOut;
-    HandleUnlock();
+	SInfo->MaxSubscriptionTimeOut = MaxSubscriptionTimeOut;
+	HandleUnlock();
 
-    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-        "Exiting UpnpSetMaxSubscriptionTimeOut\n");
+	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+			   "Exiting UpnpSetMaxSubscriptionTimeOut\n");
 
-    return UPNP_E_SUCCESS;
+	return UPNP_E_SUCCESS;
 
 }
 #endif /* INCLUDE_DEVICE_APIS */
@@ -1541,7 +1516,7 @@ typedef enum {
 	RENEW
 } UpnpFunName;
 
-struct  UpnpNonblockParam {
+struct	UpnpNonblockParam {
 	UpnpFunName FunName;
 	int Handle;
 	int TimeOut;
@@ -1567,67 +1542,67 @@ int UpnpSubscribeAsync(
 	Upnp_FunPtr Fun,
 	const void *Cookie_const)
 {
-    struct Handle_Info *SInfo = NULL;
-    struct UpnpNonblockParam *Param;
-    char *EvtUrl = ( char * )EvtUrl_const;
-    ThreadPoolJob job;
+	struct Handle_Info *SInfo = NULL;
+	struct UpnpNonblockParam *Param;
+	char *EvtUrl = ( char * )EvtUrl_const;
+	ThreadPoolJob job;
 
-    memset(&job, 0, sizeof(job));
+	memset(&job, 0, sizeof(job));
 
-    if( UpnpSdkInit != 1 ) {
-        return UPNP_E_FINISH;
-    }
+	if( UpnpSdkInit != 1 ) {
+		return UPNP_E_FINISH;
+	}
 
-    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-        "Inside UpnpSubscribeAsync\n");
+	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+			   "Inside UpnpSubscribeAsync\n");
 
-    HandleReadLock();
-    switch( GetHandleInfo( Hnd, &SInfo ) ) {
-    case HND_CLIENT:
-        break;
-    default:
-        HandleUnlock();
-        return UPNP_E_INVALID_HANDLE;
-    }
-    if( EvtUrl == NULL ) {
-        HandleUnlock();
-        return UPNP_E_INVALID_PARAM;
-    }
-    if( TimeOut != UPNP_INFINITE && TimeOut < 1 ) {
-        HandleUnlock();
-        return UPNP_E_INVALID_PARAM;
-    }
-    if( Fun == NULL ) {
-        HandleUnlock();
-        return UPNP_E_INVALID_PARAM;
-    }
-    HandleUnlock();
+	HandleReadLock();
+	switch( GetHandleInfo( Hnd, &SInfo ) ) {
+	case HND_CLIENT:
+		break;
+	default:
+		HandleUnlock();
+		return UPNP_E_INVALID_HANDLE;
+	}
+	if( EvtUrl == NULL ) {
+		HandleUnlock();
+		return UPNP_E_INVALID_PARAM;
+	}
+	if( TimeOut != UPNP_INFINITE && TimeOut < 1 ) {
+		HandleUnlock();
+		return UPNP_E_INVALID_PARAM;
+	}
+	if( Fun == NULL ) {
+		HandleUnlock();
+		return UPNP_E_INVALID_PARAM;
+	}
+	HandleUnlock();
 
-    Param = (struct UpnpNonblockParam *)
-        malloc(sizeof (struct UpnpNonblockParam));
-    if( Param == NULL ) {
-        return UPNP_E_OUTOF_MEMORY;
-    }
-    memset( Param, 0, sizeof( struct UpnpNonblockParam ) );
+	Param = (struct UpnpNonblockParam *)
+		malloc(sizeof (struct UpnpNonblockParam));
+	if( Param == NULL ) {
+		return UPNP_E_OUTOF_MEMORY;
+	}
+	memset( Param, 0, sizeof( struct UpnpNonblockParam ) );
 
-    Param->FunName = SUBSCRIBE;
-    Param->Handle = Hnd;
-    upnp_strlcpy(Param->Url, EvtUrl, sizeof(Param->Url));
-    Param->TimeOut = TimeOut;
-    Param->Fun = Fun;
-    Param->Cookie = (char *)Cookie_const;
+	Param->FunName = SUBSCRIBE;
+	Param->Handle = Hnd;
+	upnp_strlcpy(Param->Url, EvtUrl, sizeof(Param->Url));
+	Param->TimeOut = TimeOut;
+	Param->Fun = Fun;
+	Param->Cookie = (char *)Cookie_const;
 
-    TPJobInit(&job, (start_routine)UpnpThreadDistribution, Param);
-    TPJobSetFreeFunction(&job, (free_routine)free);
-    TPJobSetPriority(&job, MED_PRIORITY);
-    if (ThreadPoolAdd(&gSendThreadPool, &job, NULL) != 0) {
-	free(Param);
-    }
+	TPJobInit(&job, (start_routine)UpnpThreadDistribution, Param);
+	TPJobSetFreeFunction(&job, (free_routine)free);
+	TPJobSetPriority(&job, MED_PRIORITY);
+	if (ThreadPoolAdd(&gSendThreadPool, &job, NULL) != 0) {
+		free(Param);
+	}
 
-    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-        "Exiting UpnpSubscribeAsync\n");
+	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+			   "Exiting UpnpSubscribeAsync\n");
 
-    return UPNP_E_SUCCESS;
+	return UPNP_E_SUCCESS;
 
 }
 #endif /* INCLUDE_CLIENT_APIS */
@@ -1684,7 +1659,7 @@ int UpnpSubscribe(
 
 exit_function:
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"Exiting UpnpSubscribe, retVal=%d\n", retVal);
+			   "Exiting UpnpSubscribe, retVal=%d\n", retVal);
 
 	return retVal;
 }
@@ -1726,7 +1701,7 @@ int UpnpUnSubscribe(UpnpClient_Handle Hnd, const Upnp_SID SubsId)
 
 exit_function:
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"Exiting UpnpUnSubscribe, retVal=%d\n", retVal);
+			   "Exiting UpnpUnSubscribe, retVal=%d\n", retVal);
 
 	return retVal;
 }
@@ -1844,7 +1819,7 @@ int UpnpRenewSubscription(
 
 exit_function:
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"Exiting UpnpRenewSubscription, retVal=%d\n", retVal);
+			   "Exiting UpnpRenewSubscription, retVal=%d\n", retVal);
 
 	return retVal;
 }
@@ -1859,66 +1834,66 @@ int UpnpRenewSubscriptionAsync(
 	Upnp_FunPtr Fun,
 	const void *Cookie_const)
 {
-    ThreadPoolJob job;
-    struct Handle_Info *SInfo = NULL;
-    struct UpnpNonblockParam *Param;
+	ThreadPoolJob job;
+	struct Handle_Info *SInfo = NULL;
+	struct UpnpNonblockParam *Param;
 
-    memset(&job, 0, sizeof(job));
+	memset(&job, 0, sizeof(job));
 
-    if( UpnpSdkInit != 1 ) {
-        return UPNP_E_FINISH;
-    }
+	if( UpnpSdkInit != 1 ) {
+		return UPNP_E_FINISH;
+	}
 
-    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-        "Inside UpnpRenewSubscriptionAsync\n");
-    HandleReadLock();
-    switch( GetHandleInfo( Hnd, &SInfo ) ) {
-    case HND_CLIENT:
-        break;
-    default:
-        HandleUnlock();
-        return UPNP_E_INVALID_HANDLE;
-    }
-    if( TimeOut != UPNP_INFINITE && TimeOut < 1 ) {
-        HandleUnlock();
-        return UPNP_E_INVALID_PARAM;
-    }
-    if( SubsId == NULL ) {
-        HandleUnlock();
-        return UPNP_E_INVALID_PARAM;
-    }
-    if( Fun == NULL ) {
-        HandleUnlock();
-        return UPNP_E_INVALID_PARAM;
-    }
-    HandleUnlock();
+	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+			   "Inside UpnpRenewSubscriptionAsync\n");
+	HandleReadLock();
+	switch( GetHandleInfo( Hnd, &SInfo ) ) {
+	case HND_CLIENT:
+		break;
+	default:
+		HandleUnlock();
+		return UPNP_E_INVALID_HANDLE;
+	}
+	if( TimeOut != UPNP_INFINITE && TimeOut < 1 ) {
+		HandleUnlock();
+		return UPNP_E_INVALID_PARAM;
+	}
+	if( SubsId == NULL ) {
+		HandleUnlock();
+		return UPNP_E_INVALID_PARAM;
+	}
+	if( Fun == NULL ) {
+		HandleUnlock();
+		return UPNP_E_INVALID_PARAM;
+	}
+	HandleUnlock();
 
-    Param =
-        ( struct UpnpNonblockParam * )
-        malloc( sizeof( struct UpnpNonblockParam ) );
-    if( Param == NULL ) {
-        return UPNP_E_OUTOF_MEMORY;
-    }
-    memset(Param, 0, sizeof( struct UpnpNonblockParam ) );
+	Param =
+		( struct UpnpNonblockParam * )
+		malloc( sizeof( struct UpnpNonblockParam ) );
+	if( Param == NULL ) {
+		return UPNP_E_OUTOF_MEMORY;
+	}
+	memset(Param, 0, sizeof( struct UpnpNonblockParam ) );
 
-    Param->FunName = RENEW;
-    Param->Handle = Hnd;
-    upnp_strlcpy(Param->SubsId, SubsId, sizeof(Param->SubsId));
-    Param->Fun = Fun;
-    Param->Cookie = (char*)Cookie_const;
-    Param->TimeOut = TimeOut;
+	Param->FunName = RENEW;
+	Param->Handle = Hnd;
+	upnp_strlcpy(Param->SubsId, SubsId, sizeof(Param->SubsId));
+	Param->Fun = Fun;
+	Param->Cookie = (char*)Cookie_const;
+	Param->TimeOut = TimeOut;
 
-    TPJobInit( &job, ( start_routine ) UpnpThreadDistribution, Param );
-    TPJobSetFreeFunction( &job, ( free_routine ) free );
-    TPJobSetPriority( &job, MED_PRIORITY );
-    if (ThreadPoolAdd( &gSendThreadPool, &job, NULL ) != 0) {
-	free(Param);
-    }
+	TPJobInit( &job, ( start_routine ) UpnpThreadDistribution, Param );
+	TPJobSetFreeFunction( &job, ( free_routine ) free );
+	TPJobSetPriority( &job, MED_PRIORITY );
+	if (ThreadPoolAdd( &gSendThreadPool, &job, NULL ) != 0) {
+		free(Param);
+	}
 
-    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-        "Exiting UpnpRenewSubscriptionAsync\n");
+	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+			   "Exiting UpnpRenewSubscriptionAsync\n");
 
-    return UPNP_E_SUCCESS;
+	return UPNP_E_SUCCESS;
 }
 #endif /* INCLUDE_CLIENT_APIS */
 
@@ -1932,49 +1907,49 @@ int UpnpNotify(
 	const char **NewVal_const,
 	int cVariables)
 {
-    struct Handle_Info *SInfo = NULL;
-    int retVal;
-    char *DevID = (char *)DevID_const;
-    char *ServName = (char *)ServName_const;
-    char **VarName = (char **)VarName_const;
-    char **NewVal = (char **)NewVal_const;
+	struct Handle_Info *SInfo = NULL;
+	int retVal;
+	char *DevID = (char *)DevID_const;
+	char *ServName = (char *)ServName_const;
+	char **VarName = (char **)VarName_const;
+	char **NewVal = (char **)NewVal_const;
 
-    if( UpnpSdkInit != 1 ) {
-        return UPNP_E_FINISH;
-    }
+	if( UpnpSdkInit != 1 ) {
+		return UPNP_E_FINISH;
+	}
 
-    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-        "Inside UpnpNotify\n");
+	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+			   "Inside UpnpNotify\n");
 
-    HandleReadLock();
-    switch( GetHandleInfo( Hnd, &SInfo ) ) {
-    case HND_DEVICE:
-        break;
-    default:
-        HandleUnlock();
-        return UPNP_E_INVALID_HANDLE;
-    }
-    if( DevID == NULL ) {
-        HandleUnlock();
-        return UPNP_E_INVALID_PARAM;
-    }
-    if( ServName == NULL ) {
-        HandleUnlock();
-        return UPNP_E_INVALID_PARAM;
-    }
-    if( VarName == NULL || NewVal == NULL || cVariables < 0 ) {
-        HandleUnlock();
-        return UPNP_E_INVALID_PARAM;
-    }
+	HandleReadLock();
+	switch( GetHandleInfo( Hnd, &SInfo ) ) {
+	case HND_DEVICE:
+		break;
+	default:
+		HandleUnlock();
+		return UPNP_E_INVALID_HANDLE;
+	}
+	if( DevID == NULL ) {
+		HandleUnlock();
+		return UPNP_E_INVALID_PARAM;
+	}
+	if( ServName == NULL ) {
+		HandleUnlock();
+		return UPNP_E_INVALID_PARAM;
+	}
+	if( VarName == NULL || NewVal == NULL || cVariables < 0 ) {
+		HandleUnlock();
+		return UPNP_E_INVALID_PARAM;
+	}
 
-    HandleUnlock();
-    retVal =
-        genaNotifyAll( Hnd, DevID, ServName, VarName, NewVal, cVariables );
+	HandleUnlock();
+	retVal =
+		genaNotifyAll( Hnd, DevID, ServName, VarName, NewVal, cVariables );
 
-    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-        "Exiting UpnpNotify\n");
+	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+			   "Exiting UpnpNotify\n");
 
-    return retVal;
+	return retVal;
 }
 
 int UpnpNotifyExt(
@@ -1983,42 +1958,42 @@ int UpnpNotifyExt(
 	const char *ServName_const,
 	IXML_Document *PropSet)
 {
-    struct Handle_Info *SInfo = NULL;
-    int retVal;
-    char *DevID = (char *)DevID_const;
-    char *ServName = (char *)ServName_const;
+	struct Handle_Info *SInfo = NULL;
+	int retVal;
+	char *DevID = (char *)DevID_const;
+	char *ServName = (char *)ServName_const;
 
-    if( UpnpSdkInit != 1 ) {
-	return UPNP_E_FINISH;
-    }
+	if( UpnpSdkInit != 1 ) {
+		return UPNP_E_FINISH;
+	}
 
-    UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
-	"Inside UpnpNotify \n" );
+	UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
+				"Inside UpnpNotify \n" );
 
-    HandleReadLock();
-    switch( GetHandleInfo( Hnd, &SInfo ) ) {
-    case HND_DEVICE:
-	break;
-    default:
+	HandleReadLock();
+	switch( GetHandleInfo( Hnd, &SInfo ) ) {
+	case HND_DEVICE:
+		break;
+	default:
+		HandleUnlock();
+		return UPNP_E_INVALID_HANDLE;
+	}
+	if( DevID == NULL ) {
+		HandleUnlock();
+		return UPNP_E_INVALID_PARAM;
+	}
+	if( ServName == NULL ) {
+		HandleUnlock();
+		return UPNP_E_INVALID_PARAM;
+	}
+
 	HandleUnlock();
-	return UPNP_E_INVALID_HANDLE;
-    }
-    if( DevID == NULL ) {
-	HandleUnlock();
-	return UPNP_E_INVALID_PARAM;
-    }
-    if( ServName == NULL ) {
-	HandleUnlock();
-	return UPNP_E_INVALID_PARAM;
-    }
+	retVal = genaNotifyAllExt( Hnd, DevID, ServName, PropSet );
 
-    HandleUnlock();
-    retVal = genaNotifyAllExt( Hnd, DevID, ServName, PropSet );
+	UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
+				"Exiting UpnpNotify \n" );
 
-    UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
-	"Exiting UpnpNotify \n" );
-
-    return retVal;
+	return retVal;
 }
 
 #endif /* INCLUDE_DEVICE_APIS */
@@ -2043,7 +2018,7 @@ int UpnpAcceptSubscription(
 	char **NewVal = (char **)NewVal_const;
 
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"Inside UpnpAcceptSubscription\n");
+			   "Inside UpnpAcceptSubscription\n");
 
 	if (UpnpSdkInit != 1) {
 		line = __LINE__;
@@ -2098,7 +2073,7 @@ int UpnpAcceptSubscription(
 
 exit_function:
 	UpnpPrintf(UPNP_ALL, API, __FILE__, line,
-		"Exiting UpnpAcceptSubscription, ret = %d\n", ret);
+			   "Exiting UpnpAcceptSubscription, ret = %d\n", ret);
 
 	return ret;
 }
@@ -2117,7 +2092,7 @@ int UpnpAcceptSubscriptionExt(
 	char *ServName = (char *)ServName_const;
 
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"Inside UpnpAcceptSubscription\n");
+			   "Inside UpnpAcceptSubscription\n");
 
 	if (UpnpSdkInit != 1) {
 		line = __LINE__;
@@ -2171,7 +2146,7 @@ int UpnpAcceptSubscriptionExt(
 
 exit_function:
 	UpnpPrintf(UPNP_ALL, API, __FILE__, line,
-		"Exiting UpnpAcceptSubscription, ret = %d.\n", ret);
+			   "Exiting UpnpAcceptSubscription, ret = %d.\n", ret);
 
 	return ret;
 }
@@ -2182,7 +2157,7 @@ exit_function:
 
 /*******************************************************************************
  *
- *                                  SOAP interface
+ *									SOAP interface
  *
  ******************************************************************************/
 
@@ -2197,51 +2172,51 @@ int UpnpSendAction(
 	IXML_Document *Action,
 	IXML_Document **RespNodePtr)
 {
-    struct Handle_Info *SInfo = NULL;
-    int retVal = 0;
-    char *ActionURL = (char *)ActionURL_const;
-    char *ServiceType = (char *)ServiceType_const;
-    /* udn not used? */
-    /*char *DevUDN = (char *)DevUDN_const;*/
+	struct Handle_Info *SInfo = NULL;
+	int retVal = 0;
+	char *ActionURL = (char *)ActionURL_const;
+	char *ServiceType = (char *)ServiceType_const;
+	/* udn not used? */
+	/*char *DevUDN = (char *)DevUDN_const;*/
 
-    if( UpnpSdkInit != 1 ) {
-        return UPNP_E_FINISH;
-    }
+	if( UpnpSdkInit != 1 ) {
+		return UPNP_E_FINISH;
+	}
 
-    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-        "Inside UpnpSendAction\n");
-    if (DevUDN_const !=NULL) {
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"non NULL DevUDN is ignored\n");
-    }
-    DevUDN_const = NULL;
+			   "Inside UpnpSendAction\n");
+	if (DevUDN_const !=NULL) {
+		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+				   "non NULL DevUDN is ignored\n");
+	}
+	DevUDN_const = NULL;
 
-    HandleReadLock();
-    switch( GetHandleInfo( Hnd, &SInfo ) ) {
-    case HND_CLIENT:
-        break;
-    default:
-        HandleUnlock();
-        return UPNP_E_INVALID_HANDLE;
-    }
-    HandleUnlock();
+	HandleReadLock();
+	switch( GetHandleInfo( Hnd, &SInfo ) ) {
+	case HND_CLIENT:
+		break;
+	default:
+		HandleUnlock();
+		return UPNP_E_INVALID_HANDLE;
+	}
+	HandleUnlock();
 
-    if( ActionURL == NULL ) {
-        return UPNP_E_INVALID_PARAM;
-    }
+	if( ActionURL == NULL ) {
+		return UPNP_E_INVALID_PARAM;
+	}
 
-    if( ServiceType == NULL || Action == NULL || RespNodePtr == NULL
-        || DevUDN_const != NULL ) {
+	if( ServiceType == NULL || Action == NULL || RespNodePtr == NULL
+		|| DevUDN_const != NULL ) {
 
-        return UPNP_E_INVALID_PARAM;
-    }
+		return UPNP_E_INVALID_PARAM;
+	}
 
-    retVal = SoapSendAction( ActionURL, ServiceType, Action, RespNodePtr );
+	retVal = SoapSendAction( ActionURL, ServiceType, Action, RespNodePtr );
 
-    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-	"Exiting UpnpSendAction\n");
+	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+			   "Exiting UpnpSendAction\n");
 
-    return retVal;
+	return retVal;
 }
 
 
@@ -2254,50 +2229,50 @@ int UpnpSendActionEx(
 	IXML_Document *Action,
 	IXML_Document **RespNodePtr)
 {
-    struct Handle_Info *SInfo = NULL;
-    int retVal = 0;
-    char *ActionURL = (char *)ActionURL_const;
-    char *ServiceType = (char *)ServiceType_const;
-    /* udn not used? */
-    /*char *DevUDN = (char *)DevUDN_const;*/
+	struct Handle_Info *SInfo = NULL;
+	int retVal = 0;
+	char *ActionURL = (char *)ActionURL_const;
+	char *ServiceType = (char *)ServiceType_const;
+	/* udn not used? */
+	/*char *DevUDN = (char *)DevUDN_const;*/
 
-    if( UpnpSdkInit != 1 ) {
-        return UPNP_E_FINISH;
-    }
+	if( UpnpSdkInit != 1 ) {
+		return UPNP_E_FINISH;
+	}
 
-    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-        "Inside UpnpSendActionEx\n");
+	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+			   "Inside UpnpSendActionEx\n");
 
-    if( Header == NULL ) {
-        retVal = UpnpSendAction( Hnd, ActionURL_const, ServiceType_const,
-                                 DevUDN_const, Action, RespNodePtr );
-        return retVal;
-    }
+	if( Header == NULL ) {
+		retVal = UpnpSendAction( Hnd, ActionURL_const, ServiceType_const,
+								 DevUDN_const, Action, RespNodePtr );
+		return retVal;
+	}
 
-    HandleReadLock();
-    switch( GetHandleInfo( Hnd, &SInfo ) ) {
-    case HND_CLIENT:
-        break;
-    default:
-        HandleUnlock();
-        return UPNP_E_INVALID_HANDLE;
-    }
-    HandleUnlock();
+	HandleReadLock();
+	switch( GetHandleInfo( Hnd, &SInfo ) ) {
+	case HND_CLIENT:
+		break;
+	default:
+		HandleUnlock();
+		return UPNP_E_INVALID_HANDLE;
+	}
+	HandleUnlock();
 
-    if( ActionURL == NULL ) {
-        return UPNP_E_INVALID_PARAM;
-    }
-    if( ServiceType == NULL || Action == NULL || RespNodePtr == NULL ) {
-        return UPNP_E_INVALID_PARAM;
-    }
+	if( ActionURL == NULL ) {
+		return UPNP_E_INVALID_PARAM;
+	}
+	if( ServiceType == NULL || Action == NULL || RespNodePtr == NULL ) {
+		return UPNP_E_INVALID_PARAM;
+	}
 
-    retVal = SoapSendActionEx( ActionURL, ServiceType, Header,
-                               Action, RespNodePtr );
+	retVal = SoapSendActionEx( ActionURL, ServiceType, Header,
+							   Action, RespNodePtr );
 
-    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-        "Exiting UpnpSendAction \n");
+	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+			   "Exiting UpnpSendAction \n");
 
-    return retVal;
+	return retVal;
 }
 
 
@@ -2310,88 +2285,88 @@ int UpnpSendActionAsync(
 	Upnp_FunPtr Fun,
 	const void *Cookie_const)
 {
-    int rc;
-    ThreadPoolJob job;
-    struct Handle_Info *SInfo = NULL;
-    struct UpnpNonblockParam *Param;
-    DOMString tmpStr;
-    char *ActionURL = (char *)ActionURL_const;
-    char *ServiceType = (char *)ServiceType_const;
-    /* udn not used? */
-    /*char *DevUDN = (char *)DevUDN_const;*/
+	int rc;
+	ThreadPoolJob job;
+	struct Handle_Info *SInfo = NULL;
+	struct UpnpNonblockParam *Param;
+	DOMString tmpStr;
+	char *ActionURL = (char *)ActionURL_const;
+	char *ServiceType = (char *)ServiceType_const;
+	/* udn not used? */
+	/*char *DevUDN = (char *)DevUDN_const;*/
 
-    memset(&job, 0, sizeof(job));
+	memset(&job, 0, sizeof(job));
 
-    if(UpnpSdkInit != 1) {
-        return UPNP_E_FINISH;
-    }
+	if(UpnpSdkInit != 1) {
+		return UPNP_E_FINISH;
+	}
 
-    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-        "Inside UpnpSendActionAsync\n");
+	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+			   "Inside UpnpSendActionAsync\n");
 
-    HandleReadLock();
-    switch( GetHandleInfo( Hnd, &SInfo ) ) {
-    case HND_CLIENT:
-        break;
-    default:
-        HandleUnlock();
-        return UPNP_E_INVALID_HANDLE;
-    }
-    HandleUnlock();
+	HandleReadLock();
+	switch( GetHandleInfo( Hnd, &SInfo ) ) {
+	case HND_CLIENT:
+		break;
+	default:
+		HandleUnlock();
+		return UPNP_E_INVALID_HANDLE;
+	}
+	HandleUnlock();
 
-    if( ActionURL == NULL ) {
-        return UPNP_E_INVALID_PARAM;
-    }
-    if( ServiceType == NULL ||
-        Act == NULL || Fun == NULL || DevUDN_const != NULL ) {
-        return UPNP_E_INVALID_PARAM;
-    }
-    tmpStr = ixmlPrintNode( ( IXML_Node * ) Act );
-    if( tmpStr == NULL ) {
-        return UPNP_E_INVALID_ACTION;
-    }
+	if( ActionURL == NULL ) {
+		return UPNP_E_INVALID_PARAM;
+	}
+	if( ServiceType == NULL ||
+		Act == NULL || Fun == NULL || DevUDN_const != NULL ) {
+		return UPNP_E_INVALID_PARAM;
+	}
+	tmpStr = ixmlPrintNode( ( IXML_Node * ) Act );
+	if( tmpStr == NULL ) {
+		return UPNP_E_INVALID_ACTION;
+	}
 
-    Param =
-        ( struct UpnpNonblockParam * )
-        malloc( sizeof( struct UpnpNonblockParam ) );
+	Param =
+		( struct UpnpNonblockParam * )
+		malloc( sizeof( struct UpnpNonblockParam ) );
 
-    if( Param == NULL ) {
-        ixmlFreeDOMString( tmpStr );
-        return UPNP_E_OUTOF_MEMORY;
-    }
-    memset( Param, 0, sizeof( struct UpnpNonblockParam ) );
+	if( Param == NULL ) {
+		ixmlFreeDOMString( tmpStr );
+		return UPNP_E_OUTOF_MEMORY;
+	}
+	memset( Param, 0, sizeof( struct UpnpNonblockParam ) );
 
-    Param->FunName = ACTION;
-    Param->Handle = Hnd;
-    upnp_strlcpy(Param->Url, ActionURL, sizeof (Param->Url));
-    upnp_strlcpy(Param->ServiceType, ServiceType, sizeof(Param->ServiceType));
+	Param->FunName = ACTION;
+	Param->Handle = Hnd;
+	upnp_strlcpy(Param->Url, ActionURL, sizeof (Param->Url));
+	upnp_strlcpy(Param->ServiceType, ServiceType, sizeof(Param->ServiceType));
 
-    rc = ixmlParseBufferEx( tmpStr, &( Param->Act ) );
-    if( rc != IXML_SUCCESS ) {
-        free( Param );
-        ixmlFreeDOMString( tmpStr );
-        if( rc == IXML_INSUFFICIENT_MEMORY ) {
-            return UPNP_E_OUTOF_MEMORY;
-        } else {
-            return UPNP_E_INVALID_ACTION;
-        }
-    }
-    ixmlFreeDOMString( tmpStr );
-    Param->Cookie = (char*)Cookie_const;
-    Param->Fun = Fun;
+	rc = ixmlParseBufferEx( tmpStr, &( Param->Act ) );
+	if( rc != IXML_SUCCESS ) {
+		free( Param );
+		ixmlFreeDOMString( tmpStr );
+		if( rc == IXML_INSUFFICIENT_MEMORY ) {
+			return UPNP_E_OUTOF_MEMORY;
+		} else {
+			return UPNP_E_INVALID_ACTION;
+		}
+	}
+	ixmlFreeDOMString( tmpStr );
+	Param->Cookie = (char*)Cookie_const;
+	Param->Fun = Fun;
 
-    TPJobInit( &job, ( start_routine ) UpnpThreadDistribution, Param );
-    TPJobSetFreeFunction( &job, ( free_routine ) free );
+	TPJobInit( &job, ( start_routine ) UpnpThreadDistribution, Param );
+	TPJobSetFreeFunction( &job, ( free_routine ) free );
 
-    TPJobSetPriority( &job, MED_PRIORITY );
-    if (ThreadPoolAdd( &gSendThreadPool, &job, NULL ) != 0) {
-	free(Param);
-    }
+	TPJobSetPriority( &job, MED_PRIORITY );
+	if (ThreadPoolAdd( &gSendThreadPool, &job, NULL ) != 0) {
+		free(Param);
+	}
 
-    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-        "Exiting UpnpSendActionAsync \n");
+	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+			   "Exiting UpnpSendActionAsync \n");
 
-    return UPNP_E_SUCCESS;
+	return UPNP_E_SUCCESS;
 }
 
 
@@ -2405,114 +2380,114 @@ int UpnpSendActionExAsync(
 	Upnp_FunPtr Fun,
 	const void *Cookie_const)
 {
-    struct Handle_Info *SInfo = NULL;
-    struct UpnpNonblockParam *Param;
-    DOMString tmpStr;
-    DOMString headerStr = NULL;
-    char *ActionURL = ( char * )ActionURL_const;
-    char *ServiceType = ( char * )ServiceType_const;
-    ThreadPoolJob job;
-    int retVal = 0;
+	struct Handle_Info *SInfo = NULL;
+	struct UpnpNonblockParam *Param;
+	DOMString tmpStr;
+	DOMString headerStr = NULL;
+	char *ActionURL = ( char * )ActionURL_const;
+	char *ServiceType = ( char * )ServiceType_const;
+	ThreadPoolJob job;
+	int retVal = 0;
 
-    memset(&job, 0, sizeof(job));
+	memset(&job, 0, sizeof(job));
 
-    if( UpnpSdkInit != 1 ) {
-        return UPNP_E_FINISH;
-    }
+	if( UpnpSdkInit != 1 ) {
+		return UPNP_E_FINISH;
+	}
 
-    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-        "Inside UpnpSendActionExAsync\n");
+	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+			   "Inside UpnpSendActionExAsync\n");
 
-    if( Header == NULL ) {
-        retVal = UpnpSendActionAsync( Hnd, ActionURL_const,
-                                      ServiceType_const, DevUDN_const, Act,
-                                      Fun, Cookie_const );
-        return retVal;
-    }
+	if( Header == NULL ) {
+		retVal = UpnpSendActionAsync( Hnd, ActionURL_const,
+									  ServiceType_const, DevUDN_const, Act,
+									  Fun, Cookie_const );
+		return retVal;
+	}
 
-    HandleReadLock();
-    switch( GetHandleInfo( Hnd, &SInfo ) ) {
-    case HND_CLIENT:
-        break;
-    default:
-        HandleUnlock();
-        return UPNP_E_INVALID_HANDLE;
-    }
-    HandleUnlock();
+	HandleReadLock();
+	switch( GetHandleInfo( Hnd, &SInfo ) ) {
+	case HND_CLIENT:
+		break;
+	default:
+		HandleUnlock();
+		return UPNP_E_INVALID_HANDLE;
+	}
+	HandleUnlock();
 
-    if( ActionURL == NULL ) {
-        return UPNP_E_INVALID_PARAM;
-    }
-    if( ServiceType == NULL || Act == NULL || Fun == NULL ) {
-        return UPNP_E_INVALID_PARAM;
-    }
+	if( ActionURL == NULL ) {
+		return UPNP_E_INVALID_PARAM;
+	}
+	if( ServiceType == NULL || Act == NULL || Fun == NULL ) {
+		return UPNP_E_INVALID_PARAM;
+	}
 
-    headerStr = ixmlPrintNode( ( IXML_Node * ) Header );
+	headerStr = ixmlPrintNode( ( IXML_Node * ) Header );
 
-    tmpStr = ixmlPrintNode( ( IXML_Node * ) Act );
-    if( tmpStr == NULL ) {
-        ixmlFreeDOMString( headerStr );
-        return UPNP_E_INVALID_ACTION;
-    }
+	tmpStr = ixmlPrintNode( ( IXML_Node * ) Act );
+	if( tmpStr == NULL ) {
+		ixmlFreeDOMString( headerStr );
+		return UPNP_E_INVALID_ACTION;
+	}
 
-    Param =
-        ( struct UpnpNonblockParam * )
-        malloc( sizeof( struct UpnpNonblockParam ) );
-    if( Param == NULL ) {
-        ixmlFreeDOMString( tmpStr );
-        ixmlFreeDOMString( headerStr );
-        return UPNP_E_OUTOF_MEMORY;
-    }
-    memset( Param, 0, sizeof( struct UpnpNonblockParam ) );
+	Param =
+		( struct UpnpNonblockParam * )
+		malloc( sizeof( struct UpnpNonblockParam ) );
+	if( Param == NULL ) {
+		ixmlFreeDOMString( tmpStr );
+		ixmlFreeDOMString( headerStr );
+		return UPNP_E_OUTOF_MEMORY;
+	}
+	memset( Param, 0, sizeof( struct UpnpNonblockParam ) );
 
-    Param->FunName = ACTION;
-    Param->Handle = Hnd;
-    upnp_strlcpy(Param->Url, ActionURL, sizeof(Param->Url));
-    upnp_strlcpy(Param->ServiceType, ServiceType, sizeof(Param->ServiceType));
-    retVal = ixmlParseBufferEx( headerStr, &( Param->Header ) );
-    if( retVal != IXML_SUCCESS ) {
-        free( Param );
-        ixmlFreeDOMString( tmpStr );
-        ixmlFreeDOMString( headerStr );
-        if( retVal == IXML_INSUFFICIENT_MEMORY ) {
-            return UPNP_E_OUTOF_MEMORY;
-        } else {
-            return UPNP_E_INVALID_ACTION;
-        }
-    }
+	Param->FunName = ACTION;
+	Param->Handle = Hnd;
+	upnp_strlcpy(Param->Url, ActionURL, sizeof(Param->Url));
+	upnp_strlcpy(Param->ServiceType, ServiceType, sizeof(Param->ServiceType));
+	retVal = ixmlParseBufferEx( headerStr, &( Param->Header ) );
+	if( retVal != IXML_SUCCESS ) {
+		free( Param );
+		ixmlFreeDOMString( tmpStr );
+		ixmlFreeDOMString( headerStr );
+		if( retVal == IXML_INSUFFICIENT_MEMORY ) {
+			return UPNP_E_OUTOF_MEMORY;
+		} else {
+			return UPNP_E_INVALID_ACTION;
+		}
+	}
 
-    retVal = ixmlParseBufferEx( tmpStr, &( Param->Act ) );
-    if( retVal != IXML_SUCCESS ) {
-        ixmlDocument_free( Param->Header );
-        free( Param );
-        ixmlFreeDOMString( tmpStr );
-        ixmlFreeDOMString( headerStr );
-        if( retVal == IXML_INSUFFICIENT_MEMORY ) {
-            return UPNP_E_OUTOF_MEMORY;
-        } else {
-            return UPNP_E_INVALID_ACTION;
-        }
+	retVal = ixmlParseBufferEx( tmpStr, &( Param->Act ) );
+	if( retVal != IXML_SUCCESS ) {
+		ixmlDocument_free( Param->Header );
+		free( Param );
+		ixmlFreeDOMString( tmpStr );
+		ixmlFreeDOMString( headerStr );
+		if( retVal == IXML_INSUFFICIENT_MEMORY ) {
+			return UPNP_E_OUTOF_MEMORY;
+		} else {
+			return UPNP_E_INVALID_ACTION;
+		}
 
-    }
+	}
 
-    ixmlFreeDOMString( tmpStr );
-    ixmlFreeDOMString( headerStr );
+	ixmlFreeDOMString( tmpStr );
+	ixmlFreeDOMString( headerStr );
 
-    Param->Cookie = (char *)Cookie_const;
-    Param->Fun = Fun;
+	Param->Cookie = (char *)Cookie_const;
+	Param->Fun = Fun;
 
-    TPJobInit( &job, ( start_routine ) UpnpThreadDistribution, Param );
-    TPJobSetFreeFunction( &job, ( free_routine ) free );
+	TPJobInit( &job, ( start_routine ) UpnpThreadDistribution, Param );
+	TPJobSetFreeFunction( &job, ( free_routine ) free );
 
-    TPJobSetPriority( &job, MED_PRIORITY );
-    if (ThreadPoolAdd( &gSendThreadPool, &job, NULL ) != 0) {
-	free(Param);
-    }
+	TPJobSetPriority( &job, MED_PRIORITY );
+	if (ThreadPoolAdd( &gSendThreadPool, &job, NULL ) != 0) {
+		free(Param);
+	}
 
-    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-        "Exiting UpnpSendActionAsync\n");
+	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+			   "Exiting UpnpSendActionAsync\n");
 
-    return UPNP_E_SUCCESS;
+	return UPNP_E_SUCCESS;
 }
 
 #endif /* INCLUDE_CLIENT_APIS */
@@ -2521,7 +2496,7 @@ int UpnpSendActionExAsync(
 
 /*******************************************************************************
  *
- *                             Client API
+ *							   Client API
  *
  ******************************************************************************/
 
@@ -2556,7 +2531,7 @@ int UpnpDownloadXmlDoc(const char *url, IXML_Document **xmlDoc)
 	ret_code = UpnpDownloadUrlItem(url, &xml_buf, content_type);
 	if (ret_code != UPNP_E_SUCCESS) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-			"Error downloading document, retCode: %d\n", ret_code);
+				   "Error downloading document, retCode: %d\n", ret_code);
 		return ret_code;
 	}
 
@@ -2578,26 +2553,26 @@ int UpnpDownloadXmlDoc(const char *url, IXML_Document **xmlDoc)
 	if (ret_code != IXML_SUCCESS) {
 		if (ret_code == IXML_INSUFFICIENT_MEMORY) {
 			UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-				"Out of memory, ixml error code: %d\n",
-				ret_code);
+					   "Out of memory, ixml error code: %d\n",
+					   ret_code);
 			return UPNP_E_OUTOF_MEMORY;
 		} else {
 			UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-				"Invalid Description, ixml error code: %d\n",
-				ret_code);
+					   "Invalid Description, ixml error code: %d\n",
+					   ret_code);
 			return UPNP_E_INVALID_DESC;
 		}
 	} else {
 #ifdef DEBUG
 		xml_buf = ixmlPrintNode((IXML_Node *)*xmlDoc);
 		UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
-			"Printing the Parsed xml document \n %s\n", xml_buf);
+					"Printing the Parsed xml document \n %s\n", xml_buf);
 		UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
-			"****************** END OF Parsed XML Doc *****************\n");
+					"****************** END OF Parsed XML Doc *****************\n");
 		ixmlFreeDOMString(xml_buf);
 #endif
 		UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
-			"Exiting UpnpDownloadXmlDoc\n");
+					"Exiting UpnpDownloadXmlDoc\n");
 
 		return UPNP_E_SUCCESS;
 	}
@@ -2623,12 +2598,12 @@ int UpnpGetIfInfo(const char *IfName)
 
 	/* Get Adapters addresses required size. */
 	ret = GetAdaptersAddresses(AF_UNSPEC,
-				   GAA_FLAG_SKIP_ANYCAST |
-				   GAA_FLAG_SKIP_DNS_SERVER, NULL, adapts,
-				   &adapts_sz);
+							   GAA_FLAG_SKIP_ANYCAST |
+							   GAA_FLAG_SKIP_DNS_SERVER, NULL, adapts,
+							   &adapts_sz);
 	if (ret != ERROR_BUFFER_OVERFLOW) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-			   "GetAdaptersAddresses failed to find list of adapters\n");
+				   "GetAdaptersAddresses failed to find list of adapters\n");
 		return UPNP_E_INIT;
 	}
 	/* Allocate enough memory. */
@@ -2638,13 +2613,13 @@ int UpnpGetIfInfo(const char *IfName)
 	}
 	/* Do the call that will actually return the info. */
 	ret = GetAdaptersAddresses(AF_UNSPEC,
-				   GAA_FLAG_SKIP_ANYCAST |
-				   GAA_FLAG_SKIP_DNS_SERVER, NULL, adapts,
-				   &adapts_sz);
+							   GAA_FLAG_SKIP_ANYCAST |
+							   GAA_FLAG_SKIP_DNS_SERVER, NULL, adapts,
+							   &adapts_sz);
 	if (ret != ERROR_SUCCESS) {
 		free(adapts);
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-			   "GetAdaptersAddresses failed to find list of adapters\n");
+				   "GetAdaptersAddresses failed to find list of adapters\n");
 		return UPNP_E_INIT;
 	}
 	/* Copy interface name, if it was provided. */
@@ -2673,7 +2648,7 @@ int UpnpGetIfInfo(const char *IfName)
 			 * big changes (gIF_NAME to wchar string?).
 			 */
 			wcstombs(gIF_NAME, adapts_item->FriendlyName,
-				sizeof(gIF_NAME));
+					 sizeof(gIF_NAME));
 #else
 			upnp_strlcpy(gIF_NAME, adapts_item->FriendlyName, sizeof(gIF_NAME));
 #endif
@@ -2689,17 +2664,17 @@ int UpnpGetIfInfo(const char *IfName)
 			 */
 			char tmpIfName[LINE_SIZE] = { 0 };
 			wcstombs(tmpIfName, adapts_item->FriendlyName,
-				sizeof(tmpIfName));
+					 sizeof(tmpIfName));
 			if (strncmp
-			    (gIF_NAME, tmpIfName,
-			     sizeof(gIF_NAME)) != 0) {
+				(gIF_NAME, tmpIfName,
+				 sizeof(gIF_NAME)) != 0) {
 				/* This is not the interface we're looking for. */
 				continue;
 			}
 #else
 			if (strncmp
-			    (gIF_NAME, adapts_item->FriendlyName,
-			     sizeof(gIF_NAME)) != 0) {
+				(gIF_NAME, adapts_item->FriendlyName,
+				 sizeof(gIF_NAME)) != 0) {
 				/* This is not the interface we're looking for. */
 				continue;
 			}
@@ -2712,25 +2687,25 @@ int UpnpGetIfInfo(const char *IfName)
 			switch (ip_addr->sa_family) {
 			case AF_INET:
 				memcpy(&v4_addr,
-				       &((struct sockaddr_in *)ip_addr)->
-				       sin_addr, sizeof(v4_addr));
+					   &((struct sockaddr_in *)ip_addr)->
+					   sin_addr, sizeof(v4_addr));
 				valid_addr_found = 1;
 				break;
 			case AF_INET6:
 				/* Only keep IPv6 link-local addresses. */
 				if (IN6_IS_ADDR_LINKLOCAL
-				    (&((struct sockaddr_in6 *)ip_addr)->
-				     sin6_addr)) {
+					(&((struct sockaddr_in6 *)ip_addr)->
+					 sin6_addr)) {
 					memcpy(&v6_addr,
-					       &((struct sockaddr_in6 *)
-						 ip_addr)->sin6_addr,
-					       sizeof(v6_addr));
+						   &((struct sockaddr_in6 *)
+							 ip_addr)->sin6_addr,
+						   sizeof(v6_addr));
 					valid_addr_found = 1;
 				}
 				break;
 			default:
 				if (valid_addr_found == 0) {
-					/* Address is not IPv4 or IPv6 and no valid address has  */
+					/* Address is not IPv4 or IPv6 and no valid address has	 */
 					/* yet been found for this interface. Discard interface name. */
 					ifname_found = 0;
 				}
@@ -2749,7 +2724,7 @@ int UpnpGetIfInfo(const char *IfName)
 	/* Failed to find a valid interface, or valid address. */
 	if (ifname_found == 0 || valid_addr_found == 0) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-			   "Failed to find an adapter with valid IP addresses for use.\n");
+				   "Failed to find an adapter with valid IP addresses for use.\n");
 		return UPNP_E_INVALID_INTERFACE;
 	}
 	inet_ntop(AF_INET, &v4_addr, gIF_IPV4, sizeof(gIF_IPV4));
@@ -2772,7 +2747,7 @@ int UpnpGetIfInfo(const char *IfName)
 	/* Get system interface addresses. */
 	if (getifaddrs(&ifap) != 0) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-			   "getifaddrs failed to find list of addresses\n");
+				   "getifaddrs failed to find list of addresses\n");
 		return UPNP_E_INIT;
 	}
 	/* cycle through available interfaces and their addresses. */
@@ -2780,8 +2755,8 @@ int UpnpGetIfInfo(const char *IfName)
 		/* Skip LOOPBACK interfaces, DOWN interfaces and interfaces that  */
 		/* don't support MULTICAST. */
 		if ((ifa->ifa_flags & IFF_LOOPBACK)
-		    || (!(ifa->ifa_flags & IFF_UP))
-		    || (!(ifa->ifa_flags & IFF_MULTICAST))) {
+			|| (!(ifa->ifa_flags & IFF_UP))
+			|| (!(ifa->ifa_flags & IFF_MULTICAST))) {
 			continue;
 		}
 		if (ifname_found == 0) {
@@ -2790,7 +2765,7 @@ int UpnpGetIfInfo(const char *IfName)
 			ifname_found = 1;
 		} else {
 			if (strncmp(gIF_NAME, ifa->ifa_name, sizeof(gIF_NAME))
-			    != 0) {
+				!= 0) {
 				/* This is not the interface we're looking for. */
 				continue;
 			}
@@ -2799,25 +2774,25 @@ int UpnpGetIfInfo(const char *IfName)
 		switch (ifa->ifa_addr->sa_family) {
 		case AF_INET:
 			memcpy(&v4_addr,
-			       &((struct sockaddr_in *)(ifa->ifa_addr))->
-			       sin_addr, sizeof(v4_addr));
+				   &((struct sockaddr_in *)(ifa->ifa_addr))->
+				   sin_addr, sizeof(v4_addr));
 			valid_addr_found = 1;
 			break;
 		case AF_INET6:
 			/* Only keep IPv6 link-local addresses. */
 			if (IN6_IS_ADDR_LINKLOCAL
-			    (&((struct sockaddr_in6 *)(ifa->ifa_addr))->
-			     sin6_addr)) {
+				(&((struct sockaddr_in6 *)(ifa->ifa_addr))->
+				 sin6_addr)) {
 				memcpy(&v6_addr,
-				       &((struct sockaddr_in6 *)(ifa->
-								 ifa_addr))->
-				       sin6_addr, sizeof(v6_addr));
+					   &((struct sockaddr_in6 *)(ifa->
+												 ifa_addr))->
+					   sin6_addr, sizeof(v6_addr));
 				valid_addr_found = 1;
 			}
 			break;
 		default:
 			if (valid_addr_found == 0) {
-				/* Address is not IPv4 or IPv6 and no valid address has  */
+				/* Address is not IPv4 or IPv6 and no valid address has	 */
 				/* yet been found for this interface. Discard interface name. */
 				ifname_found = 0;
 			}
@@ -2828,7 +2803,7 @@ int UpnpGetIfInfo(const char *IfName)
 	/* Failed to find a valid interface, or valid address. */
 	if (ifname_found == 0 || valid_addr_found == 0) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-			   "Failed to find an adapter with valid IP addresses for use.\n");
+				   "Failed to find an adapter with valid IP addresses for use.\n");
 		return UPNP_E_INVALID_INTERFACE;
 	}
 	inet_ntop(AF_INET, &v4_addr, gIF_IPV4, sizeof(gIF_IPV4));
@@ -2858,7 +2833,7 @@ int UpnpGetIfInfo(const char *IfName)
 	/* Create an unbound datagram socket to do the SIOCGIFADDR ioctl on.  */
 	if ((LocalSock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == INVALID_SOCKET) {
 		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			   "Can't create addrlist socket\n");
+				   "Can't create addrlist socket\n");
 		return UPNP_E_INIT;
 	}
 	/* Get the interface configuration information...  */
@@ -2867,27 +2842,27 @@ int UpnpGetIfInfo(const char *IfName)
 
 	if (ioctl(LocalSock, SIOCGIFCONF, &ifConf) < 0) {
 		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			   "DiscoverInterfaces: SIOCGIFCONF returned error\n");
+				   "DiscoverInterfaces: SIOCGIFCONF returned error\n");
 		close(LocalSock);
 		return UPNP_E_INIT;
 	}
 	/* Cycle through the list of interfaces looking for IP addresses.  */
 	for (i = (size_t)0; i < (size_t)ifConf.ifc_len;) {
 		struct ifreq *pifReq =
-		    (struct ifreq *)((caddr_t) ifConf.ifc_req + i);
+			(struct ifreq *)((caddr_t) ifConf.ifc_req + i);
 		i += sizeof *pifReq;
 		/* See if this is the sort of interface we want to deal with. */
 		upnp_strlcpy(ifReq.ifr_name, pifReq->ifr_name, sizeof(ifReq.ifr_name));
 		if (ioctl(LocalSock, SIOCGIFFLAGS, &ifReq) < 0) {
 			UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-				   "Can't get interface flags for %s:\n",
-				   ifReq.ifr_name);
+					   "Can't get interface flags for %s:\n",
+					   ifReq.ifr_name);
 		}
 		/* Skip LOOPBACK interfaces, DOWN interfaces and interfaces that  */
 		/* don't support MULTICAST. */
 		if ((ifReq.ifr_flags & IFF_LOOPBACK)
-		    || (!(ifReq.ifr_flags & IFF_UP))
-		    || (!(ifReq.ifr_flags & IFF_MULTICAST))) {
+			|| (!(ifReq.ifr_flags & IFF_UP))
+			|| (!(ifReq.ifr_flags & IFF_MULTICAST))) {
 			continue;
 		}
 		if (ifname_found == 0) {
@@ -2896,8 +2871,8 @@ int UpnpGetIfInfo(const char *IfName)
 			ifname_found = 1;
 		} else {
 			if (strncmp
-			    (gIF_NAME, pifReq->ifr_name,
-			     sizeof(gIF_NAME)) != 0) {
+				(gIF_NAME, pifReq->ifr_name,
+				 sizeof(gIF_NAME)) != 0) {
 				/* This is not the interface we're looking for. */
 				continue;
 			}
@@ -2907,8 +2882,8 @@ int UpnpGetIfInfo(const char *IfName)
 			/* Copy interface name, IPv4 address and interface index. */
 			upnp_strlcpy(gIF_NAME, pifReq->ifr_name, sizeof(gIF_NAME));
 			inet_ntop(AF_INET,
-				  &((struct sockaddr_in *)&pifReq->ifr_addr)->
-				  sin_addr, gIF_IPV4, sizeof(gIF_IPV4));
+					  &((struct sockaddr_in *)&pifReq->ifr_addr)->
+					  sin_addr, gIF_IPV4, sizeof(gIF_IPV4));
 			gIF_INDEX = if_nametoindex(gIF_NAME);
 			valid_addr_found = 1;
 			break;
@@ -2921,7 +2896,7 @@ int UpnpGetIfInfo(const char *IfName)
 	/* Failed to find a valid interface, or valid address. */
 	if (ifname_found == 0 || valid_addr_found == 0) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-			   "Failed to find an adapter with valid IP addresses for use.\n");
+				   "Failed to find an adapter with valid IP addresses for use.\n");
 
 		return UPNP_E_INVALID_INTERFACE;
 	}
@@ -2930,16 +2905,16 @@ int UpnpGetIfInfo(const char *IfName)
 	inet6_procfd = fopen("/proc/net/if_inet6", "r");
 	if (inet6_procfd) {
 		while (fscanf(inet6_procfd,
-			      "%4s%4s%4s%4s%4s%4s%4s%4s %02x %*02x %*02x %*02x %*20s\n",
-			      addr6[0], addr6[1], addr6[2], addr6[3],
-			      addr6[4], addr6[5], addr6[6], addr6[7],
-			      &if_idx) != EOF) {
+					  "%4s%4s%4s%4s%4s%4s%4s%4s %02x %*02x %*02x %*02x %*20s\n",
+					  addr6[0], addr6[1], addr6[2], addr6[3],
+					  addr6[4], addr6[5], addr6[6], addr6[7],
+					  &if_idx) != EOF) {
 			/* Get same interface as IPv4 address retrieved. */
 			if (gIF_INDEX == if_idx) {
 				snprintf(buf, sizeof(buf),
-					 "%s:%s:%s:%s:%s:%s:%s:%s", addr6[0],
-					 addr6[1], addr6[2], addr6[3], addr6[4],
-					 addr6[5], addr6[6], addr6[7]);
+						 "%s:%s:%s:%s:%s:%s:%s:%s", addr6[0],
+						 addr6[1], addr6[2], addr6[3], addr6[4],
+						 addr6[5], addr6[6], addr6[7]);
 				/* Validate formed address and check for link-local. */
 				if (inet_pton(AF_INET6, buf, &v6_addr) > 0) {
 					if (IN6_IS_ADDR_ULA(&v6_addr)) {
@@ -2947,16 +2922,16 @@ int UpnpGetIfInfo(const char *IfName)
 						upnp_strlcpy(gIF_IPV6_ULA_GUA, buf,
 									 sizeof(gIF_IPV6_ULA_GUA));
 					} else if (IN6_IS_ADDR_GLOBAL(&v6_addr)
-						   && strlen(gIF_IPV6_ULA_GUA) == 0) {
+							   && strlen(gIF_IPV6_ULA_GUA) == 0) {
 						/* got a GUA, should store it while no ULA is found */
 						upnp_strlcpy(gIF_IPV6_ULA_GUA, buf,
-							sizeof(gIF_IPV6_ULA_GUA));
+									 sizeof(gIF_IPV6_ULA_GUA));
 					} else
-					    if (IN6_IS_ADDR_LINKLOCAL(&v6_addr)
-						&& strlen(gIF_IPV6) == 0) {
-						/* got a Link local IPv6 address. */
-						upnp_strlcpy(gIF_IPV6, buf,	sizeof(gIF_IPV6));
-					}
+						if (IN6_IS_ADDR_LINKLOCAL(&v6_addr)
+							&& strlen(gIF_IPV6) == 0) {
+							/* got a Link local IPv6 address. */
+							upnp_strlcpy(gIF_IPV6, buf,	sizeof(gIF_IPV6));
+						}
 				}
 			}
 		}
@@ -2964,8 +2939,8 @@ int UpnpGetIfInfo(const char *IfName)
 	}
 #endif
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-		   "Interface name=%s, index=%d, v4=%s, v6=%s, ULA or GUA v6=%s\n",
-		   gIF_NAME, gIF_INDEX, gIF_IPV4, gIF_IPV6, gIF_IPV6_ULA_GUA);
+			   "Interface name=%s, index=%d, v4=%s, v6=%s, ULA or GUA v6=%s\n",
+			   gIF_NAME, gIF_INDEX, gIF_IPV4, gIF_IPV6, gIF_IPV6_ULA_GUA);
 
 	return UPNP_E_SUCCESS;
 }
@@ -2980,7 +2955,7 @@ void UpnpThreadDistribution(struct UpnpNonblockParam *Param)
 	/*int errCode = 0;*/
 
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"Inside UpnpThreadDistribution \n");
+			   "Inside UpnpThreadDistribution \n");
 
 	switch (Param->FunName) {
 #if EXCLUDE_GENA == 0
@@ -3043,7 +3018,7 @@ void UpnpThreadDistribution(struct UpnpNonblockParam *Param)
 	}
 
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"Exiting UpnpThreadDistribution\n");
+			   "Exiting UpnpThreadDistribution\n");
 }
 #endif /* INCLUDE_CLIENT_APIS */
 
@@ -3096,7 +3071,7 @@ Upnp_Handle_Type GetDeviceHandleInfo(
 #ifdef INCLUDE_DEVICE_APIS
 	/* Check if we've got a registered device of the address family specified. */
 	if ((AddressFamily == AF_INET  && UpnpSdkDeviceRegisteredV4 == 0) ||
-	    (AddressFamily == AF_INET6 && UpnpSdkDeviceregisteredV6 == 0)) {
+		(AddressFamily == AF_INET6 && UpnpSdkDeviceregisteredV6 == 0)) {
 		*device_handle_out = -1;
 		return HND_INVALID;
 	}
@@ -3134,7 +3109,7 @@ Upnp_Handle_Type GetDeviceHandleInfoForPath(
 #ifdef INCLUDE_DEVICE_APIS
 	/* Check if we've got a registered device of the address family specified. */
 	if ((AddressFamily == AF_INET  && UpnpSdkDeviceRegisteredV4 == 0) ||
-	    (AddressFamily == AF_INET6 && UpnpSdkDeviceregisteredV6 == 0)) {
+		(AddressFamily == AF_INET6 && UpnpSdkDeviceregisteredV6 == 0)) {
 		*device_handle_out = -1;
 		return HND_INVALID;
 	}
@@ -3167,15 +3142,15 @@ Upnp_Handle_Type GetHandleInfo(
 	Upnp_Handle_Type ret = HND_INVALID;
 
 	UpnpPrintf( UPNP_INFO, API, __FILE__, __LINE__,
-		"GetHandleInfo: entering, Handle is %d\n", Hnd);
+				"GetHandleInfo: entering, Handle is %d\n", Hnd);
 
 	if (Hnd < 1 || Hnd >= NUM_HANDLE) {
 		UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-			"GetHandleInfo: Handle out of range\n");
+				   "GetHandleInfo: Handle out of range\n");
 	} else if (HandleTable[Hnd] == NULL) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-			"GetHandleInfo: HandleTable[%d] is NULL\n",
-			Hnd);
+				   "GetHandleInfo: HandleTable[%d] is NULL\n",
+				   Hnd);
 	} else if (HandleTable[Hnd] != NULL) {
 		*HndInfo = (struct Handle_Info *)HandleTable[Hnd];
 		ret = ((struct Handle_Info *)*HndInfo)->HType;
@@ -3189,27 +3164,27 @@ Upnp_Handle_Type GetHandleInfo(
 
 int PrintHandleInfo(UpnpClient_Handle Hnd)
 {
-    struct Handle_Info * HndInfo;
-    if (HandleTable[Hnd] != NULL) {
-        HndInfo = (struct Handle_Info*)HandleTable[Hnd];
-            UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-                "Printing information for Handle_%d\n", Hnd);
-            UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-                "HType_%d\n", HndInfo->HType);
+	struct Handle_Info * HndInfo;
+	if (HandleTable[Hnd] != NULL) {
+		HndInfo = (struct Handle_Info*)HandleTable[Hnd];
+		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+				   "Printing information for Handle_%d\n", Hnd);
+		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+				   "HType_%d\n", HndInfo->HType);
 #ifdef INCLUDE_DEVICE_APIS
-                switch(HndInfo->HType) {
-                case HND_CLIENT:
-                    break;
-                default:
-                    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-                        "DescURL_%s\n", HndInfo->DescURL);
-                }
+		switch(HndInfo->HType) {
+		case HND_CLIENT:
+			break;
+		default:
+			UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+					   "DescURL_%s\n", HndInfo->DescURL);
+		}
 #endif /* INCLUDE_DEVICE_APIS */
-    } else {
-        return UPNP_E_INVALID_HANDLE;
-    }
+	} else {
+		return UPNP_E_INVALID_HANDLE;
+	}
 
-    return UPNP_E_SUCCESS;
+	return UPNP_E_SUCCESS;
 }
 
 
@@ -3235,12 +3210,12 @@ int getlocalhostname(char *out, size_t out_len)
 			upnp_strlcpy(out, p, out_len);
 		} else {
 			UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
-				"getlocalhostname: inet_ntop returned error\n" );
+						"getlocalhostname: inet_ntop returned error\n" );
 			ret = UPNP_E_INIT;
 		}
 	} else {
 		UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
-			"getlocalhostname: gethostbyname returned error\n" );
+					"getlocalhostname: gethostbyname returned error\n" );
 		ret = UPNP_E_INIT;
 	}
 
@@ -3249,7 +3224,7 @@ int getlocalhostname(char *out, size_t out_len)
 
 	if (getifaddrs(&ifap) != 0) {
 		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			"DiscoverInterfaces: getifaddrs() returned error\n");
+				   "DiscoverInterfaces: getifaddrs() returned error\n");
 		return UPNP_E_INIT;
 	}
 
@@ -3259,27 +3234,27 @@ int getlocalhostname(char *out, size_t out_len)
 		 * except don't skip down interfaces
 		 * if we're trying to get a list of configurable interfaces. */
 		if ((ifa->ifa_flags & IFF_LOOPBACK) ||
-		    (!( ifa->ifa_flags & IFF_UP))) {
+			(!( ifa->ifa_flags & IFF_UP))) {
 			continue;
 		}
 		if (ifa->ifa_addr->sa_family == AF_INET) {
 			/* We don't want the loopback interface. */
 			if (((struct sockaddr_in *)(ifa->ifa_addr))->sin_addr.s_addr ==
-			    htonl(INADDR_LOOPBACK)) {
+				htonl(INADDR_LOOPBACK)) {
 				continue;
 			}
 			p = inet_ntop(AF_INET,
-				&((struct sockaddr_in *)(ifa->ifa_addr))->sin_addr,
-				tempstr, sizeof(tempstr));
+						  &((struct sockaddr_in *)(ifa->ifa_addr))->sin_addr,
+						  tempstr, sizeof(tempstr));
 			if (p) {
 				upnp_strlcpy(out, p, out_len);
 			} else {
 				UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-					"getlocalhostname: inet_ntop returned error\n");
+						   "getlocalhostname: inet_ntop returned error\n");
 				ret = UPNP_E_INIT;
 			}
 			UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-				"Inside getlocalhostname: after upnp_strlcpy %s\n", out);
+					   "Inside getlocalhostname: after upnp_strlcpy %s\n", out);
 			break;
 		}
 	}
@@ -3297,8 +3272,8 @@ int getlocalhostname(char *out, size_t out_len)
 	int j = 0;
 
 	/* purify */
-	memset(&ifConf,  0, sizeof(ifConf));
-	memset(&ifReq,   0, sizeof(ifReq));
+	memset(&ifConf,	 0, sizeof(ifConf));
+	memset(&ifReq,	 0, sizeof(ifReq));
 	memset(szBuffer, 0, sizeof(szBuffer));
 	memset(&LocalAddr, 0, sizeof(LocalAddr));
 
@@ -3306,7 +3281,7 @@ int getlocalhostname(char *out, size_t out_len)
 	LocalSock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (LocalSock == INVALID_SOCKET) {
 		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			"Can't create addrlist socket\n");
+				   "Can't create addrlist socket\n");
 		return UPNP_E_INIT;
 	}
 	/* Get the interface configuration information... */
@@ -3315,7 +3290,7 @@ int getlocalhostname(char *out, size_t out_len)
 	nResult = ioctl(LocalSock, SIOCGIFCONF, &ifConf);
 	if (nResult < 0) {
 		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			"DiscoverInterfaces: SIOCGIFCONF returned error\n");
+				   "DiscoverInterfaces: SIOCGIFCONF returned error\n");
 		close(LocalSock);
 		return UPNP_E_INIT;
 	}
@@ -3329,23 +3304,23 @@ int getlocalhostname(char *out, size_t out_len)
 		upnp_strlcpy(ifReq.ifr_name, pifReq->ifr_name, sizeof(ifReq.ifr_name));
 		if (ioctl(LocalSock, SIOCGIFFLAGS, &ifReq) < 0) {
 			UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-				"Can't get interface flags for %s:\n",
-				ifReq.ifr_name);
+					   "Can't get interface flags for %s:\n",
+					   ifReq.ifr_name);
 		}
 		/* Skip loopback, point-to-point and down interfaces,
 		 * except don't skip down interfaces
 		 * if we're trying to get a list of configurable interfaces. */
 		if ((ifReq.ifr_flags & IFF_LOOPBACK) ||
-		    (!(ifReq.ifr_flags & IFF_UP))) {
+			(!(ifReq.ifr_flags & IFF_UP))) {
 			continue;
 		}
 		if (pifReq->ifr_addr.sa_family == AF_INET) {
 			/* Get a pointer to the address...*/
 			memcpy(&LocalAddr, &pifReq->ifr_addr,
-				sizeof pifReq->ifr_addr);
+				   sizeof pifReq->ifr_addr);
 			/* We don't want the loopback interface. */
 			if (LocalAddr.sin_addr.s_addr ==
-			    htonl(INADDR_LOOPBACK)) {
+				htonl(INADDR_LOOPBACK)) {
 				continue;
 			}
 		}
@@ -3360,11 +3335,11 @@ int getlocalhostname(char *out, size_t out_len)
 		upnp_strlcpy(out, p, out_len);
 	} else {
 		UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
-			"getlocalhostname: inet_ntop returned error\n" );
+					"getlocalhostname: inet_ntop returned error\n" );
 		ret = UPNP_E_INIT;
 	}
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-		"Inside getlocalhostname: after upnp_strlcpy %s\n", out);
+			   "Inside getlocalhostname: after upnp_strlcpy %s\n", out);
 #endif
 	return ret;
 }
@@ -3386,13 +3361,13 @@ void AutoAdvertise(void *input)
 #ifdef INTERNAL_WEB_SERVER
 int UpnpSetWebServerRootDir(const char *rootDir)
 {
-    if( UpnpSdkInit == 0 )
-        return UPNP_E_FINISH;
-    if( ( rootDir == NULL ) || ( strlen( rootDir ) == 0 ) ) {
-        return UPNP_E_INVALID_PARAM;
-    }
+	if( UpnpSdkInit == 0 )
+		return UPNP_E_FINISH;
+	if( ( rootDir == NULL ) || ( strlen( rootDir ) == 0 ) ) {
+		return UPNP_E_INVALID_PARAM;
+	}
 
-    return web_server_set_root_dir(rootDir);
+	return web_server_set_root_dir(rootDir);
 }
 #endif /* INTERNAL_WEB_SERVER */
 
@@ -3400,19 +3375,19 @@ int UpnpSetWebServerRootDir(const char *rootDir)
 int UpnpAddVirtualDir(const char *dirname, const void *cookie,
 					  const void **oldcookie)
 {
-    if( UpnpSdkInit != 1 ) {
-        /* SDK is not initialized */
-        return UPNP_E_FINISH;
-    }
+	if( UpnpSdkInit != 1 ) {
+		/* SDK is not initialized */
+		return UPNP_E_FINISH;
+	}
 	return web_server_add_virtual_dir(dirname, cookie, oldcookie);
 }
 
 
 int UpnpRemoveVirtualDir(const char *dirname)
 {
-    if (UpnpSdkInit != 1) {
-        return UPNP_E_FINISH;
-    }
+	if (UpnpSdkInit != 1) {
+		return UPNP_E_FINISH;
+	}
 	return web_server_remove_virtual_dir(dirname);
 }
 
@@ -3425,33 +3400,33 @@ void UpnpRemoveAllVirtualDirs(void)
 
 int UpnpEnableWebserver(int enable)
 {
-    int retVal = UPNP_E_SUCCESS;
+	int retVal = UPNP_E_SUCCESS;
 
-    if( UpnpSdkInit != 1 ) {
-        return UPNP_E_FINISH;
-    }
+	if( UpnpSdkInit != 1 ) {
+		return UPNP_E_FINISH;
+	}
 
-    switch ( enable ) {
+	switch ( enable ) {
 #ifdef INTERNAL_WEB_SERVER
-        case TRUE:
-            if( ( retVal = web_server_init() ) != UPNP_E_SUCCESS ) {
-                return retVal;
-            }
-            bWebServerState = WEB_SERVER_ENABLED;
-            SetHTTPGetCallback( web_server_callback );
-            break;
+	case TRUE:
+		if( ( retVal = web_server_init() ) != UPNP_E_SUCCESS ) {
+			return retVal;
+		}
+		bWebServerState = WEB_SERVER_ENABLED;
+		SetHTTPGetCallback( web_server_callback );
+		break;
 
-        case FALSE:
-            web_server_destroy();
-            bWebServerState = WEB_SERVER_DISABLED;
-            SetHTTPGetCallback( NULL );
-            break;
+	case FALSE:
+		web_server_destroy();
+		bWebServerState = WEB_SERVER_DISABLED;
+		SetHTTPGetCallback( NULL );
+		break;
 #endif /* INTERNAL_WEB_SERVER */
-        default:
-            retVal = UPNP_E_INVALID_PARAM;
-    }
+	default:
+		retVal = UPNP_E_INVALID_PARAM;
+	}
 
-    return retVal;
+	return retVal;
 }
 
 
@@ -3482,11 +3457,11 @@ int UpnpSetVirtualDirCallbacks(struct UpnpVirtualDirCallbacks *callbacks)
 		return UPNP_E_INVALID_PARAM;
 
 	ret = UpnpVirtualDir_set_GetInfoCallback(callbacks->get_info) == UPNP_E_SUCCESS
-	   && UpnpVirtualDir_set_OpenCallback(callbacks->open) == UPNP_E_SUCCESS
-	   && UpnpVirtualDir_set_ReadCallback(callbacks->read) == UPNP_E_SUCCESS
-	   && UpnpVirtualDir_set_WriteCallback(callbacks->write) == UPNP_E_SUCCESS
-	   && UpnpVirtualDir_set_SeekCallback(callbacks->seek) == UPNP_E_SUCCESS
-	   && UpnpVirtualDir_set_CloseCallback(callbacks->close) == UPNP_E_SUCCESS;
+		&& UpnpVirtualDir_set_OpenCallback(callbacks->open) == UPNP_E_SUCCESS
+		&& UpnpVirtualDir_set_ReadCallback(callbacks->read) == UPNP_E_SUCCESS
+		&& UpnpVirtualDir_set_WriteCallback(callbacks->write) == UPNP_E_SUCCESS
+		&& UpnpVirtualDir_set_SeekCallback(callbacks->seek) == UPNP_E_SUCCESS
+		&& UpnpVirtualDir_set_CloseCallback(callbacks->close) == UPNP_E_SUCCESS;
 
 	return ret ? UPNP_E_SUCCESS : UPNP_E_INVALID_PARAM;
 }
@@ -3495,7 +3470,7 @@ int UpnpVirtualDir_set_GetInfoCallback(VDCallback_GetInfo callback)
 {
 	int ret = UPNP_E_SUCCESS;
 	if (!callback) {
-	        ret = UPNP_E_INVALID_PARAM;
+		ret = UPNP_E_INVALID_PARAM;
 	} else {
 		virtualDirCallback.get_info = callback;
 	}
@@ -3508,7 +3483,7 @@ int UpnpVirtualDir_set_OpenCallback(VDCallback_Open callback)
 {
 	int ret = UPNP_E_SUCCESS;
 	if (!callback) {
-	        ret = UPNP_E_INVALID_PARAM;
+		ret = UPNP_E_INVALID_PARAM;
 	} else {
 		virtualDirCallback.open = callback;
 	}
@@ -3521,7 +3496,7 @@ int UpnpVirtualDir_set_ReadCallback(VDCallback_Read callback)
 {
 	int ret = UPNP_E_SUCCESS;
 	if (!callback) {
-	        ret = UPNP_E_INVALID_PARAM;
+		ret = UPNP_E_INVALID_PARAM;
 	} else {
 		virtualDirCallback.read = callback;
 	}
@@ -3534,7 +3509,7 @@ int UpnpVirtualDir_set_WriteCallback(VDCallback_Write callback)
 {
 	int ret = UPNP_E_SUCCESS;
 	if (!callback) {
-	        ret = UPNP_E_INVALID_PARAM;
+		ret = UPNP_E_INVALID_PARAM;
 	} else {
 		virtualDirCallback.write = callback;
 	}
@@ -3547,7 +3522,7 @@ int UpnpVirtualDir_set_SeekCallback(VDCallback_Seek callback)
 {
 	int ret = UPNP_E_SUCCESS;
 	if (!callback) {
-	        ret = UPNP_E_INVALID_PARAM;
+		ret = UPNP_E_INVALID_PARAM;
 	} else {
 		virtualDirCallback.seek = callback;
 	}
@@ -3560,7 +3535,7 @@ int UpnpVirtualDir_set_CloseCallback(VDCallback_Close callback)
 {
 	int ret = UPNP_E_SUCCESS;
 	if (!callback) {
-	        ret = UPNP_E_INVALID_PARAM;
+		ret = UPNP_E_INVALID_PARAM;
 	} else {
 		virtualDirCallback.close = callback;
 	}
@@ -3586,7 +3561,7 @@ int UpnpSetContentLength(UpnpClient_Handle Hnd, size_t contentLength)
 			break;
 		default:
 			HandleUnlock();
-		        return UPNP_E_INVALID_HANDLE;
+			return UPNP_E_INVALID_HANDLE;
 		}
 		if (contentLength > MAX_SOAP_CONTENT_LENGTH) {
 			errCode = UPNP_E_OUTOF_BOUNDS;
@@ -3621,4 +3596,3 @@ int UpnpSetEventQueueLimits(int maxLen, int maxAge)
 	return UPNP_E_SUCCESS;
 }
 
-/* @} UPnPAPI */
