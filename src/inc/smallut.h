@@ -48,6 +48,8 @@ inline size_t upnp_strlcpy(char *dst, const std::string& src, size_t dsize) {
 	return upnp_strlcpy(dst, src.c_str(), dsize);
 }
 
+std::string xmlQuote(const std::string& in);
+
 /* Size of the errorBuffer variable, passed to the strerror_r() function */
 #define ERROR_BUFFER_LEN (size_t)256
 #if !defined(_WIN32)

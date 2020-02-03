@@ -1548,181 +1548,6 @@ EXPORT_SPEC int UpnpSendAdvertisementLowPower(
 
 /* @} Discovery */
 
-/******************************************************************************
- ******************************************************************************
- *                                                                            *
- *                            C O N T R O L                                   *
- *                                                                            *
- ******************************************************************************
- ******************************************************************************/
-
-/*!
- * \name Control
- *
- * @{
- */
-
-/*!
- * \brief Sends a message to change a state variable in a service.
- *
- * This is a synchronous call that does not return until the action is complete.
- * 
- * Note that a positive return value indicates a SOAP-protocol error code.
- * In this case,  the error description can be retrieved from \b RespNode.
- * A negative return value indicates an SDK error.
- *
- * \return An integer representing one of the following:
- *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
- *     \li \c UPNP_E_INVALID_HANDLE: The handle is not a valid control 
- *             point handle.
- *     \li \c UPNP_E_INVALID_URL: \b ActionUrl is not a valid URL.
- *     \li \c UPNP_E_INVALID_ACTION: This action is not valid.
- *     \li \c UPNP_E_INVALID_DEVICE: \b DevUDN is not a 
- *             valid device.
- *     \li \c UPNP_E_INVALID_PARAM: \b ServiceType, \b Action, 
- *             \b ActionUrl, or 
- *             \b RespNode is not a valid pointer.
- *     \li \c UPNP_E_OUTOF_MEMORY: Insufficient resources exist to 
- *             complete this operation.
- */
-EXPORT_SPEC int UpnpSendAction(
-	/*! [in] The handle of the control point sending the action. */
-	UpnpClient_Handle Hnd,
-	/*! [in] The action URL of the service. */
-	const char *ActionURL,
-	/*! [in] The type of the service. */
-	const char *ServiceType,
-	/*! [in] This parameter is ignored and must be \c NULL. */
-	const char *DevUDN,
-	/*! [in] The DOM document for the action. */
-	IXML_Document *Action,
-	/*! [out] The DOM document for the response to the action. The SDK allocates
-	 * this document and the caller needs to free it. */
-	IXML_Document **RespNode);
-
-/*!
- * \brief Sends a message to change a state variable in a service.
- *
- * This is a synchronous call that does not return until the action is complete.
- *
- * Note that a positive return value indicates a SOAP-protocol error code.
- * In this case,  the error description can be retrieved from \b RespNode.
- * A negative return value indicates an SDK error.
- *
- * \return An integer representing one of the following:
- *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
- *     \li \c UPNP_E_INVALID_HANDLE: The handle is not a valid control 
- *             point handle.
- *     \li \c UPNP_E_INVALID_URL: \b ActionUrl is not a valid URL.
- *     \li \c UPNP_E_INVALID_ACTION: This action is not valid.
- *     \li \c UPNP_E_INVALID_DEVICE: \b DevUDN is not a 
- *             valid device.
- *     \li \c UPNP_E_INVALID_PARAM: \b ServiceType, \b Action, 
- *             \b ActionUrl, or 
- *             \b RespNode is not a valid pointer.
- *     \li \c UPNP_E_OUTOF_MEMORY: Insufficient resources exist to 
- *             complete this operation.
- */
-EXPORT_SPEC int UpnpSendActionEx(
-	/*! [in] The handle of the control point sending the action. */
-	UpnpClient_Handle Hnd,
-	/*! [in] The action URL of the service. */
-	const char *ActionURL,
-	/*! [in] The type of the service. */
-	const char *ServiceType,
-	/*! [in] This parameter is ignored and must be \c NULL. */
-	const char *DevUDN,
-	/*! [in] The DOM document for the SOAP header. This may be \c NULL if the
-	 * header is not required. */
-	IXML_Document *Header,
-	/*! [in] The DOM document for the action. */
-	IXML_Document *Action,
-	/*! [out] The DOM document for the response to the action. The SDK allocates
-	 * this document and the caller needs to free it. */
-	IXML_Document **RespNode);
-
-/*!
- * \brief Sends a message to change a state variable in a service, generating a
- * callback when the operation is complete.
- * 
- * See \b UpnpSendAction for comments on positive return values. These 
- * positive return values are sent in the event struct associated with the
- * \c UPNP_CONTROL_ACTION_COMPLETE event.
- *
- * \return An integer representing one of the following:
- *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
- *     \li \c UPNP_E_INVALID_HANDLE: The handle is not a valid control 
- *             point handle.
- *     \li \c UPNP_E_INVALID_URL: \b ActionUrl is an invalid URL.
- *     \li \c UPNP_E_INVALID_DEVICE: \b DevUDN is an invalid device.
- *     \li \c UPNP_E_INVALID_PARAM: Either \b Fun is not a valid 
- *             callback function or \b ServiceType, \b Act, or 
- *             \b ActionUrl is \c NULL.
- *     \li \c UPNP_E_INVALID_ACTION: This action is not valid.
- *     \li \c UPNP_E_OUTOF_MEMORY: Insufficient resources exist to 
- *             complete this operation.
- */
-EXPORT_SPEC int UpnpSendActionAsync(
-	/*! [in] The handle of the control point sending the action. */
-	UpnpClient_Handle Hnd,
-	/*! [in] The action URL of the service. */
-	const char *ActionURL,
-	/*! [in] The type of the service. */
-	const char *ServiceType,
-	/*! [in] This parameter is ignored and must be \c NULL. */
-	const char *DevUDN,
-	/*! [in] The DOM document for the action to perform on this device. */
-	IXML_Document *Action,
-	/*! [in] Pointer to a callback function to be invoked when the operation
-	 * completes. */
-	Upnp_FunPtr Fun,
-	/*! [in] Pointer to user data that to be passed to the callback when
-	 * invoked. */
-	const void *Cookie);
-
-/*!
- * \brief Sends a message to change a state variable in a service, generating a
- * callback when the operation is complete.
- *
- * See \b UpnpSendAction for comments on positive return values. These 
- * positive return values are sent in the event struct associated with the
- * \c UPNP_CONTROL_ACTION_COMPLETE event.
- *
- * \return An integer representing one of the following:
- *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
- *     \li \c UPNP_E_INVALID_HANDLE: The handle is not a valid control 
- *             point handle.
- *     \li \c UPNP_E_INVALID_URL: \b ActionUrl is an invalid URL.
- *     \li \c UPNP_E_INVALID_DEVICE: \b DevUDN is an invalid device.
- *     \li \c UPNP_E_INVALID_PARAM: Either \b Fun is not a valid 
- *             callback function or \b ServiceType, \b Act, or 
- *             \b ActionUrl is \c NULL.
- *     \li \c UPNP_E_INVALID_ACTION: This action is not valid.
- *     \li \c UPNP_E_OUTOF_MEMORY: Insufficient resources exist to 
- *             complete this operation.
- */
-EXPORT_SPEC int UpnpSendActionExAsync(
-	/*! [in] The handle of the control point sending the action. */
-	UpnpClient_Handle Hnd,
-	/*! [in] The action URL of the service. */
-	const char *ActionURL,
-	/*! [in] The type of the service. */
-	const char *ServiceType,
-	/*! [in] This parameter is ignored and must be \c NULL. */
-	const char *DevUDN,
-	/*! [in] The DOM document for the SOAP header. This may be \c NULL if the
-	 * header is not required. */
-	IXML_Document *Header,
-	/*! [in] The DOM document for the action to perform on this device. */
-	IXML_Document *Action,
-	/*! [in] Pointer to a callback function to be invoked when the operation
-	 * completes. */
-	Upnp_FunPtr Fun,
-	/*! [in] Pointer to user data that to be passed to the callback when
-	 * invoked. */
-	const void *Cookie);
-
-/*! @} Control */
 
 /******************************************************************************
  ******************************************************************************
@@ -1780,42 +1605,6 @@ EXPORT_SPEC int UpnpAcceptSubscription(
 	const Upnp_SID SubsId);
 
 /*!
- * \brief Similar to \b UpnpAcceptSubscription() except that it takes a DOM
- * document for the variables to event rather than an array of strings.
- *
- * This function is sychronous and generates no callbacks.
- *
- * This function can be called during the execution of a callback function.
- *
- * \return An integer representing one of the following:
- *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
- *     \li \c UPNP_E_INVALID_HANDLE: The handle is not a valid device 
- *             handle.
- *     \li \c UPNP_E_INVALID_SERVICE: The \b DevId/\b ServId 
- *             pair refers to an invalid service. 
- *     \li \c UPNP_E_INVALID_SID: The specified subscription ID is not 
- *             valid.
- *     \li \c UPNP_E_INVALID_PARAM: Either \b VarName,  
- *             \b NewVal, \b DevID, \b ServID, or \b PropSet 
- *             is not a valid pointer.
- *     \li \c UPNP_E_OUTOF_MEMORY: Insufficient resources exist to 
- *             complete this operation.
- */
-EXPORT_SPEC int UpnpAcceptSubscriptionExt(
-	/*! [in] The handle of the device. */
-	UpnpDevice_Handle Hnd,
-	/*! [in] The device ID of the subdevice of the service generating the event. */
-	const char *DevID,
-	/*! [in] The unique service identifier of the service generating the event. */
-	const char *ServID,
-	/*! [in] The DOM document for the property set. Property set documents must
-	 * conform to the XML schema defined in section 4.3 of the Universal
-	 * Plug and Play Device Architecture specification. */
-	IXML_Document *PropSet,
-	/*! [in] The subscription ID of the newly registered control point. */
-	const Upnp_SID SubsId);
-
-/*!
  * \brief Sends out an event change notification to all control points
  * subscribed to a particular service.
  *
@@ -1849,39 +1638,6 @@ EXPORT_SPEC int UpnpNotify(
 	const char **NewVal,
 	/*! [in] The count of variables included in this notification. */
 	int cVariables);
-
-/*!
- * \brief Similar to \b UpnpNotify except that it takes a DOM document for the
- * event rather than an array of strings.
- *
- * This function is synchronous and generates no callbacks.
- *
- * This function may be called during a callback function to send out a
- * notification.
- *
- * \return An integer representing one of the following:
- *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
- *     \li \c UPNP_E_INVALID_HANDLE: The handle is not a valid device 
- *             handle.
- *     \li \c UPNP_E_INVALID_SERVICE: The \b DevId/\b ServId 
- *             pair refers to an invalid service.
- *     \li \c UPNP_E_INVALID_PARAM: Either \b VarName, \b NewVal, 
- *              \b DevID, \b ServID, or \b PropSet 
- *              is not a valid pointer or \b cVariables is less than zero.
- *     \li \c UPNP_E_OUTOF_MEMORY: Insufficient resources exist to 
- *             complete this operation.
- */
-EXPORT_SPEC int UpnpNotifyExt(
-	/*! [in] The handle to the device sending the event. */
-	UpnpDevice_Handle,
-	/*! [in] The device ID of the subdevice of the service generating the event. */
-	const char *DevID,
-	/*! [in] The unique identifier of the service generating the event. */
-	const char *ServID,
-	/*! [in] The DOM document for the property set. Property set documents must
-	 * conform to the XML schema defined in section 4.3 of the Universal
-	 * Plug and Play Device Architecture specification. */
-	IXML_Document *PropSet);
 
 /*!
  * \brief Renews a subscription that is about to expire.
@@ -2268,39 +2024,6 @@ EXPORT_SPEC int UpnpDownloadUrlItem(
 	 * \c LINE_SIZE bytes in size. */
 	char *contentType);
 
-/*!
- * \brief Downloads an XML document specified in a URL.
- *
- * The SDK parses the document and returns it in the form of a 
- * DOM document. The application is responsible for freeing the DOM document.
- *
- * \return An integer representing one of the following:
- *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
- *     \li \c UPNP_E_INVALID_PARAM: Either \b url or \b xmlDoc 
- *             is not a valid pointer.
- *     \li \c UPNP_E_INVALID_DESC: The XML document was not 
- *             found or it does not contain a valid XML description.
- *     \li \c UPNP_E_INVALID_URL: The \b url is not a valid 
- *             URL.
- *     \li \c UPNP_E_OUTOF_MEMORY: There are insufficient resources to 
- *             download the XML document.
- *     \li \c UPNP_E_NETWORK_ERROR: A network error occurred.
- *     \li \c UPNP_E_SOCKET_WRITE: An error or timeout occurred writing 
- *             to a socket.
- *     \li \c UPNP_E_SOCKET_READ: An error or timeout occurred reading 
- *             from a socket.
- *     \li \c UPNP_E_SOCKET_BIND: An error occurred binding a socket.
- *     \li \c UPNP_E_SOCKET_CONNECT: An error occurred connecting the 
- *             socket.
- *     \li \c UPNP_E_OUTOF_SOCKET: Too many sockets are currently 
- *             allocated.
- */
-EXPORT_SPEC int UpnpDownloadXmlDoc(
-	/*! [in] URL of the XML document. */
-	const char *url,
-	/*! [out] A pointer in which to store the XML document. */
-	IXML_Document **xmlDoc);
-
 /*! @} Control Point HTTP API */
 
 /******************************************************************************
@@ -2564,6 +2287,70 @@ EXPORT_SPEC void UpnpRemoveAllVirtualDirs(void);
 }
 #endif /* __cplusplus */
 
-/* @} UPnPAPI UPnP API */
+
+
+#ifdef __cplusplus
+
+
+#include <string>
+#include <vector>
+
+
+/******************************************************************************
+ *                                                                            *
+ *                            C O N T R O L                                   *
+ *                                                                            *
+ ******************************************************************************/
+
+/*!
+ * \brief Sends a message to change a state variable in a service.
+ *
+ * This is a synchronous call that does not return until the action is complete.
+ * 
+ * Note that a positive return value indicates a SOAP-protocol error code.
+ * In this case,  the error description can be retrieved from \b RespNode.
+ * A negative return value indicates an SDK error.
+ *
+ * \return An integer representing one of the following:
+ *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
+ *     \li \c UPNP_E_INVALID_HANDLE: The handle is not a valid control 
+ *             point handle.
+ *     \li \c UPNP_E_INVALID_URL: \b ActionUrl is not a valid URL.
+ *     \li \c UPNP_E_INVALID_ACTION: This action is not valid.
+ *     \li \c UPNP_E_INVALID_DEVICE: \b DevUDN is not a 
+ *             valid device.
+ *     \li \c UPNP_E_INVALID_PARAM: \b ServiceType, \b Action, 
+ *             \b ActionUrl, or 
+ *             \b RespNode is not a valid pointer.
+ *     \li \c UPNP_E_OUTOF_MEMORY: Insufficient resources exist to 
+ *             complete this operation.
+ *
+ *  @param Hnd client handle
+ * 	@param headerString SOAP header. This may be empty if no header
+ *     header is not required. <soapns:Header>[xxx]</soapns:Header>
+ *  @param actionURL the service action url from the device description document.
+ *  @param serviceType the service type from the device description document
+ *  @param actionName the action to perform (from the service description)
+ *  @param actionArgs the action name/value argument pairs, in order.
+ *  @param[output] responseData the return values
+ *  @param[output] errorCodep pointer to an integer to store the UPNP error code
+ *   if we got an error response document
+ *  @param[output] errorDescr A place to store an error description (if we got 
+ *     an error response document).
+ */
+
+EXPORT_SPEC int UpnpSendAction(
+	UpnpClient_Handle Hnd,
+	const std::string& headerString,
+	const std::string& actionURL,
+	const std::string& serviceType,
+	const std::string& actionName,
+	const std::vector<std::pair<std::string, std::string>> actionArgs,
+	std::vector<std::pair<std::string, std::string>>& responsedata,
+	int *errorCodep,
+	std::string&  errorDescr
+	);
+
+#endif /* cplusplus */
 
 #endif /* UPNP_H */

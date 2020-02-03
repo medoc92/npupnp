@@ -134,3 +134,31 @@ size_t upnp_strlcpy(char *dst, const char *src, size_t dsize)
 	}
 	return dsize - cnt + 1;
 }
+
+string xmlQuote(const string& in)
+{
+    string out;
+    for (unsigned int i = 0; i < in.size(); i++) {
+        switch (in[i]) {
+        case '"':
+            out += "&quot;";
+            break;
+        case '&':
+            out += "&amp;";
+            break;
+        case '<':
+            out += "&lt;";
+            break;
+        case '>':
+            out += "&gt;";
+            break;
+        case '\'':
+            out += "&apos;";
+            break;
+        default:
+            out += in[i];
+        }
+    }
+    return out;
+}
+

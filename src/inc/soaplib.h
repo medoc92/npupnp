@@ -32,9 +32,8 @@
 #ifndef SOAPLIB_H
 #define SOAPLIB_H 
 
-/* SOAP module API to be called in Upnp-Dk API */
-
-#include <upnp/ixml.h>
+#include <vector>
+#include <string>
 
 struct MHDTransaction;
 
@@ -45,76 +44,16 @@ struct MHDTransaction;
  */
 void soap_device_callback(MHDTransaction*);
 
-
-/****************************************************************************
- * Function: SoapSendAction
- *
- * Parameters:
- *	IN char* action_url: device contrl URL
- *	IN char *service_type: device service type
- *	IN IXML_Document *action_node: SOAP action node
- *	OUT IXML_Document **response_node: SOAP response node
- *
- * Description: This function is called by UPnP API to send the SOAP
- *	action request and waits till it gets the response from the device
- *	pass the response to the API layer
- *
- * Return: int
- *	returns UPNP_E_SUCCESS if successful else returns appropriate error
- * Note:
- ****************************************************************************/
 int SoapSendAction(
-	char* action_url,
-	char *service_type,
-	IXML_Document *action_node,
-	IXML_Document **response_node);
-
-/****************************************************************************
- * Function: SoapSendActionEx
- *
- * Parameters:
- *	IN char* action_url: device contrl URL
- *	IN char *service_type: device service type
- *	IN IXML_Document *Header: Soap header
- *	IN IXML_Document *action_node: SOAP action node (SOAP body)
- *	OUT IXML_Document **response_node: SOAP response node
- *
- * Description: This function is called by UPnP API to send the SOAP
- *	action request and waits till it gets the response from the device
- *	pass the response to the API layer. This action is similar to the
- *	the SoapSendAction with only difference that it allows users to
- *	pass the SOAP header along the SOAP body ( soap action request)
- *
- * Return: int
- *	returns UPNP_E_SUCCESS if successful else returns appropriate error
- * Note:
- ****************************************************************************/
-int SoapSendActionEx(
-	char * ActionURL,
-	char *ServiceType,
-	IXML_Document *Header,
-	IXML_Document *ActNode,
-	IXML_Document **RespNode);
-
-/****************************************************************************
- * Function: SoapGetServiceVarStatus
- *
- * Parameters:
- *	IN  char * action_url: Address to send this variable query message.
- *	IN  char *var_name: Name of the variable.
- *	OUT char **var_value: Output value.
- *
- * Description: This function creates a status variable query message
- *	send it to the specified URL. It also collect the response.
- *
- * Return: int
- *
- * Note:
- ****************************************************************************/
-int SoapGetServiceVarStatus(
-	char * ActionURL,
-	DOMString VarName,
-	DOMString *StVar);
+	const std::string& xml_header_str,
+	const std::string& actionURL,
+	const std::string& serviceType,
+	const std::string& actionName,
+	const std::vector<std::pair<std::string, std::string>> actionArgs,
+	std::vector<std::pair<std::string, std::string>>& response,
+	int *errorCodep,
+	std::string&  errorDescr
+	);
 
 #endif /* SOAPLIB_H */
 
