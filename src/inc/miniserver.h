@@ -32,14 +32,8 @@
  *
  **************************************************************************/
 
-/*!
- * \file
- */
-
 #include "httputils.h"
 #include "UpnpInet.h"
-
-extern SOCKET gMiniServerStopSock;
 
 struct MiniServerSockArray {
 	/*! IPv4 socket for listening for miniserver requests. */
@@ -91,7 +85,6 @@ private:
 	}
 };
 
-/*! . */
 struct MHDTransaction;
 typedef void (*MiniServerCallback) (MHDTransaction*);
 
@@ -112,6 +105,7 @@ void SetSoapCallback(
 #else /* INCLUDE_DEVICE_APIS */
 	static UPNP_INLINE void SetSoapCallback(MiniServerCallback callback) {}
 #endif /* INCLUDE_DEVICE_APIS */
+
 /*!
  * \brief Set GENA Callback.
  */
