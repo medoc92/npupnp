@@ -233,30 +233,6 @@ extern ThreadPool gMiniServerThreadPool;
 
 extern struct VirtualDirCallbacks virtualDirCallback;
 
-/*!
- * \brief Retrieve interface information and keep it in global variables.
- * If NULL, we'll find the first suitable interface for operation.
- *
- * The interface must fulfill these requirements:
- * \li Be UP.
- * \li Not be LOOPBACK.
- * \li Support MULTICAST.
- * \li Have a valid IPv4 or IPv6 address.
- *
- * We'll retrieve the following information from the interface:
- * \li gIF_NAME -> Interface name (by input or found).
- * \li gIF_IPV4 -> IPv4 address (if any).
- * \li gIF_IPV6 -> IPv6 address (if any).
- * \li gIF_IPV6_ULA_GUA -> ULA or GUA IPv6 address (if any)
- * \li gIF_INDEX -> Interface index number.
- *
- * \return UPNP_E_SUCCESS on success.
- */
-int UpnpGetIfInfo(
-	/*! [in] Interface name (can be NULL). */
-	const char *IfName);
-
-
 void UpnpThreadDistribution(struct UpnpNonblockParam * Param);
 
 /*!
