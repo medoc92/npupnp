@@ -18,8 +18,8 @@
 /* Define to 1 if you have the <fcntl.h> header file. */
 #undef HAVE_FCNTL_H
 
-/* Define to 1 if fseeko (and presumably ftello) exists and is declared. */
-#undef HAVE_FSEEKO
+/* Define to 1 if you have the `getifaddrs' function. */
+#undef HAVE_GETIFADDRS
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
@@ -56,12 +56,6 @@
 
 /* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
-
-/* Defines if strndup is available on your system */
-#undef HAVE_STRNDUP
-
-/* Defines if strnlen is available on your system */
-#undef HAVE_STRNLEN
 
 /* Define to 1 if you have the <syslog.h> header file. */
 #undef HAVE_SYSLOG_H
@@ -202,9 +196,6 @@
 
 /* File Offset size */
 #undef _FILE_OFFSET_BITS
-
-/* Define to 1 to make fseeko visible on some hosts (e.g. glibc 2.2). */
-#undef _LARGEFILE_SOURCE
 
 /* Large files support */
 #undef _LARGE_FILE_SOURCE
