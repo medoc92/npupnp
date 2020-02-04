@@ -1,3 +1,9 @@
+libnpupnp1 (2.0.0-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * First version with changed API, no need for libixml. pupnp-free!
+  
+ -- Jean-Francois Dockes <jf@dockes.org>  Tue, 04 Feb 2020 17:40:00 +0100
+
 libnpupnp0 (1.0.0-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Initial rewrite of libupnp/pupnp 1.6 branch, replacing local code with
