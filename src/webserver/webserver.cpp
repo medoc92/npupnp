@@ -730,7 +730,8 @@ static ssize_t vFileReaderCallback(void *cls, uint64_t pos, char *buf,
 {
 	VFileReaderCtxt *ctx = (VFileReaderCtxt*)cls;
 	if (nullptr == ctx->fp) {
-		std::cerr << "vFileReaderCallback: fp is null !\n";
+		UpnpPrintf(UPNP_ERROR, MSERV, __FILE__, __LINE__,
+				   "vFileReaderCallback: fp is null !\n");
 		return -1;
 	}
 	//std::cerr << "vFileReaderCallback: pos " << pos << " cnt " << max << "\n";

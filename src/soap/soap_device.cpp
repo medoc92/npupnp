@@ -138,7 +138,7 @@ static void send_action_response(
     response << "</u:" << soap_info->action_name << "Response" << ">\n";
 	response << end_body;
 	const std::string& txt(response.str());
-    std::cerr << "ACTION RESPONSE DATA: [" << txt << "]\n";
+    //std::cerr << "ACTION RESPONSE DATA: [" << txt << "]\n";
 	mhdt->response = MHD_create_response_from_buffer(
 		txt.size(), (char*)txt.c_str(),	MHD_RESPMEM_MUST_COPY);
 	mhdt->httpstatus = 200;

@@ -257,7 +257,8 @@ static int answer_to_connection(
 	callback(mhdt);
 
 	if (nullptr == mhdt->response) {
-		std::cerr << "answer_to_connection: NULL response !!\n";
+		UpnpPrintf(UPNP_ERROR, MSERV, __FILE__, __LINE__,
+				   "answer_to_connection: NULL response !!\n");
 		return MHD_NO;
 	} else {
 		int ret = MHD_queue_response(conn, mhdt->httpstatus, mhdt->response);
@@ -284,7 +285,8 @@ static void web_server_accept(SOCKET lsock, fd_set *set)
 		} else {
 			if (MHD_add_connection(mhd,asock, (struct sockaddr*)&clientAddr,
 								   clientLen) != MHD_YES) {
-				std::cerr << "web_server_accept: MHD add_connection failed\n";
+				UpnpPrintf(UPNP_ERROR, MSERV, __FILE__, __LINE__,
+						   "web_server_accept: MHD_add_connection failed\n");
 			}
 
 #if 1

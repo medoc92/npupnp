@@ -122,8 +122,8 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
 		stringtolower(s);
 		char cb[2];
 		if (sscanf(s.c_str(), "max-age = %d%1c", &param.Expires, cb) != 1) {
-			std::cerr << "BAD CACHE-CONTROL value: ["  << parser.cache_control
-					  << "]\n";
+			UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
+					   "BAD CACHE-CONTROL value: [%s]\n", parser.cache_control);
 			return;
 		}
 	}

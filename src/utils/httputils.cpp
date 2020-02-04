@@ -226,8 +226,6 @@ int http_Download(const char *url_str,
 		curl_easy_cleanup(easy);
 		curl_slist_free_all(list);
 		/* We may want to detail things here, depending on the curl error */
-		std::cerr << "http_Download: curl failed with: " << curlerrormessage <<
-			std::endl;
 		UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
 				   "http_Download: curl failed with: %s\n", curlerrormessage);
 		return UPNP_E_SOCKET_CONNECT;
@@ -318,12 +316,14 @@ bool has_xml_content_type(MHDTransaction *mhdt)
 {
 	auto it = mhdt->headers.find("content-type");
 	if (it == mhdt->headers.end()) {
-		//std::cerr << "has_xml_content: no content type header\n";
+		UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
+				   "has_xml_content: no content type header\n");
 		return false;
 	}
 	bool ret = regex_match(it->second, textxml_re);
 	if (!ret) {
-		//std::cerr << "has_xml_content: no match for ["<<it->second << "]\n";
+		UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__, "has_xml_content: "
+				   "no match for [%s]\n", it->second.c_str());
 	}
 	return ret;
 }
@@ -333,7 +333,8 @@ bool timeout_header_value(std::map<std::string, std::string>& headers,
 {
 	auto ittimo = headers.find("timeout");
 	if (ittimo == headers.end()) {
-		std::cerr << "timeout_header_value: no timeout header\n";
+		UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
+				   "timeout_header_value: no timeout header\n");
 		return false;
 	}
 	stringtolower(ittimo->second);
@@ -343,8 +344,8 @@ bool timeout_header_value(std::map<std::string, std::string>& headers,
 	}
 	char cbuf[2];
 	if (sscanf(ittimo->second.c_str(),"second-%d%1c",time_out,cbuf) != 1) {
-		std::cerr << "timeout_header_value: bad header value [" <<
-			ittimo->second << "]\n";
+		UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__, "timeout_header_value: "
+				   "bad header value [%s]\n", ittimo->second.c_str());
 		return false;
 	}
 	return true;

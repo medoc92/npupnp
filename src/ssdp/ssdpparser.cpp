@@ -114,7 +114,7 @@ bool SSDPPacketParser::parse()
 		status  = (char *)(m_packet + m.position(3));
 		status[m[3].length()] = 0;
 	} else {
-		std::cerr << "NO match for msearch request/response line\n";
+		//std::cerr << "NO match for msearch request/response line\n";
 		return false;
 	}
 		
@@ -202,7 +202,7 @@ bool SSDPPacketParser::parse()
 	}
 
 	if (strcmp(cp, "\r\n")) {
-		std::cerr << "Bad last line:\n>>>" << cp << "<<<" << std::endl;
+		//std::cerr << "Bad last line:\n>>>" << cp << "<<<" << std::endl;
 		return false;
 	}
 
