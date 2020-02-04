@@ -3,7 +3,6 @@
 #include <algorithm>
 
 #include <string.h>
-#include <upnp/upnp.h>
 
 #include "expatmm.hxx"
 #include "smallut.h"

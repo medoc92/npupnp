@@ -545,7 +545,6 @@ static int process_request(
 	}
 
 	/* init */
-	memset(&finfo, 0, sizeof(finfo));
 	request_doc = NULL;
 	err_code = HTTP_INTERNAL_SERVER_ERROR;	/* default error */
 	const VirtualDirListEntry *entryp{nullptr};

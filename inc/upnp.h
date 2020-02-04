@@ -723,19 +723,19 @@ struct File_Info
 	/** The length of the file. A length less than 0 indicates the size 
 	*  is unknown, and data will be sent until 0 bytes are returned from
 	*  a read call. */
-	int64_t file_length;
+	int64_t file_length{0};
 
 	/** The time at which the contents of the file was modified;
 	*  The time system is always local (not GMT). */
-	time_t last_modified;
+	time_t last_modified{0};
 
 	/** If the file is a directory, {\bf is_directory} contains
 	* a non-zero value. For a regular file, it should be 0. */
-	int is_directory;
+	int is_directory{0};
 
 	/** If the file or directory is readable, this contains 
 	* a non-zero value. If unreadable, it should be set to 0. */
-	int is_readable;
+	int is_readable{0};
 
 	/** The content type of the file. This string needs to be allocated 
 	*  by the caller using malloc/strdup.  When finished 
@@ -745,11 +745,11 @@ struct File_Info
 	/** Headers to be modified / added. A modified response must be allocated
 	 * by the caller using malloc.  When finished with it, the SDK frees it */
 #ifdef EXTRA_HEADERS_AS_LIST
-	struct Extra_Headers *extra_headers;
+	struct Extra_Headers *extra_headers{nullptr};
 #else
     /* These are set as an strduped string, must be freed when deallocating the 
        struct */
-    char *extra_headers;
+    char *extra_headers{nullptr};
 #endif
 };
 
