@@ -52,7 +52,6 @@ libnpupnp_la_SOURCES = \
 	src/inc/ssdpparser.h \
 	src/inc/statcodes.h \
 	src/inc/statuscodes.h \
-	src/inc/sysdep.h \
 	src/inc/upnp_timeout.h \
 	src/inc/upnpapi.h \
 	src/inc/uri.h \
