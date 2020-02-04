@@ -86,13 +86,6 @@ typedef enum Upnp_LogLevel_e {
 } Upnp_LogLevel;
 /*@}*/
 
-/* UPNP_PACKET probably resulted from a confusion between module and
-   level and was only used by a few messages in ssdp_device.c (they
-   have been moved to INFO). Kept for compatibility, don't use for new
-   messages.
-*/
-#define UPNP_PACKET UPNP_ERROR
-
 /*!
  * Default log level : see \c Upnp_LogLevel
  */

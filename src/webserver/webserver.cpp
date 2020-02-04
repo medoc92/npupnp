@@ -48,8 +48,6 @@
 
 #include <inttypes.h>
 
-#include <upnp/ixml.h>
-
 #include "httputils.h"
 #include "ithread.h"
 #include "ssdplib.h"
@@ -187,26 +185,24 @@ static std::vector<VirtualDirListEntry> virtualDirList;
 /*!
  * \brief Based on the extension, returns MIME type as malloc'd char*
  * If content type and sub type are not found, unknown types are used. 
-*/
+ */
 static UPNP_INLINE int get_content_type(
-    const char *filename, DOMString *content_type)
+	const char *filename, std::string& content_type)
 {
 	const char *ctname = "application/octet-stream";
-
-	*content_type = NULL;
-
+	content_type.clear();
 	/* get ext */
 	const char *e = strrchr(filename, '.');
 	if (e) {
-        e++;
+		e++;
 		std::string le = stringtolower(e);
 		auto it = gEncodedMediaTypes.find(le);
 		if (it != gEncodedMediaTypes.end()) {
 			ctname = it->second;
 		}
 	}
-	*content_type = strdup(ctname);
-	return *content_type ? 0 : UPNP_E_OUTOF_MEMORY;
+	content_type = ctname;
+	return 0;
 }
 
 int web_server_set_localdoc(
@@ -281,8 +277,7 @@ static int get_file_info(
 	 * whether the file or directory is readable. */
 	struct File_Info *info)
 {
-	ixmlFreeDOMString(info->content_type);	
-	info->content_type = NULL;
+	info->content_type.clear();
 	struct stat s;
 	if (stat(filename, &s) == -1)
 		return -1;
@@ -299,12 +294,12 @@ static int get_file_info(
 		fclose(fp);
 	info->file_length = s.st_size;
 	info->last_modified = s.st_mtime;
-	int rc = get_content_type(filename, &info->content_type);
+	int rc = get_content_type(filename, info->content_type);
 	UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
 			   "file info: %s, length: %lld, last_mod=%s readable=%d\n",
 			   filename, (long long)info->file_length,
 			   make_date_string(info->last_modified).c_str(),
-		info->is_readable);
+			   info->is_readable);
 
 	return rc;
 }
@@ -323,21 +318,21 @@ int web_server_set_root_dir(const char *root_dir)
 int web_server_add_virtual_dir(
 	const char *dirname, const void *cookie, const void **oldcookie)
 {
-    if (!dirname || !*dirname) {
-        return UPNP_E_INVALID_PARAM;
-    }
+	if (!dirname || !*dirname) {
+		return UPNP_E_INVALID_PARAM;
+	}
 
 	VirtualDirListEntry entry;
 	entry.cookie = cookie;
-    if (*dirname != '/') {
-        if (strlen(dirname) > NAME_SIZE - 2)
-            return UPNP_E_INVALID_PARAM;
+	if (*dirname != '/') {
+		if (strlen(dirname) > NAME_SIZE - 2)
+			return UPNP_E_INVALID_PARAM;
 		entry.path = std::string("/") + dirname;
-    } else {
-        if (strlen(dirname) > NAME_SIZE - 1)
-            return UPNP_E_INVALID_PARAM;
+	} else {
+		if (strlen(dirname) > NAME_SIZE - 1)
+			return UPNP_E_INVALID_PARAM;
 		entry.path = dirname;
-    }
+	}
 	auto old = std::find_if(virtualDirList.begin(), virtualDirList.end(),
 							[entry](const VirtualDirListEntry& old) {
 								return entry.path == old.path;
@@ -355,22 +350,22 @@ int web_server_add_virtual_dir(
 
 int web_server_remove_virtual_dir(const char *dirname)
 {
-    if (dirname == NULL) {
-        return UPNP_E_INVALID_PARAM;
-    }
+	if (dirname == NULL) {
+		return UPNP_E_INVALID_PARAM;
+	}
 	for (auto it = virtualDirList.begin(); it != virtualDirList.end(); it++) {
-        if (it->path == dirname) {
+		if (it->path == dirname) {
 			virtualDirList.erase(it);
 			return UPNP_E_SUCCESS;
-        }
-    }
+		}
+	}
 
 	return UPNP_E_INVALID_PARAM;
 }
 
 void web_server_clear_virtual_dirs()
 {
-    virtualDirList.clear();
+	virtualDirList.clear();
 }
 
 /*!
@@ -390,9 +385,9 @@ static const VirtualDirListEntry *isFileInVirtualDir(
 					return &vd;
 			} else {
 				if (strncmp(vd.path.c_str(), filePath, vd.path.size()) == 0 &&
-				    (filePath[vd.path.size()] == '/' ||
-				     filePath[vd.path.size()] == 0 ||
-				     filePath[vd.path.size()] == '?'))
+					(filePath[vd.path.size()] == '/' ||
+					 filePath[vd.path.size()] == 0 ||
+					 filePath[vd.path.size()] == '?'))
 					return &vd;
 			}
 		}
@@ -424,7 +419,7 @@ static int CheckOtherHTTPHeaders(
 				RespInstr->AcceptLanguageHeader = hvalue;
 				break;
 			default:
-				/*  TODO? */
+				/*	TODO? */
 				break;
 			}
 		}
@@ -490,7 +485,7 @@ static void FreeExtraHTTPHeaders(
 	while (extra_headers->name) {
 		free(extra_headers->name);
 		if (extra_headers->value) free(extra_headers->value);
-		if (extra_headers->resp) ixmlFreeDOMString(extra_headers->resp);
+		if (extra_headers->resp) free(extra_headers->resp);
 		extra_headers++;
 	}
 
@@ -499,13 +494,13 @@ static void FreeExtraHTTPHeaders(
 #else
 static int ExtraHTTPHeaders(MHDTransaction *, char **ExtraHeaders)
 {
-    *ExtraHeaders = nullptr;
-    return HTTP_OK;
+	*ExtraHeaders = nullptr;
+	return HTTP_OK;
 }
 static void FreeExtraHTTPHeaders(char *extraheaders)
 {
-    if (extraheaders)
-        free(extraheaders);
+	if (extraheaders)
+		free(extraheaders);
 }
 #endif
 
@@ -541,9 +536,9 @@ static int process_request(
 	LocalDoc localdoc;
 	
 	assert(mhdt->method == HTTPMETHOD_GET ||
-	       mhdt->method == HTTPMETHOD_HEAD ||
-	       mhdt->method == HTTPMETHOD_POST ||
-	       mhdt->method == HTTPMETHOD_SIMPLEGET);
+		   mhdt->method == HTTPMETHOD_HEAD ||
+		   mhdt->method == HTTPMETHOD_POST ||
+		   mhdt->method == HTTPMETHOD_SIMPLEGET);
 
 	if (mhdt->method == HTTPMETHOD_POST) {
 		return HTTP_FORBIDDEN;
@@ -635,10 +630,10 @@ static int process_request(
 		}
 	} else if (!localdoc.data.empty()) {
 		*rtype = RESP_XMLDOC;
-		finfo.content_type = strdup("text/xml");
+		finfo.content_type = "text/xml";
 		finfo.file_length = localdoc.data.size();
-		finfo.is_readable = TRUE;
-		finfo.is_directory = FALSE;
+		finfo.is_readable = true;
+		finfo.is_directory = false;
 		finfo.last_modified = localdoc.last_modified;
 		RespInstr->data.swap(localdoc.data);
 	} else {
@@ -690,7 +685,7 @@ static int process_request(
 		goto error_handler;
 	}
 
-	if (finfo.content_type && *finfo.content_type) {
+	if (!finfo.content_type.empty()) {
 		headers["content-type"] = finfo.content_type;
 	}
 	if (RespInstr->AcceptLanguageHeader[0] && WEB_SERVER_CONTENT_LANGUAGE[0]) {
@@ -698,7 +693,7 @@ static int process_request(
 	}
 	{
 		std::string date = make_date_string(0);
-		if (!date.empty())  
+		if (!date.empty())	
 			headers["date"] = date;
 		if (finfo.last_modified) {
 			headers["last-modified"] = make_date_string(finfo.last_modified);
@@ -716,11 +711,9 @@ static int process_request(
 	}
 	err_code = HTTP_OK;
 
- error_handler:
+error_handler:
 	free(request_doc);
 	FreeExtraHTTPHeaders(finfo.extra_headers);
-	ixmlFreeDOMString(finfo.content_type);
-
 	return err_code;
 }
 
@@ -817,13 +810,13 @@ void web_server_callback(MHDTransaction *mhdt)
 			break;
 		default:
 			UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
-				"webserver: Generated an invalid response type.\n");
+					   "webserver: Generated an invalid response type.\n");
 			assert(0);
 		}
 	}
 	for (const auto& header : headers) {
 		//std::cerr << "process_request: adding header [" << header.first <<
-        // "]->[" << header.second << "]\n";
+		// "]->[" << header.second << "]\n";
 		MHD_add_response_header(mhdt->response, header.first.c_str(),
 								header.second.c_str());
 	}

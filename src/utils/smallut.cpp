@@ -162,3 +162,9 @@ string xmlQuote(const string& in)
     return out;
 }
 
+int dom_cmp_name(const std::string& domname, const std::string& ref)
+{
+	std::string::size_type colon = domname.find(':');
+	return colon == std::string::npos ?
+		domname.compare(ref) : domname.compare(colon+1, std::string::npos, ref);
+}

@@ -247,27 +247,6 @@ extern int genaNotifyAll(
 
 
 /*!
- * \brief Sends a notification to all the subscribed control points.
- *
- * \return int
- *
- * \note This function is similar to the genaNotifyAll. the only difference
- *	is it takes the document instead of event variable array.
- */
-#ifdef INCLUDE_DEVICE_APIS
-extern int genaNotifyAllExt(
-	/*! [in] Device handle. */
-	UpnpDevice_Handle device_handle, 
-	/*! [in] Device udn. */
-	char *UDN,
-	/*! [in] Service ID. */
-	char *servId,
-	/*! [in] XML document Event varible property set. */
-	IXML_Document *PropSet);
-#endif /* INCLUDE_DEVICE_APIS */
-
-
-/*!
  * \brief Sends the intial state table dump to newly subscribed control point.
  *
  * \return GENA_E_SUCCESS if successful, otherwise the appropriate error code.
@@ -290,13 +269,6 @@ extern int genaInitNotify(
 	/*! [in] Array size. */
 	int var_count,
 	/*! [in] Subscription ID. */
-	const Upnp_SID sid);
-
-int genaInitNotifyExt(
-	UpnpDevice_Handle device_handle,
-	char *UDN,
-	char *servId,
-	IXML_Document *PropSet,
 	const Upnp_SID sid);
 
 #endif /* INCLUDE_DEVICE_APIS */

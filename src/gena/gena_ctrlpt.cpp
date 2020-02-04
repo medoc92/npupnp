@@ -37,7 +37,6 @@
 #ifdef INCLUDE_CLIENT_APIS
 
 #include <curl/curl.h>
-#include <upnp/ixml.h>
 
 #include <string>
 #include <map>
@@ -51,6 +50,7 @@
 #include "smallut.h"
 #include "TimerThread.h"
 #include "gena_sids.h"
+#include "expatmm.hxx"
 
 extern ithread_mutex_t GlobalClientSubscribeMutex;
 extern TimerThread *gTimerThread;
@@ -81,7 +81,7 @@ static void clientCancelRenew(ClientSubscription *sub)
  */
 static void GenaAutoRenewSubscription(
 	/*! [in] Thread data(upnp_timeout *) needed to send the renewal. */
-	IN void *input)
+	void *input)
 {
 	upnp_timeout *event = (upnp_timeout *) input;
         struct Upnp_Event_Subscribe *sub_struct = (struct Upnp_Event_Subscribe *)event->Event;
@@ -148,11 +148,11 @@ end_function:
  */
 static int ScheduleGenaAutoRenew(
 	/*! [in] Handle that also contains the subscription list. */
-	IN int client_handle,
+	int client_handle,
 	/*! [in] The time out value of the subscription. */
-	IN int TimeOut,
+	int TimeOut,
 	/*! [in] Subscription being renewed. */
-	IN ClientSubscription *sub)
+	ClientSubscription *sub)
 {
 	struct Upnp_Event_Subscribe *RenewEventStruct = NULL;
 	upnp_timeout *RenewEvent = NULL;
@@ -222,9 +222,9 @@ end_function:
  */
 static int gena_unsubscribe(
 	/*! [in] Event URL of the service. */
-	IN const std::string& url,
+	const std::string& url,
 	/*! [in] The subcription ID. */
-	IN const std::string& sid)
+	const std::string& sid)
 {
 	int return_code;
 	uri_type dest_url;
@@ -297,14 +297,14 @@ static std::string myCallbackUrl(const uri_type& dest_url)
  */
 static int gena_subscribe(
 	/*! [in] URL of service to subscribe. */
-	IN const std::string& url,
+	const std::string& url,
 	/*! [in,out] Subscription time desired (in secs). */
-	INOUT int *timeout,
+	int *timeout,
 	/*! [in] for renewal, this contains a currently held subscription SID.
 	 * For first time subscription, this must be empty. */
-	IN const std::string& renewal_sid,
+	const std::string& renewal_sid,
 	/*! [out] SID returned by the subscription or renew msg. */
-	OUT std::string *sid)
+	std::string *sid)
 {
 	int return_code;
 	int local_timeout = CP_MINIMUM_SUBSCRIPTION_TIME;
@@ -399,7 +399,7 @@ int genaUnregisterClient(UpnpClient_Handle client_handle)
 	int return_code = UPNP_E_SUCCESS;
 	struct Handle_Info *handle_info = NULL;
 
-	while (TRUE) {
+	while (true) {
 		HandleLock();
 
 		if (GetHandleInfo(client_handle, &handle_info) != HND_CLIENT) {
@@ -624,6 +624,38 @@ exit_function:
 	return return_code;
 }
 
+class UPnPPropertysetParser : public inputRefXMLParser {
+public:
+    UPnPPropertysetParser(
+		// XML to be parsed
+		const std::string& input,
+		// Output data 
+		std::unordered_map<std::string, std::string>& propd)
+        : inputRefXMLParser(input),  propdata(propd) {
+	}
+
+protected:
+    virtual void EndElement(const XML_Char *name) {
+		const std::string& parentname = (m_path.size() == 1) ?
+            "root" : m_path[m_path.size()-2].name;
+        trimstring(m_chardata, " \t\n\r");
+
+		if (!dom_cmp_name(parentname, "property")) {
+			propdata[name] = m_chardata;
+		}
+        m_chardata.clear();
+    }
+
+    virtual void CharacterData(const XML_Char *s, int len) {
+        if (s == 0 || *s == 0)
+            return;
+        m_chardata.append(s, len);
+    }
+
+private:
+	std::string m_chardata;
+	std::unordered_map<std::string, std::string>& propdata;
+};
 
 void gena_process_notification_event(MHDTransaction *mhdt)
 {
@@ -671,20 +703,23 @@ void gena_process_notification_event(MHDTransaction *mhdt)
 	}
 
 	/* parse the content (should be XML) */
-	IXML_Document *ChangedVars = NULL;
-	if (!has_xml_content_type(mhdt) || mhdt->postdata.empty() ||
-	    ixmlParseBufferEx(mhdt->postdata.c_str(),&ChangedVars) != IXML_SUCCESS) {
+	if (!has_xml_content_type(mhdt) || mhdt->postdata.empty()) {
 		http_SendStatusResponse(mhdt, HTTP_BAD_REQUEST);
-		goto exit_function;
+		return;
 	}
-
+	std::unordered_map<std::string, std::string> propset;
+    UPnPPropertysetParser parser(mhdt->postdata, propset);
+	if (!parser.Parse()) {
+		http_SendStatusResponse(mhdt, HTTP_BAD_REQUEST);
+		return;
+	}
 	HandleLock();
 
 	/* get client info */
 	if (GetClientHandleInfo(&client_handle, &handle_info) != HND_CLIENT) {
 		http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
 		HandleUnlock();
-		goto exit_function;
+		return;
 	}
 
 	/* get subscription based on SID */
@@ -708,7 +743,7 @@ void gena_process_notification_event(MHDTransaction *mhdt)
 				http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
 				SubscribeUnlock();
 				HandleUnlock();
-				goto exit_function;
+				return;
 			}
 
 			subscription = GetClientSubActualSID(handle_info->ClientSubList,sid);
@@ -716,14 +751,14 @@ void gena_process_notification_event(MHDTransaction *mhdt)
 				http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
 				SubscribeUnlock();
 				HandleUnlock();
-				goto exit_function;
+				return;
 			}
 
 			SubscribeUnlock();
 		} else {
 			http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
 			HandleUnlock();
-			goto exit_function;
+			return;
 		}
 	}
 
@@ -735,7 +770,7 @@ void gena_process_notification_event(MHDTransaction *mhdt)
 	memset(event_struct.Sid, 0, sizeof(event_struct.Sid));
 	upnp_strlcpy(event_struct.Sid, tmpSID, sizeof(event_struct.Sid));
 	event_struct.EventKey = eventKey;
-	event_struct.ChangedVariables = ChangedVars;
+	event_struct.ChangedVariables = propset;
 
 	/* copy callback */
 	callback = handle_info->Callback;
@@ -748,9 +783,6 @@ void gena_process_notification_event(MHDTransaction *mhdt)
 	/* that the handle is not unregistered in the middle of a */
 	/* callback */
 	callback(UPNP_EVENT_RECEIVED, &event_struct, cookie);
-
-exit_function:
-	ixmlDocument_free(ChangedVars);
 }
 
 

@@ -45,10 +45,6 @@
 #include "description.h"
 #include "client_table.h"
 
-typedef struct _IXML_Node IXML_Node;
-typedef struct _IXML_NodeList IXML_NodeList;
-
-
 #define MAX_INTERFACES 256
 
 #define DEFAULT_INTERFACE 1
@@ -141,23 +137,26 @@ Upnp_Handle_Type GetHandleInfo(
 #define HandleLock() HandleWriteLock()
 
 
+#ifdef DEBUG_LOCKS
 #define HandleWriteLock()  \
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Trying a write lock\n"); \
 	ithread_rwlock_wrlock(&GlobalHndRWLock); \
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Write lock acquired\n");
-
 
 #define HandleReadLock()  \
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Trying a read lock\n"); \
 	ithread_rwlock_rdlock(&GlobalHndRWLock); \
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Read lock acquired\n");
 
-
 #define HandleUnlock() \
 	UpnpPrintf(UPNP_INFO, API,__FILE__, __LINE__, "Trying Unlock\n"); \
 	ithread_rwlock_unlock(&GlobalHndRWLock); \
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Unlocked rwlock\n");
-
+#else /* !DEBUG_LOCKS-> */
+#define HandleWriteLock()  ithread_rwlock_wrlock(&GlobalHndRWLock)
+#define HandleReadLock()  ithread_rwlock_rdlock(&GlobalHndRWLock)
+#define HandleUnlock()  ithread_rwlock_unlock(&GlobalHndRWLock)
+#endif
 
 /*!
  * \brief Get client handle info.
@@ -171,11 +170,12 @@ Upnp_Handle_Type GetClientHandleInfo(
 	int *client_handle_out, 
 	/*! [out] Client handle structure passed by this function. */
 	struct Handle_Info **HndInfo);
+
 /*!
- * \brief Retrieves the device handle and information of the first device of
- * 	the address family specified. The search begins at the 'start' index, which should
- *  be 0 for the first call, then the last successful value returned. This allows 
- *  listing all entries for the address family.
+ * \brief Retrieves the device handle and information of the first
+ *  device of the address family specified. The search begins at the 'start'
+ *  index, which should be 0 for the first call, then the last successful value
+ *  returned. This allows listing all entries for the address family.
  *
  * \return HND_DEVICE or HND_INVALID
  */
@@ -213,15 +213,10 @@ Upnp_Handle_Type GetDeviceHandleInfoForPath(
 extern char gIF_NAME[LINE_SIZE];
 extern char gIF_IPV4[INET_ADDRSTRLEN];
 extern char gIF_IPV6[INET6_ADDRSTRLEN];
-
 extern char gIF_IPV6_ULA_GUA[INET6_ADDRSTRLEN];
-
 extern unsigned gIF_INDEX;
-
-
 extern unsigned short LOCAL_PORT_V4;
 extern unsigned short LOCAL_PORT_V6;
-
 
 /*! NLS uuid. */
 extern Upnp_SID gUpnpSdkNLSuuid;
@@ -235,15 +230,7 @@ extern struct VirtualDirCallbacks virtualDirCallback;
 
 void UpnpThreadDistribution(struct UpnpNonblockParam * Param);
 
-/*!
- * \brief Print handle info.
- *	
- * \return UPNP_E_SUCCESS if successful, otherwise returns appropriate error.
- */
-int PrintHandleInfo(
-	/*! [in] Handle index. */
-	UpnpClient_Handle Hnd);
-
+int PrintHandleInfo(UpnpClient_Handle Hnd);
 
 #endif /* UPNPAPI_H */
 

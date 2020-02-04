@@ -129,7 +129,3 @@ main (int argc, char* argv[])
 
 	exit (ret ? EXIT_FAILURE : EXIT_SUCCESS);
 }
-
-/*
- gcc -o url-test -g url-test.c -I ixml/inc -I threadutil/inc -I upnp/inc upnp/.libs/libupnp.a -L ixml/.libs -lixml -L threadutil/.libs -lthreadutil -lpthread
- */

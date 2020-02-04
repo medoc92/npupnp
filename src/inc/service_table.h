@@ -47,8 +47,6 @@
 #include "ThreadPool.h"
 #include "description.h"
 
-typedef struct _IXML_Node IXML_Node;
-
 #define SID_SIZE  (size_t)41
 
 #ifdef INCLUDE_DEVICE_APIS

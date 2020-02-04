@@ -40,10 +40,13 @@
  *
  * \file
  */
+#include <string>
+#include <vector>
+#include <unordered_map>
 
 #include "upnpconfig.h"
 #include "UpnpInet.h"
-#include <upnp/ixml.h>
+#include "UpnpGlobal.h"
 
 #define LINE_SIZE  (size_t)180
 #define NAME_SIZE  (size_t)256
@@ -533,38 +536,37 @@ typedef enum Upnp_DescType_e Upnp_DescType;
 
 /** Used in the device callback API as parameter for 
 	UPNP_CONTROL_ACTION_REQUEST */
-struct Upnp_Action_Request
-{
-  /** The result of the operation. */
-  int ErrCode;
+struct Upnp_Action_Request {
+	/** The result of the operation. */
+	int ErrCode;
 
-  /** The socket number of the connection to the requestor. */
-  int Socket;
+	/** The socket number of the connection to the requestor. */
+	int Socket;
 
-  /** The error string in case of error. */
-  char ErrStr[LINE_SIZE];
+	/** The error string in case of error. */
+	char ErrStr[LINE_SIZE];
 
- /** The Action Name. */
-  char ActionName[NAME_SIZE];
+	/** The Action Name. */
+	char ActionName[NAME_SIZE];
 
-  /** The unique device ID. */
-  char DevUDN[NAME_SIZE];
+	/** The unique device ID. */
+	char DevUDN[NAME_SIZE];
 
-  /** The service ID. */
-  char ServiceID[NAME_SIZE];
+	/** The service ID. */
+	char ServiceID[NAME_SIZE];
 
-  /** The DOM document describing the action. */
-  IXML_Document *ActionRequest;
+	/** The action arguments */
+	std::vector<std::pair<std::string, std::string> > args;
 
-  /** The DOM document describing the result of the action. */
-  IXML_Document *ActionResult;
+	/** The action results. */
+	std::vector<std::pair<std::string, std::string> > resdata;
 
-  /** IP address of the control point requesting this action. */
-  struct sockaddr_storage CtrlPtIPAddr;
+	/** IP address of the control point requesting this action. */
+	struct sockaddr_storage CtrlPtIPAddr;
 
-  /** The DOM document containing the information from the
-      the SOAP header. */
-  IXML_Document *SoapHeader;
+	/** The whole XML document in case the callback has something else
+	   to get from there. */
+	std::string xmlContent;
 };
 
 /* compat code for libupnp-1.8 */
@@ -578,115 +580,19 @@ typedef struct Upnp_Action_Request UpnpActionRequest;
 #define UpnpActionRequest_get_ActionName_cstr(x) ((x)->ActionName)
 #define UpnpActionRequest_get_DevUDN_cstr(x) ((x)->DevUDN)
 #define UpnpActionRequest_get_ServiceID_cstr(x) ((x)->ServiceID)
-#define UpnpActionRequest_get_ActionRequest(x) ((x)->ActionRequest)
-#define UpnpActionRequest_set_ActionRequest(x, v) ((x)->ActionRequest = (v))
-#define UpnpActionRequest_get_ActionResult(x) ((x)->ActionResult)
-#define UpnpActionRequest_set_ActionResult(x, v) ((x)->ActionResult = (v))
-
-/** Used in the async client callback API to communicate the result of an 
-	action */
-struct Upnp_Action_Complete
-{
-  /** The result of the operation. */
-  int ErrCode;
-
-  /** The control URL for service. */
-  char CtrlUrl[NAME_SIZE];
-
-  /** The DOM document describing the action. */
-  IXML_Document *ActionRequest;
-
-  /** The DOM document describing the result of the action. */
-  IXML_Document *ActionResult;
-};
-
-/* compat code for libupnp-1.8 */
-typedef struct Upnp_Action_Complete UpnpActionComplete;
-#define UpnpActionComplete_get_ErrCode(x) ((x)->ErrCode)
-#define UpnpActionComplete_get_CtrlUrl_cstr(x) ((x)->CtrlUrl)
-#define UpnpActionComplete_get_ActionRequest(x) ((x)->ActionRequest)
-#define UpnpActionComplete_get_ActionResult(x) ((x)->ActionResult)
-
-/** Represents the request for current value of a state variable in a service
- *  state table.  */
-
-struct Upnp_State_Var_Request
-{
-  /** The result of the operation. */
-  int ErrCode;
-
-  /** The socket number of the connection to the requestor. */
-  int Socket;
-
-  /** The error string in case of error. */
-  char ErrStr[LINE_SIZE];
-
-  /** The unique device ID. */
-  char DevUDN[NAME_SIZE];
-
-  /** The  service ID. */
-  char ServiceID[NAME_SIZE];
-
-  /** The name of the variable. */
-  char StateVarName[NAME_SIZE];
-
-  /** IP address of sender requesting the state variable. */
-  struct sockaddr_storage CtrlPtIPAddr;
-
-  /** The current value of the variable. This needs to be allocated by 
-   *  the caller.  When finished with it, the SDK frees this {\bf DOMString}. */
-  DOMString CurrentVal;
-};
-
-/* compat code for libupnp-1.8 */
-typedef struct Upnp_State_Var_Request UpnpStateVarRequest;
-#define UpnpStateVarRequest_get_ErrCode(x) ((x)->ErrCode)
-#define UpnpStateVarRequest_set_ErrCode(x, v) ((x)->ErrCode = (v))
-#define UpnpStateVarRequest_get_Socket(x) ((x)->Socket)
-#define UpnpStateVarRequest_get_ErrStr_cstr(x) ((x)->ErrStr)
-#define UpnpStateVarRequest_get_DevUDN_cstr(x) ((x)->DevUDN)
-#define UpnpStateVarRequest_get_ServiceID_cstr(x) ((x)->ServiceID)
-#define UpnpStateVarRequest_get_StateVarName_cstr(x) ((x)->StateVarName)
-#define UpnpStateVarRequest_get_CurrentVal(x) ((x)->CurrentVal)
-#define UpnpStateVarRequest_set_CurrentVal(x, v) ((x)->CurrentVal = (v))
-
-/** Represents the reply for the current value of a state variable in an
-    asynchronous call. */
-
-struct Upnp_State_Var_Complete
-{
-  /** The result of the operation. */
-  int ErrCode;
-
-  /** The control URL for the service. */
-  char CtrlUrl[NAME_SIZE];
-
-  /** The name of the variable. */
-  char StateVarName[NAME_SIZE];
-
-  /** The current value of the variable or error string in case of error. */
-  DOMString CurrentVal;
-};
-
-/* compat code for libupnp-1.8 */
-typedef struct Upnp_State_Var_Complete UpnpStateVarComplete;
-#define UpnpStateVarComplete_get_ErrCode(x) ((x)->ErrCode)
-#define UpnpStateVarComplete_get_CtrlUrl_cstr(x) ((x)->CtrlUrl)
-#define UpnpStateVarComplete_get_StateVarName_cstr(x) ((x)->StateVarName)
 
 /** Returned along with a {\bf UPNP_EVENT_RECEIVED} callback.  */
 
 struct Upnp_Event
 {
-  /** The subscription ID for this subscription. */
-  Upnp_SID Sid;
+	/** The subscription ID for this subscription. */
+	Upnp_SID Sid;
 
-  /** The event sequence number. */
-  int EventKey;
+	/** The event sequence number. */
+	int EventKey;
 
-  /** The DOM tree representing the changes generating the event. */
-  IXML_Document *ChangedVariables;
-
+	/** The DOM tree representing the changes generating the event. */
+	std::unordered_map<std::string, std::string> ChangedVariables;
 };
 
 /* compat code for libupnp-1.8 */
@@ -832,13 +738,12 @@ struct File_Info
 	int is_readable;
 
 	/** The content type of the file. This string needs to be allocated 
-	*  by the caller using {\bf ixmlCloneDOMString}.  When finished 
-	*  with it, the SDK frees the {\bf DOMString}. */
-	DOMString content_type;
+	*  by the caller using malloc/strdup.  When finished 
+	*  with it, the SDK will free it. */
+	std::string content_type;
 
 	/** Headers to be modified / added. A modified response must be allocated
-	* by the caller using {\bf ixmlCloneDOMString}.  When finished with it,
-	* the SDK frees all of them. */
+	 * by the caller using malloc.  When finished with it, the SDK frees it */
 #ifdef EXTRA_HEADERS_AS_LIST
 	struct Extra_Headers *extra_headers;
 #else
@@ -896,10 +801,6 @@ typedef int (*Upnp_FunPtr)(
 	void *Cookie);
 
 /* @} Constants and Types */
-
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
 
 /*!
  * \name Initialization and Registration
@@ -1050,7 +951,7 @@ EXPORT_SPEC unsigned short UpnpGetServerPort6(void);
  * 		listening for UPnP related requests.
  * 	\li On error: \c NULL is returned if \b UpnpInit has not succeeded.
  */
-EXPORT_SPEC char *UpnpGetServerIpAddress(void);
+EXPORT_SPEC const char *UpnpGetServerIpAddress(void);
 
 /*!
  * \brief Returns the local IPv6 listening ip address.
@@ -1064,9 +965,9 @@ EXPORT_SPEC char *UpnpGetServerIpAddress(void);
  * 	\li On error: \c NULL is returned if \b UpnpInit has not succeeded.
  */
 #ifdef UPNP_ENABLE_IPV6
-EXPORT_SPEC char *UpnpGetServerIp6Address(void);
+EXPORT_SPEC const char *UpnpGetServerIp6Address(void);
 
-EXPORT_SPEC char *UpnpGetServerUlaGuaIp6Address(void);
+EXPORT_SPEC const char *UpnpGetServerUlaGuaIp6Address(void);
 #endif
 /*!
  * \brief Registers a device application with the UPnP Library.
@@ -1547,6 +1448,64 @@ EXPORT_SPEC int UpnpSendAdvertisementLowPower(
         int RegistrationState);
 
 /* @} Discovery */
+
+
+
+
+
+/******************************************************************************
+ *                                                                            *
+ *                            C O N T R O L                                   *
+ *                                                                            *
+ ******************************************************************************/
+
+/*!
+ * \brief Sends a message to change a state variable in a service.
+ *
+ * This is a synchronous call that does not return until the action is complete.
+ * 
+ * Note that a positive return value indicates a SOAP-protocol error code.
+ * In this case,  the error description can be retrieved from \b RespNode.
+ * A negative return value indicates an SDK error.
+ *
+ * \return An integer representing one of the following:
+ *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
+ *     \li \c UPNP_E_INVALID_HANDLE: The handle is not a valid control 
+ *             point handle.
+ *     \li \c UPNP_E_INVALID_URL: \b ActionUrl is not a valid URL.
+ *     \li \c UPNP_E_INVALID_ACTION: This action is not valid.
+ *     \li \c UPNP_E_INVALID_DEVICE: \b DevUDN is not a 
+ *             valid device.
+ *     \li \c UPNP_E_INVALID_PARAM: \b ServiceType, \b Action, 
+ *             \b ActionUrl, or 
+ *             \b RespNode is not a valid pointer.
+ *     \li \c UPNP_E_OUTOF_MEMORY: Insufficient resources exist to 
+ *             complete this operation.
+ *
+ *  @param Hnd client handle
+ * 	@param headerString SOAP header. This may be empty if no header
+ *     header is not required. <soapns:Header>[xxx]</soapns:Header>
+ *  @param actionURL the service action url from the device description document.
+ *  @param serviceType the service type from the device description document
+ *  @param actionName the action to perform (from the service description)
+ *  @param actionArgs the action name/value argument pairs, in order.
+ *  @param[output] responseData the return values
+ *  @param[output] errorCodep pointer to an integer to store the UPNP error code
+ *   if we got an error response document
+ *  @param[output] errorDescr A place to store an error description (if we got 
+ *     an error response document).
+ */
+EXPORT_SPEC int UpnpSendAction(
+	UpnpClient_Handle Hnd,
+	const std::string& headerString,
+	const std::string& actionURL,
+	const std::string& serviceType,
+	const std::string& actionName,
+	const std::vector<std::pair<std::string, std::string>> actionArgs,
+	std::vector<std::pair<std::string, std::string>>& responsedata,
+	int *errorCodep,
+	std::string&  errorDescr
+	);
 
 
 /******************************************************************************
@@ -2282,75 +2241,5 @@ EXPORT_SPEC int UpnpRemoveVirtualDir(
 EXPORT_SPEC void UpnpRemoveAllVirtualDirs(void);
 
 /* @} Web Server API */
-
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
-
-
-
-#ifdef __cplusplus
-
-
-#include <string>
-#include <vector>
-
-
-/******************************************************************************
- *                                                                            *
- *                            C O N T R O L                                   *
- *                                                                            *
- ******************************************************************************/
-
-/*!
- * \brief Sends a message to change a state variable in a service.
- *
- * This is a synchronous call that does not return until the action is complete.
- * 
- * Note that a positive return value indicates a SOAP-protocol error code.
- * In this case,  the error description can be retrieved from \b RespNode.
- * A negative return value indicates an SDK error.
- *
- * \return An integer representing one of the following:
- *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
- *     \li \c UPNP_E_INVALID_HANDLE: The handle is not a valid control 
- *             point handle.
- *     \li \c UPNP_E_INVALID_URL: \b ActionUrl is not a valid URL.
- *     \li \c UPNP_E_INVALID_ACTION: This action is not valid.
- *     \li \c UPNP_E_INVALID_DEVICE: \b DevUDN is not a 
- *             valid device.
- *     \li \c UPNP_E_INVALID_PARAM: \b ServiceType, \b Action, 
- *             \b ActionUrl, or 
- *             \b RespNode is not a valid pointer.
- *     \li \c UPNP_E_OUTOF_MEMORY: Insufficient resources exist to 
- *             complete this operation.
- *
- *  @param Hnd client handle
- * 	@param headerString SOAP header. This may be empty if no header
- *     header is not required. <soapns:Header>[xxx]</soapns:Header>
- *  @param actionURL the service action url from the device description document.
- *  @param serviceType the service type from the device description document
- *  @param actionName the action to perform (from the service description)
- *  @param actionArgs the action name/value argument pairs, in order.
- *  @param[output] responseData the return values
- *  @param[output] errorCodep pointer to an integer to store the UPNP error code
- *   if we got an error response document
- *  @param[output] errorDescr A place to store an error description (if we got 
- *     an error response document).
- */
-
-EXPORT_SPEC int UpnpSendAction(
-	UpnpClient_Handle Hnd,
-	const std::string& headerString,
-	const std::string& actionURL,
-	const std::string& serviceType,
-	const std::string& actionName,
-	const std::vector<std::pair<std::string, std::string>> actionArgs,
-	std::vector<std::pair<std::string, std::string>>& responsedata,
-	int *errorCodep,
-	std::string&  errorDescr
-	);
-
-#endif /* cplusplus */
 
 #endif /* UPNP_H */

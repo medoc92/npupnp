@@ -456,49 +456,6 @@ void freeSubscriptionQueuedEvents(subscription *sub)
 	}
 }
 
-int genaInitNotifyExt(
-	UpnpDevice_Handle device_handle,
-	char *UDN,
-	char *servId,
-	IXML_Document *PropSet,
-	const Upnp_SID sid)
-{
-	int ret = GENA_SUCCESS;
-	int line = 0;
-
-	DOMString propertySet = NULL;
-
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
-		"GENA BEGIN INITIAL NOTIFY EXT");
-
-	if (PropSet == 0) {
-		line = __LINE__;
-		ret = GENA_SUCCESS;
-		goto ExitFunction;
-	}
-
-	propertySet = ixmlPrintNode((IXML_Node *)PropSet);
-	if (propertySet == NULL) {
-		line = __LINE__;
-		ret = UPNP_E_INVALID_PARAM;
-		goto ExitFunction;
-	}
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
-		"GENERATED PROPERTY SET IN INIT EXT NOTIFY: %s",
-		propertySet);
-
-	ret = genaInitNotifyCommon(device_handle, UDN, servId, propertySet, sid);
-    ixmlFreeDOMString(propertySet);
-    
-ExitFunction:
-
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, line,
-		"GENA END INITIAL NOTIFY EXT, ret = %d",
-		ret);
-
-	return ret;
-}
-
 /*
  * This gets called before queuing a new event.
  * - The list size can never go over MAX_SUBSCRIPTION_QUEUED_EVENTS so we
@@ -606,42 +563,6 @@ ExitFunction:
 
 	UpnpPrintf(UPNP_INFO, GENA, __FILE__, line,
 		"GENA END NOTIFY ALL COMMON, ret = %d\n",
-		ret);
-
-	return ret;
-}
-
-int genaNotifyAllExt(
-	UpnpDevice_Handle device_handle,
-	char *UDN,
-	char *servId,
-	IXML_Document *PropSet)
-{
-	int ret = GENA_SUCCESS;
-	int line = 0;
-
-	DOMString propertySet = NULL;
-
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
-		"GENA BEGIN NOTIFY ALL EXT");
-
-	propertySet = ixmlPrintNode((IXML_Node *)PropSet);
-	if (propertySet == NULL) {
-		line = __LINE__;
-		ret = UPNP_E_INVALID_PARAM;
-		goto ExitFunction;
-	}
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
-		"GENERATED PROPERTY SET IN EXT NOTIFY: %s",
-		propertySet);
-
-	ret = genaNotifyAllCommon(device_handle, UDN, servId, propertySet);
-	free(propertySet);
-	
-ExitFunction:
-
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, line,
-		"GENA END NOTIFY ALL EXT, ret = %d",
 		ret);
 
 	return ret;

@@ -331,7 +331,6 @@ AC_COMPILE_IFELSE(
 echo "-------------------------------------------------------------------------"
 
 AC_CHECK_LIB([pthread], [pthread_create], [], [])
-AC_CHECK_LIB([ixml], [ixmlNode_getNodeName], [], [])
 PKG_CHECK_MODULES([curl], [libcurl], [], AC_MSG_ERROR([libcurl not found]))
 PKG_CHECK_MODULES([expat], [expat], [], AC_MSG_ERROR([libexpat not found]))
 PKG_CHECK_MODULES([libmicrohttpd], [libmicrohttpd], [],
