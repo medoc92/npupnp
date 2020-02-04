@@ -148,7 +148,7 @@ static void send_action_response(
  * \brief Handles the SOAP action request.
  */
 static void handle_invoke_action(
-	MHDTransaction *mhdt, soap_devserv_t *soap_info,
+	MHDTransaction *mhdt, soap_devserv_t *soap_info, const std::string& xml,
 	const std::vector<std::pair<std::string, std::string> >& actargs)
 {
 	struct Upnp_Action_Request action;
@@ -160,6 +160,7 @@ static void handle_invoke_action(
 	upnp_strlcpy(action.ActionName, soap_info->action_name, NAME_SIZE);
 	upnp_strlcpy(action.DevUDN, soap_info->dev_udn, NAME_SIZE);
 	upnp_strlcpy(action.ServiceID, soap_info->service_id, NAME_SIZE);
+	action.xmlContent = xml;
 	action.args = actargs;
 	if (mhdt->client_address->ss_family == AF_INET) {
 		memcpy(&action.CtrlPtIPAddr, mhdt->client_address,
@@ -433,7 +434,7 @@ void soap_device_callback(MHDTransaction *mhdt)
 	}
 
 	/* invoke action */
-	handle_invoke_action(mhdt, &soap_info, args);
+	handle_invoke_action(mhdt, &soap_info, mhdt->postdata, args);
 
 	static const char *ContentTypeXML = "text/xml; charset=\"utf-8\"";
 	if (mhdt->response)
