@@ -31,7 +31,7 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([inc/upnp.h])
 
 
-AM_INIT_AUTOMAKE([1.8 -Wall foreign subdir-objects dist-bzip2])
+AM_INIT_AUTOMAKE([1.8 -Wall foreign subdir-objects])
 
 
 #
