@@ -182,10 +182,7 @@ public:
    web server to perform prefix matches. */
 static std::vector<VirtualDirListEntry> virtualDirList;
 
-/*!
- * \brief Based on the extension, returns MIME type as malloc'd char*
- * If content type and sub type are not found, unknown types are used. 
- */
+/* Compute MIME type from file name extension. */
 static UPNP_INLINE int get_content_type(
 	const char *filename, std::string& content_type)
 {

@@ -336,7 +336,8 @@ int UpnpGetIfInfo(const char *IfName)
 		/* Next adapter. */
 		adapts_item = adapts_item->Next;
 	}
-
+	free(adapts);
+	
 #elif defined(HAVE_GETIFADDRS)
 
 	struct ifaddrs *ifap, *ifa;

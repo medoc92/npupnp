@@ -737,9 +737,7 @@ struct File_Info
 	* a non-zero value. If unreadable, it should be set to 0. */
 	int is_readable{0};
 
-	/** The content type of the file. This string needs to be allocated 
-	*  by the caller using malloc/strdup.  When finished 
-	*  with it, the SDK will free it. */
+	/** The content type of the file. */
 	std::string content_type;
 
 	/** Headers to be modified / added. A modified response must be allocated

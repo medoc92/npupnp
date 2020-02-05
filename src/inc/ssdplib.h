@@ -56,14 +56,10 @@ typedef enum SsdpSearchType {
 	SSDP_SERVICE
 } SType;
 
-#define BUFSIZE   (size_t)2500
 #define SSDP_IP   "239.255.255.250"
 #define SSDP_IPV6_LINKLOCAL "FF02::C"
 #define SSDP_IPV6_SITELOCAL "FF05::C"
 #define SSDP_PORT 1900
-#define NUM_TRY 3
-#define THREAD_LIMIT 50
-#define COMMAND_LEN  300
 
 /*! can be overwritten by configure CFLAGS argument. */
 #ifndef X_USER_AGENT

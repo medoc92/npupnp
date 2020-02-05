@@ -377,7 +377,10 @@ int ssdp_request_type(const char *cmd, SsdpEvent *Evt)
 	return 0;
 }
 
+
+#define BUFSIZE   (size_t)2500
 struct  ssdp_thread_data {
+	// The data packet is transferred to the parser, keep as pointer
 	char *packet;
 	struct sockaddr_storage dest_addr;
 };
@@ -490,8 +493,6 @@ void readFromSSDPSocket(SOCKET socket)
 
 	memset(&job, 0, sizeof(job));
 
-	/* in case memory can't be allocated, still drain the socket using a
-	 * static buffer. */
 	data = (ssdp_thread_data*)malloc(sizeof(ssdp_thread_data));
 	if (!data) {
 		fprintf(stderr, "Out of memory in readFromSSDPSocket\n");
@@ -503,7 +504,7 @@ void readFromSSDPSocket(SOCKET socket)
 		abort();
 	}
 	
-	byteReceived = recvfrom(socket, data->packet, BUFSIZE - (size_t)1, 0,
+	byteReceived = recvfrom(socket, data->packet, BUFSIZE - 1, 0,
 							(struct sockaddr *)&__ss, &socklen);
 	if (byteReceived > 0) {
 		data->packet[byteReceived] = '\0';
@@ -534,8 +535,7 @@ void readFromSSDPSocket(SOCKET socket)
 
 		/* add thread pool job to handle request */
 		memcpy(&data->dest_addr, &__ss, sizeof(__ss));
-		TPJobInit(&job, (start_routine)
-				  ssdp_event_handler_thread, data);
+		TPJobInit(&job, (start_routine)ssdp_event_handler_thread, data);
 		TPJobSetFreeFunction(&job, free_ssdp_event_handler_data);
 		TPJobSetPriority(&job, MED_PRIORITY);
 		if (ThreadPoolAdd(&gRecvThreadPool, &job, NULL) != 0)
