@@ -166,10 +166,6 @@
 /* see upnpconfig.h */
 #undef UPNP_HAVE_WEBSERVER
 
-/* whether the system defaults to 32bit off_t but can do 64bit when requested
-   */
-#undef UPNP_LARGEFILE_SENSITIVE
-
 /* see upnpconfig.h */
 #undef UPNP_MINISERVER_REUSEADDR
 

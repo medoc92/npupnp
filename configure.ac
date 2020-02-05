@@ -32,11 +32,16 @@ AC_CONFIG_SRCDIR([inc/upnp.h])
 
 
 AM_INIT_AUTOMAKE([1.8 -Wall foreign subdir-objects])
+AC_DISABLE_STATIC
+LT_INIT
 
+AC_PROG_CXX
+AC_PROG_LIBTOOL
+AC_CHECK_PROG([pkg_config], [pkg-config], [yes], [no])
+if test X$pkg_config != Xyes ; then
+   AC_MSG_ERROR([pkg-config program needed and not found])
+fi
 
-#
-# Get canonical host names in host and host_os
-#
 AC_CANONICAL_HOST
 
 #
@@ -51,11 +56,6 @@ AC_CANONICAL_HOST
 #    installed libraries.
 #
 AC_CONFIG_HEADERS([autoconfig.h inc/upnpconfig.h])
-AX_SYS_LARGEFILE_SENSITIVE
-
-if test "x$ac_cv_sys_largefile_sensitive" = "xyes"; then
-	AC_DEFINE([UPNP_LARGEFILE_SENSITIVE], 1, [whether the system defaults to 32bit off_t but can do 64bit when requested])
-fi
 
 upnpmaj=`echo "$PACKAGE_VERSION" | sed 's/\..*//' `
 upnpmin=[`echo "$PACKAGE_VERSION" | sed 's/^[^.]\.// ; s/[^0-9].*$//' `]
@@ -66,9 +66,7 @@ AC_DEFINE_UNQUOTED([NPUPNP_VERSION_MINOR], $upnpmin, [see upnpconfig.h])
 AC_DEFINE_UNQUOTED([NPUPNP_VERSION_PATCH], $upnppatch, [see upnpconfig.h])
 
 
-#
-# Check for DEBUG flag
-#
+
 RT_BOOL_ARG_ENABLE([debug], [yes], [extra debugging code])
 if test "x$enable_debug" = xyes ; then
 	AC_DEFINE(UPNP_HAVE_DEBUG, 1, [see upnpconfig.h])
@@ -76,7 +74,6 @@ if test "x$enable_debug" = xyes ; then
 else
 	AC_DEFINE(NDEBUG, 1, [Define to 1 to prevent compilation of assert()])
 fi
-
 
 #
 # Check for libupnp subsets
@@ -86,13 +83,11 @@ if test "x$enable_client" = xyes ; then
 	AC_DEFINE(UPNP_HAVE_CLIENT, 1, [see upnpconfig.h])
 fi
 
-
 RT_BOOL_ARG_ENABLE([device], [yes],
      [device specific code (implies --disable-webserver if disabled)])
 if test "x$enable_device" = xyes ; then
 	AC_DEFINE(UPNP_HAVE_DEVICE, 1, [see upnpconfig.h])
 fi
-
 
 if test "x$enable_device" = xno ; then 
 	enable_webserver=no
@@ -158,50 +153,6 @@ if test "x$enable_reuseaddr" = xyes ; then
         AC_DEFINE(UPNP_MINISERVER_REUSEADDR, 1, [see upnpconfig.h])
 fi
 
-#
-# Checks for programs
-#
-AC_PROG_CXX
-CC=$CXX
-m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
-AC_PROG_LIBTOOL
-AC_PROG_INSTALL
-AC_PROG_MAKE_SET
-AC_PROG_EGREP
-
-#
-# Default compilation flags
-#
-echo "------------------ Default compilation flags ----------------------------"
-echo host is $host
-echo host_os is $host_os
-case $host_os in
-freebsd*)
-	echo "Using FreeBSD specific compiler settings"
-	# Put FreeBSD specific compiler flags here
-	;;
-*)
-	echo "Using non-specific system compiler settings"
-	if test x"$enable_debug" = xyes; then
-		# AC_PROG_CC already sets CFLAGS to "-g -O2" by default,
-		# but only if CFLAGS was not previously set.
-		#:
-		# Use -O0 in debug so that variables do not get optimized out
-		AX_CFLAGS_GCC_OPTION([-O0, -g])
-	else
-		# add optimise for size
-		AX_CFLAGS_GCC_OPTION([-Os])
-	fi
-	;;
-esac
-
-AX_CFLAGS_WARN_ALL
-echo "------------------------------------------------------------------------"
-
-
-#
-# Lot's of stuff to ensure large file support
-#
 AC_TYPE_SIZE_T
 AC_TYPE_OFF_T
 AC_DEFINE([_LARGE_FILE_SOURCE], [], [Large files support])

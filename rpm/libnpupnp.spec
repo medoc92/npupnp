@@ -1,6 +1,6 @@
-Summary: Universal Plug and Play (UPnP) SDK
+Summary: UPnP base library
 Name: libnpupnp
-Version: 1.0.0
+Version: 2.0.0
 Release: 1%{?dist}
 License: BSD
 Group: Application/Multimedia
@@ -9,12 +9,10 @@ Source: http://www.lesbonscomptes.com/upmpdcli/downloads/%{name}-%{version}.tar.
 BuildRequires:  expat-devel
 BuildRequires:  libcurl-devel
 BuildRequires:  libmicrohttpd-devel
-# Only for ixml, but comes in the same package
-BuildRequires:  libupnp-devel
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 %description
-UPnP library, based on Pupnp code, but extensively
+UPnP library, based on pupnp code, extensively
 rewritten. As its predecessor, it provides developers with an
 API and open source code for building control points, devices, and
 bridges.
@@ -23,8 +21,8 @@ bridges.
 %setup -q
 
 %build
-%configure CXXFLAGS="-DPIC -fPIC"
-make %{?_smp_mflags}
+%configure
+%{__make} %{?_smp_mflags}
 
 %install
 %{__rm} -rf %{buildroot}
@@ -32,16 +30,18 @@ make %{?_smp_mflags}
 %{__rm} -f %{buildroot}%{_libdir}/libnpupnp.a
 %{__rm} -f %{buildroot}%{_libdir}/libnpupnp.la
 
+%clean
+%{__rm} -rf %{buildroot}
+
 %files
 %defattr(-,root,root,-)
 %{_includedir}/npupnp
 %{_libdir}/libnpupnp.so*
 %{_libdir}/pkgconfig/*.pc
 
-%clean
-%{__rm} -rf %{buildroot}
-
 %changelog
+* Wed Feb 05 2020 Jean-Francois Dockes <jf@dockes.org> - 2.0.0-1
+- V 2 changes API and removes dep on libixml
 * Tue Jan 28 2020 Jean-Francois Dockes <jf@dockes.org> - 1.0.0-1
 - Initial version
 
