@@ -24,7 +24,7 @@ override_dh_install:
 	dh_install --remaining-packages -X.la --list-missing
 
 override_dh_strip:
-	dh_strip --dbg-package=libnpupnp0-dbg
+	dh_strip --dbg-package=libnpupnp1-dbg
 
 override_dh_compress:
 	dh_compress -Xhtml -X.pdf
