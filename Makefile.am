@@ -4,6 +4,8 @@ ACLOCAL_AMFLAGS = -I m4
 AM_CPPFLAGS = \
 	-I$(srcdir)/inc
 
+AM_CXXFLAGS = -std=c++11
+
 LIBNPUPNP_LIBS=@LIBNPUPNP_LIBS@
 
 npupnpincludedir = $(includedir)/npupnp/upnp
