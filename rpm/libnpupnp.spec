@@ -1,6 +1,6 @@
 Summary: UPnP base library
 Name: libnpupnp
-Version: 2.0.0
+Version: 2.0.10
 Release: 1%{?dist}
 License: BSD
 Group: Application/Multimedia
@@ -40,6 +40,8 @@ bridges.
 %{_libdir}/pkgconfig/*.pc
 
 %changelog
+* Fri Feb 07 2020 Jean-Francois Dockes <jf@dockes.org> - 2.0.1-1
+- Small fix in message format
 * Wed Feb 05 2020 Jean-Francois Dockes <jf@dockes.org> - 2.0.0-1
 - V 2 changes API and removes dep on libixml
 * Tue Jan 28 2020 Jean-Francois Dockes <jf@dockes.org> - 1.0.0-1

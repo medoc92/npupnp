@@ -129,7 +129,8 @@ static void send_action_response(
 
 	std::ostringstream response;
 	response << start_body;
-    response << "<u:" << soap_info->action_name << "Response" << ">\n";
+    response << "<u:" << soap_info->action_name << "Response" <<
+		" xmlns:u=\"" << soap_info->service_type << "\">\n";
 	for (const auto&  arg : data) {
 		response << "<" << arg.first << ">" <<
 			xmlQuote(arg.second) <<
@@ -138,7 +139,8 @@ static void send_action_response(
     response << "</u:" << soap_info->action_name << "Response" << ">\n";
 	response << end_body;
 	const std::string& txt(response.str());
-    //std::cerr << "ACTION RESPONSE DATA: [" << txt << "]\n";
+	UpnpPrintf(UPNP_INFO, SOAP, __FILE__, __LINE__,
+			   "Action Response data: [%s]\n", txt.c_str());
 	mhdt->response = MHD_create_response_from_buffer(
 		txt.size(), (char*)txt.c_str(),	MHD_RESPMEM_MUST_COPY);
 	mhdt->httpstatus = 200;

@@ -1,3 +1,9 @@
+libnpupnp1 (2.0.1-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Oopsee in soap message format...
+  
+ -- Jean-Francois Dockes <jf@dockes.org>  Fri, 07 Feb 2020 13:40:00 +0100
+
 libnpupnp1 (2.0.0-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * First version with changed API, no need for libixml. pupnp-free!
