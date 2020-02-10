@@ -646,8 +646,8 @@ static int create_url_list(const std::string& url_list,
     for (size_t i = 0; i < url_list.size(); i++) {
         if ((url_list[i] == '<') && (i + 1 < url_list.size())) {
 			uri_type temp;
-            if (((parse_uri(url_list.c_str() + i + 1, url_list.size() - i + 1,
-							&temp)) == UPNP_E_SUCCESS)
+			std::string suri(url_list.c_str() + i + 1, url_list.size() - i + 1);
+            if (((parse_uri(suri, &temp)) == UPNP_E_SUCCESS)
                 && (temp.hostport.text.size() != 0)) {
 				out->push_back(temp);
             }

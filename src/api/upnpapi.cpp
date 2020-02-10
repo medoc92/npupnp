@@ -1818,8 +1818,8 @@ int UpnpSendAction(
 		return UPNP_E_INVALID_HANDLE;
 	}
 	HandleUnlock();
-	return = SoapSendAction(headerString, actionURL, serviceType, actionName,
-							actionParams, response, errcodep, errdesc);
+	return SoapSendAction(headerString, actionURL, serviceType, actionName,
+						  actionParams, response, errcodep, errdesc);
 }
 
 #endif /* INCLUDE_CLIENT_APIS */

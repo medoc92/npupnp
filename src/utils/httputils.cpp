@@ -131,42 +131,26 @@ int httpheader_str2int(const std::string& headername)
 	return it->second;
 }
 
-/* 
- * Please, do not change these to const int while MSVC cannot understand
- * const int in array dimensions.
- */
-#define CHUNK_HEADER_SIZE (size_t)10
-#define CHUNK_TAIL_SIZE (size_t)10
-
-int http_FixUrl(uri_type *url, uri_type *fixed_url)
-{
-	*fixed_url = *url;
-	if (stringlowercmp("http", fixed_url->scheme) != 0) {
-		return UPNP_E_INVALID_URL;
-	}
-	if (fixed_url->hostport.text.empty()) {
-		return UPNP_E_INVALID_URL;
-	}
-	/* set pathquery to "/" if it is empty */
-	if (fixed_url->pathquery.empty()) {
-		fixed_url->pathquery = "/";
-	}
-
-	return UPNP_E_SUCCESS;
-}
-
-int http_FixStrUrl(
-	const char *urlstr,
-	size_t urlstrlen,
-	uri_type *fixed_url)
+int http_FixStrUrl(const std::string& surl, uri_type *fixed_url)
 {
 	uri_type url;
 
-	if (parse_uri(urlstr, urlstrlen, &url) != UPNP_E_SUCCESS) {
+	if (parse_uri(surl, &url) != UPNP_E_SUCCESS) {
 		return UPNP_E_INVALID_URL;
 	}
 
-	return http_FixUrl(&url, fixed_url);
+	*fixed_url = url;
+	if (stringlowercmp("http", fixed_url->scheme) ||
+		fixed_url->hostport.text.empty()) {
+		return UPNP_E_INVALID_URL;
+	}
+
+	/* set pathquery to "/" if it is empty */
+	if (fixed_url->path.empty()) {
+		fixed_url->path = "/";
+	}
+
+	return UPNP_E_SUCCESS;
 }
 
 /************************************************************************
@@ -188,16 +172,12 @@ int http_FixStrUrl(
  *	UPNP_E_SUCCESS
  *	UPNP_E_INVALID_URL
  ************************************************************************/
-int http_Download(const char *url_str,
-               int timeout_secs,
-               char **document,
-               size_t *doc_length,
-               char *content_type )
+int http_Download(const char *surl, int timeout_secs,
+				  char **document, size_t *doc_length, char *content_type)
 {
 	uri_type url;
-	UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
-		   "DOWNLOAD URL : %s\n", url_str);
-	int ret_code = http_FixStrUrl((char *)url_str, strlen(url_str), &url);
+	UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__, "http_Download: %s\n", surl);
+	int ret_code = http_FixStrUrl(surl, &url);
 	if (ret_code != UPNP_E_SUCCESS)
 		return ret_code;
 
@@ -258,19 +238,19 @@ int http_Download(const char *url_str,
 					   PRIu64 "\n", sizefromheaders, (uint64_t)data.size());
 		}
 	}
-	
-	/* extract doc from msg */
-	if (data.empty()) {
-		*document = NULL;
-	} else {
-		*document = (char *)malloc(data.size() + 1);
-		if (*document == NULL) {
-			return UPNP_E_OUTOF_MEMORY;
-		}
-		memcpy(*document, data.c_str(), data.size());
-		(*document)[data.size()] = 0;
-	}
+
+	*document = nullptr;
 	if (http_status == HTTP_OK) {
+		/* extract doc from msg */
+		if (!data.empty()) {
+			*document = NULL;
+			*document = (char *)malloc(data.size() + 1);
+			if (*document == NULL) {
+				return UPNP_E_OUTOF_MEMORY;
+			}
+			memcpy(*document, data.c_str(), data.size());
+			(*document)[data.size()] = 0;
+		}
 		return 0;
 	} else {
 		return http_status;

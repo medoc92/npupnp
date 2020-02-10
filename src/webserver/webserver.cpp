@@ -315,21 +315,17 @@ int web_server_set_root_dir(const char *root_dir)
 int web_server_add_virtual_dir(
 	const char *dirname, const void *cookie, const void **oldcookie)
 {
-	if (!dirname || !*dirname) {
+	if (!dirname || !*dirname || dirname[0] != '/') {
 		return UPNP_E_INVALID_PARAM;
 	}
 
 	VirtualDirListEntry entry;
 	entry.cookie = cookie;
-	if (*dirname != '/') {
-		if (strlen(dirname) > NAME_SIZE - 2)
-			return UPNP_E_INVALID_PARAM;
-		entry.path = std::string("/") + dirname;
-	} else {
-		if (strlen(dirname) > NAME_SIZE - 1)
-			return UPNP_E_INVALID_PARAM;
-		entry.path = dirname;
-	}
+    entry.path = dirname;
+    if (entry.path.back() != '/') {
+        entry.path += '/';
+    }
+
 	auto old = std::find_if(virtualDirList.begin(), virtualDirList.end(),
 							[entry](const VirtualDirListEntry& old) {
 								return entry.path == old.path;
@@ -371,24 +367,16 @@ void web_server_clear_virtual_dirs()
  *
  * \return nullptr or entry pointer.
  */
-static const VirtualDirListEntry *isFileInVirtualDir(
-	/*! [in] Directory path to be tested for virtual directory. */
-	char *filePath)
+static const VirtualDirListEntry *isFileInVirtualDir(const std::string& path)
 {
 	for (const auto& vd : virtualDirList) {
-		if (vd.path.size()) {
-			if (vd.path.back() == '/') {
-				if (strncmp(vd.path.c_str(), filePath, vd.path.size()) == 0)
-					return &vd;
-			} else {
-				if (strncmp(vd.path.c_str(), filePath, vd.path.size()) == 0 &&
-					(filePath[vd.path.size()] == '/' ||
-					 filePath[vd.path.size()] == 0 ||
-					 filePath[vd.path.size()] == '?'))
-					return &vd;
-			}
+        // We ensure that vd entries paths end with /. Meaning that if
+        // the paths compare equal up to the vd path len, the input
+        // path is in a subdir of the vd path.
+        if (!vd.path.compare(0, vd.path.size(), path, 0, vd.path.size())) {
+            return &vd;
 		}
-	}
+    } 
 	return nullptr;
 }
 
@@ -527,9 +515,7 @@ static int process_request(
 {
 	int code;
 	int err_code;
-	char *request_doc = NULL;
 	struct File_Info finfo;
-	size_t dummy;
 	LocalDoc localdoc;
 	
 	assert(mhdt->method == HTTPMETHOD_GET ||
@@ -542,23 +528,18 @@ static int process_request(
 	}
 
 	/* init */
-	request_doc = NULL;
 	err_code = HTTP_INTERNAL_SERVER_ERROR;	/* default error */
 	const VirtualDirListEntry *entryp{nullptr};
 	
-	/* remove dots and unescape url */
-	request_doc = strdup(mhdt->url.c_str());
-	if (request_doc == NULL) {
-		goto error_handler;	/* out of mem */
-	}
-	dummy = mhdt->url.size();
-	remove_escaped_chars(request_doc, &dummy);
-	code = remove_dots(request_doc, mhdt->url.size());
-	if (code != 0) {
+	/* Unescape and canonize the path. Note that MHD has already
+       stripped a possible query part ("?param=value...)  for us */
+    std::string request_doc = remove_escaped_chars(mhdt->url);
+	request_doc = remove_dots(request_doc);
+	if (request_doc.empty()) {
 		err_code = HTTP_FORBIDDEN;
 		goto error_handler;
 	}
-	if (*request_doc != '/') {
+	if (request_doc[0] != '/') {
 		/* no slash */
 		err_code = HTTP_BAD_REQUEST;
 		goto error_handler;
@@ -708,7 +689,6 @@ static int process_request(
 	err_code = HTTP_OK;
 
 error_handler:
-	free(request_doc);
 	FreeExtraHTTPHeaders(finfo.extra_headers);
 	return err_code;
 }

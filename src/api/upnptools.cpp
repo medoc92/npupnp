@@ -124,15 +124,7 @@ const char *UpnpGetErrorMessage(int rc)
 	return "Unknown error code";
 }
 
-/*!
- * \todo There is some unnecessary allocation and deallocation going on here
- * because of the way resolve_rel_url() was originally written and used. In the
- * future it would be nice to clean this up.
- */
-int UpnpResolveURL(
-	const char *BaseURL,
-	const char *RelURL,
-	char *AbsURL)
+int UpnpResolveURL(const char *BaseURL, const char *RelURL, char *AbsURL)
 {
 	if (!RelURL) {
 		return UPNP_E_INVALID_PARAM;
@@ -146,10 +138,7 @@ int UpnpResolveURL(
 }
 
 
-int UpnpResolveURL2(
-	const char *BaseURL,
-	const char *RelURL,
-	char **AbsURL)
+int UpnpResolveURL2(const char *BaseURL, const char *RelURL, char **AbsURL)
 {
 	int ret = UPNP_E_SUCCESS;
 
@@ -162,7 +151,6 @@ int UpnpResolveURL2(
 	} else {
 		ret = UPNP_E_INVALID_URL;
 	}
-
 	return ret;
 }
 

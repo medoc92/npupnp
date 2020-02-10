@@ -44,6 +44,7 @@
 #include "smallut.h"
 
 #include <stdio.h>
+#include <fcntl.h>
 
 #ifdef INCLUDE_CLIENT_APIS
 SOCKET gSsdpReqSocket4 = INVALID_SOCKET;

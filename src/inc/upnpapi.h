@@ -198,7 +198,7 @@ Upnp_Handle_Type GetDeviceHandleInfo(
  */
 Upnp_Handle_Type GetDeviceHandleInfoForPath(
 	/*! The Uri path. */
-	const char *path, 
+	const std::string& path, 
 	/*! [in] Address family. */
 	int AddressFamily,
 	/*! [out] Device handle pointer. */

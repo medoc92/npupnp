@@ -52,133 +52,6 @@
 #include "smallut.h"
 #include "upnpapi.h"
 
-
-/*!
- * \brief Returns a 1 if a char is a RESERVED char as defined in 
- * http://www.ietf.org/rfc/rfc2396.txt RFC explaining URIs).
- *
- * \return 1 if char is a RESERVED char.
- */
-static int is_reserved(char in)
-{
-	/*! added {} for compatibility */
-	static const char *RESERVED = ";/?:@&=+$,{}";
-	if (strchr(RESERVED, (int)in)) {
-		return 1;
-	} else {
-		return 0;
-	}
-}
-
-
-/*!
- * \brief Returns a 1 if a char is a MARK char as defined in
- * http://www.ietf.org/rfc/rfc2396.txt (RFC explaining URIs).
- *
- * \return 1 if char is a MARKED char.
- */
-static int is_mark(char in)
-{
-	static const char * MARK = "-_.!~*'()";
-	if (strchr(MARK, (int)in)) {
-		return 1;
-	} else {
-		return 0;
-	}
-}
-
-
-/*!
- * \brief Returns a 1 if a char is an UNRESERVED char as defined in
- * http://www.ietf.org/rfc/rfc2396.txt (RFC explaining URIs).
- *
- * \return 1 if char is a UNRESERVED char.
- */
-static int is_unreserved(char in)
-{
-	if (isalnum(in) || is_mark(in)) {
-		return 1;
-	} else {
-		return 0;
-	}
-}
-
-
-/*!
- * \brief Returns a 1 if a char[3] sequence is ESCAPED as defined in
- * http://www.ietf.org/rfc/rfc2396.txt (RFC explaining URIs).
- *
- * Size of array is NOT checked (MUST be checked by caller).
- *
- * \return 1 if char is a ESCAPED char.
- */
-static int is_escaped(const char *in)
-{
-	if (in[0] == '%' && isxdigit(in[1]) && isxdigit(in[2])) {
-		return 1;
-	} else {
-		return 0;
-	}
-}
-
-/*!
- * \brief Replaces an escaped sequence with its unescaped version as in
- * http://www.ietf.org/rfc/rfc2396.txt	(RFC explaining URIs)
- *
- * Size of array is NOT checked (MUST be checked by caller)
- *
- * \note This function modifies the string. If the sequence is an escaped
- * sequence it is replaced, the other characters in the string are shifted
- * over, and NULL characters are placed at the end of the string.
- *
- * \return 
- */
-static void replace_escaped(char *in, size_t index, size_t *max)
-{
-	int tempInt = 0;
-	char tempChar = 0;
-	size_t i = (size_t)0;
-	size_t j = (size_t)0;
-
-	if (in[index] == '%' && isxdigit(in[index + (size_t)1]) &&
-		isxdigit(in[index + (size_t)2])) {
-		/* Note the "%2x", makes sure that we convert a maximum of two
-		 * characters. */
-		if (sscanf(&in[index + (size_t)1], "%2x", &tempInt) != 1) {
-			return;
-		}
-		tempChar = (char)tempInt;
-		for (i = index + (size_t)3, j = index; j < *max; i++, j++) {
-			in[j] = tempChar;
-			if (i < *max) {
-				tempChar = in[i];
-			} else {
-				tempChar = 0;
-			}
-		}
-		*max -= (size_t)2;
-	}
-}
-
-
-/*!
- * \brief Parses a string of uric characters starting at in[0] as defined in
- * http://www.ietf.org/rfc/rfc2396.txt (RFC explaining URIs).
- */
-static size_t parse_uric(const char *in, size_t max, std::string& out)
-{
-	size_t i = 0;
-
-	while (i < max && (is_unreserved(in[i]) || is_reserved(in[i]) ||
-					   ((i + 2 < max) && is_escaped(&in[i])))) {
-		i++;
-	}
-
-	out.assign(in, i);
-	return i;
-}
-
-
 /*!
  * \brief Parses a string representing a host and port (e.g. "127.127.0.1:80"
  * or "localhost") and fills out a hostport_type struct with internet address
@@ -329,263 +202,193 @@ static int parse_hostport(
  *
  * \return 
  */
-static size_t parse_scheme(
-	/*! [in] String of characters representing a scheme. */
-	const char *in,
-	/*! [in] Maximum number of characters. */
-	size_t max,
-	/*! [out] Output parameter whose buffer is filled in with the scheme. */
-	std::string& out)
+static size_t parse_scheme(const std::string& in, std::string& out)
 {
-	size_t i = 0;
-
 	out.clear();
 
 	// A scheme begins with an alphabetic character
-	if (max == 0 || !isalpha(in[0]))
-		return (size_t)0;
-	i++;
+	if (in.empty() || !isalpha(in[0]))
+		return 0;
 
-	// [::alphanum::+-.]* follows until ':' if any
-	while (i < max && in[i] != ':') {
-		if (!(isalnum(in[i]) || in[i] == '+' || in[i] == '-' || in[i] == '.'))
-			return 0;
-		i++;
-	}
-
-	if (i == max) {
-		// : not found
+	// Need a colon
+	std::string::size_type colon = in.find(':');
+	if (colon == std::string::npos) {
 		return 0;
 	}
-		
-	out.assign(in, i);
-	return i;
-}
-
-
-int remove_escaped_chars(char *in, size_t *size)
-{
-	for (size_t i = 0; i < *size; i++) {
-		replace_escaped(in, i, size);
+	// Check contents: "[::alphanum::+-.]*:"
+	for (size_t i = 0; i < colon; i++) {
+		if (!(isalnum(in[i]) || in[i] == '+' || in[i] == '-' || in[i] == '.'))
+			return 0;
 	}
-
-	return UPNP_E_SUCCESS;
+	out = in.substr(0, colon);
+	return out.size();
 }
 
 
-static UPNP_INLINE int is_end_path(char c) {
-	switch (c) {
-	case '?':
-	case '#':
-	case '\0':
-		return 1;
-	}
-	return 0;
-}
-
-
-/* This function directly implements the "Remove Dot Segments"
- * algorithm described in RFC 3986 section 5.2.4. */
-int remove_dots(char *buf, size_t size)
+/*!
+ * \brief Replaces an escaped sequences with theur unescaped version as in
+ * http://www.ietf.org/rfc/rfc2396.txt	(RFC explaining URIs)
+ */
+static inline int h2d(int c)
 {
-	char *in = buf;
-	char *out = buf;
-	char *max = buf + size;
+	if ('0' <= c && c <= '9')
+		return c - '0';
+	else if ('A' <= c && c <= 'F')
+		return 10 + c - 'A';
+	else 
+		return -1;
+}
 
-	while (!is_end_path(in[0])) {
-		assert (buf <= out);
-		assert (out <= in);
-		assert (in < max);
-
-		/* case 2.A: */
-		if (strncmp(in, "./", 2) == 0) {
-			in += 2;
-		} else if (strncmp(in, "../", 3) == 0) {
-			in += 3;
-			/* case 2.B: */
-		} else if (strncmp(in, "/./", 3) == 0) {
-			in += 2;
-		} else if (strncmp(in, "/.", 2) == 0 && is_end_path(in[2])) {
-			in += 1;
-			in[0] = '/';
-			/* case 2.C: */
-		} else if (strncmp(in, "/../", 4) == 0 || (strncmp(in, "/..", 3) == 0 &&
-												   is_end_path(in[3]))) {
-			/* Make the next character in the input buffer a '/': */
-			if (is_end_path(in[3])) { /* terminating "/.." case */
-				in += 2;
-				in[0] = '/';
-			} else { /* "/../" prefix case */
-				in += 3;
+std::string remove_escaped_chars(const std::string& in)
+{
+	if (in.size() <= 2)
+		return in;
+	std::string out;
+	out.reserve(in.size());
+	size_t i = 0;
+	for (; i < in.size() - 2; i++) {
+		if (in[i] == '%') {
+			int d1 = h2d(in[i+1]);
+			int d2 = h2d(in[i+2]);
+			if (d1 != -1 && d2 != -1) {
+				out += (d1 << 4) + d2;
+			} else {
+				out += '%';
+				out += in[i+1];
+				out += in[i+2];
 			}
-			/* Trim the last component from the output buffer, or empty it. */
-			while (buf < out)
-				if (*--out == '/')
-					break;
-#ifdef DEBUG
-			if (out < in)
-				out[0] = '\0';
-#endif
-			/* case 2.D: */
-		} else if (strncmp(in, ".", 1) == 0 && is_end_path(in[1])) {
-			in += 1;
-		} else if (strncmp(in, "..", 2) == 0 && is_end_path(in[2])) {
-			in += 2;
-			/* case 2.E */
+			i += 2;
 		} else {
-			/* move initial '/' character (if any) */
-			if (in[0] == '/')
-				*out++ = *in++;
-			/* move first segment up to, but not including, the next
-			 * '/' character */
-			while (in < max && in[0] != '/' && !is_end_path(in[0]))
-				*out++ = *in++;
-#ifdef DEBUG
-			if (out < in)
-				out[0] = '\0';
-#endif
+			out += in[i];
 		}
 	}
-	while (in < max)
-		*out++ = *in++;
-	if (out < max)
-		out[0] = '\0';
-	return UPNP_E_SUCCESS;
+	while (i < in.size()) {
+		out += in[i++];
+	}
+	return out;
 }
 
 
-std::string resolve_rel_url(const char *base_url, const char *rel_url)
+std::string remove_dots(const std::string& in)
+{
+    static const std::string markers("/?");
+    std::vector<std::string> vpath;
+    if (in.empty()) {
+        return in;
+    }
+    bool isabs = in[0] == '/';
+    bool endslash = in.back() == '/';
+    std::string::size_type pos = 0;
+    while (pos != std::string::npos) {
+        std::string::size_type epos = in.find_first_of(markers, pos);
+        if (epos != std::string::npos && in[epos] == '?') {
+            // done
+            epos = std::string::npos;
+        }
+        if (epos == pos) {
+            pos++;
+            continue;
+        }
+        std::string elt = (epos == std::string::npos) ?
+            in.substr(pos) : in.substr(pos, epos - pos);
+        if (elt.empty() || elt == ".") {
+            // Do nothing, // or /./ are ignored
+        } else if (elt == "..") {
+            if (vpath.empty()) {
+                // This is an error: trying to go behind /
+                return std::string();
+            } else {
+                vpath.pop_back();
+            }
+        } else {
+            vpath.push_back(elt);
+        }
+        pos = epos;
+    }
+    std::string out = isabs ? "/" : "";
+    for (const auto& elt : vpath) {
+        out += elt + "/";
+    }
+    // Pop the last / if the original path did not end with /
+    if (!endslash && out.size() > 1 && out.back() == '/')
+        out.pop_back();
+    return out;
+}
+
+std::string resolve_rel_url(
+	const std::string& base_url, const std::string& rel_url)
 {
 	uri_type base;
 	uri_type rel;
-	int rv;
+	uri_type url;
 
-	if (!base_url) {
-		if (!rel_url)
-			return std::string();
-		return rel_url;
+	// Base can't be empty, it needs at least a scheme.
+	if (base_url.empty()) {
+		return std::string();
 	}
-
-	size_t len_rel = strlen(rel_url);
-	if (parse_uri(rel_url, len_rel, &rel) != UPNP_E_SUCCESS)
+	if ((parse_uri(base_url, &base) != UPNP_E_SUCCESS)
+		|| (base.type != URITP_ABSOLUTE)) {
 		return std::string();
-	if (rel.type == (enum uriType)URITP_ABSOLUTE)
-		return rel_url;
-
-	size_t len_base = strlen(base_url);
-	if ((parse_uri(base_url, len_base, &base) != UPNP_E_SUCCESS)
-		|| (base.type != (enum uriType)URITP_ABSOLUTE))
-		return std::string();
-	if (len_rel == (size_t)0)
+	}
+	if (rel_url.empty())
 		return base_url;
 
-	size_t len = len_base + len_rel + (size_t)2;
-	char *out = (char *)malloc(len);
-	if (out == NULL)
+	if (parse_uri(rel_url, &rel) != UPNP_E_SUCCESS) {
 		return std::string();
-	memset(out, 0, len);
-	char *out_finger = out;
-	char *path;
-	
-	/* scheme */
-	rv = snprintf(out_finger, len, "%.*s:",
-				  (int)base.scheme.size(), base.scheme.c_str());
-	if (rv < 0 || rv >= (int)len)
-		goto error;
-	out_finger += rv;
-	len -= (size_t)rv;
-
-	/* authority */
-	if (rel.hostport.text.size() > (size_t)0) {
-		rv = snprintf(out_finger, len, "%s", rel_url);
-		if (rv < 0 || rv >= (int)len)
-			goto error;
-		{
-			std::string sout(out);
-			free(out);
-			return sout;
-		}
-	}
-	if (base.hostport.text.size() > (size_t)0) {
-		rv = snprintf(out_finger, len, "//%.*s",
-					  (int)base.hostport.text.size(),base.hostport.text.c_str());
-		if (rv < 0 || rv >= (int)len)
-			goto error;
-		out_finger += rv;
-		len -= (size_t)rv;
 	}
 
-	/* path */
-	path = out_finger;
-	if (rel.path_type == (enum pathType)ABS_PATH) {
-		rv = snprintf(out_finger, len, "%s", rel_url);
-	} else if (base.pathquery.empty()) {
-		rv = snprintf(out_finger, len, "/%s", rel_url);
-	} else {
-		if (rel.pathquery.empty()) {
-			rv = snprintf(out_finger, len, "%.*s",
-						  (int)base.pathquery.size(), base.pathquery.c_str());
+	rel.path = remove_dots(rel.path);
+
+	if (rel.type == URITP_ABSOLUTE) {
+		return uri_asurlstr(rel);
+	}
+
+	url.scheme = base.scheme;
+	url.fragment = rel.fragment;
+
+	if (!rel.hostport.text.empty()) {
+        url.hostport = rel.hostport;
+		url.path = rel.path;
+		url.query = rel.query;
+        return uri_asurlstr(url);
+	}
+
+	url.hostport = base.hostport;
+
+	if (rel.path.empty()) {
+		url.path = base.path;
+		if (!rel.query.empty()) {
+			url.query = rel.query;
 		} else {
-			if (len < base.pathquery.size())
-				goto error;
-			size_t i = (size_t)0, prefix = (size_t)1;
-			while (i < base.pathquery.size()) {
-				out_finger[i] = base.pathquery[i];
-				switch (base.pathquery[i++]) {
-				case '/':
-					prefix = i;
-					/* fall-through */
-				default:
-					continue;
-				case '?': /* query */
-					if (rel.pathquery[0] == '?')
-						prefix = --i;
-				}
-				break;
-			}
-			out_finger += prefix;
-			len -= prefix;
-			rv = snprintf(out_finger, len, "%.*s",
-						  (int)rel.pathquery.size(), rel.pathquery.c_str());
+			url.query = base.query;
 		}
-		if (rv < 0 || rv >= (int)len)
-			goto error;
-		out_finger += rv;
-		len -= (size_t)rv;
-
-		/* fragment */
-		if (rel.fragment.size() > (size_t)0)
-			rv = snprintf(out_finger, len, "#%.*s",
-						  (int)rel.fragment.size(), rel.fragment.c_str());
-		else if (base.fragment.size() > (size_t)0)
-			rv = snprintf(out_finger, len, "#%.*s",
-						  (int)base.fragment.size(), base.fragment.c_str());
-		else
-			rv = 0;
+	} else {
+		if (rel.path[0] == '/') {
+			url.path = rel.path;
+		} else {
+			// Merge paths
+			if (base.path.empty()) {
+				url.path = std::string("/") + rel.path;
+			} else {
+				if (base.path == "/") {
+					url.path = base.path + rel.path;
+				} else {
+					if (base.path.back() == '/') {
+						base.path.pop_back();
+					}
+					std::string::size_type pos = base.path.rfind("/");
+					url.path = base.path.substr(0, pos+1) + rel.path;
+				}
+				url.query = rel.query;
+			}
+		}
 	}
-	if (rv < 0 || rv >= (int)len)
-		goto error;
-	out_finger += rv;
-	len -= (size_t)rv;
-
-	if (remove_dots(path, (size_t)(out_finger - path)) != UPNP_E_SUCCESS)
-		goto error;
-
-	{
-		std::string sout(out);
-		free(out);
-		return sout;
-	}
-
-error:
-	free(out);
-	return std::string();
+	return uri_asurlstr(url);
 }
 
-
-int parse_uri(const char *in, size_t max, uri_type *out)
+int parse_uri(const std::string& in, uri_type *out)
 {
-	size_t begin_hostport = parse_scheme(in, max, out->scheme);
+	size_t begin_hostport = parse_scheme(in, out->scheme);
 	if (begin_hostport) {
 		out->type = URITP_ABSOLUTE;
 		out->path_type = OPAQUE_PART;
@@ -596,10 +399,10 @@ int parse_uri(const char *in, size_t max, uri_type *out)
 	}
 
 	int begin_path = 0;
-	if (begin_hostport + 1 < max && in[begin_hostport] == '/' &&
+	if (begin_hostport + 1 < in.size() && in[begin_hostport] == '/' &&
 		in[begin_hostport + 1] == '/') {
 		begin_hostport += 2;
-		begin_path = parse_hostport(in + begin_hostport, &out->hostport);
+		begin_path = parse_hostport(in.c_str() + begin_hostport, &out->hostport);
 		if (begin_path >= 0) {
 			begin_path += begin_hostport;
 		} else {
@@ -608,16 +411,30 @@ int parse_uri(const char *in, size_t max, uri_type *out)
 	} else {
 		begin_path = (int)begin_hostport;
 	}
-	
-	size_t begin_fragment =
-		parse_uric(in + begin_path, max - (size_t)begin_path, out->pathquery) +
-		(size_t)begin_path;
-	if (out->pathquery.size() && out->pathquery[0] == '/') {
-		out->path_type = ABS_PATH;
+	std::string::size_type question = in.find('?', begin_path);
+	std::string::size_type hash = in.find('#', begin_path);
+	if (question == std::string::npos &&
+		hash == std::string::npos) {
+		out->path = in.substr(begin_path);
+	} else if (question != std::string::npos && hash == std::string::npos) {
+		out->path = in.substr(begin_path, question - begin_path);
+		out->query = in.substr(question+1);
+	} else if (question == std::string::npos && hash != std::string::npos) {
+		out->path = in.substr(begin_path, hash - begin_path);
+		out->fragment = in.substr(hash+1);
+	} else {
+		if (hash < question) {
+			out->path = in.substr(begin_path, hash - begin_path);
+			out->fragment = in.substr(hash+1);
+		} else {
+			out->path = in.substr(begin_path, question - begin_path);
+			out->query = in.substr(question + 1, hash - question - 1);
+			out->fragment = in.substr(hash+1);
+		}
 	}
-	if (begin_fragment < max && in[begin_fragment] == '#') {
-		begin_fragment++;
-		parse_uric(in + begin_fragment, max - begin_fragment, out->fragment);
+
+	if (!out->path.empty() && out->path[0] == '/') {
+		out->path_type = ABS_PATH;
 	}
 
 	return UPNP_E_SUCCESS;

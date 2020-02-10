@@ -177,7 +177,7 @@ service_info *FindServiceEventURLPath(
 	/*! [in] Service table. */
 	service_table *table,
 	/*! [in] Event URL path used to find a service from the table. */
-	const char *eventURLPath);
+	const std::string& eventURLPath);
 
 /*!
  * \brief Traverses the service table and finds the node whose control URL Path
@@ -190,7 +190,7 @@ service_info * FindServiceControlURLPath(
 	/*! [in] Service table. */
 	service_table *table,
 	/*! [in] Control URL path used to find a service from the table. */
-	const char *controlURLPath);
+	const std::string& controlURLPath);
 
 /*!
  * \brief For debugging purposes prints information from the service passed

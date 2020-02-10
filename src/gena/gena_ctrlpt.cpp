@@ -230,7 +230,7 @@ static int gena_unsubscribe(
 	uri_type dest_url;
 
 	/* parse url */
-	return_code = http_FixStrUrl(url.c_str(), url.size(), &dest_url);
+	return_code = http_FixStrUrl(url, &dest_url);
 	if (return_code != 0) {
 		return return_code;
 	}
@@ -326,7 +326,7 @@ static int gena_subscribe(
 	}
 	
 	/* parse url */
-	return_code = http_FixStrUrl(url.c_str(), url.size(), &dest_url);
+	return_code = http_FixStrUrl(url, &dest_url);
 	if (return_code != 0) {
 		return return_code;
 	}

@@ -129,32 +129,13 @@ public:
 
 
 /*!
- * \brief Validates URL.
+ * \brief Parse and validate URL.
  *
  * \return
  * 	\li \c UPNP_E_INVALID_URL
  * 	\li \c UPNP_E_SUCCESS
  */
-int http_FixUrl(
-	/*! [in] URL to be validated and fixed. */
-	uri_type *url,
-	/*! [out] URL after being fixed. */
-	uri_type *fixed_url);
-
-/*!
- * \brief Parses URL and then validates URL.
- *
- * \return
- * 	\li \c UPNP_E_INVALID_URL
- * 	\li \c UPNP_E_SUCCESS
- */
-int http_FixStrUrl(
-	/*! [in] Character string as a URL. */
-	const char *urlstr,
-	/*! [in] Length of the character string. */
-	size_t urlstrlen,
-	/*! [out] Fixed and corrected URL. */
-	uri_type *fixed_url);
+int http_FixStrUrl(const std::string& url, uri_type *fixed_url);
 
 /* Download and store in memory the document designated by the input url */
 int http_Download(const char *url, int timeout_secs, char** document,

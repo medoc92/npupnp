@@ -38,14 +38,8 @@
 #include "UpnpGlobal.h" 
 #include "UpnpInet.h"
 
-#include <ctype.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#include <time.h>
-
 #include <netdb.h>
 
 
@@ -81,7 +75,8 @@ struct uri_type {
 	enum uriType type;
 	std::string scheme;
 	enum pathType path_type;
-	std::string pathquery;
+	std::string path;
+	std::string query;
 	std::string fragment;
 	hostport_type hostport;
 };
@@ -89,77 +84,48 @@ struct uri_type {
 inline std::string uri_asurlstr(const uri_type& u)
 {
 	std::string surl(u.scheme);
-	surl += "://";
-	surl += u.hostport.text;
-	if (u.pathquery.size() == 0)
+	if (!u.scheme.empty()) {
+		surl += ":";
+	}
+	if (!u.hostport.text.empty()) {
+		surl += "//";
+		surl += u.hostport.text;
+	}
+	if (u.path.empty())
 		surl += "/";
 	else 
-		surl += u.pathquery;
+		surl += u.path;
+	if (!u.query.empty()) {
+		surl += "?";
+		surl += u.query;
+	}
 	return surl;
 }
 
 /*!
- * \brief Removes http escaped characters such as: "%20" and replaces them with
+ * Removes http escaped characters such as: "%20" and replaces them with
  * their character representation. i.e. "hello%20foo" -> "hello foo".
- *
- * The input IS MODIFIED in place (shortened). Extra characters are replaced
- * with \b NULL.
- *
- * \return UPNP_E_SUCCESS.
  */
-int remove_escaped_chars(
-	/*! [in,out] String of characters to be modified. */
-	char *in,
-	/*! [in,out] Size limit for the number of characters. */
-	size_t *size);
+std::string remove_escaped_chars(const std::string& in);
 
-/*!
- * \brief Removes ".", and ".." from a path.
+/* Removes ".", and ".." from a path.
  *
  * If a ".." can not be resolved (i.e. the .. would go past the root of the
- * path) an error is returned.
- *
- * The input IS modified in place.)
- *
- * \note Examples
- * 	char path[30]="/../hello";
- * 	remove_dots(path, strlen(path)) -> UPNP_E_INVALID_URL
- * 	char path[30]="/./hello";
- * 	remove_dots(path, strlen(path)) -> UPNP_E_SUCCESS, 
- * 	in = "/hello"
- * 	char path[30]="/./hello/foo/../goodbye" -> 
- * 	UPNP_E_SUCCESS, in = "/hello/goodbye"
- *
- * \return 
- * 	\li UPNP_E_SUCCESS - On Success.
- * 	\li UPNP_E_OUTOF_MEMORY - On failure to allocate memory.
- * 	\li UPNP_E_INVALID_URL - Failure to resolve URL.
+ * path) an error is returned as an empty string.
  */
-int remove_dots(
-	/*! [in] String of characters from which "dots" have to be removed. */
-	char *in,
-	/*! [in] Size limit for the number of characters. */
-	size_t size);
+std::string remove_dots(const std::string& in);
 
 /*!
- * \brief resolves a relative url with a base url returning a NEW (dynamically
- * allocated with malloc) full url.
+ * \brief resolves a relative url with a base url returning a new url
  *
- * If the base_url is \b NULL, then a copy of the  rel_url is passed back if
+ * If the base_url is empty, then a copy of the  rel_url is passed back if
  * the rel_url is absolute then a copy of the rel_url is passed back if neither
  * the base nor the rel_url are Absolute then NULL is returned. Otherwise it
  * tries and resolves the relative url with the base as described in
  * http://www.ietf.org/rfc/rfc2396.txt (RFCs explaining URIs).
  *
- * The resolution of '..' is NOT implemented, but '.' is resolved.
- *
- * \return 
  */
-std::string resolve_rel_url(
-	/*! [in] Base URL. */
-	const char *base_url,
-	/*! [in] Relative URL. */
-	const char *rel_url);
+std::string resolve_rel_url(const std::string& base, const std::string& rel);
 
 /*!
  * \brief Parses a uri as defined in http://www.ietf.org/rfc/rfc2396.txt
@@ -173,13 +139,6 @@ std::string resolve_rel_url(
  *
  * \return UPNP_E_SUCCESS / UPNP_E_OTHER
  */
-int parse_uri(
-	/*! [in] Character string containing uri information to be parsed. */
-	const char *in,
-	/*! [in] Maximum limit on the number of characters. */
-	size_t max,
-	/*! [out] Output parameter which will have the parsed uri information. */
-	uri_type *out);
+int parse_uri(const std::string& in, uri_type *out);
 
 #endif /* GENLIB_NET_URI_H */
-

@@ -157,16 +157,12 @@ int SoapSendAction(
 	
 	/* parse url */
 	uri_type url;
-	if (http_FixStrUrl(actionURL.c_str(), actionURL.size(), &url) != 0) {
+	if (http_FixStrUrl(actionURL, &url) != 0) {
 		return UPNP_E_INVALID_URL;
 	}
 
-	UpnpPrintf( UPNP_INFO, SOAP, __FILE__, __LINE__,
-				"path=%.*s, hostport=%.*s\n",
-				(int)url.pathquery.size(),
-				url.pathquery.c_str(),
-				(int)url.hostport.text.size(),
-				url.hostport.text.c_str());
+	UpnpPrintf(UPNP_INFO,SOAP,__FILE__,__LINE__,"path=%s query=%s hostport=%s\n",
+			   url.path.c_str(), url.query.c_str(), url.hostport.text.c_str());
 
 	std::string payload{xml_start};
 	if (!xml_header_str.empty()) {

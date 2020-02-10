@@ -209,14 +209,14 @@ service_info *FindServiceId(
  *	Note :
  ************************************************************************/
 service_info *FindServiceEventURLPath(
-	service_table *table, const char *eventURLPath)
+	service_table *table, const std::string& eventURLPath)
 {
 	if (nullptr == table) {
 		return nullptr;
 	}
 
 	uri_type parsed_url_in;
-	if (parse_uri(eventURLPath, strlen(eventURLPath), &parsed_url_in)
+	if (parse_uri(eventURLPath, &parsed_url_in)
 		!= UPNP_E_SUCCESS) {
 		return nullptr;
 	}
@@ -226,12 +226,11 @@ service_info *FindServiceEventURLPath(
 			continue;
 		}
 		uri_type parsed_url;
-		if (parse_uri(entry.eventURL.c_str(), entry.eventURL.size(),
-					  &parsed_url) != UPNP_E_SUCCESS) {
+		if (parse_uri(entry.eventURL, &parsed_url) != UPNP_E_SUCCESS) {
 			continue;
 		}
-
-		if (parsed_url.pathquery == parsed_url_in.pathquery) {
+		if (parsed_url.path == parsed_url_in.path &&
+			parsed_url.query == parsed_url_in.query) {
 			return &entry;
 		}
 	}
@@ -258,14 +257,14 @@ service_info *FindServiceEventURLPath(
  ************************************************************************/
 #if EXCLUDE_SOAP == 0
 service_info *FindServiceControlURLPath(
-	service_table *table, const char *controlURLPath)
+	service_table *table, const std::string& controlURLPath)
 {
 	if (nullptr == table) {
 		return NULL;
 	}
 	
 	uri_type parsed_url_in;
-	if (parse_uri(controlURLPath, strlen(controlURLPath), &parsed_url_in)
+	if (parse_uri(controlURLPath, &parsed_url_in)
 		!= UPNP_E_SUCCESS) {
 		return nullptr;
 	}
@@ -275,11 +274,11 @@ service_info *FindServiceControlURLPath(
 			continue;
 		}
 		uri_type parsed_url;
-		if ((parse_uri(entry.controlURL.c_str(), entry.controlURL.size(),
-					   &parsed_url) != UPNP_E_SUCCESS)) {
+		if ((parse_uri(entry.controlURL, &parsed_url) != UPNP_E_SUCCESS)) {
 			continue;
 		}
-		if (parsed_url.pathquery == parsed_url_in.pathquery) {
+		if (parsed_url.path == parsed_url_in.path &&
+			parsed_url.query == parsed_url_in.query) {
 			return &entry;
 		}
 	}
@@ -402,7 +401,7 @@ void freeServiceTable(service_table *table)
 }
 
 /************************************************************************
- *	Function :	getServiceList
+ *	Function :	fillServiceList
  *
  *	Parameters :
  *		service_table stable ; entry to update.
@@ -413,7 +412,7 @@ void freeServiceTable(service_table *table)
  *
  *	Note :
  ************************************************************************/
-int getServiceList(const UPnPDeviceDesc& dev, service_table *stable)
+static int fillServiceList(const UPnPDeviceDesc& dev, service_table *stable)
 {
 
 	for (const UPnPServiceDesc& sdesc : dev.services) {
@@ -424,27 +423,22 @@ int getServiceList(const UPnPDeviceDesc& dev, service_table *stable)
 		current->UDN = dev.UDN;
 		current->serviceType = sdesc.serviceType;
 		current->serviceId = sdesc.serviceId;
-		current->SCPDURL = resolve_rel_url(
-			dev.URLBase.c_str(), sdesc.SCPDURL.c_str());
+		current->SCPDURL = resolve_rel_url(dev.URLBase, sdesc.SCPDURL);
 		//std::cerr<<"getServLst:SCPDURL: "<<current->SCPDURL<<std::endl;
 		if (current->SCPDURL.empty()) {
 			UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
 					   "BAD OR MISSING SCPDURL");
 		}
-		current->controlURL = resolve_rel_url(
-			stable->URLBase.c_str(), sdesc.controlURL.c_str());
+		current->controlURL = resolve_rel_url(stable->URLBase, sdesc.controlURL);
 		//std::cerr<<"getServLst:controlURL: "<<current->controlURL<<std::endl;
 		if (current->controlURL.empty()) {
-			UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
-					   "BAD OR MISSING CONTROL URL");
+			UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,"Bad/No CONTROL URL");
 			fail = 1;
 		}
-		current->eventURL = resolve_rel_url(
-			stable->URLBase.c_str(), sdesc.eventSubURL.c_str());
+		current->eventURL = resolve_rel_url(stable->URLBase, sdesc.eventSubURL);
 		//std::cerr<<"getServLst:eventURL: "<<current->eventURL<<std::endl;
 		if (current->eventURL.empty()) {
-			UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
-					   "BAD OR MISSING EVENT URL");
+			UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__, "Bad/No EVENT URL");
 		}
 		if (fail) {
 			stable->serviceList.erase(current);
@@ -473,9 +467,9 @@ int getServiceTable(
 {
 	out->serviceList.clear();
 	out->URLBase = devdesc.URLBase;
-	getServiceList(devdesc, out);
+	fillServiceList(devdesc, out);
 	for (const auto& dev : devdesc.embedded) {
-		getServiceList(dev, out);
+		fillServiceList(dev, out);
 	}
 	return 1;
 }
