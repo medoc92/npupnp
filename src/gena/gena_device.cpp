@@ -640,22 +640,29 @@ static int respond_ok(MHDTransaction *mhdt, int time_out, subscription *sub)
  * \return The number of URLs parsed if successful, otherwise
  * UPNP_E_OUTOF_MEMORY.
  */
-static int create_url_list(const std::string& url_list,
-						   std::vector<uri_type> *out)
+static int create_url_list(const std::string& ulist, std::vector<uri_type> *out)
 {
-    for (size_t i = 0; i < url_list.size(); i++) {
-        if ((url_list[i] == '<') && (i + 1 < url_list.size())) {
-			uri_type temp;
-			std::string suri(url_list.c_str() + i + 1, url_list.size() - i + 1);
-            if (((parse_uri(suri, &temp)) == UPNP_E_SUCCESS)
-                && (temp.hostport.text.size() != 0)) {
-				out->push_back(temp);
-            }
-        }
-    }
+	out->clear();
+	std::string::size_type openpos = 0;
+	std::string::size_type closepos = 0;
+
+	for (;;) {
+		if ((openpos = ulist.find('<', closepos)) == std::string::npos) {
+			break;
+		}
+		if ((closepos = ulist.find('>', openpos)) == std::string::npos) {
+			break;
+		}
+		uri_type temp;
+		if (closepos - 1 > openpos && 
+			parse_uri(ulist.substr(openpos+1, closepos-openpos-1),
+					  &temp) == UPNP_E_SUCCESS &&
+			!temp.hostport.text.empty()) {
+			out->push_back(temp);
+		}
+	}
     return (int)out->size();
 }
-
 
 void gena_process_subscription_request(MHDTransaction *mhdt)
 {

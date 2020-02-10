@@ -30,14 +30,11 @@
  *
  ******************************************************************************/
 
-/*
- * \brief Contains functions for scanner and parser for http messages.
- */
+/* Misc HTTP-related utilities */
 
 #include "config.h"
 
 #include "httputils.h"
-#include "UpnpInet.h"
 
 #include <ctype.h>
 #include <limits.h>
@@ -55,14 +52,11 @@
 #include <curl/curl.h>
 
 #include "UpnpInet.h"
-#include "httputils.h"
 #include "smallut.h"
 #include "statcodes.h"
 #include "upnp.h"
-#include "upnpapi.h"
 #include "upnpdebug.h"
 #include "uri.h"
-#include "webserver.h"
 
 static const std::string bogus_soap_post{"SMPOST"};
 static const std::map<std::string, int> Http_Method_Table {
