@@ -210,7 +210,7 @@ static int get_dev_service(
 	HandleReadLock();
 
 	auto hdltp = GetDeviceHandleInfoForPath(
-		mhdt->url.c_str(), addrfamily, &device_hnd, &hdlinfo,&serv_info);
+		mhdt->url, addrfamily, &device_hnd, &hdlinfo,&serv_info);
 
 	if (hdltp != HND_DEVICE || nullptr == serv_info) {
 		HandleUnlock();

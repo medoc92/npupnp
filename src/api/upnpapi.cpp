@@ -235,7 +235,7 @@ int UpnpGetIfInfo(const char *IfName)
 		NULL, adapts, &adapts_sz);
 	if (ret != ERROR_BUFFER_OVERFLOW) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-				   "GetAdaptersAddresses failed to find list of adapters\n");
+				   "GetAdaptersAddresses: fail1\n");
 		return UPNP_E_INIT;
 	}
 	/* Allocate enough memory. */
@@ -250,7 +250,7 @@ int UpnpGetIfInfo(const char *IfName)
 	if (ret != ERROR_SUCCESS) {
 		free(adapts);
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-				   "GetAdaptersAddresses failed to find list of adapters\n");
+				   "GetAdaptersAddresses: fail2\n");
 		return UPNP_E_INIT;
 	}
 	adapts_item = adapts;
@@ -344,8 +344,7 @@ int UpnpGetIfInfo(const char *IfName)
 
 	/* Get system interface addresses. */
 	if (getifaddrs(&ifap) != 0) {
-		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-				   "getifaddrs failed to find list of addresses\n");
+		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__, "getifaddrs error\n");
 		return UPNP_E_INIT;
 	}
 	/* cycle through available interfaces and their addresses. */
@@ -401,14 +400,14 @@ int UpnpGetIfInfo(const char *IfName)
 	/* Failed to find a valid interface, or valid address. */
 	if (!ifname_set || !valid_addr_found) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-				   "Failed to find an adapter with usable IP addresses.\n");
+				   "No adapter with usable IP addresses.\n");
 		return UPNP_E_INVALID_INTERFACE;
 	}
 	inet_ntop(AF_INET, &v4_addr, gIF_IPV4, sizeof(gIF_IPV4));
 	inet_ntop(AF_INET6, &v6_addr, gIF_IPV6, sizeof(gIF_IPV6));
 
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-			   "Interface name=%s, index=%d, v4=%s, v6=%s, ULA or GUA v6=%s\n",
+			   "Ifname=%s, index=%d, v4=%s, v6=%s, ULA/GUA v6=%s\n",
 			   gIF_NAME, gIF_INDEX, gIF_IPV4, gIF_IPV6, gIF_IPV6_ULA_GUA);
 
 	return UPNP_E_SUCCESS;
@@ -438,12 +437,12 @@ int getlocalhostname(char *out, size_t out_len)
 			upnp_strlcpy(out, p, out_len);
 		} else {
 			UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-						"getlocalhostname: inet_ntop returned error\n");
+						"getlocalhostname: inet_ntop error\n");
 			ret = UPNP_E_INIT;
 		}
 	} else {
 		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-					"getlocalhostname: gethostbyname returned error\n");
+					"getlocalhostname: gethostbyname error\n");
 		ret = UPNP_E_INIT;
 	}
 
@@ -452,7 +451,7 @@ int getlocalhostname(char *out, size_t out_len)
 
 	if (getifaddrs(&ifap) != 0) {
 		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-				   "DiscoverInterfaces: getifaddrs() returned error\n");
+				   "DiscoverInterfaces: getifaddrs error\n");
 		return UPNP_E_INIT;
 	}
 
@@ -477,11 +476,9 @@ int getlocalhostname(char *out, size_t out_len)
 				upnp_strlcpy(out, p, out_len);
 			} else {
 				UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-						   "getlocalhostname: inet_ntop returned error\n");
+						   "getlocalhostname: inet_ntop error\n");
 				ret = UPNP_E_INIT;
 			}
-			UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-					   "Inside getlocalhostname: after upnp_strlcpy %s\n", out);
 			break;
 		}
 	}
@@ -662,7 +659,7 @@ static int UpnpInitStartServers(
 	retVal = StartMiniServer(&LOCAL_PORT_V4, &LOCAL_PORT_V6);
 	if (retVal != UPNP_E_SUCCESS) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-				   "Miniserver failed to start");
+				   "Miniserver start error");
 		UpnpFinish();
 		return retVal;
 	}
@@ -702,7 +699,7 @@ static int upnpInitCommonV4V6(bool dov6, const char *HostIP,
 	}
 
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-			   "UpnpInit with input HostIP=%s, DestPort=%d.\n", 
+			   "UpnpInit: HostIP=%s, DestPort=%d.\n", 
 			   HostIP ? HostIP : "", (int)DestPort);
 
 	if (dov6) {
@@ -733,7 +730,7 @@ static int upnpInitCommonV4V6(bool dov6, const char *HostIP,
 	}
 
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-			   "Init output: Host Ip: %s Host Port: %d\n", gIF_IPV4,
+			   "UpnPInit output: Host Ip: %s Host Port: %d\n", gIF_IPV4,
 			   (int)LOCAL_PORT_V4);
 
 exit_function:
@@ -821,8 +818,6 @@ int UpnpFinish(void)
 
 	if (UpnpSdkInit != 1)
 		return UPNP_E_FINISH;
-	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-			   "Inside UpnpFinish: UpnpSdkInit is %d\n", UpnpSdkInit);
 
 #ifdef INCLUDE_DEVICE_APIS
 	while (GetDeviceHandleInfo(
@@ -863,8 +858,6 @@ int UpnpFinish(void)
 	/* remove all virtual dirs */
 	UpnpRemoveAllVirtualDirs();
 	UpnpSdkInit = 0;
-	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-			   "Exiting UpnpFinish: UpnpSdkInit is :%d:\n", UpnpSdkInit);
 	UpnpCloseLog();
 	/* Clean-up ithread library resources */
 	ithread_cleanup_library();
@@ -989,8 +982,7 @@ int UpnpRegisterRootDeviceAllForms(
 
 	HandleLock();
 
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			   "Inside UpnpRegisterRootDeviceAllForms\n");
+	UpnpPrintf(UPNP_INFO,API,__FILE__,__LINE__, "UpnpRegisterRootDeviceAllF\n");
 
 	if (UpnpSdkInit != 1) {
 		retVal = UPNP_E_FINISH;
@@ -1034,8 +1026,7 @@ int UpnpRegisterRootDeviceAllForms(
 		upnp_strlcpy(HInfo->LowerDescURL, LowerDescUrl,
 					 sizeof(HInfo->LowerDescURL));
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			   "Following Root Device URL will be used when answering to "
-			   "legacy CPs %s\n", HInfo->LowerDescURL);
+			   "Root Device URL for legacy CPs: %s\n", HInfo->LowerDescURL);
 	HInfo->aliasInstalled = config_baseURL != 0;
 	HInfo->HType = HND_DEVICE;
 	HInfo->Callback = Fun;
@@ -1046,26 +1037,22 @@ int UpnpRegisterRootDeviceAllForms(
 	HInfo->DeviceAf = AddressFamily;
 
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			   "UpnpRegisterRootDeviceAllForms: Valid Description\n"
-			   "UpnpRegisterRootDeviceAllForms: DescURL : %s\n",
+			   "UpnpRegisterRootDeviceAllForms: Ok Description at : %s\n",
 			   HInfo->DescURL);
 
 #if EXCLUDE_GENA == 0
 	/*
 	 * GENA SET UP
 	 */
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			   "UpnpRegisterRootDevice2: Gena Check\n");
 	hasServiceTable = getServiceTable(HInfo->devdesc, &HInfo->ServiceTable,
 									  HInfo->DescURL);
 	if (hasServiceTable) {
 		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-				   "UpnpRegisterRootDeviceAllForms: GENA Service Table\n"
-				   "Here are the known services: \n");
+				   "UpnpRegisterRootDeviceAllForms: GENA services:\n");
 		printServiceTable(&HInfo->ServiceTable, UPNP_ALL, API);
 	} else {
 		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-				   "\nUpnpRegisterRootDeviceAllForms: Empty service table\n");
+				   "\nUpnpRegisterRootDeviceAF: no services\n");
 	}
 #endif /* EXCLUDE_GENA */
 
@@ -1080,10 +1067,7 @@ int UpnpRegisterRootDeviceAllForms(
 	retVal = UPNP_E_SUCCESS;
 
 exit_function:
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			   "Exiting RegisterRootDeviceAllForms, return == %d\n", retVal);
 	HandleUnlock();
-
 	return retVal;
 }
 
@@ -1446,8 +1430,6 @@ static int GetDescDocumentAndURL(
 #if EXCLUDE_SSDP == 0
 int UpnpSendAdvertisement(UpnpDevice_Handle Hnd, int Exp)
 {
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			   "Inside UpnpSendAdvertisement \n");
 	return UpnpSendAdvertisementLowPower (Hnd, Exp, -1, -1, -1);
 }
 
@@ -1466,9 +1448,6 @@ int UpnpSendAdvertisementLowPower(
 	if(UpnpSdkInit != 1) {
 		return UPNP_E_FINISH;
 	}
-
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-				"Inside UpnpSendAdvertisementLowPower \n");
 
 	if (checkLockHandle(HND_DEVICE, Hnd, &SInfo) == HND_INVALID) {
 		return UPNP_E_INVALID_HANDLE;
@@ -1535,9 +1514,6 @@ int UpnpSendAdvertisementLowPower(
 #endif
 
 	HandleUnlock();
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-				"Exiting UpnpSendAdvertisementLowPower \n");
-
 	return retVal;
 
 }
@@ -1562,8 +1538,6 @@ int UpnpSearchAsync(
 		return UPNP_E_INVALID_PARAM;
 	}
 
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "Inside UpnpSearchAsync\n");
-
 	if (checkLockHandle(HND_CLIENT, Hnd, &SInfo, true) == HND_INVALID) {
 		return UPNP_E_INVALID_HANDLE;
 	}
@@ -1574,8 +1548,6 @@ int UpnpSearchAsync(
 	retVal = SearchByTarget(Mx, (char *)Target, (void *)Cookie);
 	if (retVal != 1)
 		return retVal;
-
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,"Exiting UpnpSearchAsync \n");
 
 	return UPNP_E_SUCCESS;
 }
@@ -1603,17 +1575,11 @@ int UpnpSetMaxSubscriptions(UpnpDevice_Handle Hnd, int MaxSubscriptions)
 		return UPNP_E_INVALID_HANDLE;
 	}
 
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-				"Inside UpnpSetMaxSubscriptions \n");
-
 	if (checkLockHandle(HND_DEVICE, Hnd, &SInfo) == HND_INVALID) {
 		return UPNP_E_INVALID_HANDLE;
 	}
 	SInfo->MaxSubscriptions = MaxSubscriptions;
 	HandleUnlock();
-
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-				"Exiting UpnpSetMaxSubscriptions \n");
 
 	return UPNP_E_SUCCESS;
 }
@@ -1634,18 +1600,12 @@ int UpnpSetMaxSubscriptionTimeOut(UpnpDevice_Handle Hnd,
 		return UPNP_E_INVALID_HANDLE;
 	}
 
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			   "Inside UpnpSetMaxSubscriptionTimeOut\n");
-
 	if (checkLockHandle(HND_DEVICE, Hnd, &SInfo) == HND_INVALID) {
 		return UPNP_E_INVALID_HANDLE;
 	}
 
 	SInfo->MaxSubscriptionTimeOut = MaxSubscriptionTimeOut;
 	HandleUnlock();
-
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			   "Exiting UpnpSetMaxSubscriptionTimeOut\n");
 
 	return UPNP_E_SUCCESS;
 
@@ -1660,7 +1620,7 @@ int UpnpSubscribe(
 	struct Handle_Info *SInfo = NULL;
 	std::string SubsIdTmp;
 	
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "Inside UpnpSubscribe\n");
+	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "UpnpSubscribe\n");
 
 	if (UpnpSdkInit != 1) {
 		retVal = UPNP_E_FINISH;
@@ -1683,8 +1643,7 @@ int UpnpSubscribe(
 
 exit_function:
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			   "Exiting UpnpSubscribe, retVal=%d\n", retVal);
-
+			   "UpnpSubscribe: retVal=%d\n", retVal);
 	return retVal;
 }
 #endif /* INCLUDE_CLIENT_APIS */
@@ -1697,7 +1656,7 @@ int UpnpUnSubscribe(UpnpClient_Handle Hnd, const Upnp_SID SubsId)
 	int retVal;
 	std::string SubsIdTmp;
 
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "Inside UpnpUnSubscribe\n");
+	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "UpnpUnSubscribe\n");
 
 	if (UpnpSdkInit != 1) {
 		retVal = UPNP_E_FINISH;
@@ -1720,7 +1679,7 @@ int UpnpUnSubscribe(UpnpClient_Handle Hnd, const Upnp_SID SubsId)
 
 exit_function:
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			   "Exiting UpnpUnSubscribe, retVal=%d\n", retVal);
+			   "UpnpUnSubscribe, retVal=%d\n", retVal);
 
 	return retVal;
 }
@@ -1735,7 +1694,7 @@ int UpnpRenewSubscription(UpnpClient_Handle Hnd, int *TimeOut,
 	int retVal;
 	std::string SubsIdTmp;
 
-	UpnpPrintf(UPNP_ALL, API, __FILE__,__LINE__,"Enter UpnpRenewSubscription\n");
+	UpnpPrintf(UPNP_ALL, API, __FILE__,__LINE__,"UpnpRenewSubscription\n");
 
 	if (UpnpSdkInit != 1) {
 		retVal = UPNP_E_FINISH;
@@ -1758,8 +1717,7 @@ int UpnpRenewSubscription(UpnpClient_Handle Hnd, int *TimeOut,
 
 exit_function:
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			   "Exiting UpnpRenewSubscription, retVal=%d\n", retVal);
-
+			   "UpnpRenewSubscription, retVal=%d\n", retVal);
 	return retVal;
 }
 #endif /* INCLUDE_CLIENT_APIS */
@@ -1780,7 +1738,7 @@ int UpnpNotify(
 		return UPNP_E_INVALID_PARAM;
 	}
 
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "Inside UpnpNotify\n");
+	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "UpnpNotify\n");
 
 	if (checkLockHandle(HND_DEVICE, Hnd, &SInfo, true) == HND_INVALID) {
 		return UPNP_E_INVALID_HANDLE;
@@ -1790,7 +1748,7 @@ int UpnpNotify(
 	retVal = genaNotifyAll(Hnd, (char*)DevID, (char*)ServName,
 						   (char**)VarName, (char**)NewVal, cVariables);
 
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "Exiting UpnpNotify\n");
+	UpnpPrintf(UPNP_ALL,API,__FILE__,__LINE__,"UpnpNotify ret %d\n", retVal);
 	return retVal;
 }
 
@@ -1802,8 +1760,7 @@ int UpnpAcceptSubscription(
 	int ret = 0;
 	struct Handle_Info *SInfo = NULL;
 
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			   "Inside UpnpAcceptSubscription\n");
+	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "UpnpAcceptSubscription\n");
 
 	if (UpnpSdkInit != 1) {
 		return UPNP_E_FINISH;
@@ -1821,7 +1778,7 @@ int UpnpAcceptSubscription(
 						 (char**)NewVal, cVariables, SubsId);
 
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			   "Exiting UpnpAcceptSubscription, ret = %d\n", ret);
+			   "UpnpAcceptSubscription, ret = %d\n", ret);
 	return ret;
 }
 
@@ -1850,7 +1807,6 @@ int UpnpSendAction(
 	std::string&  errdesc)
 {
 	struct Handle_Info *SInfo = NULL;
-	int retVal = 0;
 
 	if (UpnpSdkInit != 1) {
 		return UPNP_E_FINISH;
@@ -1862,12 +1818,8 @@ int UpnpSendAction(
 		return UPNP_E_INVALID_HANDLE;
 	}
 	HandleUnlock();
-
-	retVal = SoapSendAction(headerString, actionURL, serviceType, actionName,
+	return = SoapSendAction(headerString, actionURL, serviceType, actionName,
 							actionParams, response, errcodep, errdesc);
-
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "Exiting UpnpSendAction\n");
-	return retVal;
 }
 
 #endif /* INCLUDE_CLIENT_APIS */
@@ -1931,7 +1883,7 @@ Upnp_Handle_Type GetDeviceHandleInfo(
 	struct Handle_Info **HndInfo)
 {
 #ifdef INCLUDE_DEVICE_APIS
-	/* Check if we've got a registered device of the address family specified. */
+	/* Check if we've got a registered device of the address family specified.*/
 	if ((AddressFamily == AF_INET  && UpnpSdkDeviceRegisteredV4 == 0) ||
 		(AddressFamily == AF_INET6 && UpnpSdkDeviceregisteredV6 == 0)) {
 		*device_handle_out = -1;
@@ -1961,18 +1913,19 @@ Upnp_Handle_Type GetDeviceHandleInfo(
 	return HND_INVALID;
 }
 
+
 /* Check if we've got a registered device of the address family specified. */
 Upnp_Handle_Type GetDeviceHandleInfoForPath(
-	const char *path, int AddressFamily, UpnpDevice_Handle *device_handle_out,
+	const std::string& path, int AddressFamily, UpnpDevice_Handle *devhdl,
 	struct Handle_Info **HndInfo, service_info **serv_info)
 {
-	*device_handle_out = -1;
+	*devhdl = -1;
 	*serv_info = nullptr;
 
 #ifdef INCLUDE_DEVICE_APIS
 	if ((AddressFamily == AF_INET  && UpnpSdkDeviceRegisteredV4 == 0) ||
 		(AddressFamily == AF_INET6 && UpnpSdkDeviceregisteredV6 == 0)) {
-		*device_handle_out = -1;
+		*devhdl = -1;
 		return HND_INVALID;
 	}
 
@@ -1985,7 +1938,7 @@ Upnp_Handle_Type GetDeviceHandleInfoForPath(
 				(*serv_info = FindServiceEventURLPath(
 					&hinf->ServiceTable,  path))) {
 				*HndInfo = hinf;
-				*device_handle_out = idx;
+				*devhdl = idx;
 				return HND_DEVICE;
 			}
 		}
@@ -2001,22 +1954,18 @@ Upnp_Handle_Type GetHandleInfo(UpnpClient_Handle Hnd,
 {
 	Upnp_Handle_Type ret = HND_INVALID;
 
-	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-				"GetHandleInfo: entering, Handle is %d\n", Hnd);
-
 	if (Hnd < 1 || Hnd >= NUM_HANDLE) {
 		UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-				   "GetHandleInfo: Handle out of range\n");
+				   "GetHandleInfo: out of range\n");
 	} else if (HandleTable[Hnd] == NULL) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-				   "GetHandleInfo: HandleTable[%d] is NULL\n",
+				   "GetHandleInfo: HTable[%d] is NULL\n",
 				   Hnd);
 	} else if (HandleTable[Hnd] != NULL) {
 		*HndInfo = (struct Handle_Info *)HandleTable[Hnd];
 		ret = ((struct Handle_Info *)*HndInfo)->HType;
 	}
 
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "GetHandleInfo: exiting\n");
 	return ret;
 }
 
@@ -2026,22 +1975,19 @@ int PrintHandleInfo(UpnpClient_Handle Hnd)
 	if (HandleTable[Hnd] != NULL) {
 		HndInfo = (struct Handle_Info*)HandleTable[Hnd];
 		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-				   "Printing information for Handle_%d\n", Hnd);
-		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-				   "HType_%d\n", HndInfo->HType);
+				   "Handle_%d Type_%d: \n", Hnd, HndInfo->HType);
 #ifdef INCLUDE_DEVICE_APIS
 		switch(HndInfo->HType) {
 		case HND_CLIENT:
 			break;
 		default:
 			UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-					   "DescURL_%s\n", HndInfo->DescURL);
+					   "DescURL: %s\n", HndInfo->DescURL);
 		}
 #endif /* INCLUDE_DEVICE_APIS */
 	} else {
 		return UPNP_E_INVALID_HANDLE;
 	}
-
 	return UPNP_E_SUCCESS;
 }
 

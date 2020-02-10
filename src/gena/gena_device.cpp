@@ -699,7 +699,7 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
 	HandleLock();
 
 	if (GetDeviceHandleInfoForPath(
-			mhdt->url.c_str(), mhdt->client_address->ss_family,
+			mhdt->url, mhdt->client_address->ss_family,
 			&device_handle, &handle_info, &service) != HND_DEVICE) {
 		http_SendStatusResponse(mhdt, HTTP_INTERNAL_SERVER_ERROR);
 		HandleUnlock();
@@ -833,7 +833,7 @@ void gena_process_subscription_renewal_request(MHDTransaction *mhdt)
     HandleLock();
 	
 	if (GetDeviceHandleInfoForPath(
-			mhdt->url.c_str(), mhdt->client_address->ss_family,
+			mhdt->url, mhdt->client_address->ss_family,
 			&device_handle, &handle_info, &service) != HND_DEVICE ) {
         http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
         HandleUnlock();
@@ -913,7 +913,7 @@ void gena_process_unsubscribe_request(MHDTransaction *mhdt)
     HandleLock();
 
 	if (GetDeviceHandleInfoForPath(
-			mhdt->url.c_str(), mhdt->client_address->ss_family,
+			mhdt->url, mhdt->client_address->ss_family,
 			&device_handle, &handle_info, &service) != HND_DEVICE) {
         http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
         HandleUnlock();
