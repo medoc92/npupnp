@@ -633,12 +633,10 @@ static int respond_ok(MHDTransaction *mhdt, int time_out, subscription *sub)
  *
  * Takes in a buffer containing URLS delimited by '<' and '>'. The
  * entire buffer is copied into dynamic memory and stored in the
- * URL_list. Pointers to the individual urls within this buffer are
- * allocated and stored in the URL_list.  Only URLs with network
+ * URL_list. Only URLs with network
  * addresses are considered (i.e. host:port or domain name).
  *
- * \return The number of URLs parsed if successful, otherwise
- * UPNP_E_OUTOF_MEMORY.
+ * \return The number of URLs parsed.
  */
 static int create_url_list(const std::string& ulist, std::vector<uri_type> *out)
 {
@@ -655,8 +653,8 @@ static int create_url_list(const std::string& ulist, std::vector<uri_type> *out)
 		}
 		uri_type temp;
 		if (closepos - 1 > openpos && 
-			parse_uri(ulist.substr(openpos+1, closepos-openpos-1),
-					  &temp) == UPNP_E_SUCCESS &&
+			parse_uri(ulist.substr(openpos+1, closepos-openpos-1), &temp)
+			== UPNP_E_SUCCESS &&
 			!temp.hostport.text.empty()) {
 			out->push_back(temp);
 		}
