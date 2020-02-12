@@ -24,9 +24,6 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
-/* Define to 1 if you have the `pthread' library (-lpthread). */
-#undef HAVE_LIBPTHREAD
-
 /* Define to 1 if you have the <limits.h> header file. */
 #undef HAVE_LIMITS_H
 
@@ -158,9 +155,6 @@
 
 /* see upnpconfig.h */
 #undef UPNP_MINISERVER_REUSEADDR
-
-/* Do not use pthread_rwlock_t */
-#undef UPNP_USE_RWLOCK
 
 /* Version number of package */
 #undef VERSION

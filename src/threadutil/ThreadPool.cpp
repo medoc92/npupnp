@@ -42,6 +42,7 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <iostream>
 
 using namespace std::chrono;
 
@@ -118,7 +119,20 @@ ThreadPool::ThreadPool()
 
 ThreadPool::~ThreadPool()
 {
+	// JFD: Doing a proper shutdown does not work at the moment. One
+	// of the threads does not exit. I suspect it's the timer thread
+	// (not quite sure), but we have no way to signal it. For this
+	// stuff to work, any permanent thread should poll for an exit
+	// event, not the case at this point. I suspect that the original
+	// design is wrong: the persistent threads are probably not
+	// compatible with the shutdown() routine.  This is no big deal,
+	// because I can't think of a process which would want to shutdown
+	// its UPnP service and do something else further on... Going to
+	// exit anyway. Actually calling _exit() might be the smart thing here :)
+#if 0
+	shutdown();
 	delete m;
+#endif
 }
 
 int ThreadPool::start(ThreadPoolAttr *attr)
@@ -713,7 +727,7 @@ int ThreadPool::Internal::shutdown()
 		this->lowJobQ.pop_front();
 		delete temp;
 	}
-
+	
 	/* clean up long term job */
 	if (this->persistentJob) {
 		temp = this->persistentJob;
@@ -724,8 +738,9 @@ int ThreadPool::Internal::shutdown()
 	this->shuttingdown = 1;
 	this->condition.notify_all();
 	/* wait for all threads to finish */
-	while (this->totalThreads > 0)
+	while (this->totalThreads > 0) {
 		this->start_and_shutdown.wait(lck);
+	}
 
 	return 0;
 }
