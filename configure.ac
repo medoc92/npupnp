@@ -97,7 +97,7 @@ if test "x$enable_ssdp" != xno ; then
 fi
 AM_CONDITIONAL(ENABLE_SSDP, test x"$enable_ssdp" != xno)
 
-AC_ARG_ENABLE([optssdp], [optionnal SSDP headers support)])
+AC_ARG_ENABLE([optssdp], [optional SSDP headers support)])
 if test "x$enable_optssdp" != xno ; then
         AC_DEFINE(UPNP_HAVE_OPTSSDP, 1, [see upnpconfig.h])
 	enable_uuid=yes
@@ -227,34 +227,7 @@ AC_CHECK_FUNCS([getifaddrs])
 AC_SEARCH_LIBS([bind],           [socket])
 AC_SEARCH_LIBS([gethostbyname],  [nsl])
 AC_SEARCH_LIBS([sched_getparam], [rt])
-AC_CHECK_LIB([pthread], [pthread_create], [], [])
 
-#
-# Determine if pthread_rwlock_t is available
-#
-echo "------------------ pthread_rwlock_t stuff -------------------------------"
-AC_MSG_CHECKING([if pthread_rwlock_t is available])
-AC_LANG([C])
-AC_COMPILE_IFELSE(
-	[AC_LANG_PROGRAM(
-		[#include <pthread.h>],
-		[pthread_rwlock_t *x;])],
-	[AC_DEFINE([UPNP_USE_RWLOCK], [1], [Use pthread_rwlock_t])
-		AC_MSG_RESULT([yes, supported without any options])],
-	[AC_COMPILE_IFELSE(
-		[AC_LANG_PROGRAM(
-			[#define _GNU_SOURCE
-			#include <pthread.h>],
-			[pthread_rwlock_t *x;])],
-		[AC_DEFINE([UPNP_USE_RWLOCK], [1], [Use pthread_rwlock_t])
-			CPPFLAGS="$CPPFLAGS -D_GNU_SOURCE"
-			AC_MSG_RESULT([yes, definition of _GNU_SOURCE required])],
-		[AC_DEFINE([UPNP_USE_RWLOCK], [0], [Do not use pthread_rwlock_t])
-			AC_MSG_RESULT([no, needs to fallback to pthread_mutex])
-			AC_MSG_ERROR([pthread_rwlock_t not available])])])
-echo "-------------------------------------------------------------------------"
-
-AC_CHECK_LIB([pthread], [pthread_create], [], [])
 PKG_CHECK_MODULES([curl], [libcurl], [], AC_MSG_ERROR([libcurl not found]))
 PKG_CHECK_MODULES([expat], [expat], [], AC_MSG_ERROR([libexpat not found]))
 PKG_CHECK_MODULES([libmicrohttpd], [libmicrohttpd], [],
