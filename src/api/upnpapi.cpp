@@ -187,9 +187,6 @@ int UpnpSdkDeviceregisteredV6 = 0;
 Upnp_SID gUpnpSdkNLSuuid;
 #endif /* UPNP_HAVE_OPTSSDP */
 
-// Forward decl.
-void AutoAdvertise(void *input); 
-
 /* Find an appropriate interface (possibly specified in input) and set
  * the global IP addresses and interface names. The interface must fulfill 
  * these requirements:
@@ -537,15 +534,15 @@ static int UpnpInitThreadPools(void)
 	int ret = UPNP_E_SUCCESS;
 	ThreadPoolAttr attr;
 
-	TPAttrSetMaxThreads(&attr, MAX_THREADS);
-	TPAttrSetMinThreads(&attr, MIN_THREADS);
-	TPAttrSetStackSize(&attr, THREAD_STACK_SIZE);
-	TPAttrSetJobsPerThread(&attr, JOBS_PER_THREAD);
-	TPAttrSetIdleTime(&attr, THREAD_IDLE_TIME);
-	TPAttrSetMaxJobsTotal(&attr, MAX_JOBS_TOTAL);
+	attr.maxThreads = MAX_THREADS;
+	attr.minThreads =  MIN_THREADS;
+	attr.stackSize = THREAD_STACK_SIZE;
+	attr.jobsPerThread = JOBS_PER_THREAD;
+	attr.maxIdleTime = THREAD_IDLE_TIME;
+	attr.maxJobsTotal = MAX_JOBS_TOTAL;
 
 	for (const auto& entry : o_threadpools) {
-		if (ThreadPoolInit(entry.first, &attr) != UPNP_E_SUCCESS) {
+		if (entry.first->start(&attr) != UPNP_E_SUCCESS) {
 			ret = UPNP_E_INIT_FAILED;
 			break;
 		}
@@ -767,7 +764,7 @@ void PrintThreadPoolStats(
 	const char *msg)
 {
 	ThreadPoolStats stats;
-	ThreadPoolGetStats(tp, &stats);
+	tp->getStats(&stats);
 	UpnpPrintf(UPNP_INFO, API, DbgFileName, DbgLineNo,
 			   "%s\n"
 			   "High Jobs pending: %d\n"
@@ -847,7 +844,7 @@ int UpnpFinish(void)
 	web_server_destroy();
 #endif
 	for (const auto& entry : o_threadpools) {
-		ThreadPoolShutdown(entry.first);
+		entry.first->shutdown();
 		PrintThreadPoolStats(entry.first, __FILE__, __LINE__,
 							 entry.second);
 	}
@@ -1428,9 +1425,17 @@ static int GetDescDocumentAndURL(
 
 #ifdef INCLUDE_DEVICE_APIS
 #if EXCLUDE_SSDP == 0
+
 int UpnpSendAdvertisement(UpnpDevice_Handle Hnd, int Exp)
 {
 	return UpnpSendAdvertisementLowPower (Hnd, Exp, -1, -1, -1);
+}
+
+void thread_autoadvertise(void *input)
+{
+	upnp_timeout *event = (upnp_timeout *)input;
+
+	UpnpSendAdvertisement(event->handle, *((int *)event->Event));
 }
 
 int UpnpSendAdvertisementLowPower(
@@ -1441,9 +1446,6 @@ int UpnpSendAdvertisementLowPower(
 	int retVal = 0,
 		*ptrMx;
 	upnp_timeout *adEvent;
-	ThreadPoolJob job;
-
-	memset(&job, 0, sizeof(job));
 
 	if(UpnpSdkInit != 1) {
 		return UPNP_E_FINISH;
@@ -1487,31 +1489,24 @@ int UpnpSendAdvertisementLowPower(
 	}
 
 #ifdef SSDP_PACKET_DISTRIBUTE
-	TPJobInit(&job, (start_routine) AutoAdvertise, adEvent);
-	TPJobSetFreeFunction(&job, (free_routine) free_upnp_timeout);
-	TPJobSetPriority(&job, MED_PRIORITY);
-	if((retVal = gTimerThread->schedule(((Exp / 2) -
-											 (AUTO_ADVERTISEMENT_TIME)),
-										   REL_SEC, &job, SHORT_TERM,
-										   &(adEvent->eventId)))
-		!= UPNP_E_SUCCESS) {
-		HandleUnlock();
-		free_upnp_timeout(adEvent);
-		return retVal;
-	}
+	retVal = gTimerThread->schedule(
+		TimerThread::SHORT_TERM, TimerThread::REL_SEC,
+		((Exp / 2) - (AUTO_ADVERTISEMENT_TIME)),
+		 &(adEvent->eventId),
+		(start_routine)thread_autoadvertise, adEvent,
+		(ThreadPool::free_routine)free_upnp_timeout);
 #else
-	TPJobInit(&job, (start_routine) AutoAdvertise, adEvent);
-	TPJobSetFreeFunction(&job, (free_routine) free_upnp_timeout);
-	TPJobSetPriority(&job, MED_PRIORITY);
-	if((retVal = gTimerThread->schedule(Exp - AUTO_ADVERTISEMENT_TIME,
-										  REL_SEC, &job, SHORT_TERM,
-										  &(adEvent->eventId)))
-		!= UPNP_E_SUCCESS) {
+	retVal = gTimerThread->schedule(
+		TimerThread::SHORT_TERM, TimerThread::REL_SEC,
+		Exp - AUTO_ADVERTISEMENT_TIME, &(adEvent->eventId),
+		(start_routine)thread_autoadvertise, adEvent,
+		(ThreadPool::free_routine)free_upnp_timeout);
+#endif
+	if (retVal != UPNP_E_SUCCESS) {
 		HandleUnlock();
 		free_upnp_timeout(adEvent);
 		return retVal;
 	}
-#endif
 
 	HandleUnlock();
 	return retVal;
@@ -1990,19 +1985,6 @@ int PrintHandleInfo(UpnpClient_Handle Hnd)
 	}
 	return UPNP_E_SUCCESS;
 }
-
-
-#ifdef INCLUDE_DEVICE_APIS
-#if EXCLUDE_SSDP == 0
-void AutoAdvertise(void *input)
-{
-	upnp_timeout *event = (upnp_timeout *)input;
-
-	UpnpSendAdvertisement(event->handle, *((int *)event->Event));
-	free_upnp_timeout(event);
-}
-#endif /* EXCLUDE_SSDP == 0 */
-#endif /* INCLUDE_DEVICE_APIS */
 
 
 #ifdef INTERNAL_WEB_SERVER

@@ -65,13 +65,7 @@ static void clientCancelRenew(ClientSubscription *sub)
 	sub->actualSID.clear();
 	sub->eventURL.clear();
 	if (renewEventId != -1) {
-		/* do not remove timer event of copy */
-		/* invalid timer event id */
-		ThreadPoolJob tempJob;
-		if (gTimerThread->remove(renewEventId, &tempJob) == 0) {
-			upnp_timeout *event = (upnp_timeout *)tempJob.arg;
-			free_upnp_timeout(event);
-		}
+		gTimerThread->remove(renewEventId);
 	}
 }
 
@@ -79,12 +73,13 @@ static void clientCancelRenew(ClientSubscription *sub)
  * \brief This is a thread function to send the renewal just before the
  * subscription times out.
  */
-static void GenaAutoRenewSubscription(
+static void *thread_autorenewsubscription(
 	/*! [in] Thread data(upnp_timeout *) needed to send the renewal. */
 	void *input)
 {
-	upnp_timeout *event = (upnp_timeout *) input;
-        struct Upnp_Event_Subscribe *sub_struct = (struct Upnp_Event_Subscribe *)event->Event;
+	upnp_timeout *event = (upnp_timeout *)input;
+	struct Upnp_Event_Subscribe *sub_struct =
+		(struct Upnp_Event_Subscribe *)event->Event;
 	void *cookie;
 	Upnp_FunPtr callback_fun;
 	struct Handle_Info *handle_info;
@@ -133,10 +128,8 @@ static void GenaAutoRenewSubscription(
 		callback_fun((Upnp_EventType)eventType, event->Event, cookie);
 	}
 
-	free_upnp_timeout(event);
-
 end_function:
-	return;
+	return nullptr;
 }
 
 
@@ -157,11 +150,8 @@ static int ScheduleGenaAutoRenew(
 	struct Upnp_Event_Subscribe *RenewEventStruct = NULL;
 	upnp_timeout *RenewEvent = NULL;
 	int return_code = GENA_SUCCESS;
-	ThreadPoolJob job;
 	const std::string& tmpSID = sub->SID;
 	const std::string& tmpEventURL = sub->eventURL;
-
-	memset(&job, 0, sizeof(job));
 
 	if (TimeOut == UPNP_INFINITE) {
 		return_code = GENA_SUCCESS;
@@ -192,14 +182,12 @@ static int ScheduleGenaAutoRenew(
 	RenewEvent->handle = client_handle;
 	RenewEvent->Event = RenewEventStruct;
 
-	TPJobInit(&job, (start_routine) GenaAutoRenewSubscription, RenewEvent);
-	TPJobSetFreeFunction(&job, (free_routine)free_upnp_timeout);
-	TPJobSetPriority(&job, MED_PRIORITY);
-
 	/* Schedule the job */
-	return_code = gTimerThread->schedule(TimeOut - AUTO_RENEW_TIME,
-										 REL_SEC, &job, SHORT_TERM,
-										 &(RenewEvent->eventId));
+	return_code = gTimerThread->schedule(
+		TimerThread::SHORT_TERM, TimerThread::REL_SEC, TimeOut - AUTO_RENEW_TIME,
+		&(RenewEvent->eventId),	thread_autorenewsubscription, RenewEvent,
+		(ThreadPool::free_routine)free_upnp_timeout);
+
 	if (return_code != UPNP_E_SUCCESS) {
 		free_upnp_timeout(RenewEvent);
 		goto end_function;
@@ -547,7 +535,6 @@ int genaRenewSubscription(
 	ClientSubscription sub_copy;
 	struct Handle_Info *handle_info;
 	std::string ActualSID;
-	ThreadPoolJob tempJob;
 
 	HandleLock();
 
@@ -566,11 +553,8 @@ int genaRenewSubscription(
 		return_code = GENA_E_BAD_SID;
 		goto exit_function;
 	}
-
 	/* remove old events */
-	if (gTimerThread->remove(sub->renewEventId, &tempJob) == 0 ) {
-		free_upnp_timeout((upnp_timeout *)tempJob.arg);
-	}
+	gTimerThread->remove(sub->renewEventId);
 
 	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,"REMOVED AUTO RENEW EVENT\n");
 

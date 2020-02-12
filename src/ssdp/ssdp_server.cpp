@@ -380,28 +380,25 @@ int ssdp_request_type(const char *cmd, SsdpEvent *Evt)
 
 
 #define BUFSIZE   (size_t)2500
-struct  ssdp_thread_data {
+struct ssdp_thread_data {
 	// The data packet is transferred to the parser, keep as pointer
-	char *packet;
+	char *packet{nullptr};
 	struct sockaddr_storage dest_addr;
 };
 
 /*!
  * \brief Frees the ssdp request.
+ * arg is cast to *ssdp_thread_data pointer
  */
-static void free_ssdp_event_handler_data(
-	/*! [in] ssdp_thread_data structure. This structure contains SSDP
-	 * request message. */
-	void *the_data)
+static void free_ssdp_event_handler_data(void *arg)
 {
-	ssdp_thread_data *data = (ssdp_thread_data *) the_data;
+	ssdp_thread_data *data = (ssdp_thread_data *)arg;
 
-	if (data == NULL) {
+	if (nullptr == data) {
 		return;
 	}
 	if (data->packet) {
 		free(data->packet);
-		data->packet = 0;
 	}
 	free(data);
 }
@@ -454,7 +451,7 @@ static http_method_t valid_ssdp_msg(SSDPPacketParser& parser)
 /*!
  * \brief This function is a thread that handles SSDP requests.
  */
-static void ssdp_event_handler_thread(void *the_data)
+static void *thread_ssdp_event_handler(void *the_data)
 {
 	ssdp_thread_data *data = (ssdp_thread_data *)the_data;
 
@@ -462,37 +459,32 @@ static void ssdp_event_handler_thread(void *the_data)
 	SSDPPacketParser parser(data->packet);
 	data->packet = 0;
 	if (!parser.parse()) {
-		return;
+		return nullptr;
 	}
 
 	http_method_t method = valid_ssdp_msg(parser);
 	if (method == HTTPMETHOD_UNKNOWN) {
-		return;
+		return nullptr;
 	}
 
 	/* send msg to device or ctrlpt */
-	if (method == HTTPMETHOD_NOTIFY || (parser.isresponse &&
-										method == HTTPMETHOD_MSEARCH)) {
+	if (method == HTTPMETHOD_NOTIFY ||
+		(parser.isresponse && method == HTTPMETHOD_MSEARCH)) {
 #ifdef INCLUDE_CLIENT_APIS
 		ssdp_handle_ctrlpt_msg(parser, &data->dest_addr, 0, NULL);
 #endif /* INCLUDE_CLIENT_APIS */
 	} else {
 		ssdp_handle_device_request(parser, &data->dest_addr);
 	}
-
-	/* free data */
-	free_ssdp_event_handler_data(data);
+	return nullptr;
 }
 
 void readFromSSDPSocket(SOCKET socket)
 {
 	struct sockaddr_storage __ss;
-	ThreadPoolJob job;
 	ssdp_thread_data *data = NULL;
 	socklen_t socklen = sizeof(__ss);
 	ssize_t byteReceived = 0;
-
-	memset(&job, 0, sizeof(job));
 
 	data = (ssdp_thread_data*)malloc(sizeof(ssdp_thread_data));
 	if (!data) {
@@ -536,11 +528,10 @@ void readFromSSDPSocket(SOCKET socket)
 
 		/* add thread pool job to handle request */
 		memcpy(&data->dest_addr, &__ss, sizeof(__ss));
-		TPJobInit(&job, (start_routine)ssdp_event_handler_thread, data);
-		TPJobSetFreeFunction(&job, free_ssdp_event_handler_data);
-		TPJobSetPriority(&job, MED_PRIORITY);
-		if (ThreadPoolAdd(&gRecvThreadPool, &job, NULL) != 0)
+		if (gRecvThreadPool.addJob(thread_ssdp_event_handler, data,
+								   free_ssdp_event_handler_data) != 0) {
 			free_ssdp_event_handler_data(data);
+		}
 	}
 }
 

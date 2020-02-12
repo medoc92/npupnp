@@ -63,15 +63,12 @@ nnn * Redistribution and use in source and binary forms, with or without
  * \brief Sends a callback to the control point application with a SEARCH
  * result.
  */
-static void send_search_result(
-	/* [in] Search reply from the device. */
-	void *data)
+static void* thread_cb_search_result(void *data)
 {
-	ResultData *temp = (ResultData *) data;
-
+	ResultData *temp = (ResultData *)data;
 	temp->ctrlpt_callback(UPNP_DISCOVERY_SEARCH_RESULT, &temp->param,
 						  temp->cookie);
-	free(temp);
+	return nullptr;
 }
 
 void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
@@ -91,9 +88,6 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
 	void *ctrlpt_cookie;
 	int matched = 0;
 	ResultData *threadData = NULL;
-	ThreadPoolJob job;
-
-	memset(&job, 0, sizeof(job));
 
 	/* Get client info. We are assuming that there can be only one
 	   client supported at a time */
@@ -265,11 +259,9 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
 					threadData->param = param;
 					threadData->cookie = searchArg->cookie;
 					threadData->ctrlpt_callback = ctrlpt_callback;
-					TPJobInit(&job, (start_routine)send_search_result,
-							  threadData);
-					TPJobSetPriority(&job, MED_PRIORITY);
-					TPJobSetFreeFunction(&job, (free_routine)free);
-					if (ThreadPoolAdd(&gRecvThreadPool, &job, NULL) != 0) {
+					if (gRecvThreadPool.addJob(
+							thread_cb_search_result, threadData,
+							(ThreadPool::free_routine)free) != 0) {
 						free(threadData);
 					}
 				}
@@ -324,48 +316,36 @@ static int CreateClientRequestPacket(
 	return UPNP_E_SUCCESS;
 }
 
-/*!
- * \brief
- */
 #ifdef UPNP_ENABLE_IPV6
 static int CreateClientRequestPacketUlaGua(
 	std::string& RqstBuf,
 	int Mx,
 	char *SearchTarget,
-	int AddressFamily)
+	int addrfam)
 {
-	return CreateClientRequestPacket(
-		RqstBuf, Mx, SearchTarget,	AddressFamily, true);
+	return CreateClientRequestPacket(RqstBuf, Mx, SearchTarget, addrfam, true);
 }
 #endif /* UPNP_ENABLE_IPV6 */
 
-/*!
- * \brief
- */
-static void searchExpired(
-	/* [in] . */
-	void *arg)
+static void* thread_searchexpired(void *arg)
 {
 	int *id = (int *)arg;
 	int handle = -1;
 	struct Handle_Info *ctrlpt_info = NULL;
-
-	/* remove search Target from list and call client back */
 	Upnp_FunPtr ctrlpt_callback;
 	void *cookie = NULL;
 	int found = 0;
 
 	HandleLock();
 
-	/* remove search target from search list */
 	if (GetClientHandleInfo(&handle, &ctrlpt_info) != HND_CLIENT) {
 		free(id);
 		HandleUnlock();
-		return;
+		return nullptr;
 	}
 	ctrlpt_callback = ctrlpt_info->Callback;
 	for (auto it = ctrlpt_info->SsdpSearchList.begin();
-		 it != ctrlpt_info->SsdpSearchList.begin(); it++) {
+		 it != ctrlpt_info->SsdpSearchList.end(); it++) {
 		SsdpSearchArg *item = *it;
 		if (item->timeoutEventId == *id) {
 			cookie = item->cookie;
@@ -379,8 +359,7 @@ static void searchExpired(
 
 	if (found)
 		ctrlpt_callback(UPNP_DISCOVERY_SEARCH_TIMEOUT, NULL, cookie);
-
-	free(id);
+	return nullptr;
 }
 
 int SearchByTarget(int Mx, char *St, void *Cookie)
@@ -411,9 +390,6 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
 	int retVal;
 
 	/*ThreadData *ThData; */
-	ThreadPoolJob job;
-
-	memset(&job, 0, sizeof(job));
 
 	requestType = ssdp_request_type1(St);
 	if (requestType == SSDP_SERROR)
@@ -459,11 +435,12 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
 	}
 	SsdpSearchArg *newArg = new SsdpSearchArg(St, Cookie, requestType);
 	id = (int *)malloc(sizeof(int));
-	TPJobInit(&job, (start_routine) searchExpired, id);
-	TPJobSetPriority(&job, MED_PRIORITY);
-	TPJobSetFreeFunction(&job, (free_routine) free);
+
 	/* Schedule a timeout event to remove search Arg */
-	gTimerThread->schedule(timeTillRead, REL_SEC, &job, SHORT_TERM, id);
+	gTimerThread->schedule(
+		TimerThread::SHORT_TERM, TimerThread::REL_SEC, timeTillRead,  id,
+		thread_searchexpired, id, (ThreadPool::free_routine)free);
+
 	newArg->timeoutEventId = *id;
 	ctrlpt_info->SsdpSearchList.push_back(newArg);
 	HandleUnlock();

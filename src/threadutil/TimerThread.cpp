@@ -1,6 +1,7 @@
 /*******************************************************************************
  *
  * Copyright (c) 2000-2003 Intel Corporation 
+ * Copyright (c) 2020 J.F. Dockes <jf@dockes.org>
  * All rights reserved. 
  * Copyright (c) 2012 France Telecom All rights reserved. 
  *
@@ -30,43 +31,53 @@
  *
  ******************************************************************************/
 
-/*!
- * \file
- */
-
 #include "TimerThread.h"
 
 #include <assert.h>
 
 /*!
- * \brief Deallocates a dynamically allocated TimerEvent.
+ * Data holder for a timer event.
+ * The destructor does not call the free_func: this is done by the ThreadPool,
+ * or explicitely in here only in case of error (should do it also during 
+ * shutdown actually, but this is never used anyway).
  */
-void TimerThread::freeTimerEvent(
-    /*! [in] Must be allocated with CreateTimerEvent*/
-    TimerEvent *event)
-{
-    freeEvents.flfree(event);
-}
+struct TimerEvent {
+	TimerEvent(
+		start_routine f, void *a, ThreadPool::free_routine fr, 
+		ThreadPool::ThreadPriority prio,
+		TimerThread::Duration p, time_t et, int _id)
+		: func(f), arg(a), free_func(fr), priority(prio), persistent(p),
+		  eventTime(et), id(_id) {}
+	
+	start_routine func;
+	void *arg;
+	ThreadPool::free_routine free_func;
+	ThreadPool::ThreadPriority priority;
+	/*! [in] Long term or short term job. */
+	TimerThread::Duration persistent;
+	/*! [in] Absolute time for event in seconds since Jan 1, 1970. */
+	time_t eventTime;
+	int id;
+};
+
 
 /*!
  * \brief Implements timer thread.
  *
  * Waits for next event to occur and schedules associated job into threadpool.
+ *  arg is cast to (TimerThread *).
  */
-void *TimerThreadWorker(
-    /*! [in] arg is cast to (TimerThread *). */
-    void *arg)
+void *timerThreadWorker(void *arg)
 {
-    TimerThread *timer = ( TimerThread * ) arg;
+    TimerThread *timer = (TimerThread *)arg;
     TimerEvent *nextEvent = NULL;
     time_t currentTime = 0;
     time_t nextEventTime = 0;
     struct timespec timeToWait;
-    int tempId;
 
     assert( timer != NULL );
 
-    ithread_mutex_lock( &timer->mutex );
+    ithread_mutex_lock(&timer->mutex);
     while (1) {
         /* mutex should always be locked at top of loop */
         /* Check for shutdown. */
@@ -85,33 +96,30 @@ void *TimerThreadWorker(
         currentTime = time(NULL);
         /* If time has elapsed, schedule job. */
         if (nextEvent && currentTime >= nextEventTime) {
-            if( nextEvent->persistent ) {
-                if (ThreadPoolAddPersistent(timer->tp, &nextEvent->job,
-                                            &tempId ) != 0) {
-                    if (nextEvent->job.arg != NULL &&
-						nextEvent->job.free_func != NULL) {
-                        nextEvent->job.free_func(nextEvent->job.arg);
-                    }
-                }
+			int ret = 0;
+            if (nextEvent->persistent) {
+                ret = timer->tp->addPersistent(
+					nextEvent->func, nextEvent->arg, nextEvent->free_func,
+					nextEvent->priority);
             } else {
-                if (ThreadPoolAdd( timer->tp, &nextEvent->job, &tempId ) != 0) {
-                    if (nextEvent->job.arg != NULL &&
-						nextEvent->job.free_func != NULL) {
-                        nextEvent->job.free_func(nextEvent->job.arg);
-                    }
-                }
+                ret = timer->tp->addJob(
+					nextEvent->func, nextEvent->arg, nextEvent->free_func,
+					nextEvent->priority);
             }
+			if (ret != 0 && nullptr != nextEvent->free_func) {
+				nextEvent->free_func(nextEvent->arg);
+			}
             timer->eventQ.pop_front();
-            timer->freeTimerEvent(nextEvent);
+            delete nextEvent;
             continue;
         }
         if (nextEvent) {
             timeToWait.tv_nsec = 0;
             timeToWait.tv_sec = (long)nextEvent->eventTime;
-            ithread_cond_timedwait( &timer->condition, &timer->mutex,
-                                    &timeToWait );
+            ithread_cond_timedwait(&timer->condition, &timer->mutex,
+                                    &timeToWait);
         } else {
-            ithread_cond_wait( &timer->condition, &timer->mutex );
+            ithread_cond_wait(&timer->condition, &timer->mutex);
         }
     }
 }
@@ -127,55 +135,23 @@ static int CalculateEventTime(
     /*! [in] Timeout. */
     time_t *timeout,
     /*! [in] Timeout type. */
-    TimeoutType type)
+    TimerThread::TimeoutType type)
 {
     time_t now;
 
-    assert( timeout != NULL );
-
     switch (type) {
-    case ABS_SEC:
+    case TimerThread::ABS_SEC:
         return 0;
     default: /* REL_SEC) */
         time(&now);
-        ( *timeout ) += now;
+        *timeout += now;
         return 0;
     }
 
     return -1;
 }
 
-/*!
- * \brief Creates a Timer Event. (Dynamically allocated).
- *
- * \return (TimerEvent *) on success, NULL on failure.
- */
-TimerEvent *TimerThread::CreateTimerEvent(
-    /*! [in] . */
-    ThreadPoolJob *job,
-    /*! [in] . */
-    Duration persistent,
-    /*! [in] The absoule time of the event in seconds from Jan, 1970. */
-    time_t eventTime,
-    /*! [in] Id of job. */
-    int id)
-{
-    assert( job != NULL );
-
-    TimerEvent *temp = freeEvents.flalloc();
-    if (temp == NULL)
-        return temp;
-    temp->job = ( *job );
-    temp->persistent = persistent;
-    temp->eventTime = eventTime;
-    temp->id = id;
-
-    return temp;
-}
-
-
 TimerThread::TimerThread(ThreadPool *tp)
-: freeEvents(100)
 {
     assert( tp != NULL );
     if (tp == NULL ) {
@@ -191,10 +167,8 @@ TimerThread::TimerThread(ThreadPool *tp)
 
     this->tp = tp;
 
-    ThreadPoolJob timerThreadWorker;
-	TPJobInit(&timerThreadWorker, TimerThreadWorker, this);
-	TPJobSetPriority(&timerThreadWorker, HIGH_PRIORITY);
-    rc = ThreadPoolAddPersistent(tp, &timerThreadWorker, NULL);
+    rc = tp->addPersistent(timerThreadWorker, this, nullptr,
+						   ThreadPool::HIGH_PRIORITY);
 
     ithread_mutex_unlock(&this->mutex );
 
@@ -217,32 +191,21 @@ TimerThread::~TimerThread()
 }
 
 int TimerThread::schedule(
-    time_t timeout,
-    TimeoutType type,
-    ThreadPoolJob *job,
-    Duration duration,
-    int *id)
+		Duration duration, TimeoutType type, time_t time, int *id,
+		start_routine func, void *arg, ThreadPool::free_routine free_func, 
+		ThreadPool::ThreadPriority priority
+	)
 {
     int rc = EOUTOFMEM;
     int found = 0;
-    int tempId = 0;
     TimerEvent *newEvent = NULL;
+	time_t timeout{time};
+	
+    CalculateEventTime(&timeout, type);
+    ithread_mutex_lock(&this->mutex);
 
-    assert( job != NULL );
-    if (job == NULL) {
-        return EINVAL;
-    }
-
-    CalculateEventTime( &timeout, type );
-    ithread_mutex_lock( &this->mutex );
-
-    if( id == NULL )
-        id = &tempId;
-
-    ( *id ) = INVALID_EVENT_ID;
-
-    newEvent = CreateTimerEvent(job, duration, timeout, this->lastEventId);
-
+    newEvent = new TimerEvent(func, arg, free_func, priority,
+							  duration, timeout, this->lastEventId);
     if (newEvent == NULL ) {
         ithread_mutex_unlock( &this->mutex );
         return rc;
@@ -264,24 +227,22 @@ int TimerThread::schedule(
     }
     /* signal change in Q. */
 	ithread_cond_signal( &this->condition );
-    *id = this->lastEventId++;
+    this->lastEventId++;
     ithread_mutex_unlock(&this->mutex);
 
     return rc;
 }
 
-int TimerThread::remove(int id, ThreadPoolJob *out)
+int TimerThread::remove(int id)
 {
-    int rc = INVALID_EVENT_ID;
+    int rc = -1;
     ithread_mutex_lock( &this->mutex );
 
 	for (auto it = eventQ.begin(); it != eventQ.end(); it++) {
 		TimerEvent *temp = *it;
         if (temp->id == id) {
 			eventQ.erase(it);
-            if (out != NULL)
-                *out = temp->job;
-            freeTimerEvent(temp);
+            delete temp;
             rc = 0;
             break;
         }
@@ -299,14 +260,9 @@ int TimerThread::shutdown()
 
     /* Delete nodes in Q. Call registered free function on argument. */
 	for (auto it = eventQ.begin(); it != eventQ.end(); it++) {
-        TimerEvent *temp = *it;
-        if (temp->job.free_func) {
-            temp->job.free_func(temp->job.arg);
-        }
-        freeTimerEvent(temp);
+        delete *it;
     }
 	eventQ.clear();
-    freeEvents.clear();
 
     ithread_cond_broadcast(&this->condition);
 

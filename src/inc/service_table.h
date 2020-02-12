@@ -51,6 +51,7 @@
 
 #ifdef INCLUDE_DEVICE_APIS
 
+class Notification;
 struct subscription {
 	Upnp_SID sid; /* char[44] in upnp.h */
 	int ToSendEventKey{0};
@@ -61,7 +62,7 @@ struct subscription {
 	   at a time goes into the thread pool. The first element in the
 	   list is a copy of the active job. Others are activated on job
 	   completion. */
-	std::list<ThreadPoolJob> outgoing;
+	std::list<Notification*> outgoing;
 
 	subscription() {};
 	~subscription();

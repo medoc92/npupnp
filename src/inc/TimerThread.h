@@ -1,6 +1,7 @@
 /*******************************************************************************
  *
  * Copyright (c) 2000-2003 Intel Corporation 
+ * Copyright (c) 2020 J.F. Dockes <jf@dockes.org>
  * All rights reserved. 
  *
  * Redistribution and use in source and binary forms, with or without 
@@ -34,49 +35,36 @@
 
 #include <list>
 
-#include "FreeList.h"
-#include "ithread.h"
 #include "ThreadPool.h"
 
-#define INVALID_EVENT_ID (-10 & 1<<29)
-
-/*! Timeout Types. */
-typedef enum timeoutType {
-	/*! seconds from Jan 1, 1970. */
-	ABS_SEC,
-	/*! seconds from current time. */
-	REL_SEC
-} TimeoutType;
-
-/*!
- * Struct to contain information for a timer event.
- *
- * Internal to the TimerThread, needs to be defined here because of
-   the FreeList<TimerEvent> below.
- */
-struct TimerEvent {
-	ThreadPoolJob job;
-	/*! [in] Absolute time for event in seconds since Jan 1, 1970. */
-	time_t eventTime;
-	/*! [in] Long term or short term job. */
-	Duration persistent;
-	int id;
-};
+class TimerEvent;
 
 /*!
  * A timer thread that allows the scheduling of jobs to run at a
-   specified time in the future.
+ * specified time in the future.
  *
  * Because the timer thread uses the thread pool there is no 
- * gurantee of timing, only approximate timing.
+ * guarantee of timing, only approximate timing.
  *
- * Uses ThreadPool, Mutex, Condition, Thread.
  */
 class TimerThread {
 public:
 	TimerThread(ThreadPool *tp);
 	~TimerThread();
 
+	/*! Timeout Types. */
+	enum TimeoutType {
+		/*! seconds from Jan 1, 1970. */
+		ABS_SEC,
+		/*! seconds from current time. */
+		REL_SEC
+	};
+
+	enum Duration {
+		SHORT_TERM,
+		PERSISTENT
+	};
+	
 	/*!
 	 * \brief Schedules an event to run at a specified time.
 	 *
@@ -84,31 +72,30 @@ public:
 	 * 	to schedule job.
 	 */
 	int schedule(
-		/*! [in] time of event. Either in absolute seconds, or relative
-		 * seconds in the future. */
-		time_t time, 
+		/*! [in] . */
+		Duration duration,
 		/*! [in] either ABS_SEC, or REL_SEC. If REL_SEC, then the event
 		 * will be scheduled at the current time + REL_SEC. */
 		TimeoutType type,
-		/*! [in] Valid Thread pool job with following fields. */
-		ThreadPoolJob *job,
-		/*! [in] . */
-		Duration duration,
-		/*! [in] Id of timer event. (out, can be null). */
-		int *id);
+		/*! [in] time of event. Either in absolute seconds, or relative
+		 * seconds in the future. */
+		time_t time, 
+		/* [out] Id of timer event. (can be null). */
+		int *id,
+		start_routine func,
+		void *arg = nullptr, 
+		ThreadPool::free_routine free_func = nullptr,
+		ThreadPool::ThreadPriority priority = ThreadPool::MED_PRIORITY);
 
 	/*!
 	 * \brief Removes an event from the timer Q.
 	 *
-	 * Events can only be removed before they have been placed in the thread pool
+	 * Events can only be removed before they have been placed in the
+	 * thread pool. Calls the free_func.
 	 *
-	 * \return 0 on success, INVALID_EVENT_ID on failure.
+	 * \return 0 on success, -1 on failure.
 	 */
-	int remove(
-		/*! [in] Id of event to remove. */
-		int id,
-		/*! [in] Space for thread pool job. */
-		ThreadPoolJob *out);
+	int remove(int id);
 
 	/*!
 	 * \brief Shutdown the timer thread.
@@ -121,16 +108,13 @@ public:
 	 */
 	int shutdown();
 
-	friend void *TimerThreadWorker(void*);
+	friend void *timerThreadWorker(void*);
 private:
-	void freeTimerEvent(TimerEvent *event);
-	TimerEvent *CreateTimerEvent(ThreadPoolJob *, Duration, time_t, int);
 	ithread_mutex_t mutex;
 	ithread_cond_t condition;
 	int lastEventId{0};
 	std::list<TimerEvent*> eventQ;
 	int inshutdown{0};
-	FreeList<TimerEvent> freeEvents;
 	ThreadPool *tp{nullptr};
 };
 

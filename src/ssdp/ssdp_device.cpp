@@ -56,7 +56,7 @@
 #define MSGTYPE_ADVERTISEMENT   1
 #define MSGTYPE_REPLY       2
 
-void *advertiseAndReplyThread(void *data)
+static void* thread_advertiseandreply(void *data)
 {
     SsdpSearchReply *arg = (SsdpSearchReply *) data;
 
@@ -65,9 +65,7 @@ void *advertiseAndReplyThread(void *data)
                       (struct sockaddr *)&arg->dest_addr,
                       arg->event.DeviceType,
                       arg->event.UDN, arg->event.ServiceType, arg->MaxAge);
-    free(arg);
-
-    return NULL;
+	return nullptr;
 }
 
 #define MAXVAL(a, b) ( (a) > (b) ? (a) : (b) )
@@ -82,11 +80,8 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
     int mx;
     SsdpEvent event;
     SsdpSearchReply *threadArg = NULL;
-    ThreadPoolJob job;
     int replyTime;
     int maxAge;
-
-    memset(&job, 0, sizeof(job));
 
     /* check man hdr. */
     if (!parser.man || strcmp(parser.man, "\"ssdp:discover\""))
@@ -133,9 +128,6 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
         threadArg->event = event;
         threadArg->MaxAge = maxAge;
 
-        TPJobInit(&job, advertiseAndReplyThread, threadArg);
-        TPJobSetFreeFunction(&job, (free_routine) free);
-
         /* Subtract a percentage from the mx to allow for network and processing
          * delays (i.e. if search is for 30 seconds, respond
          * within 0 - 27 seconds). */
@@ -144,7 +136,9 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
         if (mx < 1)
             mx = 1;
         replyTime = rand() % mx;
-        gTimerThread->schedule(replyTime, REL_SEC, &job, SHORT_TERM, NULL);
+        gTimerThread->schedule(
+			TimerThread::SHORT_TERM, TimerThread::REL_SEC, replyTime, nullptr,
+			thread_advertiseandreply, threadArg, (ThreadPool::free_routine)free);
         start = handle;
     }
 }

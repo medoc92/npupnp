@@ -354,7 +354,7 @@ static int receive_from_stopSock(SOCKET ssock, fd_set *set)
  * new request. Checks for socket state and invokes appropriate read and
  * shutdown actions for the Miniserver and SSDP sockets.
  */
-static void RunMiniServer(void *)
+static void *thread_miniserver(void *)
 {
 	char errorBuffer[ERROR_BUFFER_LEN];
 	fd_set expSet;
@@ -422,7 +422,7 @@ static void RunMiniServer(void *)
 	delete miniSocket;
 	miniSocket = nullptr;
 	gMServState = MSERV_IDLE;
-	return;
+	return nullptr;
 }
 
 /*!
@@ -757,13 +757,8 @@ int StartMiniServer(
 		goto out;
 	}
 
-	ThreadPoolJob job;
-	memset(&job, 0, sizeof(job));
-	TPJobInit(&job, (start_routine)RunMiniServer, (void *)miniSocket);
-	TPJobSetPriority(&job, MED_PRIORITY);
-	TPJobSetFreeFunction(&job, (free_routine)free);
-	ret_code = ThreadPoolAddPersistent(&gMiniServerThreadPool, &job, NULL);
-	if (ret_code < 0) {
+	ret_code = gMiniServerThreadPool.addPersistent(thread_miniserver,miniSocket);
+	if (ret_code != 0) {
 		ret_code = UPNP_E_OUTOF_MEMORY;
 		goto out;
 	}

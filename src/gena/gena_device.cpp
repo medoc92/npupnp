@@ -230,12 +230,12 @@ static void free_notify_struct(Notification *input)
  *
  * \note calls the genaNotify to do the actual work.
  */
-static void genaNotifyThread(void *input)
+static void *thread_genanotify(void *input)
 {
+	Notification *in = (Notification *)input;
 	subscription *sub;
 	service_info *service;
 	subscription sub_copy;
-	Notification *in = (Notification *)input;
 	int return_code;
 	struct Handle_Info *handle_info;
 
@@ -250,7 +250,7 @@ static void genaNotifyThread(void *input)
 	if (GetHandleInfo(in->device_handle, &handle_info) != HND_DEVICE) {
 		free_notify_struct(in);
 		HandleUnlock();
-		return;
+		return nullptr;
 	}
 
 	if (!(service = FindServiceId(&handle_info->ServiceTable,
@@ -260,7 +260,7 @@ static void genaNotifyThread(void *input)
 	    copy_subscription(sub, &sub_copy) != UPNP_E_SUCCESS) {
 		free_notify_struct(in);
 		HandleUnlock();
-		return;
+		return nullptr;
 	}
 
 	HandleUnlock();
@@ -271,7 +271,7 @@ static void genaNotifyThread(void *input)
 	if (GetHandleInfo(in->device_handle, &handle_info) != HND_DEVICE) {
 		free_notify_struct(in);
 		HandleUnlock();
-		return;
+		return nullptr;
 	}
 	/* validate context */
 	if (!(service = FindServiceId(&handle_info->ServiceTable,
@@ -280,31 +280,30 @@ static void genaNotifyThread(void *input)
 	    !(sub = GetSubscriptionSID(in->sid, service))) {
 		free_notify_struct(in);
 		HandleUnlock();
-		return;
+		return nullptr;
 	}
 	sub->ToSendEventKey++;
 	if (sub->ToSendEventKey < 0)
 		/* wrap to 1 for overflow */
 		sub->ToSendEventKey = 1;
 
-	/* Remove head of event queue. Possibly activate next */
+	/* Remove head of event queue. Do not delete it, the completion routine
+	   will do it */ 
 	if (!sub->outgoing.empty()) {
 		sub->outgoing.pop_front();
 	}
+	/* Possibly activate next */
 	if (!sub->outgoing.empty()) {
-		auto jobit = sub->outgoing.begin();
-		/* The new head of queue should not have already been
-		   added to the pool, else something is very wrong */
-		assert(jobit->jobId != STALE_JOBID);
-		ThreadPoolAdd(&gSendThreadPool, &(*jobit), NULL);
-		jobit->jobId = STALE_JOBID;
+		auto notif = sub->outgoing.begin();
+		gSendThreadPool.addJob(thread_genanotify, *notif,
+							   (ThreadPool::free_routine)free_notify_struct);
 	}
 
 	if (return_code == GENA_E_NOTIFY_UNACCEPTED_REMOVE_SUB)
 		RemoveSubscriptionSID(in->sid, service);
-	free_notify_struct(in);
 
 	HandleUnlock();
+	return nullptr;
 }
 
 
@@ -323,7 +322,6 @@ static int genaInitNotifyCommon(
 	subscription *sub = NULL;
 	service_info *service = NULL;
 	struct Handle_Info *handle_info;
-	ThreadPoolJob job;
 
 	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
 		"GENA BEGIN INITIAL NOTIFY COMMON\n");
@@ -357,7 +355,6 @@ static int genaInitNotifyCommon(
 	sub->active = 1;
 
 	/* schedule thread for initial notification */
-
 	thread_struct = new Notification;
 	if (thread_struct == NULL) {
 		line = __LINE__;
@@ -371,18 +368,15 @@ static int genaInitNotifyCommon(
 	thread_struct->ctime = time(0);
 	thread_struct->device_handle = device_handle;
 
-	TPJobInit(&job, (start_routine)genaNotifyThread, thread_struct);
-	TPJobSetFreeFunction(&job, (free_routine)free_notify_struct);
-	TPJobSetPriority(&job, MED_PRIORITY);
-
-	ret = ThreadPoolAdd(&gSendThreadPool, &job, NULL);
+	ret = gSendThreadPool.addJob(thread_genanotify, thread_struct,
+								 (ThreadPool::free_routine)free_notify_struct);
 	if (ret != 0) {
 		line = __LINE__;
 		ret = UPNP_E_OUTOF_MEMORY;
 	} else {
-		sub->outgoing.push_back(job);
-		sub->outgoing.back().jobId = STALE_JOBID;
 		line = __LINE__;
+		sub->outgoing.push_back(thread_struct);
+		ret = GENA_SUCCESS;
 		ret = GENA_SUCCESS;
 	}
 
@@ -443,16 +437,16 @@ ExitFunction:
 
 void freeSubscriptionQueuedEvents(subscription *sub)
 {
-	/* The first event is discarded without dealing with the
+	/* The first event is discarded without deleting with the
 	   Notification: there is a mirror ThreadPool entry for
 	   this one, and the completion event will take care of it. Other
 	   entries must be fully cleaned-up here */
-	auto jobit = sub->outgoing.begin();
-	if (jobit != sub->outgoing.end())
-		jobit++;
-	while (jobit != sub->outgoing.end()) {
-		free_notify_struct((Notification*)(jobit->arg));
-		jobit = sub->outgoing.erase(jobit);
+	auto it = sub->outgoing.begin();
+	if (it != sub->outgoing.end())
+		it++;
+	while (it != sub->outgoing.end()) {
+		free_notify_struct(*it);
+		it = sub->outgoing.erase(it);
 	}
 }
 
@@ -464,7 +458,7 @@ void freeSubscriptionQueuedEvents(subscription *sub)
  * non-active: any but the head of queue, which is already copied to
  * the thread pool
  */
-static void maybeDiscardEvents(std::list<ThreadPoolJob>& outgoing)
+static void maybeDiscardEvents(std::list<Notification*>& outgoing)
 {
 	time_t now = time(0L);
 
@@ -473,7 +467,7 @@ static void maybeDiscardEvents(std::list<ThreadPoolJob>& outgoing)
 	if (jobit != outgoing.end())
 		jobit++;
 	while (jobit != outgoing.end()) {
-		Notification *ntsp = (Notification *)(jobit->arg);
+		Notification *ntsp = *jobit;
 		if (outgoing.size() > unsigned(g_UpnpSdkEQMaxLen) ||
 			now - ntsp->ctime > g_UpnpSdkEQMaxAge) {
 			free_notify_struct(ntsp);
@@ -519,8 +513,6 @@ static int genaNotifyAllCommon(
 	
 	finger = GetFirstSubscription(service);
 	while (finger != service->subscriptionList.end()) {
-		ThreadPoolJob job;
-
 		thread_struct = new Notification;
 		if (thread_struct == NULL) {
 			line = __LINE__;
@@ -532,19 +524,18 @@ static int genaNotifyAllCommon(
 		thread_struct->propertySet = propertySet;
 		thread_struct->ctime = time(0);
 		thread_struct->device_handle = device_handle;
-		upnp_strlcpy(thread_struct->sid, finger->sid,sizeof(thread_struct->sid));
+		upnp_strlcpy(
+			thread_struct->sid, finger->sid, sizeof(thread_struct->sid));
 
 		maybeDiscardEvents(finger->outgoing);
-
-		TPJobInit(&job, (start_routine)genaNotifyThread, thread_struct);
-		TPJobSetFreeFunction(&job, (free_routine)free_notify_struct);
-		TPJobSetPriority(&job, MED_PRIORITY);
-		finger->outgoing.push_back(job);
+		finger->outgoing.push_back(thread_struct);
 
 		/* If there is only one element on the list (which we just
 		   added), need to kickstart the threadpool */
 		if (finger->outgoing.size() == 1) {
-			ret = ThreadPoolAdd(&gSendThreadPool, &job, NULL);
+			ret = gSendThreadPool.addJob(
+				thread_genanotify, thread_struct,
+				(ThreadPool::free_routine)free_notify_struct);
 			if (ret != 0) {
 				line = __LINE__;
 				if (ret == EOUTOFMEM) {
@@ -553,7 +544,6 @@ static int genaNotifyAllCommon(
 				}
 				break;
 			}
-			finger->outgoing.back().jobId = STALE_JOBID;
 		}
 		finger = GetNextSubscription(service, finger);
 	}
