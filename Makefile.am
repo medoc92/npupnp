@@ -44,7 +44,6 @@ libnpupnp_la_SOURCES = \
 	src/inc/gena_device.h \
 	src/inc/gena_sids.h \
 	src/inc/httputils.h \
-	src/inc/ithread.h \
 	src/inc/md5.h \
 	src/inc/miniserver.h \
 	src/inc/service_table.h \

@@ -45,6 +45,8 @@
 
 #include <stdio.h>
 #include <fcntl.h>
+#include <chrono>
+#include <thread>
 
 #ifdef INCLUDE_CLIENT_APIS
 SOCKET gSsdpReqSocket4 = INVALID_SOCKET;
@@ -111,7 +113,7 @@ int AdvertiseAndReply(int AdFlag, UpnpDevice_Handle Hnd,
 	/* send advertisements/replies */
 	while (NumCopy == 0 || (AdFlag && NumCopy < NUM_SSDP_COPY)) {
 		if (NumCopy != 0)
-			imillisleep(SSDP_PAUSE);
+			std::this_thread::sleep_for(std::chrono::milliseconds(SSDP_PAUSE));
 		NumCopy++;
 
 		for (auto& devp : alldevices) {

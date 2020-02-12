@@ -37,6 +37,7 @@
 #include <list>
 #include <string>
 #include <vector>
+#include <mutex>
 
 #include "service_table.h"
 #include "upnp.h"
@@ -120,7 +121,7 @@ struct Handle_Info
 #endif
 };
 
-extern ithread_rwlock_t GlobalHndRWLock;
+extern std::mutex GlobalHndRWLock;
 
 /*!
  * \brief Get handle information.
@@ -140,22 +141,22 @@ Upnp_Handle_Type GetHandleInfo(
 #ifdef DEBUG_LOCKS
 #define HandleWriteLock()  \
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Trying a write lock\n"); \
-	ithread_rwlock_wrlock(&GlobalHndRWLock); \
+	GlobalHndRWLock.lock();												\
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Write lock acquired\n");
 
 #define HandleReadLock()  \
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Trying a read lock\n"); \
-	ithread_rwlock_rdlock(&GlobalHndRWLock); \
+	GlobalHndRWLock.lock();												\
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Read lock acquired\n");
 
 #define HandleUnlock() \
 	UpnpPrintf(UPNP_INFO, API,__FILE__, __LINE__, "Trying Unlock\n"); \
-	ithread_rwlock_unlock(&GlobalHndRWLock); \
+	GlobalHndRWLock.unlock();											\
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Unlocked rwlock\n");
 #else /* !DEBUG_LOCKS-> */
-#define HandleWriteLock()  ithread_rwlock_wrlock(&GlobalHndRWLock)
-#define HandleReadLock()  ithread_rwlock_rdlock(&GlobalHndRWLock)
-#define HandleUnlock()  ithread_rwlock_unlock(&GlobalHndRWLock)
+#define HandleWriteLock()  GlobalHndRWLock.lock()
+#define HandleReadLock()   GlobalHndRWLock.lock()
+#define HandleUnlock()     GlobalHndRWLock.unlock()
 #endif
 
 /*!

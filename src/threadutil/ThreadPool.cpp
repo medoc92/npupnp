@@ -315,37 +315,18 @@ void ThreadPool::Internal::bumpPriority()
 	}
 }
 
-/*!
+/*
  * \brief Sets seed for random number generator. Each thread sets the seed
- * random number generator.
- *
- * \internal
- */
-#include <iostream>
+ * random number generator. */
 static void SetSeed(void)
 {
 	const auto p1 = std::chrono::system_clock::now();
 	auto cnt = p1.time_since_epoch().count();
 	// Keep the nanoseconds
 	cnt = cnt % 1000000000;
-
-#if defined(_MSC_VER)
-	srand((unsigned int)cnt + (unsigned int)ithread_get_current_thread_id().p);
-#elif defined(BSD) || defined(__OSX__) || defined(__APPLE__) || defined(__FreeBSD_kernel__)
-	srand((unsigned int)cnt + (unsigned int)ithread_get_current_thread_id());
-#elif defined(__linux__) || defined(__sun) || defined(__CYGWIN__) || defined(__GLIBC__) || defined(__MINGW32__) || defined(__MINGW64__)
-	srand((unsigned int)cnt + (unsigned int)ithread_get_current_thread_id());
-#else
-	{
-		volatile union {
-			volatile pthread_t tid;
-			volatile unsigned i;
-		} idu;
-
-		idu.tid = ithread_get_current_thread_id();
-		srand((unsigned int)cnt + idu.i);
-	}
-#endif
+	std::hash<std::thread::id> id_hash;
+	size_t h = id_hash(std::this_thread::get_id());
+	srand((unsigned int)(cnt+h));
 }
 
 /*!
@@ -365,7 +346,6 @@ static void *WorkerThread(void *arg)
 	std::cv_status retCode;
 	int persistent = -1;
 
-	ithread_initialize_thread();
 	std::unique_lock<std::mutex> lck(tp->mutex, std::defer_lock);
 	auto idlemillis = std::chrono::milliseconds(tp->attr.maxIdleTime);
 
@@ -471,7 +451,6 @@ static void *WorkerThread(void *arg)
 exit_function:
 	tp->totalThreads--;
 	tp->start_and_shutdown.notify_all();
-	ithread_cleanup_thread();
 	return NULL;
 }
 
@@ -491,10 +470,6 @@ exit_function:
  */
 int ThreadPool::Internal::createWorker(std::unique_lock<std::mutex>& lck)
 {
-	ithread_t temp;
-	int rc = 0;
-	ithread_attr_t attr;
-
 	/* if a new worker is the process of starting, wait until it fully starts */
 	while (this->pendingWorkerThreadStart) {
 		this->start_and_shutdown.wait(lck);
@@ -504,23 +479,22 @@ int ThreadPool::Internal::createWorker(std::unique_lock<std::mutex>& lck)
 	    this->totalThreads + 1 > this->attr.maxThreads) {
 		return EMAXTHREADS;
 	}
-	ithread_attr_init(&attr);
-	ithread_attr_setstacksize(&attr, this->attr.stackSize);
-	ithread_attr_setdetachstate(&attr, ITHREAD_CREATE_DETACHED);
-	rc = ithread_create(&temp, &attr, WorkerThread, this);
-	ithread_attr_destroy(&attr);
-	if (rc == 0) {
-		this->pendingWorkerThreadStart = 1;
-		/* wait until the new worker thread starts */
-		while (this->pendingWorkerThreadStart) {
-			this->start_and_shutdown.wait(lck);
-		}
+
+	std::thread nthread(WorkerThread, this);
+	nthread.detach();
+
+	/* wait until the new worker thread starts. We can set the flag
+	   cause we have the lock */
+	this->pendingWorkerThreadStart = 1;
+	while (this->pendingWorkerThreadStart) {
+		this->start_and_shutdown.wait(lck);
 	}
+
 	if (this->stats.maxThreads < this->totalThreads) {
 		this->stats.maxThreads = this->totalThreads;
 	}
 
-	return rc;
+	return 0;
 }
 
 /*!

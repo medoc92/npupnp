@@ -35,9 +35,12 @@
 
 #include "config.h"
 
-#include "ithread.h"
 #include "upnp.h"
 #include "upnpdebug.h"
+
+#include <mutex>
+#include <thread>
+#include <sstream>
 
 #include <errno.h>
 #include <stdarg.h>
@@ -48,7 +51,7 @@
 #ifdef DEBUG
 
 /*! Mutex to synchronize all the log file operations in the debug mode */
-static ithread_mutex_t GlobalDebugMutex;
+static std::mutex GlobalDebugMutex;
 
 /*! Global log level */
 static Upnp_LogLevel g_log_level = UPNP_DEFAULT_LOG_LEVEL;
@@ -70,7 +73,6 @@ static char *fileName;
 int UpnpInitLog(void)
 {
 	if (!initwascalled) {
-		ithread_mutex_init(&GlobalDebugMutex, NULL);
 		initwascalled = 1;
 	}
 	/* If the user did not ask for logging do nothing */
@@ -109,15 +111,13 @@ void UpnpCloseLog(void)
 	/* Calling lock() assumes that someone called UpnpInitLog(), but
 	 * this is reasonable as it is called from UpnpInit(). We risk a
 	 * crash if we do this without a lock.*/
-	ithread_mutex_lock(&GlobalDebugMutex);
+	std::unique_lock<std::mutex> lck(GlobalDebugMutex);
 
 	if (fp != NULL && is_stderr == 0) {
 		fclose(fp);
 	}
 	fp = NULL;
 	is_stderr = 0;
-	ithread_mutex_unlock(&GlobalDebugMutex);
-	ithread_mutex_destroy(&GlobalDebugMutex);
 }
 
 void UpnpSetLogFileNames(const char *newFileName, const char *ignored)
@@ -187,9 +187,10 @@ static void UpnpDisplayFileAndLine(
 
 	timeinfo = localtime(&now);
 	strftime(timebuf, 26, "%Y-%m-%d %H:%M:%S", timeinfo);
-
-	fprintf(fp, "%s UPNP-%s-%s: Thread:0x%lX [%s:%d]: ", timebuf, smod, slev,
-			ithread_ulong_self(), DbgFileName, DbgLineNo);
+	std::ostringstream ss;
+	ss << "0x" << std::hex << std::this_thread::get_id();
+	fprintf(fp, "%s UPNP-%s-%s: Thread:%s [%s:%d]: ", timebuf, smod, slev,
+			ss.str().c_str(), DbgFileName, DbgLineNo);
 	fflush(fp);
 }
 
@@ -203,9 +204,9 @@ void UpnpPrintf(
 
 	if (!DebugAtThisLevel(DLevel, Module))
 		return;
-	ithread_mutex_lock(&GlobalDebugMutex);
+
+	std::unique_lock<std::mutex> lck(GlobalDebugMutex);
 	if (fp == NULL) {
-		ithread_mutex_unlock(&GlobalDebugMutex);
 		return;
 	}
 
@@ -216,7 +217,6 @@ void UpnpPrintf(
 		fflush(fp);
 	}
 	va_end(ArgList);
-	ithread_mutex_unlock(&GlobalDebugMutex);
 }
 
 /* No locking here, the app should be careful about not calling

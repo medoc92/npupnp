@@ -49,7 +49,6 @@
 #include "miniserver.h"
 
 #include "httputils.h"
-#include "ithread.h"
 #include "ssdplib.h"
 #include "statcodes.h"
 #include "ThreadPool.h"
@@ -64,6 +63,8 @@
 #include <string.h>
 #include <sys/types.h>
 #include <iostream>
+#include <chrono>
+#include <thread>
 
 #include <microhttpd.h>
 
@@ -767,8 +768,7 @@ int StartMiniServer(
 	for (int count = 0; count < 10000; count++) {
 		if (gMServState == (MiniServerState)MSERV_RUNNING)
 			break;
-		/* 0.05s */
-		usleep(50u * 1000u);
+		std::this_thread::sleep_for(std::chrono::milliseconds(50));
 	}
 	if (gMServState != (MiniServerState)MSERV_RUNNING) {
 		/* Took it too long to start that thread. */
@@ -839,11 +839,11 @@ int StopMiniServer()
 		ssdpAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
 		ssdpAddr.sin_port = htons(miniSocket->stopPort);
 		sendto(sock, buf, bufLen, 0, (struct sockaddr *)&ssdpAddr, socklen);
-		usleep(1000u);
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		if (gMServState == (MiniServerState)MSERV_IDLE) {
 			break;
 		}
-		isleep(1u);
+		std::this_thread::sleep_for(std::chrono::seconds(1));
 	}
 	UpnpCloseSocket(sock);
 

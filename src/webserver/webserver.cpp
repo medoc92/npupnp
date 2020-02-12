@@ -45,11 +45,12 @@
 #include <map>
 #include <iostream>
 #include <algorithm>
+#include <mutex>
+#include <condition_variable>
 
 #include <inttypes.h>
 
 #include "httputils.h"
-#include "ithread.h"
 #include "ssdplib.h"
 #include "statcodes.h"
 #include "upnp.h"
@@ -171,7 +172,7 @@ struct LocalDoc {
 // The map is tested after the virtualdir, so the latter has priority.
 static std::map<std::string, LocalDoc> localDocs;
 
-static ithread_mutex_t gWebMutex;
+static std::mutex gWebMutex;
 
 class VirtualDirListEntry {
 public:
@@ -211,43 +212,32 @@ int web_server_set_localdoc(
 	LocalDoc doc;
 	doc.data = data;
 	doc.last_modified = last_modified;
-	ithread_mutex_lock(&gWebMutex);
+	std::unique_lock<std::mutex> lck(gWebMutex);
 	localDocs[path] = doc;
-	ithread_mutex_unlock(&gWebMutex);
 	return UPNP_E_SUCCESS;
 }
 
 int web_server_unset_localdoc(const std::string& path)
 {
-	ithread_mutex_lock(&gWebMutex);
+	std::unique_lock<std::mutex> lck(gWebMutex);
 	auto it = localDocs.find(path);
 	if (it != localDocs.end())
 		localDocs.erase(it);
-	ithread_mutex_unlock(&gWebMutex);
 	return UPNP_E_SUCCESS;
 }
 
 int web_server_init()
 {
-	int ret = 0;
-
 	if (bWebServerState == WEB_SERVER_DISABLED) {
-
-		/* Initialize callbacks */
 		virtualDirCallback.get_info = NULL;
 		virtualDirCallback.open = NULL;
 		virtualDirCallback.read = NULL;
 		virtualDirCallback.write = NULL;
 		virtualDirCallback.seek = NULL;
 		virtualDirCallback.close = NULL;
-
-		if (ithread_mutex_init(&gWebMutex, NULL) == -1)
-			ret = UPNP_E_OUTOF_MEMORY;
-		else
-			bWebServerState = WEB_SERVER_ENABLED;
+		bWebServerState = WEB_SERVER_ENABLED;
 	}
-
-	return ret;
+	return 0;
 }
 
 /*!
@@ -261,7 +251,6 @@ void web_server_destroy(void)
 	if (bWebServerState == WEB_SERVER_ENABLED) {
 		gDocumentRootDir.clear();
 		localDocs.clear();
-		ithread_mutex_destroy(&gWebMutex);
 		bWebServerState = WEB_SERVER_DISABLED;
 	}
 }
@@ -546,7 +535,7 @@ static int process_request(
 	}
 	entryp = isFileInVirtualDir(request_doc);
 	if (!entryp) {
-		ithread_mutex_lock(&gWebMutex);
+		std::unique_lock<std::mutex> lck(gWebMutex);
 		auto localdocit = localDocs.find(request_doc);
 		// Just make a copy. Could do better using a
 		// map<string,share_ptr> like the original, but I don't think
@@ -554,7 +543,6 @@ static int process_request(
 		if (localdocit != localDocs.end()) {
 			localdoc = localdocit->second;
 		}
-		ithread_mutex_unlock(&gWebMutex);
 	}
 	if (entryp) {
 		*rtype = RESP_WEBDOC;

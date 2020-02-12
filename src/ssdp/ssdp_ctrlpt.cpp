@@ -47,6 +47,8 @@ nnn * Redistribution and use in source and binary forms, with or without
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <chrono>
+#include <thread>
 
 #include "upnp.h"
 #include "ssdpparser.h"
@@ -486,7 +488,7 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
 			       (struct sockaddr *)&__ss_v6,
 			       sizeof(struct sockaddr_in6));
 			NumCopy++;
-			imillisleep(SSDP_PAUSE);
+			std::this_thread::sleep_for(std::chrono::milliseconds(SSDP_PAUSE));
 		}
 		NumCopy = 0;
 		inet_pton(AF_INET6, SSDP_IPV6_LINKLOCAL, &destAddr6->sin6_addr);
@@ -499,7 +501,7 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
 			       (struct sockaddr *)&__ss_v6,
 			       sizeof(struct sockaddr_in6));
 			NumCopy++;
-			imillisleep(SSDP_PAUSE);
+			std::this_thread::sleep_for(std::chrono::milliseconds(SSDP_PAUSE));
 		}
 	}
 #endif /* IPv6 */
@@ -515,7 +517,7 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
 			       (struct sockaddr *)&__ss_v4,
 			       sizeof(struct sockaddr_in));
 			NumCopy++;
-			imillisleep(SSDP_PAUSE);
+			std::this_thread::sleep_for(std::chrono::milliseconds(SSDP_PAUSE));
 		}
 	}
 

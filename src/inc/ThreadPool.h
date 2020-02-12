@@ -36,7 +36,6 @@
 
 #include <list>
 #include <string>
-#include "ithread.h" /* For start_routine */
 
 #include <errno.h>
 
@@ -49,6 +48,8 @@
 
 /*! Size of job free list */
 #define JOBFREELISTSIZE 100
+
+typedef void *(*start_routine)(void*);
 
 /* Attributes for thread pool. Used to set and change parameters. */
 struct ThreadPoolAttr {

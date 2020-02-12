@@ -37,6 +37,7 @@
 #include <sstream>
 #include <vector>
 #include <utility>
+#include <mutex>
 
 #include "upnpapi.h"
 #include "httputils.h"
@@ -92,16 +93,17 @@
 struct VirtualDirCallbacks virtualDirCallback;
 
 #ifdef INCLUDE_CLIENT_APIS
-/*! Mutex to synchronize the subscription handling at the client side. */
-ithread_mutex_t GlobalClientSubscribeMutex;
+/* Mutex to synchronize the subscription handling at the client side. */
+std::mutex GlobalClientSubscribeMutex;
 #endif /* INCLUDE_CLIENT_APIS */
 
-/*! rwlock to synchronize handles (root device or control point handle). */
-ithread_rwlock_t GlobalHndRWLock;
-
+// Mutex to synchronize handles (root device or control point
+// handle). This used to be an rwlock but this was probably not worth
+// the trouble given the small expected contention level */
+std::mutex GlobalHndRWLock;
 
 /*! Initialization mutex. */
-ithread_mutex_t gSDKInitMutex = PTHREAD_MUTEX_INITIALIZER;
+std::mutex gSDKInitMutex;
 
 /*! Send thread pool. */
 ThreadPool gSendThreadPool;
@@ -509,25 +511,6 @@ static int WinsockInit(void)
 }
 #endif /* _WIN32 */
 
-/* Initializes the global mutexes used by the UPnP SDK. */
-static int UpnpInitMutexes(void)
-{
-#ifdef __CYGWIN__
-	/* On Cygwin, pthread_mutex_init() fails without this memset. */
-	memset(&GlobalHndRWLock, 0, sizeof(GlobalHndRWLock));
-#endif
-	if (ithread_rwlock_init(&GlobalHndRWLock, NULL) != 0) {
-		return UPNP_E_INIT_FAILED;
-	}
-#ifdef INCLUDE_CLIENT_APIS
-	if (ithread_mutex_init(&GlobalClientSubscribeMutex, NULL) != 0) {
-		return UPNP_E_INIT_FAILED;
-	}
-#endif
-	return UPNP_E_SUCCESS;
-}
-
-
 /* Initializes the global threadm pools used by the UPnP SDK. */
 static int UpnpInitThreadPools(void)
 {
@@ -585,12 +568,6 @@ static int UpnpInitPreamble(void)
 	if (retVal != UPNP_E_SUCCESS) {
 		/* UpnpInitLog does not return a valid UPNP_E_*. */
 		return UPNP_E_INIT_FAILED;
-	}
-
-	/* Initialize SDK global mutexes. */
-	retVal = UpnpInitMutexes();
-	if (retVal != UPNP_E_SUCCESS) {
-		return retVal;
 	}
 
 #ifdef UPNP_HAVE_OPTSSDP
@@ -678,10 +655,7 @@ static int upnpInitCommonV4V6(bool dov6, const char *HostIP,
 {
 	int retVal = UPNP_E_SUCCESS;
 
-	/* Initializes the ithread library */
-	ithread_initialize_library();
-
-	ithread_mutex_lock(&gSDKInitMutex);
+	std::unique_lock<std::mutex> lck(gSDKInitMutex);
 
 	/* Check if we're already initialized. */
 	if (UpnpSdkInit == 1) {
@@ -731,7 +705,6 @@ static int upnpInitCommonV4V6(bool dov6, const char *HostIP,
 			   (int)LOCAL_PORT_V4);
 
 exit_function:
-	ithread_mutex_unlock(&gSDKInitMutex);
 	return retVal;
 }
 
@@ -848,16 +821,10 @@ int UpnpFinish(void)
 		PrintThreadPoolStats(entry.first, __FILE__, __LINE__,
 							 entry.second);
 	}
-#ifdef INCLUDE_CLIENT_APIS
-	ithread_mutex_destroy(&GlobalClientSubscribeMutex);
-#endif
-	ithread_rwlock_destroy(&GlobalHndRWLock);
 	/* remove all virtual dirs */
 	UpnpRemoveAllVirtualDirs();
 	UpnpSdkInit = 0;
 	UpnpCloseLog();
-	/* Clean-up ithread library resources */
-	ithread_cleanup_library();
 
 	return UPNP_E_SUCCESS;
 }

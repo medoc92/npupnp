@@ -52,7 +52,6 @@
 #include "gena_sids.h"
 #include "expatmm.hxx"
 
-extern ithread_mutex_t GlobalClientSubscribeMutex;
 extern TimerThread *gTimerThread;
 
 static void clientCancelRenew(ClientSubscription *sub)

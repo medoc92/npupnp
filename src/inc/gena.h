@@ -34,14 +34,10 @@
 #define GENA_H
 
 
-/*!
- * \file
- */
-
-
 #include "config.h"
 
 #include <string>
+#include <mutex>
 
 #include <string.h>
 #include <time.h>
@@ -91,28 +87,24 @@
 
 #define GENA_DEFAULT_TIMEOUT 1801
 
-extern ithread_mutex_t GlobalClientSubscribeMutex;
+extern std::mutex GlobalClientSubscribeMutex;
 
 /*!
  * \brief Locks the subscription.
  */
 #define SubscribeLock() \
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__, \
-		"Trying Subscribe Lock\n");  \
-	ithread_mutex_lock(&GlobalClientSubscribeMutex); \
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__, \
-		"Subscribe Lock\n");
+	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,"Trying Subscribe Lock\n"); \
+	GlobalClientSubscribeMutex.lock();									\
+	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__, "Subscribe Lock\n");
 
 
 /*!
  * \brief Unlocks the subscription.
  */
 #define SubscribeUnlock() \
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__, \
-		"Trying Subscribe UnLock\n"); \
-	ithread_mutex_unlock(&GlobalClientSubscribeMutex); \
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__, \
-		"Subscribe UnLock\n");
+	UpnpPrintf(UPNP_INFO, GENA, __FILE__,__LINE__,"Trying Subscribe UnLock\n"); \
+	GlobalClientSubscribeMutex.unlock();								\
+	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__, "Subscribe UnLock\n");
 
 
 /*!
