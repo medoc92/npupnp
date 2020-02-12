@@ -34,6 +34,11 @@
 #include "TimerThread.h"
 
 #include <assert.h>
+#include <chrono>
+#include <mutex>
+#include <condition_variable>
+
+using namespace std::chrono;
 
 /*!
  * Data holder for a timer event.
@@ -45,7 +50,7 @@ struct TimerEvent {
 	TimerEvent(
 		start_routine f, void *a, ThreadPool::free_routine fr, 
 		ThreadPool::ThreadPriority prio,
-		TimerThread::Duration p, time_t et, int _id)
+		TimerThread::Duration p, system_clock::time_point et, int _id)
 		: func(f), arg(a), free_func(fr), priority(prio), persistent(p),
 		  eventTime(et), id(_id) {}
 	
@@ -56,220 +61,182 @@ struct TimerEvent {
 	/*! [in] Long term or short term job. */
 	TimerThread::Duration persistent;
 	/*! [in] Absolute time for event in seconds since Jan 1, 1970. */
-	time_t eventTime;
+	system_clock::time_point eventTime;
 	int id;
 };
 
+class TimerThread::Internal {
+public:
+	Internal(ThreadPool *tp);
+	
+	std::mutex mutex;
+	std::condition_variable condition;
+	int lastEventId{0};
+	std::list<TimerEvent*> eventQ;
+	int inshutdown{0};
+	ThreadPool *tp{nullptr};
+};
 
 /*!
  * \brief Implements timer thread.
  *
  * Waits for next event to occur and schedules associated job into threadpool.
- *  arg is cast to (TimerThread *).
+ *	arg is cast to (TimerThread *).
  */
 void *timerThreadWorker(void *arg)
 {
-    TimerThread *timer = (TimerThread *)arg;
-    TimerEvent *nextEvent = NULL;
-    time_t currentTime = 0;
-    time_t nextEventTime = 0;
-    struct timespec timeToWait;
+	TimerThread::Internal *timer = (TimerThread::Internal *)arg;
+	TimerEvent *nextEvent = NULL;
+	system_clock::time_point nextEventTime = system_clock::now();
 
-    assert( timer != NULL );
+	assert(timer != NULL);
 
-    ithread_mutex_lock(&timer->mutex);
-    while (1) {
-        /* mutex should always be locked at top of loop */
-        /* Check for shutdown. */
-        if (timer->inshutdown) {
-            timer->inshutdown = 0;
-            ithread_cond_signal( &timer->condition );
-            ithread_mutex_unlock( &timer->mutex );
-            return NULL;
-        }
-        nextEvent = NULL;
-        /* Get the next event if possible. */
-        if (timer->eventQ.size() > 0) {
-            nextEvent = timer->eventQ.front();
-            nextEventTime = nextEvent->eventTime;
-        }
-        currentTime = time(NULL);
-        /* If time has elapsed, schedule job. */
-        if (nextEvent && currentTime >= nextEventTime) {
+	std::unique_lock<std::mutex> lck(timer->mutex);
+
+	while (1) {
+		/* mutex should always be locked at top of loop */
+		/* Check for shutdown. */
+		if (timer->inshutdown) {
+			timer->inshutdown = 0;
+			timer->condition.notify_all();
+			return NULL;
+		}
+		nextEvent = NULL;
+		/* Get the next event if possible. */
+		if (timer->eventQ.size() > 0) {
+			nextEvent = timer->eventQ.front();
+			nextEventTime = nextEvent->eventTime;
+		}
+		system_clock::time_point currentTime = system_clock::now();
+		/* If time has elapsed, schedule job. */
+		if (nextEvent && currentTime >= nextEventTime) {
 			int ret = 0;
-            if (nextEvent->persistent) {
-                ret = timer->tp->addPersistent(
+			if (nextEvent->persistent) {
+				ret = timer->tp->addPersistent(
 					nextEvent->func, nextEvent->arg, nextEvent->free_func,
 					nextEvent->priority);
-            } else {
-                ret = timer->tp->addJob(
+			} else {
+				ret = timer->tp->addJob(
 					nextEvent->func, nextEvent->arg, nextEvent->free_func,
 					nextEvent->priority);
-            }
+			}
 			if (ret != 0 && nullptr != nextEvent->free_func) {
 				nextEvent->free_func(nextEvent->arg);
 			}
-            timer->eventQ.pop_front();
-            delete nextEvent;
-            continue;
-        }
-        if (nextEvent) {
-            timeToWait.tv_nsec = 0;
-            timeToWait.tv_sec = (long)nextEvent->eventTime;
-            ithread_cond_timedwait(&timer->condition, &timer->mutex,
-                                    &timeToWait);
-        } else {
-            ithread_cond_wait(&timer->condition, &timer->mutex);
-        }
-    }
+			timer->eventQ.pop_front();
+			delete nextEvent;
+			continue;
+		}
+		if (nextEvent) {
+			timer->condition.wait_until(lck, nextEvent->eventTime);
+		} else {
+			timer->condition.wait(lck);
+		}
+	}
 }
 
 
-/*!
- * \brief Calculates the appropriate timeout in absolute seconds
- * since Jan 1, 1970.
- *
- * \return 
- */
-static int CalculateEventTime(
-    /*! [in] Timeout. */
-    time_t *timeout,
-    /*! [in] Timeout type. */
-    TimerThread::TimeoutType type)
+TimerThread::Internal::Internal(ThreadPool *tp)
 {
-    time_t now;
-
-    switch (type) {
-    case TimerThread::ABS_SEC:
-        return 0;
-    default: /* REL_SEC) */
-        time(&now);
-        *timeout += now;
-        return 0;
-    }
-
-    return -1;
+	std::unique_lock<std::mutex> lck(mutex);
+	this->tp = tp;
+	tp->addPersistent(timerThreadWorker,this,nullptr,ThreadPool::HIGH_PRIORITY);
 }
 
 TimerThread::TimerThread(ThreadPool *tp)
 {
-    assert( tp != NULL );
-    if (tp == NULL ) {
-        return;
-    }
-
-    int rc = ithread_mutex_init(&this->mutex, NULL);
-    assert( rc == 0 );
-    rc += ithread_mutex_lock(&this->mutex);
-    assert( rc == 0 );
-    rc += ithread_cond_init(&this->condition, NULL);
-    assert( rc == 0 );
-
-    this->tp = tp;
-
-    rc = tp->addPersistent(timerThreadWorker, this, nullptr,
-						   ThreadPool::HIGH_PRIORITY);
-
-    ithread_mutex_unlock(&this->mutex );
-
-    if (rc != 0) {
-        ithread_cond_destroy( &this->condition );
-        ithread_mutex_destroy( &this->mutex );
-    }
-
-    return;
+	assert( tp != NULL );
+	if (tp == NULL ) {
+		return;
+	}
+	m = new Internal(tp);
 }
 
 TimerThread::~TimerThread()
 {
-    /* destroy condition. */
-    while (ithread_cond_destroy(&this->condition) != 0) {
-    }
-    /* destroy mutex. */
-    while (ithread_mutex_destroy(&this->mutex) != 0) {
-    }
+	delete m;
 }
 
 int TimerThread::schedule(
-		Duration duration, TimeoutType type, time_t time, int *id,
-		start_routine func, void *arg, ThreadPool::free_routine free_func, 
-		ThreadPool::ThreadPriority priority
+	Duration duration, TimeoutType type, time_t time, int *id,
+	start_routine func, void *arg, ThreadPool::free_routine free_func, 
+	ThreadPool::ThreadPriority priority
 	)
 {
-    int rc = EOUTOFMEM;
-    int found = 0;
-    TimerEvent *newEvent = NULL;
-	time_t timeout{time};
-	
-    CalculateEventTime(&timeout, type);
-    ithread_mutex_lock(&this->mutex);
+	int rc = EOUTOFMEM;
+	int found = 0;
+	TimerEvent *newEvent = NULL;
 
-    newEvent = new TimerEvent(func, arg, free_func, priority,
-							  duration, timeout, this->lastEventId);
-    if (newEvent == NULL ) {
-        ithread_mutex_unlock( &this->mutex );
-        return rc;
-    }
+	system_clock::time_point when;
+	if (type == TimerThread::ABS_SEC) {
+		when = system_clock::from_time_t(time);
+	} else {
+		when = system_clock::now() + std::chrono::seconds(time);
+	}
 
-    /* add job to Q. Q is ordered by eventTime with the head of the Q being
-     * the next event. */
+	std::unique_lock<std::mutex> lck(m->mutex);
+
+	newEvent = new TimerEvent(func, arg, free_func, priority,
+							  duration, when, m->lastEventId);
+	if (newEvent == NULL ) {
+		return rc;
+	}
+
+	/* add job to Q. Q is ordered by eventTime with the head of the Q being
+	 * the next event. */
 	rc = 0;
-	for (auto it = eventQ.begin(); it != eventQ.end(); it++) {
-        if ((*it)->eventTime >= timeout) {
-            eventQ.insert(it, newEvent);
-            found = 1;
-            break;
-        }
-    }
-    /* add to the end of Q. */
-    if (!found) {
-        eventQ.push_back(newEvent);
-    }
-    /* signal change in Q. */
-	ithread_cond_signal( &this->condition );
-    this->lastEventId++;
-    ithread_mutex_unlock(&this->mutex);
+	for (auto it = m->eventQ.begin(); it != m->eventQ.end(); it++) {
+		if ((*it)->eventTime >= when) {
+			m->eventQ.insert(it, newEvent);
+			found = 1;
+			break;
+		}
+	}
+	/* add to the end of Q. */
+	if (!found) {
+		m->eventQ.push_back(newEvent);
+	}
+	/* signal change in Q. */
+	m->condition.notify_all();
+	m->lastEventId++;
 
-    return rc;
+	return rc;
 }
 
 int TimerThread::remove(int id)
 {
-    int rc = -1;
-    ithread_mutex_lock( &this->mutex );
+	int rc = -1;
+	std::unique_lock<std::mutex> lck(m->mutex);
 
-	for (auto it = eventQ.begin(); it != eventQ.end(); it++) {
+	for (auto it = m->eventQ.begin(); it != m->eventQ.end(); it++) {
 		TimerEvent *temp = *it;
-        if (temp->id == id) {
-			eventQ.erase(it);
-            delete temp;
-            rc = 0;
-            break;
-        }
-    }
-
-    ithread_mutex_unlock( &this->mutex );
-    return rc;
+		if (temp->id == id) {
+			m->eventQ.erase(it);
+			delete temp;
+			rc = 0;
+			break;
+		}
+	}
+	return rc;
 }
 
 int TimerThread::shutdown()
 {
-    ithread_mutex_lock( &this->mutex );
+	std::unique_lock<std::mutex> lck(m->mutex);
 
-    this->inshutdown = 1;
+	m->inshutdown = 1;
 
-    /* Delete nodes in Q. Call registered free function on argument. */
-	for (auto it = eventQ.begin(); it != eventQ.end(); it++) {
-        delete *it;
-    }
-	eventQ.clear();
+	/* Delete nodes in Q. Call registered free function on argument. */
+	for (auto it = m->eventQ.begin(); it != m->eventQ.end(); it++) {
+		delete *it;
+	}
+	m->eventQ.clear();
 
-    ithread_cond_broadcast(&this->condition);
+	m->condition.notify_all();
 
-    while (this->inshutdown) {
-        /* wait for timer thread to shutdown. */
-        ithread_cond_wait(&this->condition, &this->mutex);
-    }
-    ithread_mutex_unlock(&this->mutex);
+	while (m->inshutdown) {
+		/* wait for timer thread to shutdown. */
+		m->condition.wait(lck);
+	}
 	return 0;
 }

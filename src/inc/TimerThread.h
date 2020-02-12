@@ -69,7 +69,7 @@ public:
 	 * \brief Schedules an event to run at a specified time.
 	 *
 	 * \return 0 on success, nonzero on failure, EOUTOFMEM if not enough memory
-	 * 	to schedule job.
+	 *	to schedule job.
 	 */
 	int schedule(
 		/*! [in] . */
@@ -108,14 +108,9 @@ public:
 	 */
 	int shutdown();
 
-	friend void *timerThreadWorker(void*);
+	class Internal;
 private:
-	ithread_mutex_t mutex;
-	ithread_cond_t condition;
-	int lastEventId{0};
-	std::list<TimerEvent*> eventQ;
-	int inshutdown{0};
-	ThreadPool *tp{nullptr};
+	Internal *m;
 };
 
 #endif /* TIMER_THREAD_H */
