@@ -36,7 +36,6 @@
 
 #include <list>
 #include <string>
-
 #include "ithread.h" /* For start_routine */
 
 #include <errno.h>
@@ -122,6 +121,7 @@ public:
 	typedef void (*free_routine)(void *arg);
 
 	ThreadPool();
+	~ThreadPool();
 	/* Initialize things and start up returns 0 if ok */
 	int start(ThreadPoolAttr *attr = nullptr);
 
