@@ -1,9 +1,9 @@
 /*******************************************************************************
  *
  * Copyright (c) 2000-2003 Intel Corporation 
+ * Copyright (c) 2012 France Telecom All rights reserved. 
  * Copyright (c) 2020 J.F. Dockes <jf@dockes.org>
  * All rights reserved. 
- * Copyright (c) 2012 France Telecom All rights reserved. 
  *
  * Redistribution and use in source and binary forms, with or without 
  * modification, are permitted provided that the following conditions are met: 
@@ -83,7 +83,7 @@ public:
  * Waits for next event to occur and schedules associated job into threadpool.
  *	arg is cast to (TimerThread *).
  */
-void *timerThreadWorker(void *arg)
+void *thread_timer(void *arg)
 {
 	TimerThread::Internal *timer = (TimerThread::Internal *)arg;
 	TimerEvent *nextEvent = NULL;
@@ -140,7 +140,7 @@ TimerThread::Internal::Internal(ThreadPool *tp)
 {
 	std::unique_lock<std::mutex> lck(mutex);
 	this->tp = tp;
-	tp->addPersistent(timerThreadWorker,this,nullptr,ThreadPool::HIGH_PRIORITY);
+	tp->addPersistent(thread_timer, this, nullptr, ThreadPool::HIGH_PRIORITY);
 }
 
 TimerThread::TimerThread(ThreadPool *tp)
@@ -181,7 +181,9 @@ int TimerThread::schedule(
 	if (newEvent == NULL ) {
 		return rc;
 	}
-
+	if (id) {
+		*id = m->lastEventId;
+	}
 	/* add job to Q. Q is ordered by eventTime with the head of the Q being
 	 * the next event. */
 	rc = 0;

@@ -30,14 +30,6 @@ nnn * Redistribution and use in source and binary forms, with or without
  *
  **************************************************************************/
 
-/*!
- * \addtogroup SSDPlib
- *
- * @{
- * 
- * \file
- */
-
 #include "config.h"
 
 
@@ -391,13 +383,10 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
 	SOCKET max_fd = 0;
 	int retVal;
 
-	/*ThreadData *ThData; */
-
 	requestType = ssdp_request_type1(St);
 	if (requestType == SSDP_SERROR)
 		return UPNP_E_INVALID_PARAM;
-	UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
-			   "Inside SearchByTarget\n");
+
 	timeTillRead = Mx;
 	if (timeTillRead < MIN_SEARCH_TIME)
 		timeTillRead = MIN_SEARCH_TIME;
@@ -525,5 +514,3 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
 }
 #endif /* EXCLUDE_SSDP */
 #endif /* INCLUDE_CLIENT_APIS */
-
-/* @} SSDPlib */
