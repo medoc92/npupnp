@@ -402,83 +402,6 @@ static int CheckOtherHTTPHeaders(
 	return HTTP_OK;
 }
 
-#ifdef EXTRA_HEADERS_AS_LIST
-/*!
- * \brief Build an array of unrecognized headers.
- *
- * \return nothing
- */
-#define MAX_EXTRA_HEADERS 128
-static int ExtraHTTPHeaders(MHDTransaction *mhdt,
-							struct Extra_Headers **ExtraHeaders)
-{
-	int index, nb_extra = 0;
-	struct Extra_Headers *extra_headers;
-
-	extra_headers = *ExtraHeaders =
-		(struct Extra_Headers*) malloc(
-			MAX_EXTRA_HEADERS * sizeof(struct Extra_Headers));
-	if (!extra_headers) {
-		return HTTP_INTERNAL_SERVER_ERROR;
-	}
-	for (const auto& header : mhdt->headers) {
-		/* find header type. */
-		index = httpheader_str2int(header.first);
-		if (index < 0) {
-			extra_headers->name = (char *)malloc(header.first.size() + 1);
-			extra_headers->value = (char *)malloc(header.second.size() + 1);
-			if (!extra_headers->name || !extra_headers->value) {
-				/* cleanup will be made by caller */
-				return HTTP_INTERNAL_SERVER_ERROR;
-			}
-			strcpy(extra_headers->name, header.first.c_str());
-			strcpy(extra_headers->value, header.second.c_str());
-			extra_headers->resp = NULL;
-
-			extra_headers++;
-			nb_extra++;
-
-			if (nb_extra == MAX_EXTRA_HEADERS - 1) {
-				break;
-			}
-		}
-	}
-	extra_headers->name = extra_headers->value = extra_headers->resp = NULL;
-	return HTTP_OK;
-}
-static void FreeExtraHTTPHeaders(
-	/*! [in] extra HTTP headers to free. */
-	struct Extra_Headers *ExtraHeaders)
-{
-	struct Extra_Headers *extra_headers = ExtraHeaders;
-
-	if (!ExtraHeaders) {
-		return;
-	}
-
-	while (extra_headers->name) {
-		free(extra_headers->name);
-		if (extra_headers->value) free(extra_headers->value);
-		if (extra_headers->resp) free(extra_headers->resp);
-		extra_headers++;
-	}
-
-	free(ExtraHeaders);
-}
-#else
-static int ExtraHTTPHeaders(MHDTransaction *, char **ExtraHeaders)
-{
-	*ExtraHeaders = nullptr;
-	return HTTP_OK;
-}
-static void FreeExtraHTTPHeaders(char *extraheaders)
-{
-	if (extraheaders)
-		free(extraheaders);
-}
-#endif
-
-
 /*!
  * \brief Processes the request and returns the result in the output parameters.
  *
@@ -502,8 +425,6 @@ static int process_request(
 	/*! [out] Send Instruction object where the response is set up. */
 	struct SendInstruction *RespInstr)
 {
-	int code;
-	int err_code;
 	struct File_Info finfo;
 	LocalDoc localdoc;
 	
@@ -517,7 +438,6 @@ static int process_request(
 	}
 
 	/* init */
-	err_code = HTTP_INTERNAL_SERVER_ERROR;	/* default error */
 	const VirtualDirListEntry *entryp{nullptr};
 	
 	/* Unescape and canonize the path. Note that MHD has already
@@ -525,13 +445,11 @@ static int process_request(
     std::string request_doc = remove_escaped_chars(mhdt->url);
 	request_doc = remove_dots(request_doc);
 	if (request_doc.empty()) {
-		err_code = HTTP_FORBIDDEN;
-		goto error_handler;
+		return HTTP_FORBIDDEN;
 	}
 	if (request_doc[0] != '/') {
 		/* no slash */
-		err_code = HTTP_BAD_REQUEST;
-		goto error_handler;
+		return HTTP_BAD_REQUEST;
 	}
 	entryp = isFileInVirtualDir(request_doc);
 	if (!entryp) {
@@ -548,10 +466,6 @@ static int process_request(
 		*rtype = RESP_WEBDOC;
 		RespInstr->cookie = entryp->cookie;
 		filename = request_doc;
-		if ((code = ExtraHTTPHeaders(mhdt, &finfo.extra_headers)) != HTTP_OK) {
-			err_code = code;
-			goto error_handler;
-		}
 		std::string qs;
 		if (!mhdt->queryvalues.empty()) {
 			qs = "?";
@@ -567,8 +481,7 @@ static int process_request(
 		/* get file info */
 		if (virtualDirCallback.get_info(filename.c_str(), &finfo,
 										entryp->cookie) != 0) {
-			err_code = HTTP_NOT_FOUND;
-			goto error_handler;
+			return HTTP_NOT_FOUND;
 		}
 		/* try index.html if req is a dir */
 		if (finfo.is_directory) {
@@ -584,14 +497,12 @@ static int process_request(
 			if ((virtualDirCallback.get_info(filename.c_str(), &finfo,
 											 entryp->cookie)
 				 != UPNP_E_SUCCESS) || finfo.is_directory) {
-				err_code = HTTP_NOT_FOUND;
-				goto error_handler;
+				return HTTP_NOT_FOUND;
 			}
 		}
 		/* not readable */
 		if (!finfo.is_readable) {
-			err_code = HTTP_FORBIDDEN;
-			goto error_handler;
+			return HTTP_FORBIDDEN;
 		}
 	} else if (!localdoc.data.empty()) {
 		*rtype = RESP_XMLDOC;
@@ -604,7 +515,7 @@ static int process_request(
 	} else {
 		*rtype = RESP_FILEDOC;
 		if (gDocumentRootDir.size() == 0) {
-			goto error_handler;
+			return HTTP_FORBIDDEN;
 		}
 		/* get file name */
 		filename = gDocumentRootDir;
@@ -613,10 +524,13 @@ static int process_request(
 		while (filename.size() > 0 && filename.back() == '/') {
 			filename.pop_back();
 		}
+
+		/* Pass all request headers to get_file_info */
+		finfo.request_headers = mhdt->headers;
+
 		/* get info on file */
 		if (get_file_info(filename.c_str(), &finfo) != 0) {
-			err_code = HTTP_NOT_FOUND;
-			goto error_handler;
+			return HTTP_NOT_FOUND;
 		}
 		/* try index.html if req is a dir */
 		if (finfo.is_directory) {
@@ -630,25 +544,32 @@ static int process_request(
 			/* get info */
 			if (get_file_info(filename.c_str(), &finfo) != 0 ||
 				finfo.is_directory) {
-				err_code = HTTP_NOT_FOUND;
-				goto error_handler;
+				return HTTP_NOT_FOUND;
 			}
 		}
 		/* not readable */
 		if (!finfo.is_readable) {
-			err_code = HTTP_FORBIDDEN;
-			goto error_handler;
+			return HTTP_FORBIDDEN;
 		}
 	}
+
 	RespInstr->ReadSendSize = finfo.file_length;
 	//std::cerr << "process_request: readsz: " << RespInstr->ReadSendSize <<"\n";
 		
-	/* Check other header field. */
-	if ((code = CheckOtherHTTPHeaders(mhdt, RespInstr, finfo.file_length))
-		!= HTTP_OK) {
-		err_code = code;
-		goto error_handler;
+	int code = CheckOtherHTTPHeaders(mhdt, RespInstr, finfo.file_length);
+	if (code != HTTP_OK) {
+		return code;
 	}
+
+	/* simple get http 0.9 as specified in http 1.0 */
+	/* don't send headers */
+	if (mhdt->method == HTTPMETHOD_SIMPLEGET) {
+		headers.clear();
+		return HTTP_OK;
+	}
+
+	// Add any headers created by the client in the GetInfo callback
+	headers.insert(finfo.response_headers.begin(), finfo.response_headers.end());
 
 	if (!finfo.content_type.empty()) {
 		headers["content-type"] = finfo.content_type;
@@ -669,16 +590,8 @@ static int process_request(
 	if (mhdt->method == HTTPMETHOD_HEAD) {
 		*rtype = RESP_HEADERS;
 	} 
-	/* simple get http 0.9 as specified in http 1.0 */
-	/* don't send headers */
-	if (mhdt->method == HTTPMETHOD_SIMPLEGET) {
-		headers.clear();
-	}
-	err_code = HTTP_OK;
 
-error_handler:
-	FreeExtraHTTPHeaders(finfo.extra_headers);
-	return err_code;
+	return HTTP_OK;
 }
 
 class VFileReaderCtxt {
@@ -750,6 +663,7 @@ void web_server_callback(MHDTransaction *mhdt)
 			}
 		}
 		break;
+
 		case RESP_WEBDOC:
 		{
 			VFileReaderCtxt *ctxt = new VFileReaderCtxt;
@@ -762,17 +676,20 @@ void web_server_callback(MHDTransaction *mhdt)
 			mhdt->httpstatus = 200;
 		}
 		break;
+
 		case RESP_XMLDOC:
 			mhdt->response = MHD_create_response_from_buffer(
 				RespInstr.data.size(), (void*)(strdup(RespInstr.data.c_str())),
 				MHD_RESPMEM_PERSISTENT);
 			mhdt->httpstatus = 200;
 			break;
+
 		case RESP_HEADERS:
 			/* headers only */
 			mhdt->response = MHD_create_response_from_buffer(
 				0, nullptr, MHD_RESPMEM_PERSISTENT);
 			break;
+
 		default:
 			UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
 					   "webserver: Generated an invalid response type.\n");
@@ -780,8 +697,8 @@ void web_server_callback(MHDTransaction *mhdt)
 		}
 	}
 	for (const auto& header : headers) {
-		//std::cerr << "process_request: adding header [" << header.first <<
-		// "]->[" << header.second << "]\n";
+		//std::cerr << "web_server_callback: adding header [" << header.first <<
+		//"]->[" << header.second << "]\n";
 		MHD_add_response_header(mhdt->response, header.first.c_str(),
 								header.second.c_str());
 	}

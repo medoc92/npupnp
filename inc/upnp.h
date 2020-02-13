@@ -37,6 +37,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <map>
 
 #include "upnpconfig.h"
 #include "UpnpInet.h"
@@ -569,7 +570,8 @@ struct Upnp_Event
 	/** The event sequence number. */
 	int EventKey;
 
-	/** The changes generating the event. */
+	/** The changes generating the event. map would have been a better choice, 
+	 * but too late to change... */
 	std::unordered_map<std::string, std::string> ChangedVariables;
 };
 
@@ -681,15 +683,6 @@ typedef struct Upnp_Subscription_Request UpnpSubscriptionRequest;
 #define UpnpSubscriptionRequest_get_UDN_cstr(x) ((x)->UDN)
 #define UpnpSubscriptionRequest_get_SID_cstr(x) ((x)->Sid)
 
-#ifdef EXTRA_HEADERS_AS_LIST
-struct Extra_Headers
-{
-	char *name;
-	char *value;
-	DOMString resp;
-};
-#endif
-
 struct File_Info
 {
 	/** The length of the file. A length less than 0 indicates the size 
@@ -712,15 +705,15 @@ struct File_Info
 	/** The content type of the file. */
 	std::string content_type;
 
-	/** Headers to be modified / added. A modified response must be allocated
-	 * by the caller using malloc.  When finished with it, the SDK frees it */
-#ifdef EXTRA_HEADERS_AS_LIST
-	struct Extra_Headers *extra_headers{nullptr};
-#else
-    /* These are set as an strduped string, must be freed when deallocating the 
-       struct */
-    char *extra_headers{nullptr};
-#endif
+	/** Headers received with the HTTP request. Set by the library
+		before calling VDCallback_GetInfo */
+	std::map<std::string, std::string> request_headers;
+
+	/** Additional headers which should be set in the response. Set by
+		the client inside the VDCallback_GetInfo function. These
+		should not be standard HTTP headers (e.g. content-length/type)
+		but only specific ones like the DLNA ones. */
+	std::map<std::string, std::string> response_headers;
 };
 
 /* compat code for libupnp-1.8 */
