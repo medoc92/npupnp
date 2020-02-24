@@ -1,7 +1,7 @@
 
 AC_PREREQ(2.60)
 
-AC_INIT([libnpupnp], [2.0.1], [jfd@recoll.org])
+AC_INIT([libnpupnp], [2.1.0], [jfd@recoll.org])
 
 # - Start with version information of ‘0:0:0’ for each libtool library.
 # - Update the version information only immediately before a public release
@@ -16,7 +16,7 @@ AC_INIT([libnpupnp], [2.0.1], [jfd@recoll.org])
 # npupnp packages are named libupnpX where X is the .so major number
 # (c-a). This allows packages for multiple incompatible ABIs to be
 # installed
-AC_SUBST([LT_VERSION_NPUPNP],       [1:0:0])
+AC_SUBST([LT_VERSION_NPUPNP],       [2:0:0])
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
@@ -33,6 +33,8 @@ AC_CHECK_PROG([pkg_config], [pkg-config], [yes], [no])
 if test X$pkg_config != Xyes ; then
    AC_MSG_ERROR([pkg-config program needed and not found])
 fi
+
+AC_CHECK_LIB([pthread], [pthread_create], [], [])
 
 AC_CANONICAL_HOST
 

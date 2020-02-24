@@ -1,3 +1,12 @@
+libnpupnp1 (2.1.0-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Fix bug when ipv6 is compiled in but no host net interface supports it.
+  * API change: chose sensible approach for communicating HTTP headers.
+  * Replace pthreads threads and locking with std::mutex, std::thread,
+    std::chrono etc.
+	
+ -- Jean-Francois Dockes <jf@dockes.org>  Mon, 24 Feb 2020 15:53:00 +0100
+
 libnpupnp1 (2.0.1-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Oopsee in soap message format...
