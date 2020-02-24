@@ -122,19 +122,21 @@ static std::vector<std::pair<ThreadPool *, const char *> > o_threadpools{
 /*! Flag to indicate the state of web server */
 WebServerState bWebServerState = WEB_SERVER_DISABLED;
 
-/*! Static buffer to contain interface name. (extern'ed in upnp.h) */
-char gIF_NAME[LINE_SIZE] = { '\0' };
-
 /*! Static buffer to contain interface IPv4 address. (extern'ed in upnp.h) */
 char gIF_IPV4[INET_ADDRSTRLEN] = { '\0' };
 
 /*! Static buffer to contain interface IPv6 address. (extern'ed in upnp.h) */
 char gIF_IPV6[INET6_ADDRSTRLEN] = { '\0' };
 
-/*! Static buffer to contain interface ULA or GUA IPv6 address. (extern'ed in upnp.h) */
+/*! Static buffer to contain interface ULA or GUA IPv6 address. (extern'ed 
+  in upnp.h) */
+/* NPUPNP NOTE: in pupnp, this was set by the non-getifaddr code which
+   is used on Linux, but not by the BSD or Windows versions. We're
+   only doing getiffaddrs or Windows at this point, so this is never
+   set. To be fixed if needed. */
 char gIF_IPV6_ULA_GUA[INET6_ADDRSTRLEN] = { '\0' };
 
-/*! Contains interface index. (extern'ed in upnp.h) */
+/*! Contains interface index. V6 scope id or such. (extern'ed in upnp.h) */
 unsigned gIF_INDEX = (unsigned)-1;
 
 /*! local IPv4 port for the mini-server */
@@ -195,7 +197,6 @@ Upnp_SID gUpnpSdkNLSuuid;
  *  UP / Not LOOPBACK / Support MULTICAST / valid IPv4 or IPv6 address.
  *
  * We'll retrieve the following information from the interface:
- *  gIF_NAME -> Interface name (by input or found).
  *  gIF_IPV4 -> IPv4 address (if any).
  *  gIF_IPV6 -> IPv6 address (if any).
  *  gIF_IPV6_ULA_GUA -> ULA or GUA IPv6 address (if any)
@@ -204,15 +205,20 @@ Upnp_SID gUpnpSdkNLSuuid;
 int UpnpGetIfInfo(const char *IfName)
 {
 	bool ifname_set{false};
-	bool valid_addr_found{false};
+	bool gotv4{false}, gotv6{false};
 	struct in_addr v4_addr;
 	struct in6_addr v6_addr;
 	memset(&v4_addr, 0, sizeof(v4_addr));
 	memset(&v6_addr, 0, sizeof(v6_addr));
+
+	char gIF_NAME[LINE_SIZE] = {0};
 	/* Copy interface name, if it was provided. */
 	if (IfName && *IfName) {
-		if (strlen(IfName) > sizeof(gIF_NAME))
+		if (strlen(IfName) > sizeof(gIF_NAME)) {
+			UpnpPrintf(UPNP_ERROR, API, __FILE__, __LINE__,
+					   "UpnpGetIfInfo: input interface name too long\n");
 			return UPNP_E_INVALID_INTERFACE;
+		}
 		upnp_strlcpy(gIF_NAME, IfName, sizeof(gIF_NAME));
 		ifname_set = true;
 	}
@@ -299,12 +305,14 @@ int UpnpGetIfInfo(const char *IfName)
 		}
 		/* Loop thru this adapter's unicast IP addresses. */
 		uni_addr = adapts_item->FirstUnicastAddress;
+		bool valid_addr_found{false};
 		while (uni_addr) {
 			ip_addr = uni_addr->Address.lpSockaddr;
 			switch (ip_addr->sa_family) {
 			case AF_INET:
 				memcpy(&v4_addr, &((struct sockaddr_in *)ip_addr)->sin_addr,
 					   sizeof(v4_addr));
+				gotv4 = true;
 				valid_addr_found = true;
 				break;
 			case AF_INET6:
@@ -313,6 +321,7 @@ int UpnpGetIfInfo(const char *IfName)
 						&((struct sockaddr_in6 *)ip_addr)->sin6_addr)) {
 					memcpy(&v6_addr,&((struct sockaddr_in6 *)ip_addr)->sin6_addr,
 						   sizeof(v6_addr));
+					gotv6 = true;
 					valid_addr_found = true;
 				}
 				break;
@@ -365,11 +374,13 @@ int UpnpGetIfInfo(const char *IfName)
 			}
 		}
 		/* Keep interface addresses for later. */
+		bool valid_addr_found{false};
 		switch (ifa->ifa_addr->sa_family) {
 		case AF_INET:
 			memcpy(&v4_addr, &((struct sockaddr_in *)(ifa->ifa_addr))->sin_addr,
 				   sizeof(v4_addr));
-			valid_addr_found = 1;
+			gotv4 = true;
+			valid_addr_found = true;
 			break;
 		case AF_INET6:
 			/* Only keep IPv6 link-local addresses. */
@@ -378,11 +389,12 @@ int UpnpGetIfInfo(const char *IfName)
 				memcpy(&v6_addr,
 					   &((struct sockaddr_in6 *)(ifa->ifa_addr))->sin6_addr,
 					   sizeof(v6_addr));
-				valid_addr_found = 1;
+				gotv6 = true;
+				valid_addr_found = true;
 			}
 			break;
 		default:
-			if (valid_addr_found == 0) {
+			if (!valid_addr_found) {
 				/* Address is not IPv4 or IPv6 and no valid address has	 */
 				/* yet been found for this interface. Discard interface name. */
 				ifname_set = 0;
@@ -397,13 +409,15 @@ int UpnpGetIfInfo(const char *IfName)
 #endif
 
 	/* Failed to find a valid interface, or valid address. */
-	if (!ifname_set || !valid_addr_found) {
+	if (!ifname_set || !(gotv4 || gotv6)) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
 				   "No adapter with usable IP addresses.\n");
 		return UPNP_E_INVALID_INTERFACE;
 	}
-	inet_ntop(AF_INET, &v4_addr, gIF_IPV4, sizeof(gIF_IPV4));
-	inet_ntop(AF_INET6, &v6_addr, gIF_IPV6, sizeof(gIF_IPV6));
+	if (gotv4)
+		inet_ntop(AF_INET, &v4_addr, gIF_IPV4, sizeof(gIF_IPV4));
+	if (gotv6)
+		inet_ntop(AF_INET6, &v6_addr, gIF_IPV6, sizeof(gIF_IPV6));
 
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
 			   "Ifname=%s, index=%d, v4=%s, v6=%s, ULA/GUA v6=%s\n",

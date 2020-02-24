@@ -501,21 +501,23 @@ static int get_miniserver_sockets(
 				   "miniserver: IPv4 socket(): %s\n",  errorBuffer);
 	}
 #ifdef UPNP_ENABLE_IPV6
-	out->miniServerSock6 = socket(AF_INET6, SOCK_STREAM, 0);
-	if (out->miniServerSock6 == INVALID_SOCKET) {
-		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-		UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
-				   "miniserver: IPv6 socket(): %s\n", errorBuffer);
-	} else {
-		int onOff = 1;
-		int sockError = setsockopt(out->miniServerSock6, IPPROTO_IPV6,
-								   IPV6_V6ONLY, (char *)&onOff, sizeof(onOff));
-		if (sockError == SOCKET_ERROR) {
+	if (gIF_IPV6[0]) {
+		out->miniServerSock6 = socket(AF_INET6, SOCK_STREAM, 0);
+		if (out->miniServerSock6 == INVALID_SOCKET) {
 			posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 			UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
-					   "miniserver: IPv6 setsockopt(): %s\n", errorBuffer);
-			UpnpCloseSocket(out->miniServerSock6);
-			out->miniServerSock6 = INVALID_SOCKET;
+					   "miniserver: IPv6 socket(): %s\n", errorBuffer);
+		} else {
+			int onOff = 1;
+			int sockError = setsockopt(out->miniServerSock6, IPPROTO_IPV6,
+									   IPV6_V6ONLY,(char*)&onOff, sizeof(onOff));
+			if (sockError == SOCKET_ERROR) {
+				posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
+				UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+						   "miniserver: IPv6 setsockopt(): %s\n", errorBuffer);
+				UpnpCloseSocket(out->miniServerSock6);
+				out->miniServerSock6 = INVALID_SOCKET;
+			}
 		}
 	}
 #endif
