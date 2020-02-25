@@ -355,13 +355,23 @@ int UpnpGetIfInfo(const char *IfName)
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__, "getifaddrs error\n");
 		return UPNP_E_INIT;
 	}
-	/* cycle through available interfaces and their addresses. */
+	/* Walk through the available interfaces and their addresses. The
+	   way we do things results in choosing the interface which was
+	   named through the IfName parameter if set (but see comment
+	   below), or the first interface with either a valid ipv4 or ipv6
+	   address (because we freeze the name as soon as we find a valid
+	   address). This was carried from pupnp but it seems that the
+	   logic is dependant on the order in the list so it's probably
+	   questionable. */
 	for (ifa = ifap; ifa != NULL; ifa = ifa->ifa_next) {
-		/* Skip LOOPBACK interfaces, DOWN interfaces and interfaces that  */
-		/* don't support MULTICAST. */
-		if ((ifa->ifa_flags & IFF_LOOPBACK)
+		/* Skip interfaces which are address-less, LOOPBACK, DOWN, or
+		   that don't support MULTICAST. */
+		if (nullptr == ifa->ifa_addr
+			|| (ifa->ifa_flags & IFF_LOOPBACK)
 			|| (!(ifa->ifa_flags & IFF_UP))
 			|| (!(ifa->ifa_flags & IFF_MULTICAST))) {
+			UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "Skipping %s because"
+					   "noaddr||loopback||down||nomulticast.\n", ifa->ifa_name);
 			continue;
 		}
 		if (ifname_set == 0) {
@@ -395,8 +405,13 @@ int UpnpGetIfInfo(const char *IfName)
 			break;
 		default:
 			if (!valid_addr_found) {
-				/* Address is not IPv4 or IPv6 and no valid address has	 */
-				/* yet been found for this interface. Discard interface name. */
+				/* Address is not IPv4 or IPv6 and no valid address
+				   has yet been found for this interface. Discard
+				   interface name. Carried from pupnp but we should
+				   not do this if the interface name was given as a
+				   parameter as this could lead to choosing a
+				   different interface instead of generating an
+				   error. */
 				ifname_set = 0;
 			}
 			break;
