@@ -1,6 +1,6 @@
 Summary: UPnP base library
 Name: libnpupnp
-Version: 2.1.0
+Version: 2.1.1
 Release: 1%{?dist}
 License: BSD
 Group: Application/Multimedia
@@ -40,6 +40,8 @@ bridges.
 %{_libdir}/pkgconfig/*.pc
 
 %changelog
+* Mon Feb 24 2020 Jean-Francois Dockes <jf@dockes.org> - 2.1.1-1
+- Fix crash on addr-less interfaces in getifaddrs output
 * Mon Feb 24 2020 Jean-Francois Dockes <jf@dockes.org> - 2.1.0-1
 - Fix no ipv6 interface found bug. Use std::thread et al.
 * Fri Feb 07 2020 Jean-Francois Dockes <jf@dockes.org> - 2.0.1-1

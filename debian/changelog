@@ -1,3 +1,9 @@
+libnpupnp1 (2.1.1-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Fix crash when encountering address-less entry in getifaddrs output.
+	
+ -- Jean-Francois Dockes <jf@dockes.org>  Tue, 25 Feb 2020 10:41:00 +0100
+
 libnpupnp1 (2.1.0-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Fix bug when ipv6 is compiled in but no host net interface supports it.
