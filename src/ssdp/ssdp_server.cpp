@@ -92,8 +92,8 @@ int AdvertiseAndReply(int AdFlag, UpnpDevice_Handle Hnd,
 	int NumCopy = 0;
 	std::vector<const UPnPDeviceDesc*> alldevices;
 
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			   "Inside AdvertiseAndReply with AdFlag = %d\n", AdFlag);
+	UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+			   "Inside AdvertiseAndReply: AdFlag = %d\n", AdFlag);
 
 	/* Use a read lock */
 	HandleReadLock();
@@ -153,13 +153,13 @@ int AdvertiseAndReply(int AdFlag, UpnpDevice_Handle Hnd,
 				case SSDP_DEVICEUDN: {
 					if (DeviceUDN && strlen(DeviceUDN)) {
 						if (strcasecmp(DeviceUDN, UDNstr)) {
-							UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-									   "DeviceUDN=%s / search UDN=%s NOMATCH\n",
+							UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+									   "DeviceUDN=%s/search UDN=%s NOMATCH\n",
 									   UDNstr, DeviceUDN);
 							break;
 						} else {
-							UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-									   "DeviceUDN=%s / search UDN=%s MATCH\n",
+							UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+									   "DeviceUDN=%s/search UDN=%s MATCH\n",
 									   UDNstr, DeviceUDN);
 							SendReply(
 								DestAddr, devType, 0, UDNstr, SInfo->DescURL,
@@ -177,8 +177,8 @@ int AdvertiseAndReply(int AdFlag, UpnpDevice_Handle Hnd,
 							   device version must reply with the
 							   lower version number and the lower
 							   description URL */
-							UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-									   "DeviceType=%s / srchdevType=%s MATCH\n",
+							UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+									   "DeviceType=%s/srchdevType=%s MATCH\n",
 									   devType, DeviceType);
 							SendReply(DestAddr, DeviceType, 0, UDNstr,
 									  SInfo->LowerDescURL, defaultExp, 1,
@@ -186,20 +186,20 @@ int AdvertiseAndReply(int AdFlag, UpnpDevice_Handle Hnd,
 									  SInfo->RegistrationState);
 						} else if (atoi(strrchr(DeviceType, ':') + 1)
 								   == atoi(&devType[strlen(devType) - 1])) {
-							UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-									   "DeviceType=%s /srchDevType=%s MATCH\n",
+							UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+									   "DeviceType=%s/srchDevType=%s MATCH\n",
 									   devType, DeviceType);
 							SendReply(DestAddr, DeviceType, 0,
 									  UDNstr, SInfo->DescURL, defaultExp, 1,
 									  SInfo->PowerState, SInfo->SleepPeriod,
 									  SInfo->RegistrationState);
 						} else {
-							UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-									   "DeviceType=%s / srchDevType=%s NOMATCH\n",
+							UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+									   "DeviceType=%s/srchDevType=%s NOMATCH\n",
 									   devType, DeviceType);
 						}
 					} else {
-						UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
+						UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
 								   "DeviceType=%s /srchdevType=%s NOMATCH\n",
 								   devType, DeviceType);
 					}
@@ -212,15 +212,15 @@ int AdvertiseAndReply(int AdFlag, UpnpDevice_Handle Hnd,
 
 			/* send service advertisements for services corresponding
 			 * to the same device */
-			UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-					   "Sending service Advertisement\n");
+			UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+					   "Sending service advertisements\n");
 			/* Correct service traversal such that each device's serviceList
 			 * is directly traversed as a child of its parent device. This
 			 * ensures that the service's alive message uses the UDN of
 			 * the parent device. */
 			for (const auto& service : devp->services) {
 				const char *servType = service.serviceType.c_str();
-				UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
+				UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
 						   "ServiceType = %s\n", servType);
 				if (AdFlag) {
 					if (AdFlag == 1) {
@@ -254,9 +254,10 @@ int AdvertiseAndReply(int AdFlag, UpnpDevice_Handle Hnd,
 									   reply with the lower version
 									   number and the lower
 									   description URL */
-									UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-											   "ServiceType=%s and search servType=%s MATCH\n",
-											   ServiceType, servType);
+									UpnpPrintf(
+										UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+										"ServiceTp=%s/searchServTp=%s MATCH\n",
+										ServiceType, servType);
 									SendReply(DestAddr, ServiceType, 0, UDNstr,
 											  SInfo->LowerDescURL, defaultExp, 1,
 											  SInfo->PowerState,
@@ -265,23 +266,26 @@ int AdvertiseAndReply(int AdFlag, UpnpDevice_Handle Hnd,
 								} else if (
 									atoi(strrchr (ServiceType, ':') + 1)
 									== atoi(&servType[strlen(servType) - 1])) {
-									UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-											   "ServiceType=%s and search servType=%s MATCH\n",
-											   ServiceType, servType);
+									UpnpPrintf(
+										UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+										"ServiceTp=%s/searchServTp=%s MATCH\n",
+										ServiceType, servType);
 									SendReply(DestAddr, ServiceType, 0, UDNstr,
 											  SInfo->DescURL, defaultExp, 1,
 											  SInfo->PowerState,
 											  SInfo->SleepPeriod,
 											  SInfo->RegistrationState);
 								} else {
-									UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-											   "ServiceType=%s and search servType=%s DID NOT MATCH\n",
-											   ServiceType, servType);
+									UpnpPrintf(
+										UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+										"ServiceTp=%s/srchServTp=%s NO MATCH\n",
+										ServiceType, servType);
 								}
 							} else {
-								UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-										   "ServiceType=%s and search servType=%s DID NOT MATCH\n",
-										   ServiceType, servType);
+								UpnpPrintf(
+									UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+									"ServiceTp=%s/srchServTp=%s NO MATCH\n",
+									ServiceType, servType);
 							}
 						}
 						break;
@@ -294,8 +298,7 @@ int AdvertiseAndReply(int AdFlag, UpnpDevice_Handle Hnd,
 	}
 
 end_function:
-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-			   "Exiting AdvertiseAndReply.\n");
+	UpnpPrintf(UPNP_ALL, SSDP, __FILE__, __LINE__, "AdvertiseAndReply exit\n");
 	HandleUnlock();
 
 	return retVal;
@@ -522,7 +525,7 @@ void readFromSSDPSocket(SOCKET socket)
 			upnp_strlcpy(ntop_buf, "<Invalid address family>", sizeof(ntop_buf));
 		}
 		UpnpPrintf(
-			UPNP_INFO, SSDP, __FILE__, __LINE__,
+			UPNP_DEBUG, SSDP, __FILE__, __LINE__,
 			"Start of received response ----------------------------------\n"
 			"%s\n"
 			"End of received response ------------------------------------\n"
@@ -615,7 +618,7 @@ static int create_ssdp_sock_v4(
 					 (char *)&addr, sizeof addr);
 	if (ret == -1) {
 		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-		UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
+		UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
 				   "setsockopt() IP_MULTICAST_IF: %s\n", errorBuffer);
 		/* This is probably not a critical error, so let's continue. */
 	}

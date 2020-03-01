@@ -141,7 +141,7 @@ static int headers_cb(void *cls, enum MHD_ValueKind kind,
 	std::string key(k);
 	stringtolower(key);
 	mhtt->headers[key] = value;
-	UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+	UpnpPrintf(UPNP_ALL, MSERV, __FILE__, __LINE__,
 			   "miniserver:gather_header: [%s: %s]\n",	key.c_str(), value);
 	return MHD_YES;
 }
@@ -223,7 +223,7 @@ static int answer_to_connection(
 		*upload_data_size = 0;
 		return MHD_YES;
 	}
-	UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+	UpnpPrintf(UPNP_DEBUG, MSERV, __FILE__, __LINE__,
 			   "answer_to_connection: end of upload, postdata:\n[%s]\n",
 			   mhdt->postdata.c_str());
 	
@@ -294,7 +294,7 @@ static void web_server_accept(SOCKET lsock, fd_set *set)
 			const union MHD_DaemonInfo *info = 
 				MHD_get_daemon_info(mhd, MHD_DAEMON_INFO_CURRENT_CONNECTIONS);
 			if (info) {
-				UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+				UpnpPrintf(UPNP_ALL, MSERV, __FILE__, __LINE__,
 						   "MHD connection count: %d\n", info->num_connections);
 			}
 #endif

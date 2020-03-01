@@ -93,18 +93,18 @@ extern std::mutex GlobalClientSubscribeMutex;
  * \brief Locks the subscription.
  */
 #define SubscribeLock() \
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,"Trying Subscribe Lock\n"); \
+	UpnpPrintf(UPNP_ALL, GENA, __FILE__, __LINE__,"Trying Subscribe Lock\n"); \
 	GlobalClientSubscribeMutex.lock();									\
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__, "Subscribe Lock\n");
+	UpnpPrintf(UPNP_ALL, GENA, __FILE__, __LINE__, "Subscribe Lock\n");
 
 
 /*!
  * \brief Unlocks the subscription.
  */
 #define SubscribeUnlock() \
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__,__LINE__,"Trying Subscribe UnLock\n"); \
+	UpnpPrintf(UPNP_ALL, GENA, __FILE__,__LINE__,"Trying Subscribe UnLock\n"); \
 	GlobalClientSubscribeMutex.unlock();								\
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__, "Subscribe UnLock\n");
+	UpnpPrintf(UPNP_ALL, GENA, __FILE__, __LINE__, "Subscribe UnLock\n");
 
 
 /*!

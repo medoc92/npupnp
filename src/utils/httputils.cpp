@@ -438,7 +438,7 @@ size_t header_callback_curl(char *buffer, size_t size, size_t nitems, void *s)
 			trimstring(nm, " \t");
 			stringtolower(nm);
 			trimstring(value, " \t\r\n");
-			UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
+			UpnpPrintf(UPNP_ALL, HTTP, __FILE__, __LINE__,
 					   "CURL header: [%s] -> [%s]\n", nm.c_str(), value.c_str());
 			(*headers)[nm] = value;
 		}

@@ -118,7 +118,6 @@ static void *thread_autorenewsubscription(
 			free_upnp_timeout(event);
 			goto end_function;
 		}
-		UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__, "HANDLE IS VALID\n");
 
 		/* make callback */
 		callback_fun = handle_info->Callback;
@@ -470,7 +469,7 @@ int genaSubscribe(
 	std::string EventURL;
 	struct Handle_Info *handle_info;
 
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__, "GENA SUBSCRIBE BEGIN\n");
+	UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__, "genaSubscribe\n");
 
 	out_sid->clear();
 
@@ -485,12 +484,11 @@ int genaSubscribe(
 
 	/* subscribe */
 	SubscribeLock();
-	return_code = gena_subscribe(PublisherURL, TimeOut, std::string(), &ActualSID);
+	return_code = gena_subscribe(PublisherURL,TimeOut,std::string(), &ActualSID);
 	HandleLock();
 	if (return_code != UPNP_E_SUCCESS) {
-		UpnpPrintf( UPNP_CRITICAL, GENA, __FILE__, __LINE__,
-			"SUBSCRIBE FAILED in transfer error code: %d returned\n",
-			return_code );
+		UpnpPrintf(UPNP_ERROR, GENA, __FILE__, __LINE__,
+				   "genSubscribe: subscribe error, return %d\n", return_code);
 		goto error_handler;
 	}
 
@@ -554,8 +552,6 @@ int genaRenewSubscription(
 	}
 	/* remove old events */
 	gTimerThread->remove(sub->renewEventId);
-
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,"REMOVED AUTO RENEW EVENT\n");
 
 	sub->renewEventId = -1;
 	sub_copy = *sub;
@@ -650,11 +646,16 @@ void gena_process_notification_event(MHDTransaction *mhdt)
 	Upnp_FunPtr callback;
 	UpnpClient_Handle client_handle;
 	std::string tmpSID;
+
+	UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
+			   "gena_process_notification_event\n");
 	
 	auto itsid = mhdt->headers.find("sid");
 	/* get SID */
 	if (itsid == mhdt->headers.end()) {
 		http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
+		UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
+				   "gena_process_notification_event: no SID\n");
 		return;
 	}
 	const std::string& sid = itsid->second;
@@ -663,11 +664,15 @@ void gena_process_notification_event(MHDTransaction *mhdt)
 	/* get event key */
 	if (itseq == mhdt->headers.end()) {
 		http_SendStatusResponse(mhdt, HTTP_BAD_REQUEST);
+		UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
+				   "gena_process_notification_event: no SEQ\n");
 		return;
 	}
 	char cb[2];
 	if (sscanf(itseq->second.c_str(), "%d%1c", &eventKey, cb) != 1) {
 		http_SendStatusResponse(mhdt, HTTP_BAD_REQUEST);
+		UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
+				   "gena_process_notification_event: bad seq\n");
 		return;
 	}
 
@@ -676,24 +681,33 @@ void gena_process_notification_event(MHDTransaction *mhdt)
 	/* get NT and NTS headers */
 	if (itnt == mhdt->headers.end() || itnts == mhdt->headers.end()) {
 		http_SendStatusResponse(mhdt, HTTP_BAD_REQUEST);
+		UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
+				   "gena_process_notification_event: no NTS\n");
 		return;
 	}
 
 	/* verify NT and NTS headers */
 	if (itnt->second != "upnp:event" || itnts->second != "upnp:propchange") {
 		http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
+		UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
+				   "gena_process_notification_event: bad nt or nts\n");
 		return;
 	}
 
 	/* parse the content (should be XML) */
 	if (!has_xml_content_type(mhdt) || mhdt->postdata.empty()) {
 		http_SendStatusResponse(mhdt, HTTP_BAD_REQUEST);
+		UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
+				   "gena_process_notification_event: empty or not xml\n");
 		return;
 	}
 	std::unordered_map<std::string, std::string> propset;
     UPnPPropertysetParser parser(mhdt->postdata, propset);
 	if (!parser.Parse()) {
 		http_SendStatusResponse(mhdt, HTTP_BAD_REQUEST);
+		UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
+				   "gena_process_notification_event: xml parse failed: [%s]\n",
+				   mhdt->postdata.c_str());
 		return;
 	}
 	HandleLock();

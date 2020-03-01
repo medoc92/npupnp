@@ -142,9 +142,6 @@ int SoapSendAction(
 
 	int err_code = UPNP_E_OUTOF_MEMORY;
 
-	UpnpPrintf( UPNP_INFO, SOAP, __FILE__, __LINE__,
-				"Inside SoapSendActionEx():\n" );
-
 	/* Action: name and namespace (servicetype) */
 	std::ostringstream act;
 	act << "<u:" << actionName << " xmlns:u=\"" << serviceType << "\">\n";
@@ -161,8 +158,9 @@ int SoapSendAction(
 		return UPNP_E_INVALID_URL;
 	}
 
-	UpnpPrintf(UPNP_INFO,SOAP,__FILE__,__LINE__,"path=%s query=%s hostport=%s\n",
-			   url.path.c_str(), url.query.c_str(), url.hostport.text.c_str());
+	UpnpPrintf(UPNP_DEBUG, SOAP, __FILE__, __LINE__,
+			   "soapSendAction: hostport [%s] path [%s] action [%s]\n",
+			   url.hostport.text.c_str(), url.path.c_str(), actionName.c_str());
 
 	std::string payload{xml_start};
 	if (!xml_header_str.empty()) {
@@ -225,7 +223,7 @@ int SoapSendAction(
 	const auto it = http_headers.find("content-type");
 	if (it == http_headers.end()) {
 		UpnpPrintf(UPNP_ERROR, GENA, __FILE__, __LINE__,
-				   "No Content-Type header in SOAP response\n");
+				   "soapSendAction: no Content-Type header in SOAP response\n");
 		return	UPNP_E_BAD_RESPONSE;
 	}
 	std::string content_type = it->second;
@@ -236,7 +234,11 @@ int SoapSendAction(
 		responsestr, http_status, content_type,
 		responsename, &upnp_error_code, respdata, errcodep, errdesc);
 
-	if( ret_code == SOAP_ACTION_RESP ) {
+	UpnpPrintf(UPNP_DEBUG, SOAP, __FILE__, __LINE__,
+			   "soapSendAction: http_stt [%ld] upnp_error_code %d errdesc[%s]\n",
+			   http_status, upnp_error_code, errdesc.c_str());
+
+	if (ret_code == SOAP_ACTION_RESP) {
 		err_code = UPNP_E_SUCCESS;
 	} else if (ret_code == SOAP_ACTION_RESP_ERROR ) {
 		err_code = upnp_error_code;
@@ -248,4 +250,3 @@ int SoapSendAction(
 
 #endif /* EXCLUDE_SOAP */
 #endif /* INCLUDE_CLIENT_APIS */
-
