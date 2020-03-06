@@ -55,6 +55,7 @@
 #include "upnpapi.h"
 #include "smallut.h"
 #include "uri.h"
+#include "inet_pton.h"
 
 #include <assert.h>
 #include <errno.h>

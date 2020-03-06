@@ -40,8 +40,12 @@
 
 #include <string.h>
 #include <sys/types.h>
-#include <netdb.h>
 
+#ifdef _WIN32
+#include <Winsock2.h>
+#else
+#include <sys/socket.h>
+#endif
 
 /*!
  * \brief Represents a host port: e.g. "127.127.0.1:80" text is a token

@@ -52,6 +52,7 @@ nnn * Redistribution and use in source and binary forms, with or without
 #include "UpnpInet.h"
 #include "ThreadPool.h"
 #include "smallut.h"
+#include "inet_pton.h"
 
 /*!
  * \brief Sends a callback to the control point application with a SEARCH

@@ -282,8 +282,8 @@ static int get_file_info(
 	info->last_modified = s.st_mtime;
 	int rc = get_content_type(filename, info->content_type);
 	UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
-			   "file info: %s, length: %lld, last_mod=%s readable=%d\n",
-			   filename, (long long)info->file_length,
+			   "file info: %s, length: %" PRIi64 ", last_mod=%s readable=%d\n",
+			   filename, (int64_t)info->file_length,
 			   make_date_string(info->last_modified).c_str(),
 			   info->is_readable);
 

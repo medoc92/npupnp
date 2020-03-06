@@ -46,6 +46,7 @@
 #include "ThreadPool.h"
 #include "upnp_timeout.h"
 #include "smallut.h"
+#include "inet_pton.h"
 
 /* Needed for GENA */
 #include "gena.h"

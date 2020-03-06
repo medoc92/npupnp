@@ -6,25 +6,21 @@
  *  and functions.
  */
 
-#ifdef WIN32
-	#include <stdarg.h>
-	#ifndef UPNP_USE_MSVCPP
-		/* Removed: not required (and cause compilation issues) */
-		#include <winbase.h>
-		#include <windef.h>
-	#endif
-	#include <winsock2.h>
-	#include <iphlpapi.h>
-	#include <ws2tcpip.h>
+#ifdef _WIN32
+#include <stdarg.h>
+#include <winsock2.h>
+#include <iphlpapi.h>
+#include <ws2tcpip.h>
 
-	#define UpnpCloseSocket closesocket
+#define UpnpCloseSocket closesocket
 
-	#if(_WIN32_WINNT < 0x0600)
-		typedef short sa_family_t;
-	#else
-		typedef ADDRESS_FAMILY sa_family_t;
-	#endif
-    #define UPNP_SOCK_GET_LAST_ERROR() WSAGetLastError()
+#if(_WIN32_WINNT < 0x0600)
+typedef short sa_family_t;
+#else
+typedef ADDRESS_FAMILY sa_family_t;
+#endif
+
+#define UPNP_SOCK_GET_LAST_ERROR() WSAGetLastError()
 
 #else /* ! WIN32 -> */
 	#include <syslog.h>

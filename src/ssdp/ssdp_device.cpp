@@ -44,6 +44,7 @@
 #include "upnpdebug.h"
 #include "TimerThread.h"
 #include "smallut.h"
+#include "inet_pton.h"
 
 #include <assert.h>
 #include <stdio.h>

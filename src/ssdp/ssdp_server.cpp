@@ -42,6 +42,7 @@
 #include "ThreadPool.h"
 #include "upnpapi.h"
 #include "smallut.h"
+#include "inet_pton.h"
 
 #include <stdio.h>
 #include <fcntl.h>
@@ -547,8 +548,8 @@ static int create_ssdp_sock_v4(
 	SOCKET *ssdpSock)
 {
 	char errorBuffer[ERROR_BUFFER_LEN];
+	char ttl = 4;
 	int onOff;
-	u_char ttl = (u_char)4;
 	struct ip_mreq ssdpMcastAddr;
 	struct sockaddr_storage __ss;
 	struct sockaddr_in *ssdpAddr4 = (struct sockaddr_in *)&__ss;
@@ -593,8 +594,8 @@ static int create_ssdp_sock_v4(
 	if (ret == -1) {
 		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 		UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-				   "bind(), addr=0x%08X, port=%d: %s\n",
-				   INADDR_ANY, SSDP_PORT, errorBuffer);
+				   "bind(), addr=0x%08lX, port=%d: %s\n",
+				   (unsigned long)INADDR_ANY, SSDP_PORT, errorBuffer);
 		ret = UPNP_E_SOCKET_BIND;
 		goto error_handler;
 	}
@@ -655,7 +656,6 @@ static int create_ssdp_sock_reqv4(
 	SOCKET *ssdpReqSock)
 {
 	char errorBuffer[ERROR_BUFFER_LEN];
-	u_char ttl = 4;
 
 	*ssdpReqSock = socket(AF_INET, SOCK_DGRAM, 0);
 	if (*ssdpReqSock == INVALID_SOCKET) {
@@ -664,6 +664,7 @@ static int create_ssdp_sock_reqv4(
 				   "socket(): %s\n", errorBuffer);
 		return UPNP_E_OUTOF_SOCKET;
 	}
+	char ttl = 4;
 	setsockopt(*ssdpReqSock, IPPROTO_IP, IP_MULTICAST_TTL,
 			   &ttl, sizeof(ttl));
 	/* just do it, regardless if fails or not. */

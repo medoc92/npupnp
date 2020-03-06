@@ -3,13 +3,8 @@
 
 #ifdef _WIN32
 
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdint.h>
-#include <sys/socket.h>
+#include <Winsock2.h>
 
-typedef uint32_t socklen_t;
 /*!
  * \file
  *

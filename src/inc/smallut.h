@@ -32,6 +32,7 @@
 #define _SMALLUT_H_INCLUDED_
 
 #include <string>
+#include <string.h>
 
 extern void stringtolower(std::string& io);
 extern std::string stringtolower(const std::string& i);
@@ -56,7 +57,6 @@ int dom_cmp_name(const std::string& domname, const std::string& ref);
 /* Size of the errorBuffer variable, passed to the strerror_r() function */
 #define ERROR_BUFFER_LEN (size_t)256
 #if !defined(_WIN32)
-#include <string.h>
 inline char *_check_strerror_r(int, char *errbuf) {
 	return errbuf;
 }
@@ -70,6 +70,14 @@ inline int posix_strerror_r(int err, char *buf, size_t len) {
 	}
 	return 0;
 }
+#else
+#define posix_strerror_r(errno,buf,len) strerror_s(buf,len,errno)
+#ifdef _WIN32
+#ifndef PRIu64
+#define PRIu64 "I64u"
+#define PRIi64 "I64i"
+#endif
+#endif
 #endif
 
 #ifndef MAX

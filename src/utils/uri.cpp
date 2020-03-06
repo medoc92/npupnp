@@ -51,6 +51,7 @@
 #include "uri.h"
 #include "smallut.h"
 #include "upnpapi.h"
+#include "inet_pton.h"
 
 /*!
  * \brief Parses a string representing a host and port (e.g. "127.127.0.1:80"
