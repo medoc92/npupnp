@@ -213,10 +213,8 @@ struct Notification {
 	time_t ctime;        // Age
 };
 
-/*!
- * \brief Frees memory used in notify_threads if the reference count is 0,
- * otherwise decrements the reference count.
- */
+/* free_func set when creating the ThreadPool job. Always called by
+   the ThreadPool when deleting the job after done or error. */
 static void free_notify_struct(Notification *input)
 {
 	delete input;
@@ -248,7 +246,6 @@ static void *thread_genanotify(void *input)
 	/* validate context */
 
 	if (GetHandleInfo(in->device_handle, &handle_info) != HND_DEVICE) {
-		free_notify_struct(in);
 		HandleUnlock();
 		return nullptr;
 	}
@@ -258,7 +255,6 @@ static void *thread_genanotify(void *input)
 	    !service->active ||
 	    !(sub = GetSubscriptionSID(in->sid, service)) ||
 	    copy_subscription(sub, &sub_copy) != UPNP_E_SUCCESS) {
-		free_notify_struct(in);
 		HandleUnlock();
 		return nullptr;
 	}
@@ -269,7 +265,6 @@ static void *thread_genanotify(void *input)
 	return_code = genaNotify(in->propertySet, &sub_copy);
 	HandleLock();
 	if (GetHandleInfo(in->device_handle, &handle_info) != HND_DEVICE) {
-		free_notify_struct(in);
 		HandleUnlock();
 		return nullptr;
 	}
@@ -278,7 +273,6 @@ static void *thread_genanotify(void *input)
 								  in->servId, in->UDN)) ||
 	    !service->active ||
 	    !(sub = GetSubscriptionSID(in->sid, service))) {
-		free_notify_struct(in);
 		HandleUnlock();
 		return nullptr;
 	}
@@ -287,7 +281,7 @@ static void *thread_genanotify(void *input)
 		/* wrap to 1 for overflow */
 		sub->ToSendEventKey = 1;
 
-	/* Remove head of event queue. Do not delete it, the completion routine
+	/* Remove head of event queue. Do not delete it, the ThreadJob free_func
 	   will do it */ 
 	if (!sub->outgoing.empty()) {
 		sub->outgoing.pop_front();
@@ -299,6 +293,11 @@ static void *thread_genanotify(void *input)
 							   (ThreadPool::free_routine)free_notify_struct);
 	}
 
+	// No idea why we do this after sending one more event. Was the
+	// same in pupnp. It would seem saner to call this right after we
+	// get the error and do nothing else? Would have to take care with
+	// the first Notif then, because it's the only case where it's not
+	// managed by a ThreadPool Job (potentially creating a mem leak).
 	if (return_code == GENA_E_NOTIFY_UNACCEPTED_REMOVE_SUB)
 		RemoveSubscriptionSID(in->sid, service);
 
@@ -323,8 +322,7 @@ static int genaInitNotifyCommon(
 	service_info *service = NULL;
 	struct Handle_Info *handle_info;
 
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
-		"GENA BEGIN INITIAL NOTIFY COMMON\n");
+	UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__, "genaInitNotifyCommon\n");
 
 	HandleLock();
 
@@ -340,9 +338,6 @@ static int genaInitNotifyCommon(
 		ret = GENA_E_BAD_SERVICE;
 		goto ExitFunction;
 	}
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
-		"FOUND SERVICE IN INIT NOTFY: UDN %s, ServID: %s\n",
-		UDN, servId);
 
 	sub = GetSubscriptionSID(sid, service);
 	if (sub == NULL || sub->active) {
@@ -350,8 +345,6 @@ static int genaInitNotifyCommon(
 		ret = GENA_E_BAD_SID;
 		goto ExitFunction;
 	}
-	UpnpPrintf( UPNP_INFO, GENA, __FILE__, __LINE__,
-		"FOUND SUBSCRIPTION IN INIT NOTIFY: SID %s\n", sid);
 	sub->active = 1;
 
 	/* schedule thread for initial notification */
@@ -377,19 +370,15 @@ static int genaInitNotifyCommon(
 		line = __LINE__;
 		sub->outgoing.push_back(thread_struct);
 		ret = GENA_SUCCESS;
-		ret = GENA_SUCCESS;
 	}
 
 ExitFunction:
 	if (ret != GENA_SUCCESS) {
 		delete thread_struct;
 	}
-
 	HandleUnlock();
-
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, line,
-		"GENA END INITIAL NOTIFY COMMON, ret = %d\n", ret);
-
+	UpnpPrintf(UPNP_ALL, GENA, __FILE__, line,
+			   "genaInitNotifyCommon: ret %d\n", ret);
 	return ret;
 }
 
@@ -406,8 +395,7 @@ int genaInitNotify(
 	int line = 0;
 	std::string propertySet;
 
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
-		"GENA BEGIN INITIAL NOTIFY\n");
+	UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__, "genaInitNotify\n");
 
 	if (var_count <= 0) {
 		line = __LINE__;
@@ -420,38 +408,31 @@ int genaInitNotify(
 		line = __LINE__;
 		goto ExitFunction;
 	}
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
-		"GENERATED PROPERTY SET IN INIT NOTIFY: %s\n",
-			   propertySet.c_str());
 
 	ret = genaInitNotifyCommon(device_handle, UDN, servId, propertySet, sid);
 
 ExitFunction:
-
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, line,
-		"GENA END INITIAL NOTIFY, ret = %d\n",
-		ret);
-
+	UpnpPrintf(UPNP_ALL, GENA, __FILE__,line, "genaInitNotify: ret = %d\n", ret);
 	return ret;
 }
 
 void freeSubscriptionQueuedEvents(subscription *sub)
 {
-	/* The first event is discarded without deleting with the
-	   Notification: there is a mirror ThreadPool entry for
-	   this one, and the completion event will take care of it. Other
-	   entries must be fully cleaned-up here */
+	/* The first event is discarded without deleting the Notification:
+	   there is a mirror ThreadPool entry for this one, and the
+	   completion event will take care of it. Other entries must be
+	   fully cleaned-up here */
 	auto it = sub->outgoing.begin();
 	if (it != sub->outgoing.end())
 		it++;
 	while (it != sub->outgoing.end()) {
-		free_notify_struct(*it);
+		delete *it;
 		it = sub->outgoing.erase(it);
 	}
 }
 
 /*
- * This gets called before queuing a new event.
+ * This gets called before queuing a new event, with the handLock held.
  * - The list size can never go over MAX_SUBSCRIPTION_QUEUED_EVENTS so we
  *   discard the oldest non-active event if it is already at the max
  * - We also discard any non-active event older than MAX_SUBSCRIPTION_EVENT_AGE.
@@ -462,16 +443,16 @@ static void maybeDiscardEvents(std::list<Notification*>& outgoing)
 {
 	time_t now = time(0L);
 
-	auto jobit = outgoing.begin();
+	auto it = outgoing.begin();
 	// Skip first event: it's in the pool already
-	if (jobit != outgoing.end())
-		jobit++;
-	while (jobit != outgoing.end()) {
-		Notification *ntsp = *jobit;
+	if (it != outgoing.end())
+		it++;
+	while (it != outgoing.end()) {
+		Notification *ntsp = *it;
 		if (outgoing.size() > unsigned(g_UpnpSdkEQMaxLen) ||
 			now - ntsp->ctime > g_UpnpSdkEQMaxAge) {
-			free_notify_struct(ntsp);
-			jobit = outgoing.erase(jobit);
+			delete ntsp;
+			it = outgoing.erase(it);
 		} else {
 			/* If the list is smaller than the max and the oldest
 			 * task is young enough, stop pruning */
@@ -493,8 +474,7 @@ static int genaNotifyAllCommon(
 	service_info *service = NULL;
 	struct Handle_Info *handle_info;
 
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
-		"GENA BEGIN NOTIFY ALL COMMON\n");
+	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__, "genaNotifyAllCommon\n");
 
 	HandleLock();
 
@@ -551,9 +531,8 @@ static int genaNotifyAllCommon(
 ExitFunction:
 	HandleUnlock();
 
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, line,
-		"GENA END NOTIFY ALL COMMON, ret = %d\n",
-		ret);
+	UpnpPrintf(UPNP_ALL, GENA, __FILE__, line,
+			   "genaNotifyAllCommon: ret = %d\n", ret);
 
 	return ret;
 }
@@ -569,8 +548,7 @@ int genaNotifyAll(
 	int ret = GENA_SUCCESS;
 	int line = 0;
 
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
-		"GENA BEGIN NOTIFY ALL\n");
+	UpnpPrintf(UPNP_ALL, GENA, __FILE__, __LINE__, "genaNotifyAll\n");
 
 	std::string propertySet;
 	ret = GeneratePropertySet(VarNames, VarValues, var_count, &propertySet);
@@ -578,18 +556,11 @@ int genaNotifyAll(
 		line = __LINE__;
 		goto ExitFunction;
 	}
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
-		"GENERATED PROPERTY SET IN EXT NOTIFY: %s\n",
-			   propertySet.c_str());
 
 	ret = genaNotifyAllCommon(device_handle, UDN, servId, propertySet);
 
 ExitFunction:
-
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, line,
-		"GENA END NOTIFY ALL, ret = %d\n",
-		ret);
-
+	UpnpPrintf(UPNP_ALL, GENA, __FILE__, line, "genaNotifyAll ret = %d\n", ret);
 	return ret;
 }
 
@@ -885,6 +856,9 @@ void gena_process_subscription_renewal_request(MHDTransaction *mhdt)
 
 void gena_process_unsubscribe_request(MHDTransaction *mhdt)
 {
+	UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
+				   "gena_process_unsubscribe_request\n");
+	
     service_info *service;
     struct Handle_Info *handle_info;
     UpnpDevice_Handle device_handle;
