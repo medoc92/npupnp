@@ -548,7 +548,7 @@ int genaNotifyAll(
 
 	std::string propertySet;
 	ret = GeneratePropertySet(VarNames, VarValues, var_count, &propertySet);
-	if (ret != UPMP_E_SUCCESS) {
+	if (ret != UPNP_E_SUCCESS) {
 		line = __LINE__;
 		goto ExitFunction;
 	}
