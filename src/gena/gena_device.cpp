@@ -3,6 +3,7 @@
  * Copyright (c) 2000-2003 Intel Corporation 
  * All rights reserved. 
  * Copyright (c) 2012 France Telecom All rights reserved. 
+ * Copyright (c) 2020 J.F. Dockes <jf@dockes.org>
  *
  * Redistribution and use in source and binary forms, with or without 
  * modification, are permitted provided that the following conditions are met: 
@@ -49,20 +50,15 @@
 #include "gena_sids.h"
 #include "smallut.h"
 
-#define STALE_JOBID (INVALID_JOB_ID -1)
-
 const static char *XML_PROPERTYSET_HEADER =
 	"<e:propertyset xmlns:e=\"urn:schemas-upnp-org:event-1-0\">\n";
-
 
 /*!
  * \brief Unregisters a device.
  *
  * \return UPNP_E_SUCCESS on success, GENA_E_BAD_HANDLE on failure.
  */
-int genaUnregisterDevice(
-	/*! [in] Device handle. */
-	UpnpDevice_Handle device_handle)
+int genaUnregisterDevice(UpnpDevice_Handle device_handle)
 {
 	int ret = 0;
 	struct Handle_Info *handle_info;
@@ -107,15 +103,15 @@ static int GeneratePropertySet(
 			names[counter] + ">\n</e:property>\n";
 	}
 	out += "</e:propertyset>\n\n";
-	return XML_SUCCESS;
+	return UPNP_E_SUCCESS;
 }
 
 
 /*!
  * \brief Function to Notify a particular subscription of a particular event.
  *
- * In general the service should NOT be blocked around this call (this may
- * cause deadlock with a client).
+ * This is called by a thread pool thread, and the subscription is a
+ * copy of the handle table data, so, no locking.
  *
  * NOTIFY http request is sent and the reply is processed.
  *
@@ -131,9 +127,7 @@ static int GeneratePropertySet(
  * The previous version had more detailed error codes, but all other
  * error codes were just ignored, except for message printing.
  */
-static int genaNotify(
-	const std::string& propertySet,
-	const subscription *sub)
+static int genaNotify(const std::string& propertySet, const subscription *sub)
 {
 	std::string mid_msg;
 	int return_code = -1;
@@ -203,7 +197,11 @@ static int genaNotify(
 }
 
 
-/* Structure to send NOTIFY message to all subscribed control points */
+/* Notification structures are queued on the output queue of every
+   subscription.  They hold some common data because the same event is
+   sent to all subscribed CPs. Probably not worth the trouble sharing
+   though (e.g. with shared_ptr for the propertySet string. We don't
+   typically have thousands of subscribed CPs... */
 struct Notification {
 	UpnpDevice_Handle device_handle; //
 	std::string UDN;                 // Device
@@ -223,10 +221,8 @@ static void free_notify_struct(Notification *input)
 /*!
  * \brief Thread job to Notify a control point.
  *
- * It validates the subscription and copies the subscription. Also make sure
- * that events are sent in order.
- *
- * \note calls the genaNotify to do the actual work.
+ * It validates and copies the subscription so that the lock can be
+ * released during the actual network transfer (done by genaNotify())
  */
 static void *thread_genanotify(void *input)
 {
@@ -404,7 +400,7 @@ int genaInitNotify(
 	}
 
 	ret = GeneratePropertySet(VarNames, VarValues, var_count, &propertySet);
-	if (ret != XML_SUCCESS) {
+	if (ret != UPNP_E_SUCCESS) {
 		line = __LINE__;
 		goto ExitFunction;
 	}
@@ -552,7 +548,7 @@ int genaNotifyAll(
 
 	std::string propertySet;
 	ret = GeneratePropertySet(VarNames, VarValues, var_count, &propertySet);
-	if (ret != XML_SUCCESS) {
+	if (ret != UPMP_E_SUCCESS) {
 		line = __LINE__;
 		goto ExitFunction;
 	}
