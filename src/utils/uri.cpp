@@ -45,7 +45,14 @@
 #if __FreeBSD_version < 601103
 #include <lwres/netdb.h>
 #endif
-#endif
+#endif /* freebsd */
+
+#ifndef _WIN32
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#endif /* _WIN32 */
+
 #include <assert.h>
 
 #include "uri.h"
