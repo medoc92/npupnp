@@ -1037,8 +1037,7 @@ int UpnpRegisterRootDeviceAllForms(
 	/*
 	 * GENA SET UP
 	 */
-	hasServiceTable = getServiceTable(HInfo->devdesc, &HInfo->ServiceTable,
-									  HInfo->DescURL);
+	hasServiceTable = initServiceTable(HInfo->devdesc, &HInfo->ServiceTable);
 	if (hasServiceTable) {
 		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
 				   "UpnpRegisterRootDeviceAllForms: GENA services:\n");
@@ -1107,6 +1106,8 @@ int UpnpUnRegisterRootDevice(UpnpDevice_Handle Hnd)
 int UpnpUnRegisterRootDeviceLowPower(UpnpDevice_Handle Hnd, int PowerState,
 									 int SleepPeriod, int RegistrationState)
 {
+	UpnpPrintf(UPNP_DEBUG,API, __FILE__, __LINE__, "UpnpUnRegisterRootDevice\n");
+
 	int retVal = 0;
 	struct Handle_Info *HInfo = NULL;
 
@@ -1946,10 +1947,10 @@ Upnp_Handle_Type GetHandleInfo(UpnpClient_Handle Hnd,
 	Upnp_Handle_Type ret = HND_INVALID;
 
 	if (Hnd < 1 || Hnd >= NUM_HANDLE) {
-		UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
+		UpnpPrintf(UPNP_ERROR, API, __FILE__, __LINE__,
 				   "GetHandleInfo: out of range\n");
 	} else if (HandleTable[Hnd] == NULL) {
-		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
+		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
 				   "GetHandleInfo: HTable[%d] is NULL\n",
 				   Hnd);
 	} else if (HandleTable[Hnd] != NULL) {

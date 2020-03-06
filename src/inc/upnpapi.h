@@ -119,6 +119,10 @@ struct Handle_Info
 	/*! Active SSDP searches. */
 	std::list<SsdpSearchArg*> SsdpSearchList;
 #endif
+
+	// Forbid copy construction and assignment
+    Handle_Info(const Handle_Info& rhs) = delete;
+    Handle_Info& operator=(const Handle_Info& rhs) = delete;
 };
 
 extern std::mutex GlobalHndRWLock;

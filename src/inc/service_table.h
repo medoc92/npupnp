@@ -89,7 +89,6 @@ struct service_info {
 };
 
 struct service_table {
-	std::string   URLBase;
 	std::list<service_info> serviceList;
 
 	service_table() {}
@@ -281,15 +280,10 @@ void freeServiceTable(
  *
  * \return An integer
  */
-int getServiceTable(
+int initServiceTable(
 	const UPnPDeviceDesc& devdesc,
 	/*! [in] Output parameter which will contain the service list and URL. */
-	service_table *out,
-	/*! [in] Default base URL on which the URL will be returned. */
-	const char *DefaultURLBase);
-
-/*	Misc helper functions	*/
-
+	service_table *out);
 
 #endif /* INCLUDE_DEVICE_APIS */
 

@@ -92,9 +92,12 @@ int copy_subscription(subscription *in, subscription *out)
  ************************************************************************/
 void RemoveSubscriptionSID(Upnp_SID sid, service_info *service)
 {
+	UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__, "RemoveSubscriptionSID\n");
 	auto& sublist(service->subscriptionList);
 	for (auto it = sublist.begin(); it != sublist.end(); ) {
 		if (!strcmp(sid, it->sid)) {
+			UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
+					   "RemoveSubscriptionSID: found\n");
 			it = sublist.erase(it);
 			service->TotalSubscriptions--;
 		} else {
@@ -116,6 +119,8 @@ subscription *GetSubscriptionSID(const Upnp_SID sid, service_info *service)
 	/*get the current_time */
 	time_t current_time = time(0);
 	if ((found->expireTime != 0) && (found->expireTime < current_time)) {
+		UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
+				   "GetSubscriptionSID: erasing expired subscription\n");
 		sublist.erase(found);
 		service->TotalSubscriptions--;
 		return nullptr;
@@ -137,6 +142,8 @@ std::list<subscription>::iterator GetNextSubscription(
 	while (current != sublist.end()) {
 		if ((current->expireTime != 0)
 			&& (current->expireTime < current_time)) {
+			UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
+					   "GetNextSubscription: erasing expired subscription\n");
 			current = sublist.erase(current);
 			service->TotalSubscriptions--;
 		} else if (current->active) {
@@ -373,9 +380,7 @@ void printServiceTable(
 	Upnp_LogLevel level,
 	Dbg_Module module)
 {
-	UpnpPrintf(level, module, __FILE__, __LINE__,
-			   "URL_BASE: %s\n", table->URLBase.c_str());
-	UpnpPrintf(level, module, __FILE__, __LINE__,  "Services: \n");
+	UpnpPrintf(level, module, __FILE__, __LINE__,  "service_table:Services: \n");
 	printServiceList(table, level, module);}
 #endif
 
@@ -429,13 +434,13 @@ static int fillServiceList(const UPnPDeviceDesc& dev, service_table *stable)
 			UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
 					   "BAD OR MISSING SCPDURL");
 		}
-		current->controlURL = resolve_rel_url(stable->URLBase, sdesc.controlURL);
+		current->controlURL = resolve_rel_url(dev.URLBase, sdesc.controlURL);
 		//std::cerr<<"getServLst:controlURL: "<<current->controlURL<<std::endl;
 		if (current->controlURL.empty()) {
 			UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,"Bad/No CONTROL URL");
 			fail = 1;
 		}
-		current->eventURL = resolve_rel_url(stable->URLBase, sdesc.eventSubURL);
+		current->eventURL = resolve_rel_url(dev.URLBase, sdesc.eventSubURL);
 		//std::cerr<<"getServLst:eventURL: "<<current->eventURL<<std::endl;
 		if (current->eventURL.empty()) {
 			UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__, "Bad/No EVENT URL");
@@ -448,25 +453,21 @@ static int fillServiceList(const UPnPDeviceDesc& dev, service_table *stable)
 }
 
 /************************************************************************
- * Function : getServiceTable
+ * Function : initServiceTable
  *
  * Parameters :
- *	service_table *out ;	output parameter which will contain the
- *				service list and URL
- *	const char *DefaultURLBase ; Default base URL on which the URL
- *				will be returned.
+ *  const UPnPDeviceDesc& devdesc, device description, with the service list.
+ *	service_table *out serviceTable to initialize from the Description and URL
  *
- * Description : Create service table from description document
+ * Description : Set the urlbase and create the serviceList. Note that services
+ *    for the root and all embedded devices are set on the same list.
  *
  * Return : 0 for failure, 1 if ok
  *
  ************************************************************************/
-int getServiceTable(
-	const UPnPDeviceDesc& devdesc,
-	service_table *out, const char *DefaultURLBase)
+int initServiceTable(const UPnPDeviceDesc& devdesc,	service_table *out)
 {
 	out->serviceList.clear();
-	out->URLBase = devdesc.URLBase;
 	fillServiceList(devdesc, out);
 	for (const auto& dev : devdesc.embedded) {
 		fillServiceList(dev, out);
