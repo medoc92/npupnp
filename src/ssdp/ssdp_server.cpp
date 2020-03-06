@@ -80,7 +80,6 @@ static int sock_make_no_blocking(SOCKET sock)
 }
 
 #ifdef INCLUDE_DEVICE_APIS
-static const char SERVICELIST_STR[] = "serviceList";
 
 int AdvertiseAndReply(int AdFlag, UpnpDevice_Handle Hnd,
 					  enum SsdpSearchType SearchType,

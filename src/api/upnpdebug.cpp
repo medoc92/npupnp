@@ -62,7 +62,6 @@ static int is_stderr;
 
 /* Set if the user called setlogfilename() or setloglevel() */
 static int setlogwascalled;
-static int initwascalled;
 /* Name of the output file. We keep a copy */
 static char *fileName;
 
@@ -72,14 +71,10 @@ static char *fileName;
  * risk of race, probably not a problem, and not worth fixing. */
 int UpnpInitLog(void)
 {
-	if (!initwascalled) {
-		initwascalled = 1;
-	}
 	/* If the user did not ask for logging do nothing */
 	if (setlogwascalled == 0 && !getenv("NPUPNP_FORCELOG")) {
 		return UPNP_E_SUCCESS;
 	}
-
 	if (fp) {
 		if (is_stderr == 0) {
 			fclose(fp);
