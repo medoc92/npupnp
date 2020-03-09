@@ -2,7 +2,7 @@ Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0
 Upstream-Name: nppupnp
 Upstream-Contact: Jean-Francois Dockes <jf@dockes.org>
 Source: http://www.lesbonscomptes.com/upmpdcli/downloads/
-    https://opensourceprojects.eu/p/npupnp/code/
+    https://framagit.org/medoc92/npupnp/code/
 Comment: This is npupnp, a for of pupnp, the Portable SDK for UPnP Devices,
    which is a fork of Intel's Linux SDK for UPnP Devices.
 
