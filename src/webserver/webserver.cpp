@@ -74,10 +74,19 @@ enum resp_type {
 
 struct SendInstruction {
 	std::string AcceptLanguageHeader;
-	/*! Read from local source and send on the network. */
-	int64_t ReadSendSize{0};
-	/*! Cookie associated with the virtualDir. */
+	/* Offset to begin reading at. Set by range header if present */
+	int64_t offset;
+	/*! Requested read size. -1 -> end of resource. Set by range
+	    header if present */
+	int64_t ReadSendSize{-1};
+	/*! Cookie associated with the virtualDir. This is set if the path
+	    matches a VirtualDir entry, and is passed to subsequent
+	    virtual dir calls. */
 	const void *cookie{nullptr};
+	/* Copy of the data if this request is for a localdoc, e.g. the
+	   description document set by the API if we serve it this way,
+	   instead of as a local file or a virtualdir entry (this depends
+	   on the kind of registerrootdevice call) */
 	std::string data;
 };
 
@@ -159,7 +168,10 @@ static const std::map<std::string, const char*> gEncodedMediaTypes = {
 };
 
 
-/*! Global variable. A local dir which serves as webserver root. */
+/*! Global variable. A file system directory which serves as webserver
+    root. If this is not set from the API UpnpSetWebServerRootDir()
+    call, we do not serve files from the file system at all (only
+    possibly the virtual dir and/or the localDocs). */
 static std::string gDocumentRootDir;
 
 struct LocalDoc {
@@ -282,7 +294,7 @@ static int get_file_info(
 	info->last_modified = s.st_mtime;
 	int rc = get_content_type(filename, info->content_type);
 	UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
-			   "file info: %s, length: %" PRIi64 ", last_mod=%s readable=%d\n",
+			   "get_file_info: %s, sz: %" PRIi64 ", mtime=%s rdable=%d\n",
 			   filename, (int64_t)info->file_length,
 			   make_date_string(info->last_modified).c_str(),
 			   info->is_readable);
@@ -369,19 +381,44 @@ static const VirtualDirListEntry *isFileInVirtualDir(const std::string& path)
 	return nullptr;
 }
 
+/* Parse a Range header */
+static bool parseRanges(
+	const std::string& ranges, std::vector<std::pair<int64_t, int64_t>>& oranges)
+{
+    oranges.clear();
+	std::string::size_type pos = ranges.find("bytes=");
+    if (pos == std::string::npos) {
+        return false;
+    }
+    pos += 6;
+    bool done = false;
+    while(!done) {
+		std::string::size_type dash = ranges.find('-', pos);
+        if (dash == std::string::npos) {
+            return false;
+        }
+        std::string::size_type comma = ranges.find(',', pos);
+        std::string firstPart = ranges.substr(pos, dash-pos);
+        int64_t start = firstPart.empty() ? 0 : atoll(firstPart.c_str());
+        std::string secondPart = ranges.substr(
+			dash+1, comma != std::string::npos ?
+			comma-dash-1 : std::string::npos);
+        int64_t fin = secondPart.empty() ? -1 : atoll(secondPart.c_str());
+		std::pair<int64_t, int64_t> nrange(start,fin);
+        oranges.push_back(nrange);
+        if (comma != std::string::npos) {
+            pos = comma + 1;
+        }
+        done = comma == std::string::npos;
+    }
+    return true;
+}
 
 /*!
- * \brief Get header id from the request parameter and take appropriate
- * action based on the ids.
- *
- * \return
- * \li \c HTTP_BAD_REQUEST
- * \li \c HTTP_INTERNAL_SERVER_ERROR
- * \li \c HTTP_REQUEST_RANGE_NOT_SATISFIABLE
- * \li \c HTTP_OK
+ * \brief Other header processing. Only HDR_ACCEPT_LANGUAGE for now.
  */
 static int CheckOtherHTTPHeaders(
-	MHDTransaction *mhdt, struct SendInstruction *RespInstr, off_t FileSize)
+	MHDTransaction *mhdt, struct SendInstruction *RespInstr, int64_t filesize)
 {
 	for (const auto& header : mhdt->headers) {
 		/* find header type. */
@@ -405,22 +442,15 @@ static int CheckOtherHTTPHeaders(
 /*!
  * \brief Processes the request and returns the result in the output parameters.
  *
- * \return
- * \li \c HTTP_BAD_REQUEST
- * \li \c HTTP_INTERNAL_SERVER_ERROR
- * \li \c HTTP_REQUEST_RANGE_NOT_SATISFIABLE
- * \li \c HTTP_FORBIDDEN
- * \li \c HTTP_NOT_FOUND
- * \li \c HTTP_NOT_ACCEPTABLE
- * \li \c HTTP_OK
+ * \return HTTP status code.
  */
 static int process_request(
 	MHDTransaction *mhdt,
-	/*! [out] Tpye of response. */
+	/*! [out] Type of response: what source type the data will come from. */
 	enum resp_type *rtype,
-	/*! [out] Headers. */
+	/*! [out] Headers for the response. */
 	std::map<std::string, std::string>& headers,
-	/*! [out] Get filename from request document. */
+	/*! [out] Computed actual file path. */
 	std::string& filename,
 	/*! [out] Send Instruction object where the response is set up. */
 	struct SendInstruction *RespInstr)
@@ -435,6 +465,27 @@ static int process_request(
 
 	if (mhdt->method == HTTPMETHOD_POST) {
 		return HTTP_FORBIDDEN;
+	}
+
+	std::vector<std::pair<int64_t, int64_t> > ranges;
+	auto it = mhdt->headers.find("range");
+    if (it != mhdt->headers.end()) {
+		if (parseRanges(it->second, ranges) && ranges.size()) {
+			if (ranges.size() > 1) {
+				return HTTP_REQUEST_RANGE_NOT_SATISFIABLE;
+			} else {
+				RespInstr->offset = ranges[0].first;
+				if (ranges[0].second >= 0) {
+					RespInstr->ReadSendSize = ranges[0].second -
+						ranges[0].first + 1;
+					if (RespInstr->ReadSendSize < 0) {
+						RespInstr->ReadSendSize = 0;
+					}
+				} else {
+					RespInstr->ReadSendSize = -1;
+				}
+			}
+		}
 	}
 
 	/* init */
@@ -553,8 +604,15 @@ static int process_request(
 		}
 	}
 
-	RespInstr->ReadSendSize = finfo.file_length;
-	//std::cerr << "process_request: readsz: " << RespInstr->ReadSendSize <<"\n";
+	if (RespInstr->ReadSendSize < 0) {
+		// No range specified or open-ended range
+		RespInstr->ReadSendSize = finfo.file_length - RespInstr->offset;
+	} else if (RespInstr->offset + RespInstr->ReadSendSize > finfo.file_length) {
+		RespInstr->ReadSendSize = finfo.file_length - RespInstr->offset;
+	}
+	
+	//std::cerr << "process_request: offset " << RespInstr->offset <<
+	// " count " << RespInstr->ReadSendSize << "\n";
 		
 	int code = CheckOtherHTTPHeaders(mhdt, RespInstr, finfo.file_length);
 	if (code != HTTP_OK) {
@@ -656,9 +714,8 @@ void web_server_callback(MHDTransaction *mhdt)
 			if (fd < 0) {
 				http_SendStatusResponse(mhdt, HTTP_FORBIDDEN);
 			} else {
-				struct stat st;
-				fstat(fd, &st);
-				mhdt->response = MHD_create_response_from_fd(st.st_size, fd);
+				mhdt->response = MHD_create_response_from_fd_at_offset64(
+					RespInstr.ReadSendSize, fd, RespInstr.offset);
 				mhdt->httpstatus = 200;
 			}
 		}
@@ -669,7 +726,14 @@ void web_server_callback(MHDTransaction *mhdt)
 			VFileReaderCtxt *ctxt = new VFileReaderCtxt;
 			ctxt->fp = virtualDirCallback.open(filename.c_str(), UPNP_READ,
 											   RespInstr.cookie);
+			if (ctxt->fp == nullptr) {
+				http_SendStatusResponse(mhdt, HTTP_INTERNAL_SERVER_ERROR);
+			}
 			ctxt->cookie = RespInstr.cookie;
+			if (RespInstr.offset) {
+				virtualDirCallback.seek(ctxt->fp, RespInstr.offset,
+										SEEK_SET, RespInstr.cookie);
+			}
 			mhdt->response = MHD_create_response_from_callback(
 				RespInstr.ReadSendSize, 4096, vFileReaderCallback,
 				ctxt, vFileFreeCallback);
@@ -702,8 +766,8 @@ void web_server_callback(MHDTransaction *mhdt)
 		MHD_add_response_header(mhdt->response, header.first.c_str(),
 								header.second.c_str());
 	}
+	MHD_add_response_header(mhdt->response, "Accept-Ranges", "bytes");
 	
-	UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
-			   "webserver: request processed...\n");
+	UpnpPrintf(UPNP_INFO,HTTP,__FILE__,__LINE__, "webserver: response ready.\n");
 }
 #endif /* EXCLUDE_WEB_SERVER */
