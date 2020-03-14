@@ -146,6 +146,72 @@ static void send_action_response(
 	mhdt->httpstatus = 200;
 }
 
+
+/* The original code performed a few consistency checks on the action xml
+   - Checked the soap namespace against
+     SOAP_URN = "http:/""/schemas.xmlsoap.org/soap/envelope/";
+   - Checked the "Body" elt name
+   - Checked that the action node namespace uri matched the service
+     type from the SOAPACTION header
+   - Checked that the action node local name matched the action name
+     from the SOAPACTION header.
+   - Other checks for a var request. We don't support this any more.
+  As we're not in the business of checking conformity, we did not reproduce
+  the tests for now.
+*/
+class UPnPActionRequestParser : public inputRefXMLParser {
+public:
+	UPnPActionRequestParser(
+		// XML to be parsed
+		const std::string& input,
+		// The action name is the XML element name for the argument
+		// elements parent element.
+		const std::string& actname,
+		// Output: action arguments
+		std::vector<std::pair<std::string, std::string>>& args,
+		bool isresponse)
+		: inputRefXMLParser(input), m_actname(actname), m_args(args),
+		  m_isresp(isresponse) { }
+
+	// On output, and only if we are parsing the action (not a
+	// response): XML sub-document, stripping the top <Envelope> and
+	// <Body> tags, because this is what upnp used to send in the ixml
+	// tree. This is just to ease the transition.
+	std::string outxml;
+
+protected:
+	virtual void StartElement(const XML_Char *name, const XML_Char**) {
+		if (!m_isresp && m_path.size() >= 3) {
+			outxml += std::string("<") + name + ">";
+		}
+	}
+    virtual void EndElement(const XML_Char *name) {
+		const std::string& parentname = (m_path.size() == 1) ?
+            "root" : m_path[m_path.size()-2].name;
+        trimstring(m_chardata, " \t\n\r");
+		if (!dom_cmp_name(parentname, m_actname)) {
+			m_args.push_back({name, m_chardata});
+		}
+		if (!m_isresp && m_path.size() >= 3) {
+			outxml += xmlQuote(m_chardata);
+			outxml += std::string("</") + name + ">";
+		}
+        m_chardata.clear();
+    }
+
+    virtual void CharacterData(const XML_Char *s, int len) {
+        if (s == 0 || *s == 0)
+            return;
+        m_chardata.append(s, len);
+    }
+
+private:
+	const std::string& m_actname;
+	std::string m_chardata;
+	std::vector<std::pair<std::string, std::string>>& m_args;
+	bool m_isresp;
+};
+
 /*!
  * \brief Handles the SOAP action request.
  */
@@ -162,7 +228,7 @@ static void handle_invoke_action(
 	upnp_strlcpy(action.ActionName, soap_info->action_name, NAME_SIZE);
 	upnp_strlcpy(action.DevUDN, soap_info->dev_udn, NAME_SIZE);
 	upnp_strlcpy(action.ServiceID, soap_info->service_id, NAME_SIZE);
-	action.xmlContent = xml;
+	action.xmlAction = xml;
 	action.args = actargs;
 	if (mhdt->client_address->ss_family == AF_INET) {
 		memcpy(&action.CtrlPtIPAddr, mhdt->client_address,
@@ -171,7 +237,6 @@ static void handle_invoke_action(
 		memcpy(&action.CtrlPtIPAddr, mhdt->client_address,
 			   sizeof(struct sockaddr_in6));
 	}		
-
 	soap_info->callback(UPNP_CONTROL_ACTION_REQUEST,&action,soap_info->cookie);
 	if (action.ErrCode != UPNP_E_SUCCESS) {
 		if (strlen(action.ErrStr) == 0) {
@@ -183,9 +248,25 @@ static void handle_invoke_action(
 		}
 		goto error_handler;
 	}
-
-	/* send response */
-	send_action_response(mhdt, soap_info, action.resdata);
+	if (!action.xmlResponse.empty()) {
+		// The client prefers to talk xml than use the args. We need to
+		// parse the data.
+		std::vector<std::pair<std::string, std::string>> args;
+		std::string rspnm = soap_info->action_name + "Response";
+		UPnPActionRequestParser parser(action.xmlResponse, rspnm, args, true);
+		if (!parser.Parse()) {
+			UpnpPrintf(UPNP_INFO, SOAP, __FILE__, __LINE__,
+					   "XML response parse failed for [%s]\n",
+					   action.xmlResponse.c_str());
+			err_code = SOAP_ACTION_FAILED;
+			err_str = Soap_Action_Failed;
+			goto error_handler;
+		}
+		send_action_response(mhdt, soap_info, args);
+	} else {
+		// Got argument vector from client.
+		send_action_response(mhdt, soap_info, action.resdata);
+	}
 	err_code = 0;
 
 error_handler:
@@ -324,54 +405,6 @@ static int check_soapaction_hdr(
 
 
 
-/* The original code performed a few consistency checks on the action xml
-   - Checked the soap namespace against
-     SOAP_URN = "http:/""/schemas.xmlsoap.org/soap/envelope/";
-   - Checked the "Body" elt name
-   - Checked that the action node namespace uri matched the service
-     type from the SOAPACTION header
-   - Checked that the action node local name matched the action name
-     from the SOAPACTION header.
-   - Other checks for a var request. We don't support this any more.
-  As we're not in the business of checking conformity, we did not reproduce
-  the tests for now.
-*/
-class UPnPActionRequestParser : public inputRefXMLParser {
-public:
-	UPnPActionRequestParser(
-		// XML to be parsed
-		const std::string& input,
-		// The action name is the XML element name for the argument
-		// elements parent element.
-		const std::string& actname,
-		// Output: action arguments
-		std::vector<std::pair<std::string, std::string>>& actargs)
-		: inputRefXMLParser(input), actionName(actname), data(actargs) {
-	}
-
-protected:
-    virtual void EndElement(const XML_Char *name) {
-		const std::string& parentname = (m_path.size() == 1) ?
-            "root" : m_path[m_path.size()-2].name;
-        trimstring(m_chardata, " \t\n\r");
-
-		if (!dom_cmp_name(parentname, actionName)) {
-			data.push_back({name, m_chardata});
-		}
-        m_chardata.clear();
-    }
-
-    virtual void CharacterData(const XML_Char *s, int len) {
-        if (s == 0 || *s == 0)
-            return;
-        m_chardata.append(s, len);
-    }
-
-private:
-	const std::string& actionName;
-	std::string m_chardata;
-	std::vector<std::pair<std::string, std::string>>& data;
-};
 
 /*!
  * \brief This is a callback called by miniserver after receiving the request
@@ -384,7 +417,8 @@ void soap_device_callback(MHDTransaction *mhdt)
 	const char *err_str = "";
 	soap_devserv_t soap_info;
 	std::vector<std::pair<std::string, std::string>> args;
-
+	std::string strippedxml;
+	
 	/* The device/service identified by the request URI */
 	if (get_dev_service(mhdt, mhdt->client_address->ss_family,&soap_info) < 0) {
 		err_code = HTTP_NOT_FOUND;
@@ -423,9 +457,12 @@ void soap_device_callback(MHDTransaction *mhdt)
 	}
 
 	{
-		// soap_info.action_name was computed from the SOAPACTION header
+		// soap_info.action_name was computed from the SOAPACTION
+		// header The parser will produce both argument vectors and an
+		// XML subdocument matching the subtree which libupnp would
+		// have sent (transition help).
 		UPnPActionRequestParser parser(
-			mhdt->postdata, soap_info.action_name, args);
+			mhdt->postdata, soap_info.action_name, args, false);
 		if (!parser.Parse()) {
 			UpnpPrintf(UPNP_INFO, SOAP, __FILE__, __LINE__,
 					   "XML parse failed for [%s]\n", mhdt->postdata.c_str());
@@ -433,10 +470,11 @@ void soap_device_callback(MHDTransaction *mhdt)
 			err_str = Soap_Invalid_Action;
 			goto error_handler;
 		}
+		strippedxml = parser.outxml;
 	}
 
 	/* invoke action */
-	handle_invoke_action(mhdt, &soap_info, mhdt->postdata, args);
+	handle_invoke_action(mhdt, &soap_info, strippedxml, args);
 
 	static const char *ContentTypeXML = "text/xml; charset=\"utf-8\"";
 	if (mhdt->response)
@@ -450,4 +488,3 @@ error_handler:
 #endif /* EXCLUDE_SOAP */
 
 #endif /* INCLUDE_DEVICE_APIS */
-

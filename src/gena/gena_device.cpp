@@ -302,7 +302,7 @@ static void *thread_genanotify(void *input)
 }
 
 
-static int genaInitNotifyCommon(
+int genaInitNotifyXML(
 	UpnpDevice_Handle device_handle,
 	char *UDN,
 	char *servId,
@@ -318,7 +318,8 @@ static int genaInitNotifyCommon(
 	service_info *service = NULL;
 	struct Handle_Info *handle_info;
 
-	UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__, "genaInitNotifyCommon\n");
+	UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
+			   "genaInitNotifyXML: props: %s\n", propertySet.c_str());
 
 	HandleLock();
 
@@ -378,7 +379,7 @@ ExitFunction:
 	return ret;
 }
 
-int genaInitNotify(
+int genaInitNotifyVars(
 	UpnpDevice_Handle device_handle,
 	char *UDN,
 	char *servId,
@@ -391,7 +392,8 @@ int genaInitNotify(
 	int line = 0;
 	std::string propertySet;
 
-	UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__, "genaInitNotify\n");
+	UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
+			   "genaInitNotifyVars varcnt %d\n", var_count);
 
 	if (var_count <= 0) {
 		line = __LINE__;
@@ -405,7 +407,7 @@ int genaInitNotify(
 		goto ExitFunction;
 	}
 
-	ret = genaInitNotifyCommon(device_handle, UDN, servId, propertySet, sid);
+	ret = genaInitNotifyXML(device_handle, UDN, servId, propertySet, sid);
 
 ExitFunction:
 	UpnpPrintf(UPNP_ALL, GENA, __FILE__,line, "genaInitNotify: ret = %d\n", ret);
@@ -457,7 +459,7 @@ static void maybeDiscardEvents(std::list<Notification*>& outgoing)
 	}
 }
 
-static int genaNotifyAllCommon(
+int genaNotifyAllXML(
 	UpnpDevice_Handle device_handle,
 	char *UDN, char *servId, const std::string& propertySet)
 {
@@ -470,7 +472,8 @@ static int genaNotifyAllCommon(
 	service_info *service = NULL;
 	struct Handle_Info *handle_info;
 
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__, "genaNotifyAllCommon\n");
+	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
+			   "genaNotifyAllXML: props: %s\n", propertySet.c_str());
 
 	HandleLock();
 
@@ -553,7 +556,7 @@ int genaNotifyAll(
 		goto ExitFunction;
 	}
 
-	ret = genaNotifyAllCommon(device_handle, UDN, servId, propertySet);
+	ret = genaNotifyAllXML(device_handle, UDN, servId, propertySet);
 
 ExitFunction:
 	UpnpPrintf(UPNP_ALL, GENA, __FILE__, line, "genaNotifyAll ret = %d\n", ret);

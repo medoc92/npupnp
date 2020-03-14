@@ -1745,6 +1745,32 @@ int UpnpNotify(
 	return retVal;
 }
 
+int UpnpNotifyXML(UpnpDevice_Handle Hnd, const char *DevID,
+				  const char *ServName, const std::string& propset)
+{
+	struct Handle_Info *SInfo = NULL;
+	int retVal;
+
+	if (UpnpSdkInit != 1) {
+		return UPNP_E_FINISH;
+	}
+	if (DevID == NULL || ServName == NULL) {
+		return UPNP_E_INVALID_PARAM;
+	}
+
+	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "UpnpNotifyXML\n");
+
+	if (checkLockHandle(HND_DEVICE, Hnd, &SInfo, true) == HND_INVALID) {
+		return UPNP_E_INVALID_HANDLE;
+	}
+
+	HandleUnlock();
+	retVal = genaNotifyAllXML(Hnd, (char*)DevID, (char*)ServName, propset);
+
+	UpnpPrintf(UPNP_ALL,API,__FILE__,__LINE__, "UpnpNotifyXML ret %d\n", retVal);
+	return retVal;
+}
+
 int UpnpAcceptSubscription(
 	UpnpDevice_Handle Hnd, const char *DevID, const char *ServName,
 	const char **VarName, const char **NewVal, int cVariables,
@@ -1767,11 +1793,41 @@ int UpnpAcceptSubscription(
 	}
 
 	HandleUnlock();
-	ret = genaInitNotify(Hnd, (char*)DevID, (char*)ServName, (char**)VarName,
-						 (char**)NewVal, cVariables, SubsId);
+	ret = genaInitNotifyVars(Hnd, (char*)DevID, (char*)ServName, (char**)VarName,
+							 (char**)NewVal, cVariables, SubsId);
 
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
 			   "UpnpAcceptSubscription, ret = %d\n", ret);
+	return ret;
+}
+
+int UpnpAcceptSubscriptionXML(
+	UpnpDevice_Handle Hnd, const char *DevID, const char *ServName,
+	const std::string& propertyset,
+	const Upnp_SID SubsId)
+{
+	int ret = 0;
+	struct Handle_Info *SInfo = NULL;
+
+	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "UpnpAcceptSubscriptionXML\n");
+
+	if (UpnpSdkInit != 1) {
+		return UPNP_E_FINISH;
+	}
+	if (DevID == NULL || ServName == NULL || SubsId == NULL) {
+		return UPNP_E_INVALID_PARAM;
+	}
+
+	if (checkLockHandle(HND_DEVICE, Hnd, &SInfo, true) == HND_INVALID) {
+		return UPNP_E_INVALID_HANDLE;
+	}
+
+	HandleUnlock();
+	ret = genaInitNotifyXML(
+		Hnd, (char*)DevID, (char*)ServName, propertyset, SubsId);
+
+	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+			   "UpnpAcceptSubscriptionXML, ret = %d\n", ret);
 	return ret;
 }
 

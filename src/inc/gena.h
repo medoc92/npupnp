@@ -233,7 +233,14 @@ extern int genaNotifyAll(
 	char **VarValues,
 	/*! [in] Number of variables. */
 	int var_count);
-#endif /* INCLUDE_DEVICE_APIS */
+extern int genaNotifyAllXML(
+	/*! [in] Device handle. */
+	UpnpDevice_Handle device_handle,
+	/*! [in] Device udn. */
+	char *UDN,
+	/*! [in] Service ID. */
+	char *servId,
+	const std::string& propset);
 
 
 /*!
@@ -244,8 +251,18 @@ extern int genaNotifyAll(
  * \note  No other event will be sent to this control point before the 
  *	intial state table dump.
  */
-#ifdef INCLUDE_DEVICE_APIS
-extern int genaInitNotify(
+extern int genaInitNotifyXML(
+	/*! [in] Device handle. */
+	UpnpDevice_Handle device_handle,
+	/*! [in] Device udn. */
+	char *UDN,
+	/*! [in] Service ID. */
+	char *servId,
+	const std::string& propertyset,
+	/*! [in] Subscription ID. */
+	const Upnp_SID sid);
+
+extern int genaInitNotifyVars(
 	/*! [in] Device handle. */
 	UpnpDevice_Handle device_handle,
 	/*! [in] Device udn. */

@@ -75,7 +75,7 @@ enum resp_type {
 struct SendInstruction {
 	std::string AcceptLanguageHeader;
 	/* Offset to begin reading at. Set by range header if present */
-	int64_t offset;
+	int64_t offset{0};
 	/*! Requested read size. -1 -> end of resource. Set by range
 	    header if present */
 	int64_t ReadSendSize{-1};
@@ -88,6 +88,9 @@ struct SendInstruction {
 	   instead of as a local file or a virtualdir entry (this depends
 	   on the kind of registerrootdevice call) */
 	std::string data;
+	/* This is set by the Virtual Dir GetInfo user callback and passed to 
+	   further VirtualDirectory calls for the same request */
+	const void* request_cookie{nullptr};
 };
 
 /*!
@@ -267,13 +270,8 @@ void web_server_destroy(void)
 	}
 }
 
-static int get_file_info(
-	/*! [in] Filename having the description document. */
-	const char *filename,
-	/*! [out] File information object having file attributes such as filelength,
-	 * when was the file last modified, whether a file or a directory and
-	 * whether the file or directory is readable. */
-	struct File_Info *info)
+/* Get file information, local file system version */
+static int get_file_info(const char *filename, struct File_Info *info)
 {
 	info->content_type.clear();
 	struct stat s;
@@ -316,13 +314,23 @@ int web_server_set_root_dir(const char *root_dir)
 int web_server_add_virtual_dir(
 	const char *dirname, const void *cookie, const void **oldcookie)
 {
-	if (!dirname || !*dirname || dirname[0] != '/') {
+	if (!dirname || !*dirname) {
 		return UPNP_E_INVALID_PARAM;
 	}
 
+	UpnpPrintf(UPNP_DEBUG, HTTP, __FILE__, __LINE__,
+			   "web_server_add_virtual_dir: [%s]\n", dirname);
+
 	VirtualDirListEntry entry;
 	entry.cookie = cookie;
-    entry.path = dirname;
+	if (dirname[0] != '/') {
+		// Gerbera does this ?? I think that it should be illegal,
+		// esp. since it then proceeds to use the absolute path for
+		// requests. Not sure why it works with libupnp
+		entry.path = std::string("/") + dirname;
+	} else {
+		entry.path = dirname;
+	}
     if (entry.path.back() != '/') {
         entry.path += '/';
     }
@@ -530,8 +538,9 @@ static int process_request(
 		std::string bfilename{filename};
 		filename += qs;
 		/* get file info */
-		if (virtualDirCallback.get_info(filename.c_str(), &finfo,
-										entryp->cookie) != 0) {
+		if (virtualDirCallback.get_info(
+				filename.c_str(), &finfo, entryp->cookie,
+				&RespInstr->request_cookie) != UPNP_E_SUCCESS) {
 			return HTTP_NOT_FOUND;
 		}
 		/* try index.html if req is a dir */
@@ -545,9 +554,10 @@ static int process_request(
 			bfilename += temp_str;
 			filename = bfilename + qs;
 			/* get info */
-			if ((virtualDirCallback.get_info(filename.c_str(), &finfo,
-											 entryp->cookie)
-				 != UPNP_E_SUCCESS) || finfo.is_directory) {
+			if ((virtualDirCallback.get_info(
+					 filename.c_str(), &finfo, entryp->cookie,
+					 &RespInstr->request_cookie) != UPNP_E_SUCCESS) ||
+				finfo.is_directory) {
 				return HTTP_NOT_FOUND;
 			}
 		}
@@ -658,6 +668,7 @@ public:
 	}
 	UpnpWebFileHandle fp{nullptr};
 	const void *cookie;
+	const void *request_cookie;
 };
 
 static ssize_t vFileReaderCallback(void *cls, uint64_t pos, char *buf,
@@ -670,23 +681,28 @@ static ssize_t vFileReaderCallback(void *cls, uint64_t pos, char *buf,
 		return -1;
 	}
 	//std::cerr << "vFileReaderCallback: pos " << pos << " cnt " << max << "\n";
-#if NOT_FOR_GERBERA_IT_LOCKS_UP
-	if (virtualDirCallback.seek(ctx->fp, pos, SEEK_SET, ctx->cookie) !=
+#if LOCKS_UP_GERBERA_DONT_DO_IT
+	if (virtualDirCallback.seek(
+			ctx->fp, pos, SEEK_SET, ctx->cookie, ctx->request_cookie) !=
 		(int64_t)pos) {
 		return -1;
 	}
-	//std::cerr << "vFileReaderCallback: seek returned\n";
 #endif
-	int ret = virtualDirCallback.read(ctx->fp, buf, max, ctx->cookie);
-	//std::cerr << "vFileReaderCallback: read got " << ret << "\n";
-	return ret;
+	int ret = virtualDirCallback.read(
+		ctx->fp, buf, max, ctx->cookie, ctx->request_cookie);
+
+	/* From the microhttpd manual: Note that returning zero will cause
+	   MHD to try again. Thus, returning zero should only be used in
+	   conjunction with MHD_suspend_connection() to avoid busy
+	   waiting. */
+	return ret <= 0 ? -1 : ret;
 }
 
 static void vFileFreeCallback (void *cls)
 {
 	if (cls) {
 		VFileReaderCtxt *ctx = (VFileReaderCtxt*)cls;
-		virtualDirCallback.close(ctx->fp, ctx->cookie);
+		virtualDirCallback.close(ctx->fp, ctx->cookie, ctx->request_cookie);
 		delete ctx;
 	}
 }
@@ -723,20 +739,22 @@ void web_server_callback(MHDTransaction *mhdt)
 
 		case RESP_WEBDOC:
 		{
-			VFileReaderCtxt *ctxt = new VFileReaderCtxt;
-			ctxt->fp = virtualDirCallback.open(filename.c_str(), UPNP_READ,
-											   RespInstr.cookie);
-			if (ctxt->fp == nullptr) {
+			VFileReaderCtxt *ctx = new VFileReaderCtxt;
+			ctx->fp = virtualDirCallback.open(
+				filename.c_str(), UPNP_READ,
+				RespInstr.cookie,	RespInstr.request_cookie);
+			if (ctx->fp == nullptr) {
 				http_SendStatusResponse(mhdt, HTTP_INTERNAL_SERVER_ERROR);
 			}
-			ctxt->cookie = RespInstr.cookie;
+			ctx->cookie = RespInstr.cookie;
+			ctx->request_cookie = RespInstr.request_cookie;
 			if (RespInstr.offset) {
-				virtualDirCallback.seek(ctxt->fp, RespInstr.offset,
-										SEEK_SET, RespInstr.cookie);
+				virtualDirCallback.seek(ctx->fp, RespInstr.offset, SEEK_SET,
+										ctx->cookie, ctx->request_cookie);
 			}
 			mhdt->response = MHD_create_response_from_callback(
 				RespInstr.ReadSendSize, 4096, vFileReaderCallback,
-				ctxt, vFileFreeCallback);
+				ctx, vFileFreeCallback);
 			mhdt->httpstatus = 200;
 		}
 		break;

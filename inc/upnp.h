@@ -543,9 +543,16 @@ struct Upnp_Action_Request {
 	/** IP address of the control point requesting this action. */
 	struct sockaddr_storage CtrlPtIPAddr;
 
-	/** The whole XML document in case the callback has something else
-	   to get from there. */
-	std::string xmlContent;
+	/** The XML request document in case the callback has something
+	   else to get from there. This is always set in addition to the
+	   args vector */
+	std::string xmlAction;
+
+	/** Alternative data return: return an XML document instead of
+		using the resdata vector. If this is not empty on callback
+		return, it is used instead of resdata. This is to ease the
+		transition from the ixml-based interface */
+	std::string xmlResponse;
 };
 
 /* compat code for libupnp-1.8 */
@@ -559,6 +566,10 @@ typedef struct Upnp_Action_Request UpnpActionRequest;
 #define UpnpActionRequest_get_ActionName_cstr(x) ((x)->ActionName)
 #define UpnpActionRequest_get_DevUDN_cstr(x) ((x)->DevUDN)
 #define UpnpActionRequest_get_ServiceID_cstr(x) ((x)->ServiceID)
+#define UpnpActionRequest_get_xmlAction(x) ((x)->xmlAction)
+#define UpnpActionRequest_get_xmlResponse(x) ((x)->xmlResponse)
+#define UpnpActionRequest_set_xmlResponse(x, v) ((x)->xmlResponse = (v))
+
 
 /** Returned along with a {\bf UPNP_EVENT_RECEIVED} callback.  */
 
@@ -1502,9 +1513,9 @@ EXPORT_SPEC int UpnpSendAction(
 EXPORT_SPEC int UpnpAcceptSubscription(
 	/*! [in] The handle of the device. */
 	UpnpDevice_Handle Hnd,
-	/*! [in] The device ID of the subdevice of the service generating the event. */
+	/*! [in] The device ID of the service device .*/
 	const char *DevID,
-	/*! [in] The unique service identifier of the service generating the event. */
+	/*! [in] The unique service identifier of the service generating the event.*/
 	const char *ServID,
 	/*! [in] Pointer to an array of event variables. */
 	const char **VarName,
@@ -1512,6 +1523,18 @@ EXPORT_SPEC int UpnpAcceptSubscription(
 	const char **NewVal,
 	/*! [in] The number of event variables in \b VarName. */
 	int cVariables,
+	/*! [in] The subscription ID of the newly registered control point. */
+	const Upnp_SID SubsId);
+
+EXPORT_SPEC int UpnpAcceptSubscriptionXML(
+	/*! [in] The handle of the device. */
+	UpnpDevice_Handle Hnd,
+	/*! [in] The device ID of the service device .*/
+	const char *DevID,
+	/*! [in] The unique service identifier of the service generating the event.*/
+	const char *ServID,
+	/*! [in] Initial property set (all state variables) as XML string. */
+	const std::string& propertyset,
 	/*! [in] The subscription ID of the newly registered control point. */
 	const Upnp_SID SubsId);
 
@@ -1549,6 +1572,16 @@ EXPORT_SPEC int UpnpNotify(
 	const char **NewVal,
 	/*! [in] The count of variables included in this notification. */
 	int cVariables);
+
+EXPORT_SPEC int UpnpNotifyXML(
+	/*! [in] The handle to the device sending the event. */
+	UpnpDevice_Handle,
+	/*! [in] The device ID of the device generating the event. */
+	const char *DevID,
+	/*! [in] The unique identifier of the service generating the event. */
+	const char *ServID,
+	/*! [in] Property set (changed variables) as XML string */
+	const std::string& propertyset);
 
 /*!
  * \brief Renews a subscription that is about to expire.
@@ -1805,7 +1838,8 @@ typedef int (*VDCallback_GetInfo)(
 		const char *filename,
 		/*! [out] Pointer to a structure to store the information on the file. */
 		struct File_Info *info,
-		const void *cookie
+		const void *cookie,
+		const void **request_cookiep
 	);
 
 /*!
@@ -1827,7 +1861,8 @@ typedef UpnpWebFileHandle (*VDCallback_Open)(
 	/*! [in] The mode in which to open the file.
 	 * Valid values are \c UPNP_READ or \c UPNP_WRITE. */
 	enum UpnpOpenFileMode Mode,
-	const void *cookie
+	const void *cookie,
+	const void *request_cookie
 	);
 
 /*!
@@ -1850,7 +1885,8 @@ typedef int (*VDCallback_Read)(
 	char *buf,
 	/*! [in] The size of the buffer (i.e. the number of bytes to read). */
 	size_t buflen,
-	const void *cookie
+	const void *cookie,
+	const void *request_cookie
 	);
 
 /*! 
@@ -1873,7 +1909,8 @@ typedef	int (*VDCallback_Write)(
 	char *buf,
 	/*! [in] The number of bytes to write. */
 	size_t buflen,
-	const void *cookie
+	const void *cookie,
+	const void *request_cookie
 	);
 
 /*!
@@ -1901,7 +1938,8 @@ typedef int (*VDCallback_Seek) (
 	 * move relative to the end of the file, or \c SEEK_SET to
 	 * specify an absolute offset. */
 	int origin,
-	const void *cookie
+	const void *cookie,
+	const void *request_cookie
 	);
 
 /*!
@@ -1920,7 +1958,8 @@ EXPORT_SPEC int UpnpVirtualDir_set_SeekCallback(VDCallback_Seek callback);
 typedef int (*VDCallback_Close)(
 		/*! [in] The handle of the file to close. */
 	UpnpWebFileHandle fileHnd,
-	const void *cookie
+	const void *cookie,
+	const void *request_cookie
 	);
 
 /*!
