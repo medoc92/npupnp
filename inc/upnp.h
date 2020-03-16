@@ -724,7 +724,7 @@ struct File_Info
 		the client inside the VDCallback_GetInfo function. These
 		should not be standard HTTP headers (e.g. content-length/type)
 		but only specific ones like the DLNA ones. */
-	std::map<std::string, std::string> response_headers;
+	std::vector<std::pair<std::string, std::string>> response_headers;
 };
 
 /* compat code for libupnp-1.8 */
@@ -739,7 +739,6 @@ typedef struct File_Info UpnpFileInfo;
 #define UpnpFileInfo_set_IsReadable(x, v) ((x)->is_readable = (v))
 #define UpnpFileInfo_get_ContentType(x) ((x)->content_type)
 #define UpnpFileInfo_set_ContentType(x, v) ((x)->content_type = (v))
-#define UpnpFileInfo_set_ExtraHeaders(x, v) ((x)->extra_headers = (v))
 
 /*!
  *  All callback functions share the same prototype, documented below.

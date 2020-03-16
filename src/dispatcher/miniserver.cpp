@@ -141,7 +141,13 @@ static int headers_cb(void *cls, enum MHD_ValueKind kind,
 	MHDTransaction *mhtt = (MHDTransaction *)cls;
 	std::string key(k);
 	stringtolower(key);
-	mhtt->headers[key] = value;
+	// It is always possible to combine multiple identically named headers
+	// name into one comma separated list. See HTTP 1.1 section 4.2
+	if (mhtt->headers.find(key) != mhtt->headers.end()) {
+		mhtt->headers[key] = mhtt->headers[key] + "," + value;
+	} else {
+		mhtt->headers[key] = value;
+	}
 	UpnpPrintf(UPNP_ALL, MSERV, __FILE__, __LINE__,
 			   "miniserver:gather_header: [%s: %s]\n",	key.c_str(), value);
 	return MHD_YES;
