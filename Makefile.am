@@ -45,6 +45,7 @@ libnpupnp_la_SOURCES = \
 	src/inc/gena_device.h \
 	src/inc/gena_sids.h \
 	src/inc/httputils.h \
+	src/inc/inet_pton.h \
 	src/inc/md5.h \
 	src/inc/miniserver.h \
 	src/inc/service_table.h \
@@ -82,6 +83,7 @@ libnpupnp_la_SOURCES += \
 	src/utils/description.cpp \
 	src/utils/smallut.cpp \
 	src/utils/httputils.cpp \
+	src/utils/inet_pton.c \
 	src/utils/statcodes.cpp \
 	src/webserver/webserver.cpp \
 	src/utils/md5.cpp \
