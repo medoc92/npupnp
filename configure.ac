@@ -128,23 +128,21 @@ if test "x$enable_tools" != xno ; then
 fi
 AM_CONDITIONAL(ENABLE_TOOLS, test x"$enable_tools" != xno)
 
-AC_ARG_ENABLE([ipv6], [ipv6 support])
-if test "x$enable_ipv6" = xyes ; then
-        AC_DEFINE(UPNP_ENABLE_IPV6, 1, [see upnpconfig.h])
-fi
 
 AC_ARG_ENABLE([unspecified_server], [unspecified SERVER header])
 if test "x$enable_unspecified_server" = xyes ; then
         AC_DEFINE(UPNP_ENABLE_UNSPECIFIED_SERVER, 1, [see upnpconfig.h])
 fi
 
-AC_ARG_ENABLE([blocking_tcp_connections], [blocking TCP connections])
-if test "x$enable_blocking_tcp_connections" != xno ; then
-        AC_DEFINE(UPNP_ENABLE_BLOCKING_TCP_CONNECTIONS, 1, [see upnpconfig.h])
+AC_ARG_ENABLE([ipv6], [--disable-ipv6 disable ipv6 support.],
+    enable_ipv6= $enableval, enable_ipv6=yes)
+if test "x$enable_ipv6" = xyes ; then
+    AC_DEFINE(UPNP_ENABLE_IPV6, 1, [see upnpconfig.h])
 fi
 
 AC_ARG_ENABLE([reuseaddr],
-	[bind the miniserver socket with reuseaddr to allow clean restarts])
+	[--disable-reuseaddr do not bind the miniserver socket with	reuseaddr.],
+	enable_reuseaddr=$enableval, enable_reuseaddr=yes)
 if test "x$enable_reuseaddr" = xyes ; then
         AC_DEFINE(UPNP_MINISERVER_REUSEADDR, 1, [see upnpconfig.h])
 fi

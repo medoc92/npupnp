@@ -564,10 +564,11 @@ static int get_miniserver_sockets(
 #ifdef UPNP_MINISERVER_REUSEADDR
 	UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
 			   "miniserver: resuseaddr is set.\n");
+	int on=1;
 	if (out->miniServerSock4 != INVALID_SOCKET) {
 		if (setsockopt(
 				out->miniServerSock4, SOL_SOCKET, SO_REUSEADDR,
-				(const char *)&reuseaddr_on, sizeof(int)) == SOCKET_ERROR) {
+				&on, sizeof(int)) == SOCKET_ERROR) {
 			ret = UPNP_E_SOCKET_BIND;
 			goto out;
 		}
@@ -576,7 +577,7 @@ static int get_miniserver_sockets(
 	if (out->miniServerSock6 != INVALID_SOCKET) {
 		if (setsockopt(
 				out->miniServerSock6, SOL_SOCKET, SO_REUSEADDR,
-				(const char *)&reuseaddr_on, sizeof(int)) == SOCKET_ERROR) {
+				&on, sizeof(int)) == SOCKET_ERROR) {
 			ret = UPNP_E_SOCKET_BIND;
 			goto out;
 		}

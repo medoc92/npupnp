@@ -121,9 +121,6 @@
 #undef STDC_HEADERS
 
 /* see upnpconfig.h */
-#undef UPNP_ENABLE_BLOCKING_TCP_CONNECTIONS
-
-/* see upnpconfig.h */
 #undef UPNP_ENABLE_IPV6
 
 /* see upnpconfig.h */
