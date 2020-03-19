@@ -1891,6 +1891,23 @@ int UpnpDownloadUrlItem(const char *url, char **outBuf, char *contentType)
 	return ret_code;
 }
 
+int UpnpDownloadUrlItem(const std::string& url,
+						std::string& data, std::string& ct)
+{
+	char ctbuf[LINE_SIZE];
+	char *datap{nullptr};
+	ctbuf[0] = 0;
+	int ret_code = UpnpDownloadUrlItem(url.c_str(), &datap, ctbuf);
+	if (ret_code == 0) {
+		if (datap) {
+			data.assign(datap, strlen(datap));
+			free(datap);
+		}
+		ct = ctbuf;
+	}
+	return ret_code;
+}
+
 /* Get callback function ptr from a handle. */
 Upnp_FunPtr GetCallBackFn(UpnpClient_Handle Hnd)
 {

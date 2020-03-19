@@ -1754,7 +1754,7 @@ EXPORT_SPEC int UpnpUnSubscribe(
  */
 
 /*!
- * \brief Downloads a file specified in a URL.
+ * \brief Downloads a text file specified in a URL.
  *
  * The SDK allocates the memory for \b outBuf and the application is
  * responsible for freeing this memory. Note that the item is passed as a
@@ -1782,11 +1782,26 @@ EXPORT_SPEC int UpnpUnSubscribe(
 EXPORT_SPEC int UpnpDownloadUrlItem(
 	/*! [in] URL of an item to download. */
 	const char *url,
-	/*! [out] Buffer to store the downloaded item. */
+	/*! [out] Buffer to store the downloaded item. Caller must free. 
+	  Guaranteed zero-terminated on success */
 	char **outBuf,
 	/*! [out] HTTP header value content type if present. It should be at least
 	 * \c LINE_SIZE bytes in size. */
 	char *contentType);
+
+/*!
+ * \brief Downloads a file specified in a URL.
+ *
+ * Simplified interface using std::string
+ */
+EXPORT_SPEC int UpnpDownloadUrlItem(
+	/*! [in] URL of an item to download. */
+	const std::string& url,
+	/*! [out] Buffer to store the downloaded item. Caller must free */
+	std::string& outBuf,
+	/*! [out] HTTP header value content type if present. It should be at least
+	 * \c LINE_SIZE bytes in size. */
+	std::string& contentType);
 
 /*! @} Control Point HTTP API */
 
