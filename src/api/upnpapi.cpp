@@ -2007,9 +2007,10 @@ Upnp_Handle_Type GetHandleInfo(UpnpClient_Handle Hnd,
 		UpnpPrintf(UPNP_ERROR, API, __FILE__, __LINE__,
 				   "GetHandleInfo: out of range\n");
 	} else if (HandleTable[Hnd] == NULL) {
-		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-				   "GetHandleInfo: HTable[%d] is NULL\n",
-				   Hnd);
+        // Don't print anything, we sometimes walk the table
+		//UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+		//		   "GetHandleInfo: HTable[%d] is NULL\n",
+		//		   Hnd);
 	} else if (HandleTable[Hnd] != NULL) {
 		*HndInfo = (struct Handle_Info *)HandleTable[Hnd];
 		ret = ((struct Handle_Info *)*HndInfo)->HType;
