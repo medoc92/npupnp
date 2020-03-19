@@ -277,6 +277,7 @@ int http_SendStatusResponse(MHDTransaction *mhdt, int status_code)
 		http_get_code_text(status_code) << "</h1></body></html>";
 	mhdt->response = MHD_create_response_from_buffer(
 		body.str().size(), (char*)body.str().c_str(), MHD_RESPMEM_MUST_COPY);
+	MHD_add_response_header(mhdt->response, "Content-Type", "text/html");
 	mhdt->httpstatus = status_code;
 	return UPNP_E_SUCCESS;
 }

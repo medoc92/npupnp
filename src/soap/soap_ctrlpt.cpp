@@ -68,11 +68,9 @@ protected:
 			"root" : m_path[m_path.size()-2].name;
 		trimstring(m_chardata, " \t\n\r");
 
-		if (parentname == "UpNPError") {
+		if (parentname == "UPnPError") {
 			if (!strcmp(name, "errorCode")) {
-				if (*errcodep) {
-					*errcodep = atoi(m_chardata.c_str());
-				}
+				*errcodep = atoi(m_chardata.c_str());
 			} else if (!strcmp(name, "errorDescription")) {
 				errdesc = m_chardata;
 			}
@@ -106,7 +104,7 @@ private:
 static int
 get_response_value(
 	const std::string& payload, long http_status,  const std::string& cttype,
-	const std::string& rspname, int *upnp_error_code,
+	const std::string& rspname, 
 	std::vector<std::pair<std::string, std::string>>& rspdata,
 	int *errcodep, std::string& errdesc)
 {
@@ -116,12 +114,12 @@ get_response_value(
 		cttype.find("text/xml") != 0) {
 		return UPNP_E_BAD_RESPONSE;
 	}
-
+	*errcodep = 0;
 	UPnPResponseParser mparser(payload, rspname, rspdata, errcodep, errdesc);
 	if (!mparser.Parse()) {
 		return UPNP_E_BAD_RESPONSE;;
 	}
-	return UPNP_E_SUCCESS;
+	return (*errcodep) ? SOAP_ACTION_RESP_ERROR : SOAP_ACTION_RESP;
 }
 
 int SoapSendAction(
@@ -140,7 +138,7 @@ int SoapSendAction(
 	const static std::string xml_body_start{"<s:Body>"};
 	const static std::string xml_end{"</s:Body>\r\n</s:Envelope>\r\n"};
 
-	int err_code = UPNP_E_OUTOF_MEMORY;
+	int retvalue = UPNP_E_OUTOF_MEMORY;
 
 	/* Action: name and namespace (servicetype) */
 	std::ostringstream act;
@@ -229,23 +227,22 @@ int SoapSendAction(
 	std::string content_type = it->second;
 
 	/* get action node from the response */
-	int upnp_error_code = 0;
 	ret_code = get_response_value(
 		responsestr, http_status, content_type,
-		responsename, &upnp_error_code, respdata, errcodep, errdesc);
+		responsename, respdata, errcodep, errdesc);
 
 	UpnpPrintf(UPNP_DEBUG, SOAP, __FILE__, __LINE__,
-			   "soapSendAction: http_stt [%ld] upnp_error_code %d errdesc[%s]\n",
-			   http_status, upnp_error_code, errdesc.c_str());
+			   "soapSendAction: http_stt [%ld] errcode %d errdesc[%s]\n",
+			   http_status, *errcodep, errdesc.c_str());
 
 	if (ret_code == SOAP_ACTION_RESP) {
-		err_code = UPNP_E_SUCCESS;
+		retvalue = UPNP_E_SUCCESS;
 	} else if (ret_code == SOAP_ACTION_RESP_ERROR ) {
-		err_code = upnp_error_code;
+		retvalue = *errcodep;
 	} else {
-		err_code = ret_code;
+		retvalue = ret_code;
 	}
-	return err_code;
+	return retvalue;
 }
 
 #endif /* EXCLUDE_SOAP */

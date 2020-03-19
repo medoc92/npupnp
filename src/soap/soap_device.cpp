@@ -110,6 +110,7 @@ static void send_error_response(
 	const std::string& txt = ostr.str();
 	mhdt->response = MHD_create_response_from_buffer(
 		txt.size(), (char*)txt.c_str(), MHD_RESPMEM_MUST_COPY);
+	MHD_add_response_header(mhdt->response, "Content-Type", "text/xml");
 	/* We do as the original code, but should this not be error_code? */
 	mhdt->httpstatus = 500;
 }
@@ -291,7 +292,7 @@ static int get_dev_service(
 	HandleReadLock();
 
 	auto hdltp = GetDeviceHandleInfoForPath(
-		mhdt->url, addrfamily, &device_hnd, &hdlinfo,&serv_info);
+		mhdt->url, addrfamily, &device_hnd, &hdlinfo, &serv_info);
 
 	if (hdltp != HND_DEVICE || nullptr == serv_info) {
 		HandleUnlock();
