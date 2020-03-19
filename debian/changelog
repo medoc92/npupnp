@@ -1,3 +1,15 @@
+libnpupnp1 (2.2.1-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Fix issues in processing SOAP error responses
+  * Add some XML-string-based interfaces to SOAP and GENA to ease
+    transition for software using UpnpxxxEx() calls (using IXML DOM
+    parameters).
+  * Export device description parser.
+  * Export std::string-based api to UpnpDownloadUrlItem()
+  * struct File_Info response_headers field changed from map to vector.
+
+ -- Jean-Francois Dockes <jf@dockes.org>  Thu, 19 Mar 2020 15:09:00 +0100
+
 libnpupnp1 (2.1.2-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Tentative upmpdcli double-free crash fix
