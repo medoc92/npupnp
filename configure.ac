@@ -135,14 +135,14 @@ if test "x$enable_unspecified_server" = xyes ; then
 fi
 
 AC_ARG_ENABLE([ipv6], [--disable-ipv6 disable ipv6 support.],
-    enable_ipv6= $enableval, enable_ipv6=yes)
+    enable_ipv6=$enableval, enable_ipv6="yes")
 if test "x$enable_ipv6" = xyes ; then
     AC_DEFINE(UPNP_ENABLE_IPV6, 1, [see upnpconfig.h])
 fi
 
 AC_ARG_ENABLE([reuseaddr],
 	[--disable-reuseaddr do not bind the miniserver socket with	reuseaddr.],
-	enable_reuseaddr=$enableval, enable_reuseaddr=yes)
+	enable_reuseaddr=$enableval, enable_reuseaddr="yes")
 if test "x$enable_reuseaddr" = xyes ; then
         AC_DEFINE(UPNP_MINISERVER_REUSEADDR, 1, [see upnpconfig.h])
 fi
