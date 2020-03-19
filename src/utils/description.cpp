@@ -1,4 +1,4 @@
-#include "description.h"
+#include "upnpdescription.h"
 
 #include <algorithm>
 
@@ -92,7 +92,7 @@ static string baseurl(const string& url)
     if (pos == string::npos) {
         return url;
     } else {
-        return url.substr(0, pos + 1);
+        return url.substr(0, pos);
     }
 }
 

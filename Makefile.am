@@ -13,7 +13,8 @@ npupnpinclude_HEADERS = \
 	inc/upnp.h \
 	inc/upnpdebug.h \
 	inc/UpnpGlobal.h \
-	inc/UpnpInet.h
+	inc/UpnpInet.h \
+	src/inc/upnpdescription.h
 
 nodist_npupnpinclude_HEADERS = inc/upnpconfig.h 
 if ENABLE_TOOLS
@@ -37,7 +38,7 @@ libnpupnp_la_SOURCES = \
 	src/inc/VirtualDir.h \
 	src/inc/client_table.h \
 	src/inc/config.h \
-	src/inc/description.h \
+	src/inc/upnpdescription.h \
 	src/inc/expatmm.hxx \
 	src/inc/gena.h \
 	src/inc/gena_ctrlpt.h \

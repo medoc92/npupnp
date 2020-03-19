@@ -43,7 +43,6 @@
 #include <algorithm>
 #include <iostream>
 
-#include "description.h"
 #include "service_table.h"
 
 #ifdef INCLUDE_DEVICE_APIS

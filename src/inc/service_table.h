@@ -45,7 +45,7 @@
 #include "upnp.h"
 #include "upnpdebug.h"
 #include "ThreadPool.h"
-#include "description.h"
+#include "upnpdescription.h"
 
 #define SID_SIZE  (size_t)41
 
