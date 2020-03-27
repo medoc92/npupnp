@@ -1,0 +1,74 @@
+= Porting from libupnp/pupnp to npupnp
+:toc: left
+
+== Overview
+
+The npupnp library preserves most of the API from libupnp. The main
+changes:
+
+- The IXML XML DOM package is not supplied or used any more. This has
+  consequences in several places.
+- The asynchronous interface has been removed.
+
+The IXML removal is of course an issue if your program relies on it a
+lot. In many cases however, IXML is mostly used by the client programs to
+create the arguments for the libupnp calls which have IXML DOM objects as
+parameters. The modified calls in npupnp will actually simplify the code in
+most cases.
+
+The following lists the main API changes.
+
+
+== struct Upnp_Action_Request
+
+The `IXML_Document` fields (`ActionRequest`, `ActionResult`) are replaced with
+STL vectors of pairs of strings (name/values). Additionally, the original
+XML string describing the action is supplied as input (in case there is
+additional information in it, besides the argument/value pairs), and the
+response can be supplied as an XML string.
+
+This affects the device library callback when the event type is
+`UPNP_CONTROL_ACTION_REQUEST`.
+
+== struct Upnp_Event
+
+The `IXML_Document` `ChangedVariables` field has been replaced with an STL
++std::map+ of the changed values, indexed by variable name.
+
+This affects the control point library callback when the event type is
+`UPNP_EVENT_RECEIVED`.
+
+== struct File_Info
+
+The `content_type` field is now an +std::string+ (it was a dynamically
+allocated character string).
+
+The `Extra_Headers` feature has been replaced by two STL maps:
+
+- `request_headers` contains the HTTP headers received with the request.
+- `response_headers` allow the application to set specific headers to be
+sent back to the Control Point.
+
+
+== UpnpSendAction()
+
+The Action and Response arguments have been changed from IXML DOM trees to
+STL vectors of pairs of strings. 
+
+== UpnpAcceptSubscriptionExt()
+
+This used DOM tree objects to pass the initial set of variable values. The
+call has been replaced with `UpnpAcceptSubscriptionXML()`, which uses an XML
+propertyset +std::string+. The `UpnpAcceptSubscription()` call, which uses
++char**+ arrays for the names and values is still available.
+
+== UpnpNotifyExt()
+
+Same as `UpnpAcceptSubscriptionExt()`.
+
+== UpnpDownloadUrlItem()
+
+This now uses +std::string+ instead of dynamically allocated buffers.
+
+The `UpnpDownloadXmlDoc()` which downloaded an XML document then parsed it
+into an IXML DOM tree does not exist any more.
