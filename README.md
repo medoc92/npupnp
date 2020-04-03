@@ -25,11 +25,8 @@ The changes reduce the library from around 40000 lines of code to around
 20000, replacing difficult to maintain (and sometimes weird) code with well
 supported and maintained libraries.
 
-For now, npupnp still relies on, but does not bundle, the XML DOM ixml
-library, which is built and installed with pupnp.
-
-The C API has been fully preserved, and, at this point, you just need to
-change the include directory and library name to switch between pupnp and
-npupnp.
+The C API has been almost fully preserved, except for a few calls which
+passed IXML DOM tree objects as parameters, where they have been replaced
+by either XML string documents or C++ STL structures.
 
 
