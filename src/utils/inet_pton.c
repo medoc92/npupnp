@@ -15,10 +15,12 @@
  * SOFTWARE.
  */
 
-#ifdef _WIN32
+#include "autoconfig.h"
 
+#ifndef HAVE_INET_PTON
 #include "UpnpInet.h"
 #include "inet_pton.h"
+/* For upnp_strlcpy */
 #include "smallut.h"
 
 /*%
@@ -351,4 +353,4 @@ static int inet_pton6(const char *src, u_char *dst)
 	memcpy(dst, tmp, NS_IN6ADDRSZ);
 	return (1);
 }
-#endif /* _WIN32 */
+#endif /* !HAVE_INET_PTON */

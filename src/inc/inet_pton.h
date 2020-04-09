@@ -1,7 +1,9 @@
 #ifndef INET_PTON
 #define INET_PTON
 
-#ifdef _WIN32
+#include "autoconfig.h"
+
+#ifndef HAVE_INET_PTON
 
 #include <Winsock2.h>
 
@@ -36,6 +38,5 @@ extern const char *inet_ntop(int af, const void *src, char *dst, socklen_t size)
  */
 extern int inet_pton(int af, const char *src, void *dst);
 
-#endif /* _WIN32 */
-
+#endif /* !HAVE_INET_PTON */
 #endif /* INET_PTON */

@@ -516,8 +516,9 @@ static int get_miniserver_sockets(
 					   "miniserver: IPv6 socket(): %s\n", errorBuffer);
 		} else {
 			int onOff = 1;
-			int sockError = setsockopt(out->miniServerSock6, IPPROTO_IPV6,
-									   IPV6_V6ONLY,(char*)&onOff, sizeof(onOff));
+			int sockError = setsockopt(
+				out->miniServerSock6, IPPROTO_IPV6,	IPV6_V6ONLY,
+				(const char*)&onOff, sizeof(onOff));
 			if (sockError == SOCKET_ERROR) {
 				posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 				UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
@@ -568,7 +569,7 @@ static int get_miniserver_sockets(
 	if (out->miniServerSock4 != INVALID_SOCKET) {
 		if (setsockopt(
 				out->miniServerSock4, SOL_SOCKET, SO_REUSEADDR,
-				&on, sizeof(int)) == SOCKET_ERROR) {
+				(const char*)&on, sizeof(int)) == SOCKET_ERROR) {
 			ret = UPNP_E_SOCKET_BIND;
 			goto out;
 		}
@@ -577,7 +578,7 @@ static int get_miniserver_sockets(
 	if (out->miniServerSock6 != INVALID_SOCKET) {
 		if (setsockopt(
 				out->miniServerSock6, SOL_SOCKET, SO_REUSEADDR,
-				&on, sizeof(int)) == SOCKET_ERROR) {
+				(const char*)&on, sizeof(int)) == SOCKET_ERROR) {
 			ret = UPNP_E_SOCKET_BIND;
 			goto out;
 		}

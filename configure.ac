@@ -224,7 +224,7 @@ fi
 
 
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([getifaddrs])
+AC_CHECK_FUNCS([getifaddrs inet_pton])
 # Solaris needs -lsocket -lnsl -lrt
 AC_SEARCH_LIBS([bind],           [socket])
 AC_SEARCH_LIBS([gethostbyname],  [nsl])

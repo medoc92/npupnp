@@ -31,31 +31,13 @@
 #ifndef _SMALLUT_H_INCLUDED_
 #define _SMALLUT_H_INCLUDED_
 
-#include <string>
 #include <string.h>
 
-extern void stringtolower(std::string& io);
-extern std::string stringtolower(const std::string& i);
-extern int stringlowercmp(const std::string& alreadylower,
-                          const std::string& s2);
-/** Remove instances of characters belonging to set (default {space,
-    tab}) at beginning and end of input string */
-extern void trimstring(std::string& s, const char *ws = " \t");
-extern void rtrimstring(std::string& s, const char *ws = " \t");
-extern void ltrimstring(std::string& s, const char *ws = " \t");
-
 extern size_t upnp_strlcpy(char *dst, const char *src, size_t dsize);
-inline size_t upnp_strlcpy(char *dst, const std::string& src, size_t dsize) {
-	return upnp_strlcpy(dst, src.c_str(), dsize);
-}
-
-std::string xmlQuote(const std::string& in);
-
-/* Compare element names, ignoring namespaces */
-int dom_cmp_name(const std::string& domname, const std::string& ref);
 
 /* Size of the errorBuffer variable, passed to the strerror_r() function */
 #define ERROR_BUFFER_LEN (size_t)256
+
 #if !defined(_WIN32)
 inline char *_check_strerror_r(int, char *errbuf) {
 	return errbuf;
@@ -70,15 +52,16 @@ inline int posix_strerror_r(int err, char *buf, size_t len) {
 	}
 	return 0;
 }
-#else
+#else /* -> _WIN32 */
+
 #define posix_strerror_r(errno,buf,len) strerror_s(buf,len,errno)
-#ifdef _WIN32
+
 #ifndef PRIu64
 #define PRIu64 "I64u"
 #define PRIi64 "I64i"
-#endif
-#endif
-#endif
+#endif /* PRIu64 */
+
+#endif /* _WIN32 */
 
 #ifndef MAX
 #define MAX(a, b)   (((a)>(b))? (a):(b))
@@ -86,5 +69,28 @@ inline int posix_strerror_r(int err, char *buf, size_t len) {
 #ifndef MIN
 #define MIN(a, b)   (((a)<(b))? (a):(b))
 #endif
+
+#ifdef __cplusplus
+#include <string>
+
+extern void stringtolower(std::string& io);
+extern std::string stringtolower(const std::string& i);
+extern int stringlowercmp(const std::string& alreadylower,
+                          const std::string& s2);
+/** Remove instances of characters belonging to set (default {space,
+    tab}) at beginning and end of input string */
+extern void trimstring(std::string& s, const char *ws = " \t");
+extern void rtrimstring(std::string& s, const char *ws = " \t");
+extern void ltrimstring(std::string& s, const char *ws = " \t");
+
+inline size_t upnp_strlcpy(char *dst, const std::string& src, size_t dsize) {
+	return upnp_strlcpy(dst, src.c_str(), dsize);
+}
+
+std::string xmlQuote(const std::string& in);
+
+/* Compare element names, ignoring namespaces */
+int dom_cmp_name(const std::string& domname, const std::string& ref);
+#endif /* __cplusplus */
 
 #endif /* _SMALLUT_H_INCLUDED_ */
