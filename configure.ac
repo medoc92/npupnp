@@ -158,7 +158,7 @@ AC_DEFINE([_FILE_OFFSET_BITS], [64], [File Offset size])
 #
 AC_MSG_CHECKING([for Win32])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
-#ifdef WIN32
+#ifdef _WIN32
 	#error Yup
 #endif
 ],[])], [ac_cv_win32="no"], [ac_cv_win32="yes"])

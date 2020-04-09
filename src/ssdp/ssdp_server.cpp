@@ -66,17 +66,17 @@ enum Listener {
 
 static int sock_make_no_blocking(SOCKET sock)
 {
-#ifdef WIN32
+#ifdef _WIN32
 	u_long val = 1;
 	return ioctlsocket(sock, FIONBIO, &val);
-#else /* WIN32 */
+#else /* ! _WIN32 ->*/
 	int val;
 
 	val = fcntl(sock, F_GETFL, 0);
 	if (fcntl(sock, F_SETFL, val | O_NONBLOCK) == -1) {
 		return -1;
 	}
-#endif /* WIN32 */
+#endif /* !_WIN32 */
 	return 0;
 }
 

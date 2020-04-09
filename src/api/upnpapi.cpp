@@ -66,7 +66,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef WIN32
+#ifdef _WIN32
 /* Do not include these files */
 #else
 #include <unistd.h>
@@ -224,7 +224,7 @@ int UpnpGetIfInfo(const char *IfName)
 		ifname_set = true;
 	}
 
-#ifdef WIN32
+#ifdef _WIN32
 	/* ---------------------------------------------------- */
 	/* WIN32 implementation will use the IpHlpAPI library. */
 	/* ---------------------------------------------------- */
@@ -450,7 +450,7 @@ int getlocalhostname(char *out, size_t out_len)
 	char tempstr[INET_ADDRSTRLEN];
 	const char *p = NULL;
 	
-#ifdef WIN32
+#ifdef _WIN32
 	struct hostent *h = NULL;
 	struct sockaddr_in LocalAddr;
 

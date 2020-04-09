@@ -22,7 +22,7 @@ typedef ADDRESS_FAMILY sa_family_t;
 
 #define UPNP_SOCK_GET_LAST_ERROR() WSAGetLastError()
 
-#else /* ! WIN32 -> */
+#else /* ! _WIN32 -> */
 	#include <syslog.h>
 	#ifndef __APPLE__
 		#include <netinet/in_systm.h>
@@ -59,7 +59,7 @@ typedef ADDRESS_FAMILY sa_family_t;
 
 	/*! Alias to close() to make code more WIN32 tolerant. */
 	#define UpnpCloseSocket close
-#endif /* WIN32 */
+#endif /* _WIN32 */
 
 /* @} Sock */
 

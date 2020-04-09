@@ -340,7 +340,7 @@ bool timeout_header_value(std::map<std::string, std::string>& headers,
  *	UPNP_INLINE void
  ************************************************************************/
 
-#ifdef WIN32
+#ifdef _WIN32
 struct tm *http_gmtime_r(const time_t *clock, struct tm *result)
 {
 	if (clock == NULL || *clock < 0 || result == NULL)
@@ -351,7 +351,7 @@ struct tm *http_gmtime_r(const time_t *clock, struct tm *result)
 	return result;
 }
 
-#else /* !WIN32 */
+#else /* !_WIN32 ->*/
 
 #include <sys/utsname.h>
 #define http_gmtime_r gmtime_r
@@ -364,7 +364,7 @@ std::string get_sdk_info()
 #ifdef UPNP_ENABLE_UNSPECIFIED_SERVER
 	ostr << "Unspecified, UPnP/1.0, Unspecified"
 #else /* UPNP_ENABLE_UNSPECIFIED_SERVER */
-#ifdef WIN32
+#ifdef _WIN32
 	OSVERSIONINFO versioninfo;
 	versioninfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
 
