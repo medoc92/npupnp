@@ -10,7 +10,6 @@ CONFIG += staticlib
 DEFINES += WIN32_MEAN_AND_LEAN
 DEFINES += UPNP_STATIC_LIB
 DEFINES += CURL_STATICLIB
-DEFINES += WIN32
 DEFINES -= UNICODE
 DEFINES -= _UNICODE
 DEFINES += _MBCS
@@ -26,7 +25,7 @@ INCLUDEPATH += c:/users/bill/documents/upnp/libmicrohttpd-0.9.65-w32-bin/x86/Min
 
 LIBS += c:/users/bill/documents/upnp/expat-2.1.0/.libs/libexpat.a
 LIBS += c:/users/bill/documents/upnp/curl-7.43.0/lib/libcurl.a
-LIBS += c:/users/bill/documents/upnp/libmicrohttpd-0.9.65-w32-bin/x86/MinGW/static/mingw32/lib/libmicrohttpd.a
+LIBS += -Lc:/users/bill/documents/upnp/libmicrohttpd-0.9.65-w32-bin/x86/MinGW/static/mingw32/lib/ -llibmicrohttpd
 LIBS += -liphlpapi
 LIBS += -lwldap32
 LIBS += -lws2_32
@@ -45,6 +44,7 @@ SOURCES += \
 ../../src/soap/soap_ctrlpt.cpp \
 ../../src/dispatcher/miniserver.cpp \
 ../../src/utils/description.cpp \
+../../src/utils/inet_pton.cpp \
 ../../src/utils/smallut.cpp \
 ../../src/utils/httputils.cpp \
 ../../src/utils/statcodes.cpp \

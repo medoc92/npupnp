@@ -83,7 +83,7 @@ libnpupnp_la_SOURCES += \
 	src/utils/description.cpp \
 	src/utils/smallut.cpp \
 	src/utils/httputils.cpp \
-	src/utils/inet_pton.c \
+	src/utils/inet_pton.cpp \
 	src/utils/statcodes.cpp \
 	src/webserver/webserver.cpp \
 	src/utils/md5.cpp \

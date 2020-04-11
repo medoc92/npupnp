@@ -52,6 +52,9 @@
 typedef void *(*start_routine)(void*);
 
 /* Attributes for thread pool. Used to set and change parameters. */
+#ifndef SCHED_OTHER
+#define SCHED_OTHER 0
+#endif
 struct ThreadPoolAttr {
 	typedef int PolicyType;
     enum TPSpecialValues{INFINITE_THREADS = -1};

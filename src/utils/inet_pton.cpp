@@ -18,6 +18,8 @@
 #include "autoconfig.h"
 
 #ifndef HAVE_INET_PTON
+#include <stdio.h>
+
 #include "UpnpInet.h"
 #include "inet_pton.h"
 /* For upnp_strlcpy */
