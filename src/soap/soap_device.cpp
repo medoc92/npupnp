@@ -231,13 +231,8 @@ static void handle_invoke_action(
 	upnp_strlcpy(action.ServiceID, soap_info->service_id, NAME_SIZE);
 	action.xmlAction = xml;
 	action.args = actargs;
-	if (mhdt->client_address->ss_family == AF_INET) {
-		memcpy(&action.CtrlPtIPAddr, mhdt->client_address,
-			   sizeof(struct sockaddr_in));
-	} else {
-		memcpy(&action.CtrlPtIPAddr, mhdt->client_address,
-			   sizeof(struct sockaddr_in6));
-	}		
+	mhdt->copyClientAddress(&action.CtrlPtIPAddr);
+	mhdt->copyHeader("user-agent", action.Os);
 	soap_info->callback(UPNP_CONTROL_ACTION_REQUEST,&action,soap_info->cookie);
 	if (action.ErrCode != UPNP_E_SUCCESS) {
 		if (strlen(action.ErrStr) == 0) {

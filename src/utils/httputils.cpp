@@ -107,6 +107,32 @@ static const std::map<std::string, int> Http_Header_Names {
 	{"usn", HDR_USN},
 };
 
+void MHDTransaction::copyClientAddress(struct sockaddr_storage *dest)
+{
+	if (nullptr == dest)
+		return;
+	if (nullptr == client_address) {
+		memset(dest, 0, sizeof(struct sockaddr_storage));
+		return;
+	}
+	if (client_address->ss_family == AF_INET) {
+		memcpy(dest, client_address, sizeof(struct sockaddr_in));
+	} else {
+		memcpy(dest, client_address, sizeof(struct sockaddr_in6));
+	}		
+}
+
+bool MHDTransaction::copyHeader(const std::string& name,
+								std::string& value)
+{
+	auto it = headers.find(stringtolower(name));
+	if (it == headers.end()) {
+		return false;
+	}
+	value = it->second;
+	return true;
+}
+
 http_method_t httpmethod_str2enum(const char *methname)
 {
 	const auto it = Http_Method_Table.find(methname);

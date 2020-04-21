@@ -1,7 +1,7 @@
 
 AC_PREREQ(2.60)
 
-AC_INIT([libnpupnp], [2.2.1], [jfd@recoll.org])
+AC_INIT([libnpupnp], [4.0.0], [jfd@recoll.org])
 
 # - Start with version information of ‘0:0:0’ for each libtool library.
 # - Update the version information only immediately before a public release
@@ -18,7 +18,8 @@ AC_INIT([libnpupnp], [2.2.1], [jfd@recoll.org])
 # major number (c-a). This will allow packages for multiple incompatible ABIs
 # to be installed. Not necessary for now.
 # Previous version: 2.1.2 was [2:0:0]
-AC_SUBST([LT_VERSION_NPUPNP],       [3:0:0])
+# Previous version: 2.2.1 was [3:0:0]
+AC_SUBST([LT_VERSION_NPUPNP],       [4:0:0])
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])

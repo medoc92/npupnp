@@ -543,6 +543,9 @@ struct Upnp_Action_Request {
 	/** IP address of the control point requesting this action. */
 	struct sockaddr_storage CtrlPtIPAddr;
 
+	/** Client user-agent string */
+	std::string Os;
+
 	/** The XML request document in case the callback has something
 	   else to get from there. This is always set in addition to the
 	   args vector */
@@ -569,7 +572,8 @@ typedef struct Upnp_Action_Request UpnpActionRequest;
 #define UpnpActionRequest_get_xmlAction(x) ((x)->xmlAction)
 #define UpnpActionRequest_get_xmlResponse(x) ((x)->xmlResponse)
 #define UpnpActionRequest_set_xmlResponse(x, v) ((x)->xmlResponse = (v))
-
+#define UpnpActionRequest_get_CtrlPtIPAddr(x) (&((x)->CtrlPtIPAddr));
+#define UpnpActionRequest_get_Os_cstr(x) ((x)->Os.c_str())
 
 /** Returned along with a {\bf UPNP_EVENT_RECEIVED} callback.  */
 
@@ -641,7 +645,9 @@ typedef struct Upnp_Discovery UpnpDiscovery;
 #define UpnpDiscovery_get_Os_cstr(x) ((x)->Os)
 #define UpnpDiscovery_get_Date_cstr(x) ((x)->Date)
 #define UpnpDiscovery_get_Ext_cstr(x) ((x)->Ext)
-
+#define UpnpDiscovery_get_Os_cstr(x) ((x)->Os)
+#define UpnpDiscovery_get_DestAddr(x) (&((x)->DestAddr))
+	
 /** Returned along with a {\bf UPNP_EVENT_SUBSCRIBE_COMPLETE} or {\bf
  * UPNP_EVENT_UNSUBSCRIBE_COMPLETE} callback.  */
 
@@ -716,6 +722,12 @@ struct File_Info
 	/** The content type of the file. */
 	std::string content_type;
 
+	/** IP address of the control point requesting this action. */
+	struct sockaddr_storage CtrlPtIPAddr;
+
+	/** Client user-agent string */
+	std::string Os;
+    
 	/** Headers received with the HTTP request. Set by the library
 		before calling VDCallback_GetInfo */
 	std::map<std::string, std::string> request_headers;
@@ -739,7 +751,9 @@ typedef struct File_Info UpnpFileInfo;
 #define UpnpFileInfo_set_IsReadable(x, v) ((x)->is_readable = (v))
 #define UpnpFileInfo_get_ContentType(x) ((x)->content_type)
 #define UpnpFileInfo_set_ContentType(x, v) ((x)->content_type = (v))
-
+#define UpnpFileInfo_get_CtrlPtIPAddr(x) (&((x)->CtrlPtIPAddr))
+#define UpnpFileInfo_get_Os_cstr(x) ((x)->Os.c_str())
+	
 /*!
  *  All callback functions share the same prototype, documented below.
  *  Note that any memory passed to the callback function

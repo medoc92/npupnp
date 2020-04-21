@@ -84,6 +84,9 @@ public:
 
 	~MHDTransaction() {
 	}
+	void copyClientAddress(struct sockaddr_storage *dest);
+	// Returns false if header not found, else copies it
+	bool copyHeader(const std::string& name, std::string& value);
 };
 
 /* different types of HTTP headers */

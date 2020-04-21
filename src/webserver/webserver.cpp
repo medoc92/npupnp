@@ -498,7 +498,12 @@ static int process_request(
 
 	/* init */
 	const VirtualDirListEntry *entryp{nullptr};
-	
+
+	/* Data we supply as input to the file info gathering functions */
+	finfo.request_headers = mhdt->headers;
+	mhdt->copyClientAddress(&finfo.CtrlPtIPAddr);
+	mhdt->copyHeader("user-agent", finfo.Os);
+
 	/* Unescape and canonize the path. Note that MHD has already
        stripped a possible query part ("?param=value...)  for us */
     std::string request_doc = remove_escaped_chars(mhdt->url);
@@ -585,9 +590,6 @@ static int process_request(
 		while (filename.size() > 0 && filename.back() == '/') {
 			filename.pop_back();
 		}
-
-		/* Pass all request headers to get_file_info */
-		finfo.request_headers = mhdt->headers;
 
 		/* get info on file */
 		if (get_file_info(filename.c_str(), &finfo) != 0) {
