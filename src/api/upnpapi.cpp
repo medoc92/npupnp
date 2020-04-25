@@ -1219,9 +1219,7 @@ int UpnpUnRegisterClient(UpnpClient_Handle Hnd)
 	}
 	/* clean up search list */
 	for (auto & it : HInfo->SsdpSearchList) {
-		if (it) {
-			delete it;
-		}
+		delete it;
 	}
 	HInfo->SsdpSearchList.clear();
 
