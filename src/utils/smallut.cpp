@@ -139,8 +139,8 @@ size_t upnp_strlcpy(char *dst, const char *src, size_t dsize)
 string xmlQuote(const string& in)
 {
     string out;
-    for (unsigned int i = 0; i < in.size(); i++) {
-        switch (in[i]) {
+    for (char i : in) {
+        switch (i) {
         case '"':
             out += "&quot;";
             break;
@@ -157,7 +157,7 @@ string xmlQuote(const string& in)
             out += "&apos;";
             break;
         default:
-            out += in[i];
+            out += i;
         }
     }
     return out;

@@ -229,8 +229,8 @@ int TimerThread::shutdown()
 	m->inshutdown = 1;
 
 	/* Delete nodes in Q. Call registered free function on argument. */
-	for (auto it = m->eventQ.begin(); it != m->eventQ.end(); it++) {
-		delete *it;
+	for (auto & it : m->eventQ) {
+		delete it;
 	}
 	m->eventQ.clear();
 
