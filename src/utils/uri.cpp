@@ -76,8 +76,8 @@ static int parse_hostport(
 {
 	char workbuf[256];
 	char *c;
-	auto sai4 = (struct sockaddr_in *)&out->IPaddress;
-	auto sai6 = (struct sockaddr_in6 *)&out->IPaddress;
+	auto sai4 = reinterpret_cast<struct sockaddr_in *>(&out->IPaddress);
+	auto sai6 = reinterpret_cast<struct sockaddr_in6 *>(&out->IPaddress);
 	char *srvname = nullptr;
 	char *srvport = nullptr;
 	char *last_dot = nullptr;
@@ -160,7 +160,7 @@ static int parse_hostport(
 		srvport = c;
 		while (*c != '\0' && isdigit(*c))
 			c++;
-		port = (unsigned short int)atoi(srvport);
+		port = static_cast<unsigned short int>(atoi(srvport));
 		if (port == 0)
 			/* Bad port number. */
 			return UPNP_E_INVALID_URL;
@@ -173,12 +173,12 @@ static int parse_hostport(
 	/* Fill in the 'out' information. */
 	switch (af) {
 	case AF_INET:
-		sai4->sin_family = (sa_family_t)af;
+		sai4->sin_family = static_cast<sa_family_t>(af);
 		sai4->sin_port = htons(port);
 		ret = inet_pton(AF_INET, srvname, &sai4->sin_addr);
 		break;
 	case AF_INET6:
-		sai6->sin6_family = (sa_family_t)af;
+		sai6->sin6_family = static_cast<sa_family_t>(af);
 		sai6->sin6_port = htons(port);
 		sai6->sin6_scope_id = gIF_INDEX;
 		ret = inet_pton(AF_INET6, srvname, &sai6->sin6_addr);
@@ -186,7 +186,7 @@ static int parse_hostport(
 	default:
 		/* IP address was set by the hostname (getaddrinfo). */
 		/* Override port: */
-		if (out->IPaddress.ss_family == (sa_family_t)AF_INET)
+		if (out->IPaddress.ss_family == static_cast<sa_family_t>(AF_INET))
 			sai4->sin_port = htons(port);
 		else
 			sai6->sin6_port = htons(port);
@@ -197,7 +197,7 @@ static int parse_hostport(
 		return UPNP_E_INVALID_URL;
 	out->text.assign(in, hostport_size);
 
-	return (int)hostport_size;
+	return static_cast<int>(hostport_size);
 }
 
 /*!
@@ -417,7 +417,7 @@ int parse_uri(const std::string& in, uri_type *out)
 			return begin_path;
 		}
 	} else {
-		begin_path = (int)begin_hostport;
+		begin_path = static_cast<int>(begin_hostport);
 	}
 	std::string::size_type question = in.find('?', begin_path);
 	std::string::size_type hash = in.find('#', begin_path);

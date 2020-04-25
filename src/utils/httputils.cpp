@@ -140,7 +140,7 @@ http_method_t httpmethod_str2enum(const char *methname)
 		return HTTPMETHOD_UNKNOWN;
 	}
 
-	return (http_method_t)it->second;
+	return static_cast<http_method_t>(it->second);
 }
 
 int httpheader_str2int(const std::string& headername)
@@ -255,7 +255,7 @@ int http_Download(const char *surl, int timeout_secs,
 			UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
 					   "Response content-length %" PRIu64
 					   " differs from data size %"
-					   PRIu64 "\n", sizefromheaders, (uint64_t)data.size());
+					   PRIu64 "\n", sizefromheaders, static_cast<uint64_t>(data.size()));
 		}
 	}
 
@@ -264,7 +264,7 @@ int http_Download(const char *surl, int timeout_secs,
 		/* extract doc from msg */
 		if (!data.empty()) {
 			*document = nullptr;
-			*document = (char *)malloc(data.size() + 1);
+			*document = static_cast<char *>(malloc(data.size() + 1));
 			if (*document == nullptr) {
 				return UPNP_E_OUTOF_MEMORY;
 			}
@@ -302,7 +302,7 @@ int http_SendStatusResponse(MHDTransaction *mhdt, int status_code)
 	body <<	"<html><body><h1>" << status_code << " " << 
 		http_get_code_text(status_code) << "</h1></body></html>";
 	mhdt->response = MHD_create_response_from_buffer(
-		body.str().size(), (char*)body.str().c_str(), MHD_RESPMEM_MUST_COPY);
+		body.str().size(), const_cast<char*>(body.str().c_str()), MHD_RESPMEM_MUST_COPY);
 	MHD_add_response_header(mhdt->response, "Content-Type", "text/html");
 	mhdt->httpstatus = status_code;
 	return UPNP_E_SUCCESS;
@@ -455,7 +455,7 @@ std::string query_encode(const std::string& qs)
 size_t header_callback_curl(char *buffer, size_t size, size_t nitems, void *s)
 {
 	size_t bufsize = size * nitems;
-	auto headers = (std::map<std::string, std::string>*)s;
+	auto headers = static_cast<std::map<std::string, std::string>*>(s);
 	const char *colon = strchr(buffer, ':');
 	if (nullptr != colon) {
 		size_t colpos = colon - buffer;
@@ -486,6 +486,6 @@ size_t write_callback_null_curl(char *buffer, size_t size, size_t nitems, void *
 
 size_t write_callback_str_curl(char *buf, size_t sz, size_t nits, void *s)
 {
-	((std::string*)s)->append(buf, sz * nits);
+	(static_cast<std::string*>(s))->append(buf, sz * nits);
 	return sz * nits;
 }

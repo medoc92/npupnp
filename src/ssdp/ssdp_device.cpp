@@ -59,11 +59,11 @@
 
 static void* thread_advertiseandreply(void *data)
 {
-    auto arg = (SsdpSearchReply *) data;
+    auto arg = static_cast<SsdpSearchReply *>(data);
 
     AdvertiseAndReply(0, arg->handle,
                       arg->event.RequestType,
-                      (struct sockaddr *)&arg->dest_addr,
+                      reinterpret_cast<struct sockaddr *>(&arg->dest_addr),
                       arg->event.DeviceType,
                       arg->event.UDN, arg->event.ServiceType, arg->MaxAge);
 	return nullptr;
@@ -99,7 +99,7 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
     for (;;) {
         HandleLock();
         /* device info. */
-        switch (GetDeviceHandleInfo(start, (int)dest_addr->ss_family,
+        switch (GetDeviceHandleInfo(start, static_cast<int>(dest_addr->ss_family),
                                     &handle, &dev_info)) {
         case HND_DEVICE:
             break;
@@ -121,7 +121,7 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
                    "DeviceUuid   =  %s\n", event.UDN);
         UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
                    "ServiceType =  %s\n", event.ServiceType);
-        threadArg = (SsdpSearchReply *)malloc(sizeof(SsdpSearchReply));
+        threadArg = static_cast<SsdpSearchReply *>(malloc(sizeof(SsdpSearchReply)));
         if (threadArg == nullptr)
             return;
         threadArg->handle = handle;
@@ -139,7 +139,7 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
         replyTime = rand() % mx;
         gTimerThread->schedule(
 			TimerThread::SHORT_TERM, TimerThread::REL_SEC, replyTime, nullptr,
-			thread_advertiseandreply, threadArg, (ThreadPool::free_routine)free);
+			thread_advertiseandreply, threadArg, static_cast<ThreadPool::free_routine>(free));
         start = handle;
     }
 }
@@ -172,7 +172,7 @@ static int NewRequestHandler(
     char buf_ntop[INET6_ADDRSTRLEN];
     int ret = UPNP_E_SUCCESS;
 
-    ReplySock = socket((int)DestAddr->sa_family, SOCK_DGRAM, 0);
+    ReplySock = socket(static_cast<int>(DestAddr->sa_family), SOCK_DGRAM, 0);
     if (ReplySock == INVALID_SOCKET) {
         posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
         UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
@@ -182,23 +182,23 @@ static int NewRequestHandler(
 
     switch (DestAddr->sa_family) {
     case AF_INET:
-        inet_ntop(AF_INET, &((struct sockaddr_in *)DestAddr)->sin_addr,
+        inet_ntop(AF_INET, &(reinterpret_cast<struct sockaddr_in *>(DestAddr))->sin_addr,
                   buf_ntop, sizeof(buf_ntop));
         setsockopt(ReplySock, IPPROTO_IP, IP_MULTICAST_IF,
-                   (char *)&replyAddr, sizeof(replyAddr));
+                   reinterpret_cast<char *>(&replyAddr), sizeof(replyAddr));
         setsockopt(ReplySock, IPPROTO_IP, IP_MULTICAST_TTL,
-                   (char *)&ttl, sizeof(int));
+                   reinterpret_cast<char *>(&ttl), sizeof(int));
         socklen = sizeof(struct sockaddr_in);
         break;
 #ifdef UPNP_ENABLE_IPV6
     case AF_INET6:
         inet_ntop(AF_INET6,
-                  &((struct sockaddr_in6 *)DestAddr)->sin6_addr,
+                  &(reinterpret_cast<struct sockaddr_in6 *>(DestAddr))->sin6_addr,
                   buf_ntop, sizeof(buf_ntop));
         setsockopt(ReplySock, IPPROTO_IPV6, IPV6_MULTICAST_IF,
-                   (char *)&gIF_INDEX, sizeof(gIF_INDEX));
+                   reinterpret_cast<char *>(&gIF_INDEX), sizeof(gIF_INDEX));
         setsockopt(ReplySock, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
-                   (char *)&hops, sizeof(hops));
+                   reinterpret_cast<char *>(&hops), sizeof(hops));
         break;
 #endif
     default:
@@ -234,7 +234,7 @@ end_NewRequestHandler:
 static int extractIPv6address(const char *url, char *address, int maxlen)
 {
 	address[0] = 0;
-    char *op = strchr((char*)url, '[');
+    char *op = strchr(const_cast<char*>(url), '[');
 	if (op == nullptr) 
 		return 0;
 	char *cl = strchr(op, ']');
@@ -359,17 +359,17 @@ static void CreateServicePacket(
 static bool setDestAddr(struct sockaddr_storage& __ss, const char *Location,
 						int AddressFamily)
 {
-    auto DestAddr4 = (struct sockaddr_in *)&__ss;
-    auto DestAddr6 = (struct sockaddr_in6 *)&__ss;
+    auto DestAddr4 = reinterpret_cast<struct sockaddr_in *>(&__ss);
+    auto DestAddr6 = reinterpret_cast<struct sockaddr_in6 *>(&__ss);
     memset(&__ss, 0, sizeof(__ss));
     switch (AddressFamily) {
     case AF_INET:
-        DestAddr4->sin_family = (sa_family_t)AF_INET;
+        DestAddr4->sin_family = static_cast<sa_family_t>(AF_INET);
         inet_pton(AF_INET, SSDP_IP, &DestAddr4->sin_addr);
         DestAddr4->sin_port = htons(SSDP_PORT);
         break;
     case AF_INET6:
-        DestAddr6->sin6_family = (sa_family_t)AF_INET6;
+        DestAddr6->sin6_family = static_cast<sa_family_t>(AF_INET6);
         inet_pton(AF_INET6,
                   (isUrlV6UlaGua(Location)) ? SSDP_IPV6_SITELOCAL :
                   SSDP_IPV6_LINKLOCAL, &DestAddr6->sin6_addr);
@@ -402,7 +402,7 @@ int DeviceAdvertisementOrShutdown(
     /* If deviceis a root device, we need to send 3 messages */
     if (RootDev) {
         rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::upnp:rootdevice", Udn);
-        if (rc < 0 || (unsigned int) rc >= sizeof(Mil_Usn))
+        if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Usn))
             goto error_handler;
         CreateServicePacket(msgtype, "upnp:rootdevice",
                             Mil_Usn, Location, Duration, msgs[0],
@@ -414,7 +414,7 @@ int DeviceAdvertisementOrShutdown(
                         Location, Duration, msgs[1], AddressFamily,
                         PowerState, SleepPeriod, RegistrationState);
     rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::%s", Udn, DevType);
-    if (rc < 0 || (unsigned int) rc >= sizeof(Mil_Usn))
+    if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Usn))
         goto error_handler;
     CreateServicePacket(msgtype, DevType, Mil_Usn,
                         Location, Duration, msgs[2], AddressFamily,
@@ -426,10 +426,10 @@ int DeviceAdvertisementOrShutdown(
     /* send packets */
     if (RootDev) {
         /* send 3 msg types */
-        ret_code = NewRequestHandler((struct sockaddr *)&__ss, 3, &msgs[0]);
+        ret_code = NewRequestHandler(reinterpret_cast<struct sockaddr *>(&__ss), 3, &msgs[0]);
     } else {        /* sub-device */
         /* send 2 msg types */
-        ret_code = NewRequestHandler((struct sockaddr *)&__ss, 2, &msgs[1]);
+        ret_code = NewRequestHandler(reinterpret_cast<struct sockaddr *>(&__ss), 2, &msgs[1]);
     }
 
 error_handler:
@@ -471,11 +471,11 @@ int SendReply(struct sockaddr *DestAddr, const char *DevType, int RootDev,
         num_msgs = 1;
 
         rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::upnp:rootdevice", Udn);
-        if (rc < 0 || (unsigned int) rc >= sizeof(Mil_Usn))
+        if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Usn))
             goto error_handler;
         CreateServicePacket(MSGTYPE_REPLY, "upnp:rootdevice",
                             Mil_Usn, Location, Duration, msgs[0],
-                            (int)DestAddr->sa_family, PowerState,
+                            static_cast<int>(DestAddr->sa_family), PowerState,
                             SleepPeriod, RegistrationState);
     } else {
         /* two msgs for embedded devices */
@@ -485,15 +485,15 @@ int SendReply(struct sockaddr *DestAddr, const char *DevType, int RootDev,
         if (!ByType) {
             CreateServicePacket(MSGTYPE_REPLY, Udn, Udn, Location,
                                 Duration, msgs[0],
-                                (int)DestAddr->sa_family, PowerState,
+                                static_cast<int>(DestAddr->sa_family), PowerState,
                                 SleepPeriod, RegistrationState);
         } else {
             rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::%s", Udn, DevType);
-            if (rc < 0 || (unsigned int) rc >= sizeof(Mil_Usn))
+            if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Usn))
                 goto error_handler;
             CreateServicePacket(MSGTYPE_REPLY, DevType, Mil_Usn,
                                 Location, Duration, msgs[0],
-                                (int)DestAddr->sa_family, PowerState,
+                                static_cast<int>(DestAddr->sa_family), PowerState,
                                 SleepPeriod, RegistrationState);
         }
     }
@@ -524,30 +524,30 @@ int DeviceReply(struct sockaddr *DestAddr, const char *DevType, int RootDev,
         /* 3 replies for root device */
         upnp_strlcpy(Mil_Nt, "upnp:rootdevice", sizeof(Mil_Nt));
         rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::upnp:rootdevice", Udn);
-        if (rc < 0 || (unsigned int) rc >= sizeof(Mil_Usn))
+        if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Usn))
             goto error_handler;
         CreateServicePacket(MSGTYPE_REPLY, Mil_Nt, Mil_Usn,
                             Location, Duration, szReq[0],
-                            (int)DestAddr->sa_family, PowerState,
+                            static_cast<int>(DestAddr->sa_family), PowerState,
                             SleepPeriod, RegistrationState);
     }
     rc = snprintf(Mil_Nt, sizeof(Mil_Nt), "%s", Udn);
-    if (rc < 0 || (unsigned int) rc >= sizeof(Mil_Nt))
+    if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Nt))
         goto error_handler;
     rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s", Udn);
-    if (rc < 0 || (unsigned int) rc >= sizeof(Mil_Usn))
+    if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Usn))
         goto error_handler;
     CreateServicePacket(MSGTYPE_REPLY, Mil_Nt, Mil_Usn,
-                        Location, Duration, szReq[1], (int)DestAddr->sa_family,
+                        Location, Duration, szReq[1], static_cast<int>(DestAddr->sa_family),
                         PowerState, SleepPeriod, RegistrationState);
     rc = snprintf(Mil_Nt, sizeof(Mil_Nt), "%s", DevType);
-    if (rc < 0 || (unsigned int) rc >= sizeof(Mil_Nt))
+    if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Nt))
         goto error_handler;
     rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::%s", Udn, DevType);
-    if (rc < 0 || (unsigned int) rc >= sizeof(Mil_Usn))
+    if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Usn))
         goto error_handler;
     CreateServicePacket(MSGTYPE_REPLY, Mil_Nt, Mil_Usn,
-                        Location, Duration, szReq[2], (int)DestAddr->sa_family,
+                        Location, Duration, szReq[2], static_cast<int>(DestAddr->sa_family),
                         PowerState, SleepPeriod, RegistrationState);
     /* check error */
     if ((RootDev && szReq[0].empty()) || szReq[1].empty() || szReq[2].empty()) {
@@ -575,10 +575,10 @@ static int ServiceSend(
     int rc = 0;
 
     rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::%s", Udn, ServType);
-    if (rc < 0 || (unsigned int) rc >= sizeof(Mil_Usn))
+    if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Usn))
         goto error_handler;
     CreateServicePacket(tp, ServType, Mil_Usn,
-                        Location, Duration, szReq[0], (int)DestAddr->sa_family,
+                        Location, Duration, szReq[0], static_cast<int>(DestAddr->sa_family),
                         PowerState, SleepPeriod, RegistrationState);
     if (szReq[0].empty())
         goto error_handler;
@@ -608,7 +608,7 @@ static int ServiceAdvShut(int tp, const char *Udn, const char *ServType,
 		return UPNP_E_BAD_REQUEST;
 	}
     return ServiceSend(
-		tp, (struct sockaddr *)&__ss, ServType, Udn, Location,
+		tp, reinterpret_cast<struct sockaddr *>(&__ss), ServType, Udn, Location,
 		Duration, PowerState, SleepPeriod, RegistrationState);
 }
 

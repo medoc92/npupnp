@@ -76,9 +76,9 @@ static void *thread_autorenewsubscription(
 	/*! [in] Thread data(upnp_timeout *) needed to send the renewal. */
 	void *input)
 {
-	auto event = (upnp_timeout *)input;
+	auto event = static_cast<upnp_timeout *>(input);
 	auto sub_struct =
-		(struct Upnp_Event_Subscribe *)event->Event;
+		static_cast<struct Upnp_Event_Subscribe *>(event->Event);
 	void *cookie;
 	Upnp_FunPtr callback_fun;
 	struct Handle_Info *handle_info;
@@ -123,7 +123,7 @@ static void *thread_autorenewsubscription(
 		callback_fun = handle_info->Callback;
 		cookie = handle_info->Cookie;
 		HandleUnlock();
-		callback_fun((Upnp_EventType)eventType, event->Event, cookie);
+		callback_fun(static_cast<Upnp_EventType>(eventType), event->Event, cookie);
 	}
 
 end_function:
@@ -156,8 +156,8 @@ static int ScheduleGenaAutoRenew(
 		goto end_function;
 	}
 
-	RenewEventStruct = (struct Upnp_Event_Subscribe *)malloc(
-		sizeof(struct Upnp_Event_Subscribe));
+	RenewEventStruct = static_cast<struct Upnp_Event_Subscribe *>(malloc(
+		sizeof(struct Upnp_Event_Subscribe)));
 	if (RenewEventStruct == nullptr) {
 		return_code = UPNP_E_OUTOF_MEMORY;
 		goto end_function;
@@ -184,7 +184,7 @@ static int ScheduleGenaAutoRenew(
 	return_code = gTimerThread->schedule(
 		TimerThread::SHORT_TERM, TimerThread::REL_SEC, TimeOut - AUTO_RENEW_TIME,
 		&(RenewEvent->eventId),	thread_autorenewsubscription, RenewEvent,
-		(ThreadPool::free_routine)free_upnp_timeout);
+		reinterpret_cast<ThreadPool::free_routine>(free_upnp_timeout));
 
 	if (return_code != UPNP_E_SUCCESS) {
 		free_upnp_timeout(RenewEvent);

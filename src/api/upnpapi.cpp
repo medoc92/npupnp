@@ -138,7 +138,7 @@ char gIF_IPV6[INET6_ADDRSTRLEN] = { '\0' };
 char gIF_IPV6_ULA_GUA[INET6_ADDRSTRLEN] = { '\0' };
 
 /*! Contains interface index. V6 scope id or such. (extern'ed in upnp.h) */
-unsigned gIF_INDEX = (unsigned)-1;
+unsigned gIF_INDEX = static_cast<unsigned>(-1);
 
 /*! local IPv4 port for the mini-server */
 unsigned short LOCAL_PORT_V4;
@@ -388,7 +388,7 @@ int UpnpGetIfInfo(const char *IfName)
 		bool valid_addr_found{false};
 		switch (ifa->ifa_addr->sa_family) {
 		case AF_INET:
-			memcpy(&v4_addr, &((struct sockaddr_in *)(ifa->ifa_addr))->sin_addr,
+			memcpy(&v4_addr, &(reinterpret_cast<struct sockaddr_in *>(ifa->ifa_addr))->sin_addr,
 				   sizeof(v4_addr));
 			gotv4 = true;
 			valid_addr_found = true;
@@ -398,7 +398,7 @@ int UpnpGetIfInfo(const char *IfName)
 			if (IN6_IS_ADDR_LINKLOCAL(
 					&((struct sockaddr_in6 *)(ifa->ifa_addr))->sin6_addr)) {
 				memcpy(&v6_addr,
-					   &((struct sockaddr_in6 *)(ifa->ifa_addr))->sin6_addr,
+					   &(reinterpret_cast<struct sockaddr_in6 *>(ifa->ifa_addr))->sin6_addr,
 					   sizeof(v6_addr));
 				gotv6 = true;
 				valid_addr_found = true;
@@ -494,12 +494,12 @@ int getlocalhostname(char *out, size_t out_len)
 		}
 		if (ifa->ifa_addr->sa_family == AF_INET) {
 			/* We don't want the loopback interface. */
-			if (((struct sockaddr_in *)(ifa->ifa_addr))->sin_addr.s_addr ==
+			if ((reinterpret_cast<struct sockaddr_in *>(ifa->ifa_addr))->sin_addr.s_addr ==
 				htonl(INADDR_LOOPBACK)) {
 				continue;
 			}
 			p = inet_ntop(AF_INET,
-						  &((struct sockaddr_in *)(ifa->ifa_addr))->sin_addr,
+						  &(reinterpret_cast<struct sockaddr_in *>(ifa->ifa_addr))->sin_addr,
 						  tempstr, sizeof(tempstr));
 			if (p) {
 				upnp_strlcpy(out, p, out_len);
@@ -591,7 +591,7 @@ static int UpnpInitPreamble()
 #endif
 	
 	/* needed by SSDP or other parts. */
-	srand((unsigned int)time(nullptr));
+	srand(static_cast<unsigned int>(time(nullptr)));
 
 	/* Initialize debug output. */
 	retVal = UpnpInitLog();
@@ -701,7 +701,7 @@ static int upnpInitCommonV4V6(bool dov6, const char *HostIP,
 
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
 			   "UpnpInit: HostIP=%s, DestPort=%d.\n", 
-			   HostIP ? HostIP : "", (int)DestPort);
+			   HostIP ? HostIP : "", static_cast<int>(DestPort));
 
 	if (dov6) {
 		/* Retrieve interface information (Addresses, index, etc). */
@@ -732,7 +732,7 @@ static int upnpInitCommonV4V6(bool dov6, const char *HostIP,
 
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
 			   "UpnPInit output: Host Ip: %s Host Port: %d\n", gIF_IPV4,
-			   (int)LOCAL_PORT_V4);
+			   static_cast<int>(LOCAL_PORT_V4));
 
 exit_function:
 	return retVal;
@@ -972,7 +972,7 @@ int UpnpRegisterRootDeviceAllForms(
 #if EXCLUDE_GENA == 0
 	int hasServiceTable = 0;
 #endif /* EXCLUDE_GENA */
-	char *description = (char *)description_const;
+	char *description = const_cast<char *>(description_const);
 
 	HandleLock();
 
@@ -1132,7 +1132,7 @@ int UpnpUnRegisterRootDeviceLowPower(UpnpDevice_Handle Hnd, int PowerState,
 
 #if EXCLUDE_SSDP == 0
 	retVal = AdvertiseAndReply(
-		-1, Hnd, (enum SsdpSearchType)0, nullptr, nullptr, nullptr, nullptr, HInfo->MaxAge);
+		-1, Hnd, static_cast<enum SsdpSearchType>(0), nullptr, nullptr, nullptr, nullptr, HInfo->MaxAge);
 #endif
 
 	if (checkLockHandle(HND_INVALID, Hnd, &HInfo) == HND_INVALID) {
@@ -1263,13 +1263,13 @@ static int readFile(const char *path, char **data, time_t *modtime)
 	FILE *fp = fopen(path, "rb");
 	if (nullptr == fp)
 		return UPNP_E_FILE_NOT_FOUND;
-	buffer = (char *)malloc(st.st_size+1);
+	buffer = static_cast<char *>(malloc(st.st_size+1));
 	if (nullptr == buffer) {
 		ret = UPNP_E_OUTOF_MEMORY;
 		goto out;
 	}
 	num_read = fread(buffer, 1, st.st_size, fp);
-	if (num_read != (size_t)st.st_size) {
+	if (num_read != static_cast<size_t>(st.st_size)) {
 		ret = UPNP_E_FILE_READ_ERROR;
 		goto out;
 	}
@@ -1432,9 +1432,9 @@ int UpnpSendAdvertisement(UpnpDevice_Handle Hnd, int Exp)
 
 void thread_autoadvertise(void *input)
 {
-	auto event = (upnp_timeout *)input;
+	auto event = static_cast<upnp_timeout *>(input);
 
-	UpnpSendAdvertisement(event->handle, *((int *)event->Event));
+	UpnpSendAdvertisement(event->handle, *(static_cast<int *>(event->Event)));
 }
 
 int UpnpSendAdvertisementLowPower(
@@ -1464,12 +1464,12 @@ int UpnpSendAdvertisementLowPower(
 	SInfo->SleepPeriod = SleepPeriod;
 	SInfo->RegistrationState = RegistrationState;
 	HandleUnlock();
-	retVal = AdvertiseAndReply(1, Hnd, (enum SsdpSearchType)0,
+	retVal = AdvertiseAndReply(1, Hnd, static_cast<enum SsdpSearchType>(0),
 							   nullptr, nullptr, nullptr, nullptr, Exp);
 
 	if(retVal != UPNP_E_SUCCESS)
 		return retVal;
-	ptrMx = (int *)malloc(sizeof(int));
+	ptrMx = static_cast<int *>(malloc(sizeof(int)));
 	if(ptrMx == nullptr)
 		return UPNP_E_OUTOF_MEMORY;
 
@@ -1492,8 +1492,8 @@ int UpnpSendAdvertisementLowPower(
 		TimerThread::SHORT_TERM, TimerThread::REL_SEC,
 		((Exp / 2) - (AUTO_ADVERTISEMENT_TIME)),
 		 &(adEvent->eventId),
-		(start_routine)thread_autoadvertise, adEvent,
-		(ThreadPool::free_routine)free_upnp_timeout);
+		reinterpret_cast<start_routine>(thread_autoadvertise), adEvent,
+		reinterpret_cast<ThreadPool::free_routine>(free_upnp_timeout));
 #else
 	retVal = gTimerThread->schedule(
 		TimerThread::SHORT_TERM, TimerThread::REL_SEC,
@@ -1539,7 +1539,7 @@ int UpnpSearchAsync(
 		Mx = DEFAULT_MX;
 
 	HandleUnlock();
-	retVal = SearchByTarget(Mx, (char *)Target, (void *)Cookie);
+	retVal = SearchByTarget(Mx, const_cast<char *>(Target), const_cast<void *>(Cookie));
 	if (retVal != 1)
 		return retVal;
 
@@ -1739,8 +1739,8 @@ int UpnpNotify(
 	}
 
 	HandleUnlock();
-	retVal = genaNotifyAll(Hnd, (char*)DevID, (char*)ServName,
-						   (char**)VarName, (char**)NewVal, cVariables);
+	retVal = genaNotifyAll(Hnd, const_cast<char*>(DevID), const_cast<char*>(ServName),
+						   const_cast<char**>(VarName), const_cast<char**>(NewVal), cVariables);
 
 	UpnpPrintf(UPNP_ALL,API,__FILE__,__LINE__,"UpnpNotify ret %d\n", retVal);
 	return retVal;
@@ -1766,7 +1766,7 @@ int UpnpNotifyXML(UpnpDevice_Handle Hnd, const char *DevID,
 	}
 
 	HandleUnlock();
-	retVal = genaNotifyAllXML(Hnd, (char*)DevID, (char*)ServName, propset);
+	retVal = genaNotifyAllXML(Hnd, const_cast<char*>(DevID), const_cast<char*>(ServName), propset);
 
 	UpnpPrintf(UPNP_ALL,API,__FILE__,__LINE__, "UpnpNotifyXML ret %d\n", retVal);
 	return retVal;
@@ -1794,8 +1794,8 @@ int UpnpAcceptSubscription(
 	}
 
 	HandleUnlock();
-	ret = genaInitNotifyVars(Hnd, (char*)DevID, (char*)ServName, (char**)VarName,
-							 (char**)NewVal, cVariables, SubsId);
+	ret = genaInitNotifyVars(Hnd, const_cast<char*>(DevID), const_cast<char*>(ServName), const_cast<char**>(VarName),
+							 const_cast<char**>(NewVal), cVariables, SubsId);
 
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
 			   "UpnpAcceptSubscription, ret = %d\n", ret);
@@ -1825,7 +1825,7 @@ int UpnpAcceptSubscriptionXML(
 
 	HandleUnlock();
 	ret = genaInitNotifyXML(
-		Hnd, (char*)DevID, (char*)ServName, propertyset, SubsId);
+		Hnd, const_cast<char*>(DevID), const_cast<char*>(ServName), propertyset, SubsId);
 
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
 			   "UpnpAcceptSubscriptionXML, ret = %d\n", ret);
@@ -1912,7 +1912,7 @@ int UpnpDownloadUrlItem(const std::string& url,
 /* Get callback function ptr from a handle. */
 Upnp_FunPtr GetCallBackFn(UpnpClient_Handle Hnd)
 {
-	return ((struct Handle_Info *)HandleTable[Hnd])->Callback;
+	return (static_cast<struct Handle_Info *>(HandleTable[Hnd]))->Callback;
 }
 
 /* Assumes at most one client */
@@ -2030,8 +2030,8 @@ Upnp_Handle_Type GetHandleInfo(UpnpClient_Handle Hnd,
 		//		   "GetHandleInfo: HTable[%d] is NULL\n",
 		//		   Hnd);
 	} else if (HandleTable[Hnd] != nullptr) {
-		*HndInfo = (struct Handle_Info *)HandleTable[Hnd];
-		ret = ((struct Handle_Info *)*HndInfo)->HType;
+		*HndInfo = static_cast<struct Handle_Info *>(HandleTable[Hnd]);
+		ret = (*HndInfo)->HType;
 	}
 
 	return ret;
@@ -2041,7 +2041,7 @@ int PrintHandleInfo(UpnpClient_Handle Hnd)
 {
 	struct Handle_Info * HndInfo;
 	if (HandleTable[Hnd] != nullptr) {
-		HndInfo = (struct Handle_Info*)HandleTable[Hnd];
+		HndInfo = static_cast<struct Handle_Info*>(HandleTable[Hnd]);
 		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
 				   "Handle_%d Type_%d: \n", Hnd, HndInfo->HType);
 #ifdef INCLUDE_DEVICE_APIS
@@ -2143,7 +2143,7 @@ int UpnpIsWebserverEnabled()
 		return 0;
 	}
 
-	return bWebServerState == (WebServerState)WEB_SERVER_ENABLED;
+	return bWebServerState == static_cast<WebServerState>(WEB_SERVER_ENABLED);
 }
 
 int UpnpSetVirtualDirCallbacks(struct UpnpVirtualDirCallbacks *callbacks)

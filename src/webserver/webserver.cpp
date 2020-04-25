@@ -293,7 +293,7 @@ static int get_file_info(const char *filename, struct File_Info *info)
 	int rc = get_content_type(filename, info->content_type);
 	UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
 			   "get_file_info: %s, sz: %" PRIi64 ", mtime=%s rdable=%d\n",
-			   filename, (int64_t)info->file_length,
+			   filename, info->file_length,
 			   make_date_string(info->last_modified).c_str(),
 			   info->is_readable);
 
@@ -675,7 +675,7 @@ public:
 static ssize_t vFileReaderCallback(void *cls, uint64_t pos, char *buf,
 								   size_t max)
 {
-	auto ctx = (VFileReaderCtxt*)cls;
+	auto ctx = static_cast<VFileReaderCtxt*>(cls);
 	if (nullptr == ctx->fp) {
 		UpnpPrintf(UPNP_ERROR, MSERV, __FILE__, __LINE__,
 				   "vFileReaderCallback: fp is null !\n");
@@ -702,7 +702,7 @@ static ssize_t vFileReaderCallback(void *cls, uint64_t pos, char *buf,
 static void vFileFreeCallback (void *cls)
 {
 	if (cls) {
-		auto ctx = (VFileReaderCtxt*)cls;
+		auto ctx = static_cast<VFileReaderCtxt*>(cls);
 		virtualDirCallback.close(ctx->fp, ctx->cookie, ctx->request_cookie);
 		delete ctx;
 	}
@@ -711,7 +711,7 @@ static void vFileFreeCallback (void *cls)
 void web_server_callback(MHDTransaction *mhdt)
 {
 	int ret;
-	auto rtype = (enum resp_type)0;
+	auto rtype = static_cast<enum resp_type>(0);
 	std::map<std::string,std::string> headers;
 	std::string filename;
 	struct SendInstruction RespInstr;

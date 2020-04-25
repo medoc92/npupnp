@@ -85,7 +85,7 @@ public:
  */
 void *thread_timer(void *arg)
 {
-	auto timer = (TimerThread::Internal *)arg;
+	auto timer = static_cast<TimerThread::Internal *>(arg);
 	TimerEvent *nextEvent = nullptr;
 	system_clock::time_point nextEventTime = system_clock::now();
 

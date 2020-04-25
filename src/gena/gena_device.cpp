@@ -226,7 +226,7 @@ static void free_notify_struct(Notification *input)
  */
 static void *thread_genanotify(void *input)
 {
-	auto in = (Notification *)input;
+	auto in = static_cast<Notification *>(input);
 	subscription *sub;
 	service_info *service;
 	subscription sub_copy;
@@ -286,7 +286,7 @@ static void *thread_genanotify(void *input)
 	if (!sub->outgoing.empty()) {
 		auto notif = sub->outgoing.begin();
 		gSendThreadPool.addJob(thread_genanotify, *notif,
-							   (ThreadPool::free_routine)free_notify_struct);
+							   reinterpret_cast<ThreadPool::free_routine>(free_notify_struct));
 	}
 
 	// No idea why we do this after sending one more event. Was the
@@ -359,7 +359,7 @@ int genaInitNotifyXML(
 	thread_struct->device_handle = device_handle;
 
 	ret = gSendThreadPool.addJob(thread_genanotify, thread_struct,
-								 (ThreadPool::free_routine)free_notify_struct);
+								 reinterpret_cast<ThreadPool::free_routine>(free_notify_struct));
 	if (ret != 0) {
 		line = __LINE__;
 		ret = UPNP_E_OUTOF_MEMORY;
@@ -514,7 +514,7 @@ int genaNotifyAllXML(
 		if (finger->outgoing.size() == 1) {
 			ret = gSendThreadPool.addJob(
 				thread_genanotify, thread_struct,
-				(ThreadPool::free_routine)free_notify_struct);
+				reinterpret_cast<ThreadPool::free_routine>(free_notify_struct));
 			if (ret != 0) {
 				line = __LINE__;
 				if (ret == EOUTOFMEM) {
@@ -619,7 +619,7 @@ static int create_url_list(const std::string& ulist, std::vector<uri_type> *out)
 			out->push_back(temp);
 		}
 	}
-    return (int)out->size();
+    return static_cast<int>(out->size());
 }
 
 void gena_process_subscription_request(MHDTransaction *mhdt)
@@ -743,7 +743,7 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
 	rc = snprintf(sub->sid, sizeof(sub->sid),"uuid:%s", gena_sid_uuid().c_str());
 
 	/* respond OK */
-	if (rc < 0 || (unsigned int) rc >= sizeof(sub->sid) ||
+	if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(sub->sid) ||
 		respond_ok(mhdt, time_out, &(*sub)) != UPNP_E_SUCCESS) {
 		service->subscriptionList.pop_back();
 		HandleUnlock();
