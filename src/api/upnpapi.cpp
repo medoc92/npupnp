@@ -506,7 +506,6 @@ int getlocalhostname(char *out, size_t out_len)
 			} else {
 				UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
 						   "getlocalhostname: inet_ntop error\n");
-				ret = UPNP_E_INIT;
 			}
 			break;
 		}

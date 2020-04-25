@@ -190,13 +190,14 @@ bool SSDPPacketParser::parse()
 		default:
 			break;
 		}
-		known = known;
 #if 0
 		if (known) {
 			cerr << "NM [" << nm << "] VAL [" << val << "]\n";
 		} else { 
 			cerr << "Unknown header name [" << nm << "]\n";
 		}
+#else
+        (void)known;
 #endif
 		cp += m.length();
 	}

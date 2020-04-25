@@ -115,17 +115,6 @@ void SetGenaCallback(MiniServerCallback callback)
 	gGenaCallback = callback;
 }
 
-/*!
- * \brief Send Error Message.
- */
-static UPNP_INLINE void handle_error(
-	MHDTransaction *mhdt,
-	/*! [in] HTTP Error Code. */
-	int http_error_code)
-{
-	http_SendStatusResponse(mhdt, http_error_code);
-}
-
 #endif /* INTERNAL_WEB_SERVER */
 
 static UPNP_INLINE void fdset_if_valid(SOCKET sock, fd_set *set)

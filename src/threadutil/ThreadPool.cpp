@@ -277,8 +277,8 @@ static int SetPriority(ThreadPool::ThreadPriority priority)
 exit_function:
 	return retVal;
 #else
+	(void)priority;
 	return 0;
-	priority = priority;
 #endif
 }
 

@@ -17,7 +17,12 @@
  * will fill a supplied 16-byte array with the digest.
  */
 
+#ifdef BUILDING_RECOLL
+#include "autoconfig.h"
+#else
 #include "config.h"
+#endif
+
 #include "md5.h"
 
 #include <string.h>
@@ -242,4 +247,53 @@ MD5Transform(uint32_t state[4], const uint8_t block[MD5_BLOCK_LENGTH])
 	state[1] += b;
 	state[2] += c;
 	state[3] += d;
+}
+
+// C++ utilities
+using std::string;
+
+void MD5Final(string &digest, MD5_CTX *context)
+{
+    unsigned char d[16];
+    MD5Final (d, context);
+    digest.assign((const char *)d, 16);
+}
+
+string& MD5String(const string& data, string& digest)
+{
+    MD5_CTX ctx;
+    MD5Init(&ctx);
+    MD5Update(&ctx, (const unsigned char*)data.c_str(), data.length());
+    MD5Final(digest, &ctx);
+    return digest;
+}
+
+string& MD5HexPrint(const string& digest, string &out)
+{
+    out.erase();
+    out.reserve(33);
+    static const char hex[]="0123456789abcdef";
+    const unsigned char *hash = (const unsigned char *)digest.c_str();
+    for (int i = 0; i < 16; i++) {
+	out.append(1, hex[hash[i] >> 4]);
+	out.append(1, hex[hash[i] & 0x0f]);
+    }
+    return out;
+}
+
+string& MD5HexScan(const string& xdigest, string& digest)
+{
+    digest.erase();
+    if (xdigest.length() != 32) {
+	return digest;
+    }
+    for (unsigned int i = 0; i < 16; i++) {
+	unsigned int val;
+	if (sscanf(xdigest.c_str() + 2*i, "%2x", &val) != 1) {
+	    digest.erase();
+	    return digest;
+	}
+	digest.append(1, (unsigned char)val);
+    }
+    return digest;
 }

@@ -37,7 +37,7 @@
 
 #include "ThreadPool.h"
 
-class TimerEvent;
+struct TimerEvent;
 
 /*!
  * A timer thread that allows the scheduling of jobs to run at a

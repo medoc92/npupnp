@@ -401,7 +401,7 @@ int genaUnregisterClient(UpnpClient_Handle client_handle)
 
 		HandleUnlock();
 
-		return_code = gena_unsubscribe(sub_copy.eventURL, sub_copy.actualSID);
+		gena_unsubscribe(sub_copy.eventURL, sub_copy.actualSID);
 		clientCancelRenew(&sub_copy);
 	}
 

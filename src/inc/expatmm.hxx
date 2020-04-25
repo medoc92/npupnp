@@ -301,7 +301,7 @@ private:
         expat_parser = XML_ParserCreate(NULL);
 
         if(expat_parser == NULL) {
-            delete xml_buffer;
+            delete [] xml_buffer;
             xml_buffer = NULL;
             return;
         }

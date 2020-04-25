@@ -65,9 +65,11 @@ std::string gena_sid_uuid()
 		ip = gIF_IPV6_ULA_GUA;
 		port = LOCAL_PORT_V6;
 	} else if (gIF_IPV6[0]) {
-		port = LOCAL_PORT_V6;
 		ip = gIF_IPV6;
-	}
+		port = LOCAL_PORT_V6;
+	} else {
+        port = 0;
+    }
 	
 	std::ostringstream str;
 	str << tp << "-" << getpid() << "-" << ip << "-" << port;

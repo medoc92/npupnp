@@ -51,7 +51,7 @@
 
 #ifdef INCLUDE_DEVICE_APIS
 
-class Notification;
+struct Notification;
 struct subscription {
 	Upnp_SID sid; /* char[44] in upnp.h */
 	int ToSendEventKey{0};
