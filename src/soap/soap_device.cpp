@@ -181,12 +181,12 @@ public:
 	std::string outxml;
 
 protected:
-	virtual void StartElement(const XML_Char *name, const XML_Char**) {
+	void StartElement(const XML_Char *name, const XML_Char**) override {
 		if (!m_isresp && m_path.size() >= 3) {
 			outxml += std::string("<") + name + ">";
 		}
 	}
-    virtual void EndElement(const XML_Char *name) {
+    void EndElement(const XML_Char *name) override {
 		const std::string& parentname = (m_path.size() == 1) ?
             "root" : m_path[m_path.size()-2].name;
         trimstring(m_chardata, " \t\n\r");
@@ -200,7 +200,7 @@ protected:
         m_chardata.clear();
     }
 
-    virtual void CharacterData(const XML_Char *s, int len) {
+    void CharacterData(const XML_Char *s, int len) override {
         if (s == nullptr || *s == 0)
             return;
         m_chardata.append(s, len);

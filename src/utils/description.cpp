@@ -15,7 +15,7 @@ public:
         : inputRefXMLParser(input), m_device(device) {}
 
 protected:
-    virtual void EndElement(const XML_Char *name) {
+    void EndElement(const XML_Char *name) override {
         trimstring(m_chardata, " \t\n\r");
 
         UPnPDeviceDesc *dev;
@@ -69,7 +69,7 @@ protected:
         m_chardata.clear();
     }
 
-    virtual void CharacterData(const XML_Char *s, int len) {
+    void CharacterData(const XML_Char *s, int len) override {
         if (s == nullptr || *s == 0)
             return;
         m_chardata.append(s, len);
