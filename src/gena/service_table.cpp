@@ -448,7 +448,7 @@ static int fillServiceList(const UPnPDeviceDesc& dev, service_table *stable)
 			stable->serviceList.erase(current);
 		}
 	}
-	return stable->serviceList.size() != 0;
+	return !stable->serviceList.empty();
 }
 
 /************************************************************************

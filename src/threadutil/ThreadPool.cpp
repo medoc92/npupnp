@@ -299,7 +299,7 @@ void ThreadPool::Internal::bumpPriority()
 
 	auto now = steady_clock::now();
 	while (!done) {
-		if (this->medJobQ.size()) {
+		if (!this->medJobQ.empty()) {
 			tempJob = this->medJobQ.front();
 			long diffTime = duration_cast<milliseconds>(
 				now - tempJob->requestTime).count();
@@ -312,7 +312,7 @@ void ThreadPool::Internal::bumpPriority()
 				continue;
 			}
 		}
-		if (this->lowJobQ.size()) {
+		if (!this->lowJobQ.empty()) {
 			tempJob = this->lowJobQ.front();
 			long diffTime = duration_cast<milliseconds>(
 				now - tempJob->requestTime).count();
@@ -391,9 +391,9 @@ static void *WorkerThread(void *arg)
 
 		/* Check for a job or shutdown */
 		retCode = std::cv_status::no_timeout;
-		while (tp->lowJobQ.size() == 0 &&
-		       tp->medJobQ.size()  == 0 &&
-		       tp->highJobQ.size() == 0 &&
+		while (tp->lowJobQ.empty() &&
+		       tp->medJobQ.empty() &&
+		       tp->highJobQ.empty() &&
 		       !tp->persistentJob && !tp->shuttingdown) {
 			/* If wait timed out and we currently have more than the
 			 * min threads, or if we have more than the max threads
@@ -432,15 +432,15 @@ static void *WorkerThread(void *arg)
 				tp->stats.workerThreads++;
 				persistent = 0;
 				/* Pick the highest priority job */
-				if (tp->highJobQ.size() > 0) {
+				if (!tp->highJobQ.empty()) {
 					job = tp->highJobQ.front();
 					tp->highJobQ.pop_front();
 					tp->CalcWaitTime(ThreadPool::HIGH_PRIORITY, job);
-				} else if (tp->medJobQ.size() > 0) {
+				} else if (!tp->medJobQ.empty()) {
 					job = tp->medJobQ.front();
 					tp->medJobQ.pop_front();
 					tp->CalcWaitTime(ThreadPool::MED_PRIORITY, job);
-				} else if (tp->lowJobQ.size() > 0) {
+				} else if (!tp->lowJobQ.empty()) {
 					job = tp->lowJobQ.front();
 					tp->lowJobQ.pop_front();
 					tp->CalcWaitTime(ThreadPool::LOW_PRIORITY, job);
@@ -710,19 +710,19 @@ int ThreadPool::Internal::shutdown()
 
 	std::unique_lock<std::mutex> lck(mutex);
 
-	while (this->highJobQ.size()) {
+	while (!this->highJobQ.empty()) {
 		temp = this->highJobQ.front();
 		this->highJobQ.pop_front();
 		delete temp;
 	}
 
-	while (this->medJobQ.size()) {
+	while (!this->medJobQ.empty()) {
 		temp = this->medJobQ.front();
 		this->medJobQ.pop_front();
 		delete temp;
 	}
 
-	while (this->lowJobQ.size()) {
+	while (!this->lowJobQ.empty()) {
 		temp = this->lowJobQ.front();
 		this->lowJobQ.pop_front();
 		delete temp;

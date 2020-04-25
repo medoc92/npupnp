@@ -103,7 +103,7 @@ void *thread_timer(void *arg)
 		}
 		nextEvent = NULL;
 		/* Get the next event if possible. */
-		if (timer->eventQ.size() > 0) {
+		if (!timer->eventQ.empty()) {
 			nextEvent = timer->eventQ.front();
 			nextEventTime = nextEvent->eventTime;
 		}

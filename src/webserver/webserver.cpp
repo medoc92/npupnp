@@ -304,7 +304,7 @@ int web_server_set_root_dir(const char *root_dir)
 {
 	gDocumentRootDir = root_dir;
 	/* remove trailing '/', if any */
-	if (gDocumentRootDir.size() > 0 && gDocumentRootDir.back() == '/') {
+	if (!gDocumentRootDir.empty() && gDocumentRootDir.back() == '/') {
 		gDocumentRootDir.pop_back();
 	}
 
@@ -478,7 +478,7 @@ static int process_request(
 	std::vector<std::pair<int64_t, int64_t> > ranges;
 	auto it = mhdt->headers.find("range");
     if (it != mhdt->headers.end()) {
-		if (parseRanges(it->second, ranges) && ranges.size()) {
+		if (parseRanges(it->second, ranges) && !ranges.empty()) {
 			if (ranges.size() > 1) {
 				return HTTP_REQUEST_RANGE_NOT_SATISFIABLE;
 			} else {
@@ -580,14 +580,14 @@ static int process_request(
 		RespInstr->data.swap(localdoc.data);
 	} else {
 		*rtype = RESP_FILEDOC;
-		if (gDocumentRootDir.size() == 0) {
+		if (gDocumentRootDir.empty()) {
 			return HTTP_FORBIDDEN;
 		}
 		/* get file name */
 		filename = gDocumentRootDir;
 		filename += request_doc;
 		/* remove trailing slashes */
-		while (filename.size() > 0 && filename.back() == '/') {
+		while (!filename.empty() && filename.back() == '/') {
 			filename.pop_back();
 		}
 
