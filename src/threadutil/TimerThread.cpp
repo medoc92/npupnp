@@ -67,7 +67,7 @@ struct TimerEvent {
 
 class TimerThread::Internal {
 public:
-	Internal(ThreadPool *tp);
+	explicit Internal(ThreadPool *tp);
 	
 	std::mutex mutex;
 	std::condition_variable condition;

@@ -67,7 +67,7 @@ struct ThreadPoolJob {
 
 class ThreadPool::Internal {
 public:
-	Internal(ThreadPoolAttr *attr);
+	explicit Internal(ThreadPoolAttr *attr);
 	bool ok{false};
 	int createWorker(std::unique_lock<std::mutex>& lck);
 	void addWorker(std::unique_lock<std::mutex>& lck);
