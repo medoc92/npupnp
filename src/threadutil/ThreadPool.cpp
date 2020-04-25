@@ -332,7 +332,7 @@ void ThreadPool::Internal::bumpPriority()
 /*
  * \brief Sets seed for random number generator. Each thread sets the seed
  * random number generator. */
-static void SetSeed(void)
+static void SetSeed()
 {
 	const auto p1 = std::chrono::system_clock::now();
 	auto cnt = p1.time_since_epoch().count();

@@ -261,7 +261,7 @@ int web_server_init()
  * WEB_SERVER_DISABLED.
  *
  */
-void web_server_destroy(void)
+void web_server_destroy()
 {
 	if (bWebServerState == WEB_SERVER_ENABLED) {
 		gDocumentRootDir.clear();

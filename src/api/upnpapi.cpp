@@ -542,7 +542,7 @@ static int WinsockInit(void)
 #endif /* _WIN32 */
 
 /* Initializes the global threadm pools used by the UPnP SDK. */
-static int UpnpInitThreadPools(void)
+static int UpnpInitThreadPools()
 {
 	int ret = UPNP_E_SUCCESS;
 	ThreadPoolAttr attr;
@@ -580,7 +580,7 @@ static int UpnpInitThreadPools(void)
  *
  * \return UPNP_E_SUCCESS on success.
  */
-static int UpnpInitPreamble(void)
+static int UpnpInitPreamble()
 {
 	int retVal = UPNP_E_SUCCESS;
 
@@ -806,7 +806,7 @@ static UPNP_INLINE void PrintThreadPoolStats(
 }
 #endif /* DEBUG */
 
-int UpnpFinish(void)
+int UpnpFinish()
 {
 #ifdef INCLUDE_DEVICE_APIS
 	UpnpDevice_Handle device_handle;
@@ -859,7 +859,7 @@ int UpnpFinish(void)
 	return UPNP_E_SUCCESS;
 }
 
-unsigned short UpnpGetServerPort(void)
+unsigned short UpnpGetServerPort()
 {
 	if (UpnpSdkInit != 1)
 		return 0u;
@@ -868,7 +868,7 @@ unsigned short UpnpGetServerPort(void)
 }
 
 #ifdef UPNP_ENABLE_IPV6
-unsigned short UpnpGetServerPort6(void)
+unsigned short UpnpGetServerPort6()
 {
 	if (UpnpSdkInit != 1)
 		return 0u;
@@ -877,7 +877,7 @@ unsigned short UpnpGetServerPort6(void)
 }
 #endif
 
-const char *UpnpGetServerIpAddress(void)
+const char *UpnpGetServerIpAddress()
 {
 	if (UpnpSdkInit != 1)
 		return nullptr;
@@ -885,7 +885,7 @@ const char *UpnpGetServerIpAddress(void)
 	return gIF_IPV4;
 }
 
-const char *UpnpGetServerIp6Address(void)
+const char *UpnpGetServerIp6Address()
 {
 	if (UpnpSdkInit != 1)
 		return nullptr;
@@ -893,7 +893,7 @@ const char *UpnpGetServerIp6Address(void)
 	return gIF_IPV6;
 }
 
-const char *UpnpGetServerUlaGuaIp6Address(void)
+const char *UpnpGetServerUlaGuaIp6Address()
 {
 	if (UpnpSdkInit != 1)
 		return nullptr;
@@ -2095,7 +2095,7 @@ int UpnpRemoveVirtualDir(const char *dirname)
 }
 
 
-void UpnpRemoveAllVirtualDirs(void)
+void UpnpRemoveAllVirtualDirs()
 {
 	web_server_clear_virtual_dirs();
 }
@@ -2138,7 +2138,7 @@ int UpnpEnableWebserver(int enable)
  *
  * \return 1, if webserver is enabled or 0, if webserver is disabled.
  */
-int UpnpIsWebserverEnabled(void)
+int UpnpIsWebserverEnabled()
 {
 	if (UpnpSdkInit != 1) {
 		return 0;
