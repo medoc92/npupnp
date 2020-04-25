@@ -317,7 +317,7 @@ static int get_mpost_acton_hdrval(MHDTransaction *mhdt, std::string& val)
 
 	stringtolower(it->second);
 	char aname[201];
-	int ret = sscanf(it->second.c_str(), " \"%*[^\"]\" ; ns = %200s", aname);
+	int ret = sscanf(it->second.c_str(), R"( "%*[^"]" ; ns = %200s)", aname);
 	if (ret != 1) {
 		return SREQ_NOT_EXTENDED;
 	}
