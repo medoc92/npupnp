@@ -207,7 +207,7 @@ Upnp_Handle_Type GetDeviceHandleInfoForPath(
 	/*! [in] Address family. */
 	int AddressFamily,
 	/*! [out] Device handle pointer. */
-	int *device_handle_out, 
+	int *devhdl, 
 	/*! [out] Device handle structure passed by this function. */
 	struct Handle_Info **HndInfo,
 	/*! [out] Service info for found path. */

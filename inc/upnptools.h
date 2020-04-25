@@ -69,7 +69,7 @@ extern "C" {
  */
 EXPORT_SPEC const char *UpnpGetErrorMessage(
 	/*! [in] The SDK error code to convert. */
-	int errorcode);
+	int rc);
 
 
 /*!

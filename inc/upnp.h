@@ -999,7 +999,7 @@ EXPORT_SPEC int UpnpRegisterRootDevice(
 	 */
 	const char *DescUrl,
 	/*! [in] Callback function.*/
-	Upnp_FunPtr Callback,
+	Upnp_FunPtr Fun,
 	/*! [in] Pointer to be passed as parameter to the callback invocations. */
 	const void *Cookie,
 	/*! [out] Pointer to a variable to store the new device handle. */
@@ -1132,7 +1132,7 @@ EXPORT_SPEC int UpnpRegisterRootDevice3(
 	 * device instance. */
 	const char *DescUrl,
 	/*! [in] Callback function.*/
-	Upnp_FunPtr Callback,
+	Upnp_FunPtr Fun,
 	/*! [in] Pointer to be passed as parameter to the callback invocations. */
 	const void *Cookie,
 	/*! [out] Pointer to a variable to store the new device handle. */
@@ -1182,7 +1182,7 @@ EXPORT_SPEC int UpnpRegisterRootDevice4(
 	 * device instance. */
 	const char *DescUrl,
 	/*! [in] Callback function.*/
-	Upnp_FunPtr Callback,
+	Upnp_FunPtr Fun,
 	/*! [in] Pointer to be passed as parameter to the callback invocations. */
 	const void *Cookie,
 	/*! [out] Pointer to a variable to store the new device handle. */
@@ -1263,7 +1263,7 @@ EXPORT_SPEC int UpnpUnRegisterRootDeviceLowPower(
  */
 EXPORT_SPEC int UpnpRegisterClient(
 	/*! [in] Callback function. */
-	Upnp_FunPtr Callback,
+	Upnp_FunPtr Fun,
 	/*! [in] Pointer to be passed as parameter to the callback invocations. */
 	const void *Cookie,
 	/*! [out] Pointer to a variable to store the new control point handle. */
@@ -1360,7 +1360,7 @@ EXPORT_SPEC int UpnpSearchAsync(
 	int Mx,
 	/*! The search target as defined in the UPnP Device Architecture v1.0
 	 * specification. */
-	const char *TTarget_constarget_const,
+	const char *Target,
 	/*! The user data to pass when the callback function is invoked. */
 	const void *Cookie_const); 
 
@@ -1477,10 +1477,10 @@ EXPORT_SPEC int UpnpSendAction(
 	const std::string& actionURL,
 	const std::string& serviceType,
 	const std::string& actionName,
-	const std::vector<std::pair<std::string, std::string>> actionArgs,
+	const std::vector<std::pair<std::string, std::string>> actionParams,
 	std::vector<std::pair<std::string, std::string>>& responsedata,
-	int *errorCodep,
-	std::string&  errorDescr
+	int *errcodep,
+	std::string&  errdesc
 	);
 
 
@@ -1529,7 +1529,7 @@ EXPORT_SPEC int UpnpAcceptSubscription(
 	/*! [in] The device ID of the service device .*/
 	const char *DevID,
 	/*! [in] The unique service identifier of the service generating the event.*/
-	const char *ServID,
+	const char *ServName,
 	/*! [in] Pointer to an array of event variables. */
 	const char **VarName,
 	/*! [in] Pointer to an array of values for the event variables. */
@@ -1545,7 +1545,7 @@ EXPORT_SPEC int UpnpAcceptSubscriptionXML(
 	/*! [in] The device ID of the service device .*/
 	const char *DevID,
 	/*! [in] The unique service identifier of the service generating the event.*/
-	const char *ServID,
+	const char *ServName,
 	/*! [in] Initial property set (all state variables) as XML string. */
 	const std::string& propertyset,
 	/*! [in] The subscription ID of the newly registered control point. */
@@ -1578,7 +1578,7 @@ EXPORT_SPEC int UpnpNotify(
 	/*! [in] The device ID of the subdevice of the service generating the event. */
 	const char *DevID,
 	/*! [in] The unique identifier of the service generating the event. */
-	const char *ServID,
+	const char *ServName,
 	/*! [in] Pointer to an array of variables that have changed. */
 	const char **VarName,
 	/*! [in] Pointer to an array of new values for those variables. */
@@ -1592,9 +1592,9 @@ EXPORT_SPEC int UpnpNotifyXML(
 	/*! [in] The device ID of the device generating the event. */
 	const char *DevID,
 	/*! [in] The unique identifier of the service generating the event. */
-	const char *ServID,
+	const char *ServName,
 	/*! [in] Property set (changed variables) as XML string */
-	const std::string& propertyset);
+	const std::string& propset);
 
 /*!
  * \brief Renews a subscription that is about to expire.
@@ -1707,7 +1707,7 @@ EXPORT_SPEC int UpnpSubscribe(
 	/*! [in] The handle of the control point. */
 	UpnpClient_Handle Hnd,
 	/*! [in] The URL of the service to subscribe to. */
-	const char *PublisherUrl,
+	const char *EvtUrl,
 	/*! [in,out]Pointer to a variable containing the requested subscription time.
 	 * Upon return, it contains the actual subscription time returned from
 	 * the service. */
@@ -1812,10 +1812,10 @@ EXPORT_SPEC int UpnpDownloadUrlItem(
 	/*! [in] URL of an item to download. */
 	const std::string& url,
 	/*! [out] Buffer to store the downloaded item. Caller must free */
-	std::string& outBuf,
+	std::string& data,
 	/*! [out] HTTP header value content type if present. It should be at least
 	 * \c LINE_SIZE bytes in size. */
-	std::string& contentType);
+	std::string& ct);
 
 /*! @} Control Point HTTP API */
 

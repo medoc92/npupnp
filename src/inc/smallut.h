@@ -75,7 +75,7 @@ inline int posix_strerror_r(int err, char *buf, size_t len) {
 
 extern void stringtolower(std::string& io);
 extern std::string stringtolower(const std::string& i);
-extern int stringlowercmp(const std::string& alreadylower,
+extern int stringlowercmp(const std::string& s1,
                           const std::string& s2);
 /** Remove instances of characters belonging to set (default {space,
     tab}) at beginning and end of input string */
