@@ -862,7 +862,7 @@ int UpnpFinish()
 unsigned short UpnpGetServerPort()
 {
 	if (UpnpSdkInit != 1)
-		return 0u;
+		return 0U;
 
 	return LOCAL_PORT_V4;
 }
@@ -871,7 +871,7 @@ unsigned short UpnpGetServerPort()
 unsigned short UpnpGetServerPort6()
 {
 	if (UpnpSdkInit != 1)
-		return 0u;
+		return 0U;
 
 	return LOCAL_PORT_V6;
 }

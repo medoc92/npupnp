@@ -166,7 +166,7 @@ static int parse_hostport(
 			return UPNP_E_INVALID_URL;
 	} else
 		/* Port was not specified, use default port. */
-		port = 80u;
+		port = 80U;
 	/* The length of the host and port string can be calculated by */
 	/* subtracting pointers. */
 	hostport_size = (size_t)c - (size_t)workbuf;

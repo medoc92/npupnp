@@ -737,7 +737,7 @@ static int create_ssdp_sock_v6(
 	if (ret == -1) {
 		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 		UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-				   "bind(): addr=0x%032lX, port=%d: %s\n", 0lu, SSDP_PORT,
+				   "bind(): addr=0x%032lX, port=%d: %s\n", 0LU, SSDP_PORT,
 				   errorBuffer);
 		ret = UPNP_E_SOCKET_BIND;
 		goto error_handler;
@@ -840,7 +840,7 @@ static int create_ssdp_sock_v6_ula_gua(
 	if (ret == -1) {
 		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 		UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-				   "bind(), addr=0x%032lX, port=%d: %s\n", 0lu, SSDP_PORT,
+				   "bind(), addr=0x%032lX, port=%d: %s\n", 0LU, SSDP_PORT,
 				   errorBuffer);
 		ret = UPNP_E_SOCKET_BIND;
 		goto error_handler;
