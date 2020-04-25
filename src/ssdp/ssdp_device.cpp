@@ -354,8 +354,6 @@ static void CreateServicePacket(
 
     packet = str.str();
 	// std::cerr << "SERVICEPACKET:\n" << packet << std::endl;
-	
-    return;
 }
 
 static bool setDestAddr(struct sockaddr_storage& __ss, const char *Location,

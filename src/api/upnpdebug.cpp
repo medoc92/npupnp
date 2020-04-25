@@ -127,7 +127,6 @@ void UpnpSetLogFileNames(const char *newFileName, const char *ignored)
 		fileName = strdup(newFileName);
 	}
 	setlogwascalled = 1;
-	return;
 }
 
 static int DebugAtThisLevel(Upnp_LogLevel DLevel, Dbg_Module Module)
