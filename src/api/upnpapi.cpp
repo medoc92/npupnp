@@ -1239,7 +1239,7 @@ int UpnpUnRegisterClient(UpnpClient_Handle Hnd)
 
 static std::string basename(const std::string& name)
 {
-	std::string::size_type slash = name.find_last_of("/");
+	std::string::size_type slash = name.find_last_of('/');
 	if (slash == std::string::npos) {
 		return name;
 	}

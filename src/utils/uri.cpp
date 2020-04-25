@@ -384,7 +384,7 @@ std::string resolve_rel_url(
 					if (base.path.back() == '/') {
 						base.path.pop_back();
 					}
-					std::string::size_type pos = base.path.rfind("/");
+					std::string::size_type pos = base.path.rfind('/');
 					url.path = base.path.substr(0, pos+1) + rel.path;
 				}
 				url.query = rel.query;

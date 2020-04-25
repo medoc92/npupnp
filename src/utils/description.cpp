@@ -88,7 +88,7 @@ static string baseurl(const string& url)
     if (pos == string::npos)
         return url;
 
-    pos = url.find_first_of("/", pos + 3);
+    pos = url.find_first_of('/', pos + 3);
     if (pos == string::npos) {
         return url;
     }
