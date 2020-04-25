@@ -138,7 +138,7 @@ static UPNP_INLINE void fdset_if_valid(SOCKET sock, fd_set *set)
 static int headers_cb(void *cls, enum MHD_ValueKind kind, 
 					  const char *k, const char *value)
 {
-	MHDTransaction *mhtt = (MHDTransaction *)cls;
+	auto mhtt = (MHDTransaction *)cls;
 	std::string key(k);
 	stringtolower(key);
 	// It is always possible to combine multiple identically named headers
@@ -156,7 +156,7 @@ static int headers_cb(void *cls, enum MHD_ValueKind kind,
 static int queryvalues_cb(void *cls, enum MHD_ValueKind kind, 
 						  const char *key, const char *value)
 {
-	MHDTransaction *mhdt = (MHDTransaction *)cls;
+	auto mhdt = (MHDTransaction *)cls;
 	if (mhdt) {
 		//std::cerr << "qvalues_cb:	 " << key << " -> " << value << std::endl;
 		mhdt->queryvalues[key] = value;
@@ -181,7 +181,7 @@ void request_completed_cb(
 {
 	if (nullptr == con_cls)
 		return;
-	MHDTransaction *mhdt = (MHDTransaction *)*con_cls;
+	auto mhdt = (MHDTransaction *)*con_cls;
 	delete mhdt;
 }
 
@@ -196,7 +196,7 @@ static int answer_to_connection(
 				   "answer_to_connection1: url [%s] method [%s]"
 				   " version [%s]\n", url, method, version);
 		// First call, allocate and set context, get the headers, etc.
-		MHDTransaction *mhdt = new MHDTransaction;
+		auto mhdt = new MHDTransaction;
 		*con_cls = mhdt;
 		MHD_get_connection_values(conn, MHD_HEADER_KIND, headers_cb, mhdt);
 		mhdt->client_address =
@@ -224,7 +224,7 @@ static int answer_to_connection(
 		return MHD_YES;
 	}
 
-	MHDTransaction *mhdt = (MHDTransaction *)*con_cls;
+	auto mhdt = (MHDTransaction *)*con_cls;
 	if (*upload_data_size) {
 		mhdt->postdata.append(upload_data, *upload_data_size);
 		*upload_data_size = 0;
@@ -493,10 +493,10 @@ static int get_miniserver_sockets(
 	int ret = UPNP_E_INTERNAL_ERROR;
 	char errorBuffer[ERROR_BUFFER_LEN];
 	struct sockaddr_storage __ss_v4;
-	struct sockaddr_in* serverAddr4 = (struct sockaddr_in*)&__ss_v4;
+	auto serverAddr4 = (struct sockaddr_in*)&__ss_v4;
 #ifdef UPNP_ENABLE_IPV6
 	struct sockaddr_storage __ss_v6;
-	struct sockaddr_in6* serverAddr6 = (struct sockaddr_in6*)&__ss_v6;
+	auto serverAddr6 = (struct sockaddr_in6*)&__ss_v6;
 #endif
 
 	/* Create listen socket for IPv4/IPv6. An error here may indicate

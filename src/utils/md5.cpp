@@ -71,7 +71,7 @@ MD5Init(MD5_CTX *ctx)
 void
 MD5Update(MD5_CTX *ctx, const void *inputptr, size_t len)
 {
-	const uint8_t *input = (const uint8_t *)inputptr;
+	auto input = (const uint8_t *)inputptr;
 	size_t have, need;
 
 	/* Check how many bytes we already have and how many more we need. */

@@ -76,8 +76,8 @@ static void *thread_autorenewsubscription(
 	/*! [in] Thread data(upnp_timeout *) needed to send the renewal. */
 	void *input)
 {
-	upnp_timeout *event = (upnp_timeout *)input;
-	struct Upnp_Event_Subscribe *sub_struct =
+	auto event = (upnp_timeout *)input;
+	auto sub_struct =
 		(struct Upnp_Event_Subscribe *)event->Event;
 	void *cookie;
 	Upnp_FunPtr callback_fun;
@@ -263,7 +263,7 @@ static std::string myCallbackUrl(const uri_type& dest_url)
 {
 	std::ostringstream oss;
 	if (dest_url.hostport.IPaddress.ss_family == AF_INET6) {
-		struct sockaddr_in6* DestAddr6 =
+		auto DestAddr6 =
 			(struct sockaddr_in6*)&dest_url.hostport.IPaddress;
 		std::string gIF =
 			(IN6_IS_ADDR_LINKLOCAL(&DestAddr6->sin6_addr) ||

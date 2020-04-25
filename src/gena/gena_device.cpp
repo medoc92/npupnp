@@ -226,7 +226,7 @@ static void free_notify_struct(Notification *input)
  */
 static void *thread_genanotify(void *input)
 {
-	Notification *in = (Notification *)input;
+	auto in = (Notification *)input;
 	subscription *sub;
 	service_info *service;
 	subscription sub_copy;

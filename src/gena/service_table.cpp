@@ -421,7 +421,7 @@ static int fillServiceList(const UPnPDeviceDesc& dev, service_table *stable)
 
 	for (const UPnPServiceDesc& sdesc : dev.services) {
 		int fail = 0;
-		std::list<service_info>::iterator current =
+		auto current =
 			stable->serviceList.emplace(stable->serviceList.end());
 		current->active = 1;
 		current->UDN = dev.UDN;

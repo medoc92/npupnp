@@ -676,7 +676,7 @@ public:
 static ssize_t vFileReaderCallback(void *cls, uint64_t pos, char *buf,
 								   size_t max)
 {
-	VFileReaderCtxt *ctx = (VFileReaderCtxt*)cls;
+	auto ctx = (VFileReaderCtxt*)cls;
 	if (nullptr == ctx->fp) {
 		UpnpPrintf(UPNP_ERROR, MSERV, __FILE__, __LINE__,
 				   "vFileReaderCallback: fp is null !\n");
@@ -703,7 +703,7 @@ static ssize_t vFileReaderCallback(void *cls, uint64_t pos, char *buf,
 static void vFileFreeCallback (void *cls)
 {
 	if (cls) {
-		VFileReaderCtxt *ctx = (VFileReaderCtxt*)cls;
+		auto ctx = (VFileReaderCtxt*)cls;
 		virtualDirCallback.close(ctx->fp, ctx->cookie, ctx->request_cookie);
 		delete ctx;
 	}
@@ -712,7 +712,7 @@ static void vFileFreeCallback (void *cls)
 void web_server_callback(MHDTransaction *mhdt)
 {
 	int ret;
-	enum resp_type rtype = (enum resp_type)0;
+	auto rtype = (enum resp_type)0;
 	std::map<std::string,std::string> headers;
 	std::string filename;
 	struct SendInstruction RespInstr;
@@ -741,7 +741,7 @@ void web_server_callback(MHDTransaction *mhdt)
 
 		case RESP_WEBDOC:
 		{
-			VFileReaderCtxt *ctx = new VFileReaderCtxt;
+			auto ctx = new VFileReaderCtxt;
 			ctx->fp = virtualDirCallback.open(
 				filename.c_str(), UPNP_READ,
 				RespInstr.cookie,	RespInstr.request_cookie);

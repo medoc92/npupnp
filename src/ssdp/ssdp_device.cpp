@@ -59,7 +59,7 @@
 
 static void* thread_advertiseandreply(void *data)
 {
-    SsdpSearchReply *arg = (SsdpSearchReply *) data;
+    auto arg = (SsdpSearchReply *) data;
 
     AdvertiseAndReply(0, arg->handle,
                       arg->event.RequestType,
@@ -359,8 +359,8 @@ static void CreateServicePacket(
 static bool setDestAddr(struct sockaddr_storage& __ss, const char *Location,
 						int AddressFamily)
 {
-    struct sockaddr_in *DestAddr4 = (struct sockaddr_in *)&__ss;
-    struct sockaddr_in6 *DestAddr6 = (struct sockaddr_in6 *)&__ss;
+    auto DestAddr4 = (struct sockaddr_in *)&__ss;
+    auto DestAddr6 = (struct sockaddr_in6 *)&__ss;
     memset(&__ss, 0, sizeof(__ss));
     switch (AddressFamily) {
     case AF_INET:

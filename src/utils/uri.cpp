@@ -76,8 +76,8 @@ static int parse_hostport(
 {
 	char workbuf[256];
 	char *c;
-	struct sockaddr_in *sai4 = (struct sockaddr_in *)&out->IPaddress;
-	struct sockaddr_in6 *sai6 = (struct sockaddr_in6 *)&out->IPaddress;
+	auto sai4 = (struct sockaddr_in *)&out->IPaddress;
+	auto sai6 = (struct sockaddr_in6 *)&out->IPaddress;
 	char *srvname = nullptr;
 	char *srvport = nullptr;
 	char *last_dot = nullptr;

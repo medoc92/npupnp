@@ -60,7 +60,7 @@ nnn * Redistribution and use in source and binary forms, with or without
  */
 static void* thread_cb_search_result(void *data)
 {
-	ResultData *temp = (ResultData *)data;
+	auto temp = (ResultData *)data;
 	temp->ctrlpt_callback(UPNP_DISCOVERY_SEARCH_RESULT, &temp->param,
 						  temp->cookie);
 	return nullptr;
@@ -371,9 +371,9 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
 #ifdef UPNP_ENABLE_IPV6
 	struct sockaddr_storage __ss_v6;
 #endif
-	struct sockaddr_in *destAddr4 = (struct sockaddr_in *)&__ss_v4;
+	auto destAddr4 = (struct sockaddr_in *)&__ss_v4;
 #ifdef UPNP_ENABLE_IPV6
-	struct sockaddr_in6 *destAddr6 = (struct sockaddr_in6 *)&__ss_v6;
+	auto destAddr6 = (struct sockaddr_in6 *)&__ss_v6;
 #endif
 	fd_set wrSet;
 	int timeTillRead = 0;
@@ -425,7 +425,7 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
 		HandleUnlock();
 		return UPNP_E_INTERNAL_ERROR;
 	}
-	SsdpSearchArg *newArg = new SsdpSearchArg(St, Cookie, requestType);
+	auto newArg = new SsdpSearchArg(St, Cookie, requestType);
 	id = (int *)malloc(sizeof(int));
 
 	/* Schedule a timeout event to remove search Arg */

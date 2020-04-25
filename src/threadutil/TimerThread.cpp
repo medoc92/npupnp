@@ -85,7 +85,7 @@ public:
  */
 void *thread_timer(void *arg)
 {
-	TimerThread::Internal *timer = (TimerThread::Internal *)arg;
+	auto timer = (TimerThread::Internal *)arg;
 	TimerEvent *nextEvent = nullptr;
 	system_clock::time_point nextEventTime = system_clock::now();
 

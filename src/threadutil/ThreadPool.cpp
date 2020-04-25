@@ -354,7 +354,7 @@ static void SetSeed(void)
  */
 static void *WorkerThread(void *arg)
 {
-	ThreadPool::Internal *tp = (ThreadPool::Internal *)arg;
+	auto tp = (ThreadPool::Internal *)arg;
 	time_t start = 0;
 	ThreadPoolJob *job = nullptr;
 	std::cv_status retCode;

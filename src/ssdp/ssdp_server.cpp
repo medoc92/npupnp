@@ -397,7 +397,7 @@ struct ssdp_thread_data {
  */
 static void free_ssdp_event_handler_data(void *arg)
 {
-	ssdp_thread_data *data = (ssdp_thread_data *)arg;
+	auto data = (ssdp_thread_data *)arg;
 
 	if (nullptr == data) {
 		return;
@@ -458,7 +458,7 @@ static http_method_t valid_ssdp_msg(SSDPPacketParser& parser)
  */
 static void *thread_ssdp_event_handler(void *the_data)
 {
-	ssdp_thread_data *data = (ssdp_thread_data *)the_data;
+	auto data = (ssdp_thread_data *)the_data;
 
 	// The parser takes ownership of the buffer
 	SSDPPacketParser parser(data->packet);
@@ -552,7 +552,7 @@ static int create_ssdp_sock_v4(
 	int onOff;
 	struct ip_mreq ssdpMcastAddr;
 	struct sockaddr_storage __ss;
-	struct sockaddr_in *ssdpAddr4 = (struct sockaddr_in *)&__ss;
+	auto ssdpAddr4 = (struct sockaddr_in *)&__ss;
 	int ret = 0;
 	struct in_addr addr;
 
@@ -684,7 +684,7 @@ static int create_ssdp_sock_v6(
 	char errorBuffer[ERROR_BUFFER_LEN];
 	struct ipv6_mreq ssdpMcastAddr;
 	struct sockaddr_storage __ss;
-	struct sockaddr_in6 *ssdpAddr6 = (struct sockaddr_in6 *)&__ss;
+	auto ssdpAddr6 = (struct sockaddr_in6 *)&__ss;
 	int onOff;
 	int ret = 0;
 
@@ -787,7 +787,7 @@ static int create_ssdp_sock_v6_ula_gua(
 	char errorBuffer[ERROR_BUFFER_LEN];
 	struct ipv6_mreq ssdpMcastAddr;
 	struct sockaddr_storage __ss;
-	struct sockaddr_in6 *ssdpAddr6 = (struct sockaddr_in6 *)&__ss;
+	auto ssdpAddr6 = (struct sockaddr_in6 *)&__ss;
 	int onOff;
 	int ret = 0;
 

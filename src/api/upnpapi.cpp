@@ -1433,7 +1433,7 @@ int UpnpSendAdvertisement(UpnpDevice_Handle Hnd, int Exp)
 
 void thread_autoadvertise(void *input)
 {
-	upnp_timeout *event = (upnp_timeout *)input;
+	auto event = (upnp_timeout *)input;
 
 	UpnpSendAdvertisement(event->handle, *((int *)event->Event));
 }
