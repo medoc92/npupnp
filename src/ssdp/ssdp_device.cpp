@@ -46,12 +46,12 @@
 #include "smallut.h"
 #include "inet_pton.h"
 
-#include <assert.h>
-#include <stdio.h>
-#include <string.h>
-#include <string>
-#include <sstream>
+#include <cassert>
+#include <cstdio>
+#include <cstring>
 #include <iostream>
+#include <sstream>
+#include <string>
 
 #define MSGTYPE_SHUTDOWN    0
 #define MSGTYPE_ADVERTISEMENT   1

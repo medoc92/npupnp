@@ -33,10 +33,10 @@
 #ifdef INCLUDE_CLIENT_APIS
 #if EXCLUDE_SOAP == 0
 
-#include <stdlib.h>
-#include <sstream>
-#include <iostream>
+#include <cstdlib>
 #include <curl/curl.h>
+#include <iostream>
+#include <sstream>
 
 #include "miniserver.h"
 #include "httputils.h"

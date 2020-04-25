@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-#include <string.h>
+#include <cstring>
 
 #include "expatmm.hxx"
 #include "smallut.h"

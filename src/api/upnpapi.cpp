@@ -61,10 +61,10 @@
 
 #include <sys/stat.h>
 
-#include <assert.h>
-#include <signal.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <csignal>
+#include <cstdlib>
+#include <cstring>
 
 #ifdef _WIN32
 /* Do not include these files */

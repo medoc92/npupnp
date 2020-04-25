@@ -53,7 +53,7 @@
 #include <netdb.h>
 #endif /* _WIN32 */
 
-#include <assert.h>
+#include <cassert>
 
 #include "uri.h"
 #include "smallut.h"

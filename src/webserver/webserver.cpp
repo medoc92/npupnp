@@ -48,7 +48,7 @@
 #include <mutex>
 #include <condition_variable>
 
-#include <inttypes.h>
+#include <cinttypes>
 
 #include "httputils.h"
 #include "ssdplib.h"
@@ -58,7 +58,7 @@
 #include "VirtualDir.h"
 #include "smallut.h"
 
-#include <assert.h>
+#include <cassert>
 #include <fcntl.h>
 #include <sys/stat.h>
 

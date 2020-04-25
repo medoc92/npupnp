@@ -57,14 +57,14 @@
 #include "uri.h"
 #include "inet_pton.h"
 
-#include <assert.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <iostream>
+#include <cassert>
+#include <cerrno>
 #include <chrono>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include <sys/types.h>
 #include <thread>
 
 #include <microhttpd.h>

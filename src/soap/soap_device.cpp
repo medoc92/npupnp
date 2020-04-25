@@ -35,8 +35,8 @@
 #ifdef INCLUDE_DEVICE_APIS
 #if EXCLUDE_SOAP == 0
 
-#include <assert.h>
-#include <string.h>
+#include <cassert>
+#include <cstring>
 #include <microhttpd.h>
 
 #include <iostream>

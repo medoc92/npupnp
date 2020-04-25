@@ -44,9 +44,9 @@
 #include "smallut.h"
 #include "inet_pton.h"
 
-#include <stdio.h>
-#include <fcntl.h>
 #include <chrono>
+#include <cstdio>
+#include <fcntl.h>
 #include <thread>
 
 #ifdef INCLUDE_CLIENT_APIS

@@ -36,12 +36,12 @@
 
 #include "httputils.h"
 
-#include <ctype.h>
-#include <limits.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <inttypes.h>
+#include <cctype>
+#include <cinttypes>
+#include <climits>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <string>
 #include <sstream>

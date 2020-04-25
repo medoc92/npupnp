@@ -33,10 +33,10 @@
 
 #include "ThreadPool.h"
 
-#include <assert.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>	/* for memset()*/
+#include <cassert>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>	/* for memset()*/
 
 #include <chrono>
 #include <thread>

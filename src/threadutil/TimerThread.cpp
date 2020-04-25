@@ -33,10 +33,10 @@
 
 #include "TimerThread.h"
 
-#include <assert.h>
+#include <cassert>
 #include <chrono>
-#include <mutex>
 #include <condition_variable>
+#include <mutex>
 
 using namespace std::chrono;
 

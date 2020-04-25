@@ -39,10 +39,10 @@
 #include "upnptools.h"
 #include "uri.h"
 
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
 #include <string>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <stdio.h>
 
 
 /*! Maximum action header buffer length. */

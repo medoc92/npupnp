@@ -41,7 +41,7 @@
 
 #include <curl/curl.h>
 
-#include <assert.h>
+#include <cassert>
 
 #include "gena.h"
 #include "httputils.h"

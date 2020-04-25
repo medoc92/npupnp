@@ -42,11 +42,11 @@
 #include <thread>
 #include <sstream>
 
-#include <errno.h>
-#include <stdarg.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include <cerrno>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #ifdef DEBUG
 
