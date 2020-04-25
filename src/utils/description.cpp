@@ -38,7 +38,7 @@ protected:
             dev->services.push_back(m_tservice);
             m_tservice = UPnPServiceDesc();
         } else if (!strcmp(name, "device")) {
-            if (ismain == false) {
+            if (!ismain) {
                 m_device.embedded.push_back(m_tdevice);
             }
             m_tdevice = UPnPDeviceDesc();
