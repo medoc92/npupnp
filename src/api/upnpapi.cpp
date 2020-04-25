@@ -377,7 +377,7 @@ int UpnpGetIfInfo(const char *IfName)
 		}
 		if (ifname_set == 0) {
 			upnp_strlcpy(gIF_NAME, ifa->ifa_name, sizeof(gIF_NAME));
-			ifname_set = 1;
+			ifname_set = true;
 		} else {
 			if (strncmp(gIF_NAME, ifa->ifa_name, sizeof(gIF_NAME))!= 0) {
 				/* This is not the interface we're looking for. */
@@ -413,7 +413,7 @@ int UpnpGetIfInfo(const char *IfName)
 				   parameter as this could lead to choosing a
 				   different interface instead of generating an
 				   error. */
-				ifname_set = 0;
+				ifname_set = false;
 			}
 			break;
 		}
@@ -2271,7 +2271,7 @@ int UpnpSetContentLength(UpnpClient_Handle Hnd, size_t contentLength)
 			break;
 		}
 		g_maxContentLength = contentLength;
-	} while (0);
+	} while (false);
 
 	HandleUnlock();
 	return errCode;
@@ -2287,7 +2287,7 @@ int UpnpSetMaxContentLength(size_t contentLength)
 			break;
 		}
 		g_maxContentLength = contentLength;
-	} while(0);
+	} while(false);
 
 	return errCode;
 }

@@ -372,7 +372,7 @@ static void *WorkerThread(void *arg)
 	
 	SetSeed();
 	start = time(nullptr);
-	while (1) {
+	while (true) {
 		lck.lock();
 		if (job) {
 			tp->busyThreads--;
@@ -548,7 +548,7 @@ ThreadPool::Internal::Internal(ThreadPoolAttr *attr)
 	this->stats = ThreadPoolStats();
 	this->persistentJob = nullptr;
 	this->lastJobId = 0;
-	this->shuttingdown = 0;
+	this->shuttingdown = false;
 	this->totalThreads = 0;
 	this->busyThreads = 0;
 	this->persistentThreads = 0;
@@ -735,7 +735,7 @@ int ThreadPool::Internal::shutdown()
 		this->persistentJob = nullptr;
 	}
 	/* signal shutdown */
-	this->shuttingdown = 1;
+	this->shuttingdown = true;
 	this->condition.notify_all();
 	/* wait for all threads to finish */
 	while (this->totalThreads > 0) {

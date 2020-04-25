@@ -93,7 +93,7 @@ void *thread_timer(void *arg)
 
 	std::unique_lock<std::mutex> lck(timer->mutex);
 
-	while (1) {
+	while (true) {
 		/* mutex should always be locked at top of loop */
 		/* Check for shutdown. */
 		if (timer->inshutdown) {
