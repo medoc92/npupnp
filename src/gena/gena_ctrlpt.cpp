@@ -412,7 +412,6 @@ int genaUnregisterClient(UpnpClient_Handle client_handle)
 }
 
 
-#ifdef INCLUDE_CLIENT_APIS
 int genaUnSubscribe(
 	UpnpClient_Handle client_handle,
 	const std::string& in_sid)
@@ -453,10 +452,8 @@ int genaUnSubscribe(
 exit_function:
 	return return_code;
 }
-#endif /* INCLUDE_CLIENT_APIS */
 
 
-#ifdef INCLUDE_CLIENT_APIS
 int genaSubscribe(
 	UpnpClient_Handle client_handle,
 	const std::string& PublisherURL,
@@ -519,7 +516,6 @@ error_handler:
 
 	return return_code;
 }
-#endif /* INCLUDE_CLIENT_APIS */
 
 
 int genaRenewSubscription(

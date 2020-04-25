@@ -71,7 +71,6 @@ static void* thread_advertiseandreply(void *data)
 
 #define MAXVAL(a, b) ( (a) > (b) ? (a) : (b) )
 
-#ifdef INCLUDE_DEVICE_APIS
 void ssdp_handle_device_request(SSDPPacketParser& parser,
 								struct sockaddr_storage *dest_addr)
 {
@@ -143,7 +142,6 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
         start = handle;
     }
 }
-#endif
 
 /*!
  * \brief Works as a request handler which passes the HTTP request string
