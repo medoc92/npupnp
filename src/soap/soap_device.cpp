@@ -191,7 +191,7 @@ protected:
             "root" : m_path[m_path.size()-2].name;
         trimstring(m_chardata, " \t\n\r");
 		if (!dom_cmp_name(parentname, m_actname)) {
-			m_args.push_back({name, m_chardata});
+			m_args.emplace_back(name, m_chardata);
 		}
 		if (!m_isresp && m_path.size() >= 3) {
 			outxml += xmlQuote(m_chardata);

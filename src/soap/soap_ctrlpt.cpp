@@ -75,7 +75,7 @@ protected:
 				errdesc = m_chardata;
 			}
 		} else if (!dom_cmp_name(parentname, responseName)) {
-			data.push_back({name, m_chardata});
+			data.emplace_back(name, m_chardata);
 		}
 		m_chardata.clear();
 	}
