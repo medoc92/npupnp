@@ -220,9 +220,9 @@ FILE *UpnpGetDebugFile(Upnp_LogLevel DLevel, Dbg_Module Module)
 {
 	if (!DebugAtThisLevel(DLevel, Module)) {
 		return	NULL;
-	} else {
-		return fp;
 	}
+
+	return fp;
 }
 
 

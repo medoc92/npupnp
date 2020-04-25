@@ -69,17 +69,18 @@ int stringlowercmp(const string& s1, const string& s2)
             ++it2;
         }
         return size1 == size2 ? 0 : -1;
-    } else {
-        while (it2 != s2.end()) {
-            c2 = ::tolower(*it2);
-            if (*it1 != c2) {
-                return *it1 > c2 ? 1 : -1;
-            }
-            ++it1;
-            ++it2;
-        }
-        return size1 == size2 ? 0 : 1;
     }
+
+    while (it2 != s2.end()) {
+        c2 = ::tolower(*it2);
+        if (*it1 != c2) {
+            return *it1 > c2 ? 1 : -1;
+        }
+        ++it1;
+        ++it2;
+    }
+
+    return size1 == size2 ? 0 : 1;
 }
 
 void trimstring(string& s, const char *ws)

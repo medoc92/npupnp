@@ -268,11 +268,11 @@ static int answer_to_connection(
 		UpnpPrintf(UPNP_ERROR, MSERV, __FILE__, __LINE__,
 				   "answer_to_connection: NULL response !!\n");
 		return MHD_NO;
-	} else {
-		int ret = MHD_queue_response(conn, mhdt->httpstatus, mhdt->response);
-		MHD_destroy_response(mhdt->response);
-		return ret;
 	}
+
+	int ret = MHD_queue_response(conn, mhdt->httpstatus, mhdt->response);
+	MHD_destroy_response(mhdt->response);
+	return ret;
 }
 
 static void web_server_accept(SOCKET lsock, fd_set *set)
@@ -412,19 +412,19 @@ static void *thread_miniserver(void *)
 			UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
 					   "miniserver: select(): %s\n", errorBuffer);
 			continue;
-		} else {
-			web_server_accept(miniSocket->miniServerSock4, &rdSet);
-			web_server_accept(miniSocket->miniServerSock6, &rdSet);
-#ifdef INCLUDE_CLIENT_APIS
-			ssdp_read(miniSocket->ssdpReqSock4, &rdSet);
-			ssdp_read(miniSocket->ssdpReqSock6, &rdSet);
-#endif /* INCLUDE_CLIENT_APIS */
-			ssdp_read(miniSocket->ssdpSock4, &rdSet);
-			ssdp_read(miniSocket->ssdpSock6, &rdSet);
-			ssdp_read(miniSocket->ssdpSock6UlaGua, &rdSet);
-			stopSock = receive_from_stopSock(
-				miniSocket->miniServerStopSock, &rdSet);
 		}
+
+		web_server_accept(miniSocket->miniServerSock4, &rdSet);
+		web_server_accept(miniSocket->miniServerSock6, &rdSet);
+#ifdef INCLUDE_CLIENT_APIS
+		ssdp_read(miniSocket->ssdpReqSock4, &rdSet);
+		ssdp_read(miniSocket->ssdpReqSock6, &rdSet);
+#endif /* INCLUDE_CLIENT_APIS */
+		ssdp_read(miniSocket->ssdpSock4, &rdSet);
+		ssdp_read(miniSocket->ssdpSock6, &rdSet);
+		ssdp_read(miniSocket->ssdpSock6UlaGua, &rdSet);
+		stopSock = receive_from_stopSock(
+			miniSocket->miniServerStopSock, &rdSet);
 	}
 
 	delete miniSocket;

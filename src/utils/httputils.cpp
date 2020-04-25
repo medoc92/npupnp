@@ -138,9 +138,9 @@ http_method_t httpmethod_str2enum(const char *methname)
 	const auto it = Http_Method_Table.find(methname);
 	if (it == Http_Method_Table.end()) {
 		return HTTPMETHOD_UNKNOWN;
-	} else {
-		return (http_method_t)it->second;
 	}
+
+	return (http_method_t)it->second;
 }
 
 int httpheader_str2int(const std::string& headername)
@@ -272,9 +272,9 @@ int http_Download(const char *surl, int timeout_secs,
 			(*document)[data.size()] = 0;
 		}
 		return 0;
-	} else {
-		return http_status;
 	}
+
+	return http_status;
 }
 
 /************************************************************************

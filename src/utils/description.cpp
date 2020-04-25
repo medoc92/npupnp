@@ -91,9 +91,9 @@ static string baseurl(const string& url)
     pos = url.find_first_of("/", pos + 3);
     if (pos == string::npos) {
         return url;
-    } else {
-        return url.substr(0, pos);
     }
+
+    return url.substr(0, pos);
 }
 
 UPnPDeviceDesc::UPnPDeviceDesc(const string& url, const string& description)
@@ -116,6 +116,6 @@ UPnPDeviceDesc::UPnPDeviceDesc(const string& url, const string& description)
     for (auto& dev: embedded) {
         dev.URLBase = URLBase;
     }
-    
+
     ok = true;
 }

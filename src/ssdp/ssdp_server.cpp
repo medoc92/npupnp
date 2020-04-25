@@ -157,16 +157,16 @@ int AdvertiseAndReply(int AdFlag, UpnpDevice_Handle Hnd,
 									   "DeviceUDN=%s/search UDN=%s NOMATCH\n",
 									   UDNstr, DeviceUDN);
 							break;
-						} else {
-							UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
-									   "DeviceUDN=%s/search UDN=%s MATCH\n",
-									   UDNstr, DeviceUDN);
-							SendReply(
-								DestAddr, devType, 0, UDNstr, SInfo->DescURL,
-								defaultExp, 0, SInfo->PowerState,
-								SInfo->SleepPeriod, SInfo->RegistrationState);
-							break;
 						}
+
+						UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+								   "DeviceUDN=%s/search UDN=%s MATCH\n",
+								   UDNstr, DeviceUDN);
+						SendReply(
+							DestAddr, devType, 0, UDNstr, SInfo->DescURL,
+							defaultExp, 0, SInfo->PowerState,
+							SInfo->SleepPeriod, SInfo->RegistrationState);
+						break;
 					}
 				}
 				case SSDP_DEVICETYPE: {

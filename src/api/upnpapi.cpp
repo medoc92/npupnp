@@ -1242,9 +1242,11 @@ static std::string basename(const std::string& name)
 	std::string::size_type slash = name.find_last_of("/");
 	if (slash == std::string::npos) {
 		return name;
-	} else {
-		return name.substr(slash+1);
 	}
+
+	return name.substr(slash+1);
+
+
 }
 /* Read file contents to allocated buffer (caller must free) */
 static int readFile(const char *path, char **data, time_t *modtime)

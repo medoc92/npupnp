@@ -481,17 +481,17 @@ static int process_request(
 		if (parseRanges(it->second, ranges) && !ranges.empty()) {
 			if (ranges.size() > 1) {
 				return HTTP_REQUEST_RANGE_NOT_SATISFIABLE;
-			} else {
-				RespInstr->offset = ranges[0].first;
-				if (ranges[0].second >= 0) {
-					RespInstr->ReadSendSize = ranges[0].second -
-						ranges[0].first + 1;
-					if (RespInstr->ReadSendSize < 0) {
-						RespInstr->ReadSendSize = 0;
-					}
-				} else {
-					RespInstr->ReadSendSize = -1;
+			}
+
+			RespInstr->offset = ranges[0].first;
+			if (ranges[0].second >= 0) {
+				RespInstr->ReadSendSize = ranges[0].second -
+					ranges[0].first + 1;
+				if (RespInstr->ReadSendSize < 0) {
+					RespInstr->ReadSendSize = 0;
 				}
+			} else {
+				RespInstr->ReadSendSize = -1;
 			}
 		}
 	}

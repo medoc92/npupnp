@@ -123,9 +123,9 @@ subscription *GetSubscriptionSID(const Upnp_SID sid, service_info *service)
 		sublist.erase(found);
 		service->TotalSubscriptions--;
 		return nullptr;
-	} else {
-		return &(*found);
 	}
+
+	return &(*found);
 }
 
 std::list<subscription>::iterator GetNextSubscription(
@@ -193,9 +193,9 @@ service_info *FindServiceId(
 				!UDN.compare(si.UDN);});
 	if (it == table->serviceList.end()) {
 		return nullptr;
-	} else {
-		return &(*it);
-	}
+	} 		return &(*it);
+
+
 }
 
 /************************************************************************
