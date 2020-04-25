@@ -77,14 +77,14 @@
 #define APPLICATION_LISTENING_PORT 49152
 
 /*! . */
-typedef enum {
+using MiniServerState = enum {
 	/*! . */
 	MSERV_IDLE,
 	/*! . */
 	MSERV_RUNNING,
 	/*! . */
 	MSERV_STOPPING
-} MiniServerState;
+};
 
 /*!
  * module vars
