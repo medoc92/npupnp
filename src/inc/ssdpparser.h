@@ -41,7 +41,7 @@ public:
 	}
 
 	bool parse();
-	void trimright(char *cp, size_t len);
+	static void trimright(char *cp, size_t len);
 	void dump(std::ostream& os);
 
 	// Results. After parsing, the set fields point into the original buffer.
