@@ -70,7 +70,7 @@ void SSDPPacketParser::trimright(char *cp, size_t len) {
 	cp[len] = 0;
 }
 
-void SSDPPacketParser::dump(std::ostream& os) {
+void SSDPPacketParser::dump(std::ostream& os) const {
 	os <<
 		" cache_control " << (cache_control ? cache_control : "(null)") <<
 		" date " << (date ? date : "(null)") <<

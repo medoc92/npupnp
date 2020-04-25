@@ -107,7 +107,7 @@ static const std::map<std::string, int> Http_Header_Names {
 	{"usn", HDR_USN},
 };
 
-void MHDTransaction::copyClientAddress(struct sockaddr_storage *dest)
+void MHDTransaction::copyClientAddress(struct sockaddr_storage *dest) const
 {
 	if (nullptr == dest)
 		return;
