@@ -85,7 +85,7 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
     int maxAge;
 
     /* check man hdr. */
-    if (!parser.man || strcmp(parser.man, "\"ssdp:discover\""))
+    if (!parser.man || strcmp(parser.man, "\"ssdp:discover\"") != 0)
         /* bad or missing hdr. */
         return;
     /* MX header. Must be >= 1*/

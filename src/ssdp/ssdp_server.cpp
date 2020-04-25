@@ -152,7 +152,7 @@ int AdvertiseAndReply(int AdFlag, UpnpDevice_Handle Hnd,
 					break;
 				case SSDP_DEVICEUDN: {
 					if (DeviceUDN && strlen(DeviceUDN)) {
-						if (strcasecmp(DeviceUDN, UDNstr)) {
+						if (strcasecmp(DeviceUDN, UDNstr) != 0) {
 							UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
 									   "DeviceUDN=%s/search UDN=%s NOMATCH\n",
 									   UDNstr, DeviceUDN);
@@ -429,7 +429,7 @@ static http_method_t valid_ssdp_msg(SSDPPacketParser& parser)
 			return HTTPMETHOD_UNKNOWN;
 		}
 		/* check PATH == "*" */
-		if (!parser.url || strcmp(parser.url, "*")) {
+		if (!parser.url || strcmp(parser.url, "*") != 0) {
 			UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__, "Invalid URI "
 					   "in SSDP message NOTIFY or M-SEARCH: [%s] \n",
 					   (parser.url?parser.url:"(null)"));
@@ -437,9 +437,9 @@ static http_method_t valid_ssdp_msg(SSDPPacketParser& parser)
 		}
 		/* check HOST header */
 		if (!parser.host ||
-		    (strcmp(parser.host, "239.255.255.250:1900")&&
+		    (strcmp(parser.host, "239.255.255.250:1900") != 0&&
 		     strcasecmp(parser.host, "[FF02::C]:1900") &&
-		     strcasecmp(parser.host, "[FF05::C]:1900"))) {
+		     strcasecmp(parser.host, "[FF05::C]:1900") != 0)) {
 			UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__, "Invalid HOST "
 					   "header [%s] from SSDP message\n", parser.host);
 			return HTTPMETHOD_UNKNOWN;

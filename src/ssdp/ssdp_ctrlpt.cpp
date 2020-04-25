@@ -206,7 +206,7 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
 		if (parser.st) {
 			st_found = ssdp_request_type(parser.st, &event) == 0;
 		}
-		if (!parser.status || strcmp(parser.status, "200") ||
+		if (!parser.status || strcmp(parser.status, "200") != 0 ||
 			param.Expires <= 0 ||
 			strlen(param.Location) == 0 || !usn_found || !st_found) {
 			return;	/* bad reply */

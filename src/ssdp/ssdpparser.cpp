@@ -201,7 +201,7 @@ bool SSDPPacketParser::parse()
 		cp += m.length();
 	}
 
-	if (strcmp(cp, "\r\n")) {
+	if (strcmp(cp, "\r\n") != 0) {
 		//std::cerr << "Bad last line:\n>>>" << cp << "<<<" << std::endl;
 		return false;
 	}
