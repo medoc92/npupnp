@@ -1852,7 +1852,7 @@ int UpnpSendAction(
 	const std::string& actionURL,
 	const std::string& serviceType,
 	const std::string& actionName,
-	const std::vector<std::pair<std::string, std::string>> actionParams,
+	const std::vector<std::pair<std::string, std::string>>& actionParams,
 	std::vector<std::pair<std::string, std::string>>& response,
 	int *errcodep,
 	std::string&  errdesc)
