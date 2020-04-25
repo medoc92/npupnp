@@ -71,7 +71,7 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
 							int timeout, void *cookie)
 {
 	int handle;
-	struct Handle_Info *ctrlpt_info = NULL;
+	struct Handle_Info *ctrlpt_info = nullptr;
 	int is_byebye;
 	struct Upnp_Discovery param;
 	SsdpEvent event;
@@ -82,7 +82,7 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
 	Upnp_FunPtr ctrlpt_callback;
 	void *ctrlpt_cookie;
 	int matched = 0;
-	ResultData *threadData = NULL;
+	ResultData *threadData = nullptr;
 
 	/* Get client info. We are assuming that there can be only one
 	   client supported at a time */
@@ -99,7 +99,7 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
 	   can't find a call to this routine with timeout set. Probably
 	   they forgot to code it... */
 	if (timeout) {
-		ctrlpt_callback(UPNP_DISCOVERY_SEARCH_TIMEOUT, NULL, cookie);
+		ctrlpt_callback(UPNP_DISCOVERY_SEARCH_TIMEOUT, nullptr, cookie);
 		return;
 	}
 	
@@ -250,7 +250,7 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
 			if (matched) {
 				/* schedule call back */
 				threadData = (ResultData *)malloc(sizeof(ResultData));
-				if (threadData != NULL) {
+				if (threadData != nullptr) {
 					threadData->param = param;
 					threadData->cookie = searchArg->cookie;
 					threadData->ctrlpt_callback = ctrlpt_callback;
@@ -303,7 +303,7 @@ static int CreateClientRequestPacket(
 		str << "MX: " << Mx << "\r\n";
 	}
 
-	if (SearchTarget != NULL) {
+	if (SearchTarget != nullptr) {
 		str << "ST: " << SearchTarget << "\r\n";
 	}
 	str << "\r\n";
@@ -326,9 +326,9 @@ static void* thread_searchexpired(void *arg)
 {
 	int *id = (int *)arg;
 	int handle = -1;
-	struct Handle_Info *ctrlpt_info = NULL;
+	struct Handle_Info *ctrlpt_info = nullptr;
 	Upnp_FunPtr ctrlpt_callback;
-	void *cookie = NULL;
+	void *cookie = nullptr;
 	int found = 0;
 
 	HandleLock();
@@ -353,14 +353,14 @@ static void* thread_searchexpired(void *arg)
 	HandleUnlock();
 
 	if (found)
-		ctrlpt_callback(UPNP_DISCOVERY_SEARCH_TIMEOUT, NULL, cookie);
+		ctrlpt_callback(UPNP_DISCOVERY_SEARCH_TIMEOUT, nullptr, cookie);
 	return nullptr;
 }
 
 int SearchByTarget(int Mx, char *St, void *Cookie)
 {
 	char errorBuffer[ERROR_BUFFER_LEN];
-	int *id = NULL;
+	int *id = nullptr;
 	int ret = 0;
 	std::string ReqBufv4;
 #ifdef UPNP_ENABLE_IPV6
@@ -378,7 +378,7 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
 	fd_set wrSet;
 	int timeTillRead = 0;
 	int handle;
-	struct Handle_Info *ctrlpt_info = NULL;
+	struct Handle_Info *ctrlpt_info = nullptr;
 	enum SsdpSearchType requestType;
 	unsigned long addrv4 = inet_addr(gIF_IPV4);
 	SOCKET max_fd = 0;
@@ -453,7 +453,7 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
 		max_fd = MAX(max_fd, gSsdpReqSocket6);
 	}
 #endif
-	ret = select(max_fd + 1, NULL, &wrSet, NULL, NULL);
+	ret = select(max_fd + 1, nullptr, &wrSet, nullptr, nullptr);
 	if (ret == -1) {
 		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 		UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,

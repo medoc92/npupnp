@@ -78,17 +78,17 @@ int UpnpInitLog(void)
 	if (fp) {
 		if (is_stderr == 0) {
 			fclose(fp);
-			fp = NULL;
+			fp = nullptr;
 		}
 	}
 	is_stderr = 0;
 	if (fileName) {
-		if ((fp = fopen(fileName, "a")) == NULL) {
+		if ((fp = fopen(fileName, "a")) == nullptr) {
 			fprintf(stderr, "Failed to open fileName (%s): %s\n",
 					fileName, strerror(errno));
 		}
 	}
-	if (fp == NULL) {
+	if (fp == nullptr) {
 		fp = stderr;
 		is_stderr = 1;
 	}
@@ -108,10 +108,10 @@ void UpnpCloseLog(void)
 	 * crash if we do this without a lock.*/
 	std::unique_lock<std::mutex> lck(GlobalDebugMutex);
 
-	if (fp != NULL && is_stderr == 0) {
+	if (fp != nullptr && is_stderr == 0) {
 		fclose(fp);
 	}
-	fp = NULL;
+	fp = nullptr;
 	is_stderr = 0;
 }
 
@@ -121,7 +121,7 @@ void UpnpSetLogFileNames(const char *newFileName, const char *ignored)
 
 	if (fileName) {
 		free(fileName);
-		fileName = NULL;
+		fileName = nullptr;
 	}
 	if (newFileName && *newFileName) {
 		fileName = strdup(newFileName);
@@ -148,7 +148,7 @@ static void UpnpDisplayFileAndLine(
 	int DbgLineNo, Upnp_LogLevel DLevel, Dbg_Module Module)
 {
 	char timebuf[26];
-	time_t now = time(NULL);
+	time_t now = time(nullptr);
 	struct tm *timeinfo;
 	const char *smod;
 #if 0
@@ -200,7 +200,7 @@ void UpnpPrintf(
 		return;
 
 	std::unique_lock<std::mutex> lck(GlobalDebugMutex);
-	if (fp == NULL) {
+	if (fp == nullptr) {
 		return;
 	}
 
@@ -218,7 +218,7 @@ void UpnpPrintf(
 FILE *UpnpGetDebugFile(Upnp_LogLevel DLevel, Dbg_Module Module)
 {
 	if (!DebugAtThisLevel(DLevel, Module)) {
-		return	NULL;
+		return	nullptr;
 	}
 
 	return fp;

@@ -94,9 +94,9 @@ static MiniServerState gMServState = MSERV_IDLE;
 static struct MHD_Daemon *mhd;
 
 #ifdef INTERNAL_WEB_SERVER
-static MiniServerCallback gGetCallback = NULL;
-static MiniServerCallback gSoapCallback = NULL;
-static MiniServerCallback gGenaCallback = NULL;
+static MiniServerCallback gGetCallback = nullptr;
+static MiniServerCallback gSoapCallback = nullptr;
+static MiniServerCallback gGenaCallback = nullptr;
 
 void SetHTTPGetCallback(MiniServerCallback callback)
 {
@@ -191,7 +191,7 @@ static int answer_to_connection(
 	const char *upload_data, size_t *upload_data_size,
 	void **con_cls)
 {
-	if (NULL == *con_cls) {
+	if (nullptr == *con_cls) {
 		UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
 				   "answer_to_connection1: url [%s] method [%s]"
 				   " version [%s]\n", url, method, version);
@@ -256,9 +256,9 @@ static int answer_to_connection(
 		callback = gGetCallback;
 		break;
 	default:
-		callback = NULL;
+		callback = nullptr;
 	}
-	if (callback == NULL) {
+	if (callback == nullptr) {
 		return MHD_NO;
 	}
 
@@ -340,7 +340,7 @@ static int receive_from_stopSock(SOCKET ssock, fd_set *set)
 			UpnpPrintf( UPNP_INFO, MSERV, __FILE__, __LINE__,
 						"Received multicast packet: \n %s\n",
 						requestBuf);
-			if (NULL != strstr(requestBuf, "ShutDown")) {
+			if (nullptr != strstr(requestBuf, "ShutDown")) {
 				return 1;
 			}
 		}
@@ -403,7 +403,7 @@ static void *thread_miniserver(void *)
 		fdset_if_valid(miniSocket->ssdpReqSock6, &rdSet);
 #endif /* INCLUDE_CLIENT_APIS */
 		/* select() */
-		ret = select((int) maxMiniSock, &rdSet, NULL, &expSet, NULL);
+		ret = select((int) maxMiniSock, &rdSet, nullptr, &expSet, nullptr);
 		if (ret == SOCKET_ERROR && errno == EINTR) {
 			continue;
 		}
@@ -741,7 +741,7 @@ int StartMiniServer(
 	}
 
 	miniSocket = new MiniServerSockArray;
-	if (NULL == miniSocket) {
+	if (nullptr == miniSocket) {
 		return UPNP_E_OUTOF_MEMORY;
 	}
 
@@ -800,16 +800,16 @@ int StartMiniServer(
 		MHD_USE_INTERNAL_POLLING_THREAD |
 		MHD_USE_DEBUG,
 		-1, /* No port because we supply the listen fd */
-		NULL, NULL, /* Accept policy callback and arg */
+		nullptr, nullptr, /* Accept policy callback and arg */
 		/* handler and arg */
-		&answer_to_connection, NULL,
+		&answer_to_connection, nullptr,
 		MHD_OPTION_NOTIFY_COMPLETED, request_completed_cb, nullptr,
 		MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int)UPNP_TIMEOUT,
 #if LET_MHD_LISTEN_ON_SOCK4
 		MHD_OPTION_LISTEN_SOCKET, miniSocket->miniServerSock4,
 #endif
 		MHD_OPTION_END);
-	if (NULL == mhd) {
+	if (nullptr == mhd) {
 		ret_code = UPNP_E_OUTOF_MEMORY;
 		goto out;
 	}

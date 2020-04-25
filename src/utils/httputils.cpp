@@ -214,7 +214,7 @@ int http_Download(const char *surl, int timeout_secs,
 	curl_easy_setopt(easy, CURLOPT_WRITEFUNCTION, write_callback_str_curl);
 	curl_easy_setopt(easy, CURLOPT_WRITEDATA, &data);
 
-	struct curl_slist *list = NULL;
+	struct curl_slist *list = nullptr;
 	list = curl_slist_append(
 		list, (std::string("USER-AGENT: ") + get_sdk_info()).c_str());
 	list = curl_slist_append(list, "Connection: close");
@@ -263,9 +263,9 @@ int http_Download(const char *surl, int timeout_secs,
 	if (http_status == HTTP_OK) {
 		/* extract doc from msg */
 		if (!data.empty()) {
-			*document = NULL;
+			*document = nullptr;
 			*document = (char *)malloc(data.size() + 1);
-			if (*document == NULL) {
+			if (*document == nullptr) {
 				return UPNP_E_OUTOF_MEMORY;
 			}
 			memcpy(*document, data.c_str(), data.size());
@@ -416,10 +416,10 @@ std::string make_date_string(time_t thetime)
 	const char *month_str = "Jan\0Feb\0Mar\0Apr\0May\0Jun\0"
 	    "Jul\0Aug\0Sep\0Oct\0Nov\0Dec";
 
-	time_t curr_time = thetime ? thetime : time(NULL);
+	time_t curr_time = thetime ? thetime : time(nullptr);
 	struct tm date_storage;
 	struct tm *date = http_gmtime_r(&curr_time, &date_storage);
-	if (date == NULL)
+	if (date == nullptr)
 		return std::string();
 	char tempbuf[200];
 	snprintf(tempbuf, sizeof(tempbuf),

@@ -173,7 +173,7 @@ void ThreadPool::Internal::StatsAccountHQ(long diffTime)
  */
 void ThreadPool::Internal::CalcWaitTime(ThreadPriority p, ThreadPoolJob *job)
 {
-	assert(job != NULL);
+	assert(job != nullptr);
 
 	auto now = steady_clock::now();
     auto ms =
@@ -295,7 +295,7 @@ exit_function:
 void ThreadPool::Internal::bumpPriority()
 {
 	int done = 0;
-	ThreadPoolJob *tempJob = NULL;
+	ThreadPoolJob *tempJob = nullptr;
 
 	auto now = steady_clock::now();
 	while (!done) {
@@ -356,7 +356,7 @@ static void *WorkerThread(void *arg)
 {
 	ThreadPool::Internal *tp = (ThreadPool::Internal *)arg;
 	time_t start = 0;
-	ThreadPoolJob *job = NULL;
+	ThreadPoolJob *job = nullptr;
 	std::cv_status retCode;
 	int persistent = -1;
 
@@ -377,7 +377,7 @@ static void *WorkerThread(void *arg)
 		if (job) {
 			tp->busyThreads--;
 			delete job;
-			job = NULL;
+			job = nullptr;
 		}
 		tp->stats.idleThreads++;
 		tp->stats.totalWorkTime += (double)time(nullptr) - (double)start;
@@ -424,7 +424,7 @@ static void *WorkerThread(void *arg)
 			/* Pick up persistent job if available */
 			if (tp->persistentJob) {
 				job = tp->persistentJob;
-				tp->persistentJob = NULL;
+				tp->persistentJob = nullptr;
 				tp->persistentThreads++;
 				persistent = 1;
 				tp->start_and_shutdown.notify_all();
@@ -465,7 +465,7 @@ static void *WorkerThread(void *arg)
 exit_function:
 	tp->totalThreads--;
 	tp->start_and_shutdown.notify_all();
-	return NULL;
+	return nullptr;
 }
 
 /*!
@@ -546,7 +546,7 @@ ThreadPool::Internal::Internal(ThreadPoolAttr *attr)
 		return;
 	}
 	this->stats = ThreadPoolStats();
-	this->persistentJob = NULL;
+	this->persistentJob = nullptr;
 	this->lastJobId = 0;
 	this->shuttingdown = 0;
 	this->totalThreads = 0;
@@ -575,7 +575,7 @@ int ThreadPool::addPersistent(start_routine func, void *arg,
 					  ThreadPriority priority)
 {
 	int ret = 0;
-	ThreadPoolJob *job = NULL;
+	ThreadPoolJob *job = nullptr;
 
 	std::unique_lock<std::mutex> lck(m->mutex);
 
@@ -706,7 +706,7 @@ int ThreadPool::shutdown()
 
 int ThreadPool::Internal::shutdown()
 {
-	ThreadPoolJob *temp = NULL;
+	ThreadPoolJob *temp = nullptr;
 
 	std::unique_lock<std::mutex> lck(mutex);
 
@@ -732,7 +732,7 @@ int ThreadPool::Internal::shutdown()
 	if (this->persistentJob) {
 		temp = this->persistentJob;
 		delete temp;
-		this->persistentJob = NULL;
+		this->persistentJob = nullptr;
 	}
 	/* signal shutdown */
 	this->shuttingdown = 1;

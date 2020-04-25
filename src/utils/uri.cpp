@@ -78,9 +78,9 @@ static int parse_hostport(
 	char *c;
 	struct sockaddr_in *sai4 = (struct sockaddr_in *)&out->IPaddress;
 	struct sockaddr_in6 *sai6 = (struct sockaddr_in6 *)&out->IPaddress;
-	char *srvname = NULL;
-	char *srvport = NULL;
-	char *last_dot = NULL;
+	char *srvname = nullptr;
+	char *srvport = nullptr;
+	char *last_dot = nullptr;
 	unsigned short int port;
 	int af = AF_UNSPEC;
 	size_t hostport_size;
@@ -120,7 +120,7 @@ static int parse_hostport(
 		*c = '\0';
 		if (has_port == 1)
 			c++;
-		if (last_dot != NULL && isdigit(*(last_dot + 1)))
+		if (last_dot != nullptr && isdigit(*(last_dot + 1)))
 			/* Must be an IPv4 address. */
 			af = AF_INET;
 		else {
@@ -131,7 +131,7 @@ static int parse_hostport(
 			hints.ai_family = AF_UNSPEC;
 			hints.ai_socktype = SOCK_STREAM;
 
-			ret = getaddrinfo(srvname, NULL, &hints, &res0);
+			ret = getaddrinfo(srvname, nullptr, &hints, &res0);
 			if (ret == 0) {
 				for (res = res0; res; res = res->ai_next) {
 					switch (res->ai_family) {
@@ -146,7 +146,7 @@ static int parse_hostport(
 				}
 			found:
 				freeaddrinfo(res0);
-				if (res == NULL)
+				if (res == nullptr)
 					/* Didn't find an AF_INET or AF_INET6 address. */
 					return UPNP_E_INVALID_URL;
 			} else

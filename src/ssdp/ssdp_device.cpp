@@ -77,10 +77,10 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
 {
 #define MX_FUDGE_FACTOR 10
     int handle, start;
-    struct Handle_Info *dev_info = NULL;
+    struct Handle_Info *dev_info = nullptr;
     int mx;
     SsdpEvent event;
-    SsdpSearchReply *threadArg = NULL;
+    SsdpSearchReply *threadArg = nullptr;
     int replyTime;
     int maxAge;
 
@@ -122,7 +122,7 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
         UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
                    "ServiceType =  %s\n", event.ServiceType);
         threadArg = (SsdpSearchReply *)malloc(sizeof(SsdpSearchReply));
-        if (threadArg == NULL)
+        if (threadArg == nullptr)
             return;
         threadArg->handle = handle;
         memcpy(&threadArg->dest_addr, dest_addr, sizeof(threadArg->dest_addr));
@@ -235,10 +235,10 @@ static int extractIPv6address(const char *url, char *address, int maxlen)
 {
 	address[0] = 0;
     char *op = strchr((char*)url, '[');
-	if (op == 0) 
+	if (op == nullptr) 
 		return 0;
 	char *cl = strchr(op, ']');
-	if (cl == NULL || cl <= op + 1 || cl - op >= maxlen) {
+	if (cl == nullptr || cl <= op + 1 || cl - op >= maxlen) {
 		return 0;
     }
 	memcpy(address, op + 1, cl - op - 1);

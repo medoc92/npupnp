@@ -81,7 +81,7 @@ protected:
 	}
 
 	virtual void CharacterData(const XML_Char *s, int len) {
-		if (s == 0 || *s == 0)
+		if (s == nullptr || *s == 0)
 			return;
 		m_chardata.append(s, len);
 	}
@@ -188,7 +188,7 @@ int SoapSendAction(
 		curl_easy_setopt(easy, CURLOPT_TIMEOUT, long(UPNP_TIMEOUT));
 		curl_easy_setopt(easy, CURLOPT_POST, long(1));
 		curl_easy_setopt(easy, CURLOPT_POSTFIELDS, payload.c_str()); 
-		struct curl_slist *list = NULL;
+		struct curl_slist *list = nullptr;
 		list = curl_slist_append(list,
 								 "Content-Type: text/xml; charset=\"utf-8\"");
 		list = curl_slist_append(list, soapaction.c_str());

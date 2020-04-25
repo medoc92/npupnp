@@ -201,7 +201,7 @@ protected:
     }
 
     virtual void CharacterData(const XML_Char *s, int len) {
-        if (s == 0 || *s == 0)
+        if (s == nullptr || *s == 0)
             return;
         m_chardata.append(s, len);
     }
@@ -382,7 +382,7 @@ static int check_soapaction_hdr(
 	}
 	const char *col_pos2 = strrchr(soap_info->service_type, ':');
 	/* XXX: this should be checked when service list is generated */
-	assert(col_pos2 != NULL);
+	assert(col_pos2 != nullptr);
 	size_t cp2_diff = col_pos2 - soap_info->service_type;
 	if (cp2_diff == cp1_diff &&
 		strncmp(soap_info->service_type, serv_type.c_str(), cp1_diff) == 0) {

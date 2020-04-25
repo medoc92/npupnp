@@ -244,12 +244,12 @@ int web_server_unset_localdoc(const std::string& path)
 int web_server_init()
 {
 	if (bWebServerState == WEB_SERVER_DISABLED) {
-		virtualDirCallback.get_info = NULL;
-		virtualDirCallback.open = NULL;
-		virtualDirCallback.read = NULL;
-		virtualDirCallback.write = NULL;
-		virtualDirCallback.seek = NULL;
-		virtualDirCallback.close = NULL;
+		virtualDirCallback.get_info = nullptr;
+		virtualDirCallback.open = nullptr;
+		virtualDirCallback.read = nullptr;
+		virtualDirCallback.write = nullptr;
+		virtualDirCallback.seek = nullptr;
+		virtualDirCallback.close = nullptr;
 		bWebServerState = WEB_SERVER_ENABLED;
 	}
 	return 0;
@@ -285,7 +285,7 @@ static int get_file_info(const char *filename, struct File_Info *info)
 		return -1;
 	/* check readable */
 	FILE *fp = fopen(filename, "r");
-	info->is_readable = (fp != NULL);
+	info->is_readable = (fp != nullptr);
 	if (fp)
 		fclose(fp);
 	info->file_length = s.st_size;
@@ -352,7 +352,7 @@ int web_server_add_virtual_dir(
 
 int web_server_remove_virtual_dir(const char *dirname)
 {
-	if (dirname == NULL) {
+	if (dirname == nullptr) {
 		return UPNP_E_INVALID_PARAM;
 	}
 	for (auto it = virtualDirList.begin(); it != virtualDirList.end(); it++) {

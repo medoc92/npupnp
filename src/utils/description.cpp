@@ -70,7 +70,7 @@ protected:
     }
 
     virtual void CharacterData(const XML_Char *s, int len) {
-        if (s == 0 || *s == 0)
+        if (s == nullptr || *s == 0)
             return;
         m_chardata.append(s, len);
     }

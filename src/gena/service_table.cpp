@@ -116,7 +116,7 @@ subscription *GetSubscriptionSID(const Upnp_SID sid, service_info *service)
 		return nullptr;
 	}
 	/*get the current_time */
-	time_t current_time = time(0);
+	time_t current_time = time(nullptr);
 	if ((found->expireTime != 0) && (found->expireTime < current_time)) {
 		UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
 				   "GetSubscriptionSID: erasing expired subscription\n");
@@ -134,7 +134,7 @@ std::list<subscription>::iterator GetNextSubscription(
 {
 	auto& sublist(service->subscriptionList);
 
-	time_t current_time = time(0);
+	time_t current_time = time(nullptr);
 	if (!getfirst) {
 		current++;
 	}
@@ -266,7 +266,7 @@ service_info *FindServiceControlURLPath(
 	service_table *table, const std::string& controlURLPath)
 {
 	if (nullptr == table) {
-		return NULL;
+		return nullptr;
 	}
 	
 	uri_type parsed_url_in;

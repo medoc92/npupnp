@@ -86,10 +86,10 @@ public:
 void *thread_timer(void *arg)
 {
 	TimerThread::Internal *timer = (TimerThread::Internal *)arg;
-	TimerEvent *nextEvent = NULL;
+	TimerEvent *nextEvent = nullptr;
 	system_clock::time_point nextEventTime = system_clock::now();
 
-	assert(timer != NULL);
+	assert(timer != nullptr);
 
 	std::unique_lock<std::mutex> lck(timer->mutex);
 
@@ -99,9 +99,9 @@ void *thread_timer(void *arg)
 		if (timer->inshutdown) {
 			timer->inshutdown = 0;
 			timer->condition.notify_all();
-			return NULL;
+			return nullptr;
 		}
-		nextEvent = NULL;
+		nextEvent = nullptr;
 		/* Get the next event if possible. */
 		if (!timer->eventQ.empty()) {
 			nextEvent = timer->eventQ.front();
@@ -145,8 +145,8 @@ TimerThread::Internal::Internal(ThreadPool *tp)
 
 TimerThread::TimerThread(ThreadPool *tp)
 {
-	assert( tp != NULL );
-	if (tp == NULL ) {
+	assert( tp != nullptr );
+	if (tp == nullptr ) {
 		return;
 	}
 	m = new Internal(tp);
@@ -165,7 +165,7 @@ int TimerThread::schedule(
 {
 	int rc = EOUTOFMEM;
 	int found = 0;
-	TimerEvent *newEvent = NULL;
+	TimerEvent *newEvent = nullptr;
 
 	system_clock::time_point when;
 	if (type == TimerThread::ABS_SEC) {
@@ -178,7 +178,7 @@ int TimerThread::schedule(
 
 	newEvent = new TimerEvent(func, arg, free_func, priority,
 							  duration, when, m->lastEventId);
-	if (newEvent == NULL ) {
+	if (newEvent == nullptr ) {
 		return rc;
 	}
 	if (id) {

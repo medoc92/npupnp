@@ -97,7 +97,7 @@ int AdvertiseAndReply(int AdFlag, UpnpDevice_Handle Hnd,
 
 	/* Use a read lock */
 	HandleReadLock();
-	struct Handle_Info *SInfo = NULL;
+	struct Handle_Info *SInfo = nullptr;
 	if (GetHandleInfo(Hnd, &SInfo) != HND_DEVICE) {
 		retVal = UPNP_E_INVALID_HANDLE;
 		goto end_function;
@@ -462,7 +462,7 @@ static void *thread_ssdp_event_handler(void *the_data)
 
 	// The parser takes ownership of the buffer
 	SSDPPacketParser parser(data->packet);
-	data->packet = 0;
+	data->packet = nullptr;
 	if (!parser.parse()) {
 		return nullptr;
 	}
@@ -476,7 +476,7 @@ static void *thread_ssdp_event_handler(void *the_data)
 	if (method == HTTPMETHOD_NOTIFY ||
 		(parser.isresponse && method == HTTPMETHOD_MSEARCH)) {
 #ifdef INCLUDE_CLIENT_APIS
-		ssdp_handle_ctrlpt_msg(parser, &data->dest_addr, 0, NULL);
+		ssdp_handle_ctrlpt_msg(parser, &data->dest_addr, 0, nullptr);
 #endif /* INCLUDE_CLIENT_APIS */
 	} else {
 		ssdp_handle_device_request(parser, &data->dest_addr);
@@ -487,7 +487,7 @@ static void *thread_ssdp_event_handler(void *the_data)
 void readFromSSDPSocket(SOCKET socket)
 {
 	struct sockaddr_storage __ss;
-	ssdp_thread_data *data = NULL;
+	ssdp_thread_data *data = nullptr;
 	socklen_t socklen = sizeof(__ss);
 	ssize_t byteReceived = 0;
 
