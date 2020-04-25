@@ -389,7 +389,7 @@ static int check_soapaction_hdr(
 		/* for action invocation, update the version information */
 		upnp_strlcpy(soap_info->service_type, serv_type, NAME_SIZE);
 	} else if (strcmp(serv_type.c_str(), QUERY_STATE_VAR_URN) == 0 &&
-			   soap_info->action_name.compare("QueryStateVariable") == 0) {
+			   soap_info->action_name == "QueryStateVariable") {
 		/* query variable */
 		soap_info->action_name.clear();
 	} else {
