@@ -133,7 +133,7 @@ char gIF_IPV6[INET6_ADDRSTRLEN] = { '\0' };
   in upnp.h) */
 /* NPUPNP NOTE: in pupnp, this was set by the non-getifaddr code which
    is used on Linux, but not by the BSD or Windows versions. We're
-   only doing getiffaddrs or Windows at this point, so this is never
+   only doing getifaddrs or Windows at this point, so this is never
    set. To be fixed if needed. */
 char gIF_IPV6_ULA_GUA[INET6_ADDRSTRLEN] = { '\0' };
 
@@ -192,39 +192,12 @@ int UpnpSdkDeviceregisteredV6 = 0;
 Upnp_SID gUpnpSdkNLSuuid;
 #endif /* UPNP_HAVE_OPTSSDP */
 
-/* Find an appropriate interface (possibly specified in input) and set
- * the global IP addresses and interface names. The interface must fulfill 
- * these requirements:
- *  UP / Not LOOPBACK / Support MULTICAST / valid IPv4 or IPv6 address.
- *
- * We'll retrieve the following information from the interface:
- *  gIF_IPV4 -> IPv4 address (if any).
- *  gIF_IPV6 -> IPv6 address (if any).
- *  gIF_IPV6_ULA_GUA -> ULA or GUA IPv6 address (if any)
- *  gIF_INDEX -> Interface index number. For v6 sin6_scope_id
-*/
-int UpnpGetIfInfo(const char *IfName)
-{
-	bool ifname_set{false};
-	bool gotv4{false}, gotv6{false};
-	struct in_addr v4_addr;
-	struct in6_addr v6_addr;
-	memset(&v4_addr, 0, sizeof(v4_addr));
-	memset(&v6_addr, 0, sizeof(v6_addr));
-
-	char gIF_NAME[LINE_SIZE] = {0};
-	/* Copy interface name, if it was provided. */
-	if (IfName && *IfName) {
-		if (strlen(IfName) > sizeof(gIF_NAME)) {
-			UpnpPrintf(UPNP_ERROR, API, __FILE__, __LINE__,
-					   "UpnpGetIfInfo: input interface name too long\n");
-			return UPNP_E_INVALID_INTERFACE;
-		}
-		upnp_strlcpy(gIF_NAME, IfName, sizeof(gIF_NAME));
-		ifname_set = true;
-	}
-
 #ifdef _WIN32
+
+int getIfInfoImpl(bool& ifname_set, std::string& if_name,
+				  bool& gotv4, struct in_addr& v4_addr,
+				  bool &gotv6, struct in6_addr& v6_addr)
+{
 	/* ---------------------------------------------------- */
 	/* WIN32 implementation will use the IpHlpAPI library. */
 	/* ---------------------------------------------------- */
@@ -265,44 +238,22 @@ int UpnpGetIfInfo(const char *IfName)
 			adapts_item = adapts_item->Next;
 			continue;
 		}
+		/*
+		 * Partial fix for VC - friendly name is wchar string,
+		 * try to convert it, which will work with many (but not
+		 * all) adapters. A full fix would require a lot of
+		 * big changes.
+		 */
+		char tmpIfName[LINE_SIZE];
+		wcstombs(tmpIfName, adapts_item->FriendlyName, sizeof(tmpIfName));
 		if (!ifname_set) {
-			/* We have found a valid interface name. Keep it. */
-#if 1 /*def UPNP_USE_MSVCPP*/
-			/*
-			 * Partial fix for VC - friendly name is wchar string,
-			 * but currently gIF_NAME is char string. For now try
-			 * to convert it, which will work with many (but not
-			 * all) adapters. A full fix would require a lot of
-			 * big changes (gIF_NAME to wchar string?).
-			 */
-			wcstombs(gIF_NAME, adapts_item->FriendlyName,
-					 sizeof(gIF_NAME));
-#else
-			upnp_strlcpy(gIF_NAME, adapts_item->FriendlyName, sizeof(gIF_NAME));
-#endif
+			if_name = tmpIfName;
 			ifname_set = true;
 		} else {
-#if 1 /*def UPNP_USE_MSVCPP*/
-			/*
-			 * Partial fix for VC - friendly name is wchar string,
-			 * but currently gIF_NAME is char string. For now try
-			 * to convert it, which will work with many (but not
-			 * all) adapters. A full fix would require a lot of
-			 * big changes (gIF_NAME to wchar string?).
-			 */
-			char tmpIfName[LINE_SIZE] = { 0 };
-			wcstombs(tmpIfName, adapts_item->FriendlyName, sizeof(tmpIfName));
-			if (strncmp(gIF_NAME, tmpIfName, sizeof(gIF_NAME)) != 0) {
+			if (if_name != tmpIfName) {
 				/* This is not the interface we're looking for. */
 				continue;
 			}
-#else
-			if (strncmp(gIF_NAME, adapts_item->FriendlyName, sizeof(gIF_NAME))
-				!= 0) {
-				/* This is not the interface we're looking for. */
-				continue;
-			}
-#endif
 		}
 		/* Loop thru this adapter's unicast IP addresses. */
 		uni_addr = adapts_item->FirstUnicastAddress;
@@ -346,9 +297,15 @@ int UpnpGetIfInfo(const char *IfName)
 		adapts_item = adapts_item->Next;
 	}
 	free(adapts);
-	
+	return 0;
+}
+
 #elif defined(HAVE_GETIFADDRS)
 
+int getIfInfoImpl(bool& ifname_set, std::string& if_name,
+				  bool& gotv4, struct in_addr& v4_addr,
+				  bool &gotv6, struct in6_addr& v6_addr)
+{
 	struct ifaddrs *ifap, *ifa;
 
 	/* Get system interface addresses. */
@@ -376,10 +333,10 @@ int UpnpGetIfInfo(const char *IfName)
 			continue;
 		}
 		if (ifname_set == 0) {
-			upnp_strlcpy(gIF_NAME, ifa->ifa_name, sizeof(gIF_NAME));
+			if_name = ifa->ifa_name;
 			ifname_set = 1;
 		} else {
-			if (strncmp(gIF_NAME, ifa->ifa_name, sizeof(gIF_NAME))!= 0) {
+			if (if_name != ifa->ifa_name) {
 				/* This is not the interface we're looking for. */
 				continue;
 			}
@@ -419,10 +376,45 @@ int UpnpGetIfInfo(const char *IfName)
 		}
 	}
 	freeifaddrs(ifap);
-	gIF_INDEX = if_nametoindex(gIF_NAME);
+	gIF_INDEX = if_nametoindex(if_name.c_str());
+	return 0;
+}
 #else
 #error Neither windows nor getifaddrs. Lift the old linux code from pupnp?
 #endif
+
+/* Find an appropriate interface (possibly specified in input) and set
+ * the global IP addresses and interface names. The interface must fulfill 
+ * these requirements:
+ *  UP / Not LOOPBACK / Support MULTICAST / valid IPv4 or IPv6 address.
+ *
+ * We'll retrieve the following information from the interface:
+ *  gIF_IPV4 -> IPv4 address (if any).
+ *  gIF_IPV6 -> IPv6 address (if any).
+ *  gIF_IPV6_ULA_GUA -> ULA or GUA IPv6 address (if any)
+ *  gIF_INDEX -> Interface index number. For v6 sin6_scope_id
+*/
+int UpnpGetIfInfo(const char *IfName)
+{
+	bool ifname_set{false};
+	bool gotv4{false}, gotv6{false};
+	struct in_addr v4_addr;
+	struct in6_addr v6_addr;
+	memset(&v4_addr, 0, sizeof(v4_addr));
+	memset(&v6_addr, 0, sizeof(v6_addr));
+	std::string if_name;
+
+	/* Copy interface name, if it was provided. */
+	if (IfName && *IfName) {
+		if_name = IfName;
+		ifname_set = true;
+	}
+
+	if (getIfInfoImpl(ifname_set,if_name, gotv4,v4_addr, gotv6,v6_addr) != 0) {
+		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
+				   "No adapter with usable IP addresses.\n");
+		return UPNP_E_INVALID_INTERFACE;
+	}
 
 	/* Failed to find a valid interface, or valid address. */
 	if (!ifname_set || !(gotv4 || gotv6)) {
@@ -437,7 +429,7 @@ int UpnpGetIfInfo(const char *IfName)
 
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
 			   "Ifname=%s, index=%d, v4=%s, v6=%s, ULA/GUA v6=%s\n",
-			   gIF_NAME, gIF_INDEX, gIF_IPV4, gIF_IPV6, gIF_IPV6_ULA_GUA);
+			   if_name.c_str(),gIF_INDEX,gIF_IPV4,gIF_IPV6,gIF_IPV6_ULA_GUA);
 
 	return UPNP_E_SUCCESS;
 }
@@ -648,17 +640,14 @@ static int UpnpInitPreamble(void)
  * \return UPNP_E_SUCCESS on success or	 UPNP_E_INIT_FAILED if a mutex could not
  *	be initialized.
  */
-static int UpnpInitStartServers(
-	/*! [in] Local Port to listen for incoming connections. */
-	unsigned short DestPort)
+static int UpnpInitStartServers(unsigned short DestPort)
 {
 #if EXCLUDE_MINISERVER == 0 || EXCLUDE_WEB_SERVER == 0
 	int retVal = 0;
 #endif
 
 #if EXCLUDE_MINISERVER == 0
-	LOCAL_PORT_V4 = DestPort;
-	LOCAL_PORT_V6 = DestPort;
+	LOCAL_PORT_V4 = LOCAL_PORT_V6 = DestPort;
 	retVal = StartMiniServer(&LOCAL_PORT_V4, &LOCAL_PORT_V6);
 	if (retVal != UPNP_E_SUCCESS) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
