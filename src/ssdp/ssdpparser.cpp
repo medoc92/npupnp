@@ -70,7 +70,7 @@ void SSDPPacketParser::trimright(char *cp, size_t len) {
 	cp[len] = 0;
 }
 
-void SSDPPacketParser::dump(std::ostream& os) {
+void SSDPPacketParser::dump(std::ostream& os) const {
 	os <<
 		" cache_control " << (cache_control ? cache_control : "(null)") <<
 		" date " << (date ? date : "(null)") <<
@@ -97,21 +97,21 @@ bool SSDPPacketParser::parse()
 {
 	std::cmatch m;
 	if (regex_search(m_packet, m, request_re)) {
-		method = (char *)(m_packet + m.position(1));
+		method = (m_packet + m.position(1));
 		method[m[1].length()] = 0;
-		url = (char *)(m_packet + m.position(2));
+		url = (m_packet + m.position(2));
 		url[m[2].length()] = 0;
-		protocol = (char *)(m_packet + m.position(3));
+		protocol = (m_packet + m.position(3));
 		protocol[m[3].length()] = 0;
-		version = (char *)(m_packet + m.position(4));
+		version = (m_packet + m.position(4));
 		version[m[4].length()] = 0;
 	} else if (regex_search(m_packet, m, response_re)) {
 		isresponse = true;
-		protocol = (char *)(m_packet + m.position(1));
+		protocol = (m_packet + m.position(1));
 		protocol[m[1].length()] = 0;
-		version = (char *)(m_packet + m.position(2));
+		version = (m_packet + m.position(2));
 		version[m[2].length()] = 0;
-		status  = (char *)(m_packet + m.position(3));
+		status  = (m_packet + m.position(3));
 		status[m[3].length()] = 0;
 	} else {
 		//std::cerr << "NO match for msearch request/response line\n";
@@ -125,10 +125,10 @@ bool SSDPPacketParser::parse()
 			break;
 		}
 
-		char *nm = (char *)(cp + m.position(1));
+		char *nm = (cp + m.position(1));
 		nm[m[1].length()] = 0;
 
-		char *val = (char *)(cp + m.position(2));
+		char *val = (cp + m.position(2));
 		val[m[2].length()] = 0;
 		trimright(val, m[2].length());
 
@@ -202,10 +202,5 @@ bool SSDPPacketParser::parse()
 		cp += m.length();
 	}
 
-	if (strcmp(cp, "\r\n")) {
-		//std::cerr << "Bad last line:\n>>>" << cp << "<<<" << std::endl;
-		return false;
-	}
-
-	return true;
+	return strcmp(cp, "\r\n") == 0;
 }

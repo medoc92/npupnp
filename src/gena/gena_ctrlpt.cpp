@@ -76,9 +76,9 @@ static void *thread_autorenewsubscription(
 	/*! [in] Thread data(upnp_timeout *) needed to send the renewal. */
 	void *input)
 {
-	upnp_timeout *event = (upnp_timeout *)input;
-	struct Upnp_Event_Subscribe *sub_struct =
-		(struct Upnp_Event_Subscribe *)event->Event;
+	auto event = static_cast<upnp_timeout *>(input);
+	auto sub_struct =
+		static_cast<struct Upnp_Event_Subscribe *>(event->Event);
 	void *cookie;
 	Upnp_FunPtr callback_fun;
 	struct Handle_Info *handle_info;
@@ -123,7 +123,7 @@ static void *thread_autorenewsubscription(
 		callback_fun = handle_info->Callback;
 		cookie = handle_info->Cookie;
 		HandleUnlock();
-		callback_fun((Upnp_EventType)eventType, event->Event, cookie);
+		callback_fun(static_cast<Upnp_EventType>(eventType), event->Event, cookie);
 	}
 
 end_function:
@@ -145,8 +145,8 @@ static int ScheduleGenaAutoRenew(
 	/*! [in] Subscription being renewed. */
 	ClientSubscription *sub)
 {
-	struct Upnp_Event_Subscribe *RenewEventStruct = NULL;
-	upnp_timeout *RenewEvent = NULL;
+	struct Upnp_Event_Subscribe *RenewEventStruct = nullptr;
+	upnp_timeout *RenewEvent = nullptr;
 	int return_code = GENA_SUCCESS;
 	const std::string& tmpSID = sub->SID;
 	const std::string& tmpEventURL = sub->eventURL;
@@ -156,9 +156,9 @@ static int ScheduleGenaAutoRenew(
 		goto end_function;
 	}
 
-	RenewEventStruct = (struct Upnp_Event_Subscribe *)malloc(
-		sizeof(struct Upnp_Event_Subscribe));
-	if (RenewEventStruct == NULL) {
+	RenewEventStruct = static_cast<struct Upnp_Event_Subscribe *>(malloc(
+		sizeof(struct Upnp_Event_Subscribe)));
+	if (RenewEventStruct == nullptr) {
 		return_code = UPNP_E_OUTOF_MEMORY;
 		goto end_function;
 	}
@@ -184,7 +184,7 @@ static int ScheduleGenaAutoRenew(
 	return_code = gTimerThread->schedule(
 		TimerThread::SHORT_TERM, TimerThread::REL_SEC, TimeOut - AUTO_RENEW_TIME,
 		&(RenewEvent->eventId),	thread_autorenewsubscription, RenewEvent,
-		(ThreadPool::free_routine)free_upnp_timeout);
+		reinterpret_cast<ThreadPool::free_routine>(free_upnp_timeout));
 
 	if (return_code != UPNP_E_SUCCESS) {
 		free_upnp_timeout(RenewEvent);
@@ -229,7 +229,7 @@ static int gena_unsubscribe(
 	curl_easy_setopt(easy, CURLOPT_URL, uri_asurlstr(dest_url).c_str());
 	curl_easy_setopt(easy, CURLOPT_TIMEOUT, HTTP_DEFAULT_TIMEOUT);
 
-	struct curl_slist *list = NULL;
+	struct curl_slist *list = nullptr;
 	list = curl_slist_append(list, (std::string("SID: ") + sid).c_str());
 	list = curl_slist_append(
 		list, (std::string("USER-AGENT: ") + get_sdk_info()).c_str());
@@ -263,7 +263,7 @@ static std::string myCallbackUrl(const uri_type& dest_url)
 {
 	std::ostringstream oss;
 	if (dest_url.hostport.IPaddress.ss_family == AF_INET6) {
-		struct sockaddr_in6* DestAddr6 =
+		auto DestAddr6 =
 			(struct sockaddr_in6*)&dest_url.hostport.IPaddress;
 		std::string gIF =
 			(IN6_IS_ADDR_LINKLOCAL(&DestAddr6->sin6_addr) ||
@@ -299,7 +299,7 @@ static int gena_subscribe(
 	sid->clear();
 
 	/* request timeout to string */
-	if (timeout == NULL) {
+	if (timeout == nullptr) {
 		timeout = &local_timeout;
 	}
 	std::ostringstream timostr;
@@ -327,7 +327,7 @@ static int gena_subscribe(
 	curl_easy_setopt(easy, CURLOPT_TIMEOUT, HTTP_DEFAULT_TIMEOUT);
 	curl_easy_setopt(easy, CURLOPT_HEADERFUNCTION, header_callback_curl);
 	curl_easy_setopt(easy, CURLOPT_HEADERDATA, &http_headers);
-	struct curl_slist *list = NULL;
+	struct curl_slist *list = nullptr;
 	if (!renewal_sid.empty()) {
 		list = curl_slist_append(
 			list, (std::string("SID: ") + renewal_sid).c_str());
@@ -383,7 +383,7 @@ static int gena_subscribe(
 int genaUnregisterClient(UpnpClient_Handle client_handle)
 {
 	int return_code = UPNP_E_SUCCESS;
-	struct Handle_Info *handle_info = NULL;
+	struct Handle_Info *handle_info = nullptr;
 
 	while (true) {
 		HandleLock();
@@ -412,12 +412,11 @@ int genaUnregisterClient(UpnpClient_Handle client_handle)
 }
 
 
-#ifdef INCLUDE_CLIENT_APIS
 int genaUnSubscribe(
 	UpnpClient_Handle client_handle,
 	const std::string& in_sid)
 {
-	ClientSubscription *sub = NULL;
+	ClientSubscription *sub = nullptr;
 	int return_code = GENA_SUCCESS;
 	struct Handle_Info *handle_info;
 	ClientSubscription sub_copy;
@@ -453,10 +452,8 @@ int genaUnSubscribe(
 exit_function:
 	return return_code;
 }
-#endif /* INCLUDE_CLIENT_APIS */
 
 
-#ifdef INCLUDE_CLIENT_APIS
 int genaSubscribe(
 	UpnpClient_Handle client_handle,
 	const std::string& PublisherURL,
@@ -519,7 +516,6 @@ error_handler:
 
 	return return_code;
 }
-#endif /* INCLUDE_CLIENT_APIS */
 
 
 int genaRenewSubscription(
@@ -528,7 +524,7 @@ int genaRenewSubscription(
 	int *TimeOut)
 {
 	int return_code = GENA_SUCCESS;
-	ClientSubscription *sub = NULL;
+	ClientSubscription *sub = nullptr;
 	ClientSubscription sub_copy;
 	struct Handle_Info *handle_info;
 	std::string ActualSID;
@@ -544,7 +540,7 @@ int genaRenewSubscription(
 	}
 
 	sub = GetClientSubClientSID(handle_info->ClientSubList, in_sid);
-	if (sub == NULL) {
+	if (sub == nullptr) {
 		HandleUnlock();
 
 		return_code = GENA_E_BAD_SID;
@@ -581,7 +577,7 @@ int genaRenewSubscription(
 
 	/* get subscription */
 	sub = GetClientSubClientSID(handle_info->ClientSubList, in_sid);
-	if (sub == NULL) {
+	if (sub == nullptr) {
 		clientCancelRenew(&sub_copy);
 		HandleUnlock();
 		return_code = GENA_E_BAD_SID;
@@ -614,7 +610,7 @@ public:
 	}
 
 protected:
-    virtual void EndElement(const XML_Char *name) {
+    void EndElement(const XML_Char *name) override {
 		const std::string& parentname = (m_path.size() == 1) ?
             "root" : m_path[m_path.size()-2].name;
         trimstring(m_chardata, " \t\n\r");
@@ -625,8 +621,8 @@ protected:
         m_chardata.clear();
     }
 
-    virtual void CharacterData(const XML_Char *s, int len) {
-        if (s == 0 || *s == 0)
+    void CharacterData(const XML_Char *s, int len) override {
+        if (s == nullptr || *s == 0)
             return;
         m_chardata.append(s, len);
     }
@@ -640,7 +636,7 @@ void gena_process_notification_event(MHDTransaction *mhdt)
 {
 	struct Upnp_Event event_struct;
 	int eventKey;
-	ClientSubscription *subscription = NULL;
+	ClientSubscription *subscription = nullptr;
 	struct Handle_Info *handle_info;
 	void *cookie;
 	Upnp_FunPtr callback;
@@ -721,7 +717,7 @@ void gena_process_notification_event(MHDTransaction *mhdt)
 
 	/* get subscription based on SID */
 	subscription = GetClientSubActualSID(handle_info->ClientSubList, sid);
-	if (subscription == NULL) {
+	if (subscription == nullptr) {
 		if (eventKey == 0) {
 			/* wait until we've finished processing a subscription  */
 			/*   (if we are in the middle) */
@@ -744,7 +740,7 @@ void gena_process_notification_event(MHDTransaction *mhdt)
 			}
 
 			subscription = GetClientSubActualSID(handle_info->ClientSubList,sid);
-			if (subscription == NULL) {
+			if (subscription == nullptr) {
 				http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
 				SubscribeUnlock();
 				HandleUnlock();

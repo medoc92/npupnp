@@ -31,7 +31,7 @@
 
 #include "smallut.h"
 
-#include <ctype.h>
+#include <cctype>
 
 using namespace std;
 
@@ -69,17 +69,18 @@ int stringlowercmp(const string& s1, const string& s2)
             ++it2;
         }
         return size1 == size2 ? 0 : -1;
-    } else {
-        while (it2 != s2.end()) {
-            c2 = ::tolower(*it2);
-            if (*it1 != c2) {
-                return *it1 > c2 ? 1 : -1;
-            }
-            ++it1;
-            ++it2;
-        }
-        return size1 == size2 ? 0 : 1;
     }
+
+    while (it2 != s2.end()) {
+        c2 = ::tolower(*it2);
+        if (*it1 != c2) {
+            return *it1 > c2 ? 1 : -1;
+        }
+        ++it1;
+        ++it2;
+    }
+
+    return size1 == size2 ? 0 : 1;
 }
 
 void trimstring(string& s, const char *ws)
@@ -138,8 +139,8 @@ size_t upnp_strlcpy(char *dst, const char *src, size_t dsize)
 string xmlQuote(const string& in)
 {
     string out;
-    for (unsigned int i = 0; i < in.size(); i++) {
-        switch (in[i]) {
+    for (char i : in) {
+        switch (i) {
         case '"':
             out += "&quot;";
             break;
@@ -156,7 +157,7 @@ string xmlQuote(const string& in)
             out += "&apos;";
             break;
         default:
-            out += in[i];
+            out += i;
         }
     }
     return out;

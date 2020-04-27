@@ -53,7 +53,7 @@
 #include <netdb.h>
 #endif /* _WIN32 */
 
-#include <assert.h>
+#include <cassert>
 
 #include "uri.h"
 #include "smallut.h"
@@ -76,11 +76,11 @@ static int parse_hostport(
 {
 	char workbuf[256];
 	char *c;
-	struct sockaddr_in *sai4 = (struct sockaddr_in *)&out->IPaddress;
-	struct sockaddr_in6 *sai6 = (struct sockaddr_in6 *)&out->IPaddress;
-	char *srvname = NULL;
-	char *srvport = NULL;
-	char *last_dot = NULL;
+	auto sai4 = reinterpret_cast<struct sockaddr_in *>(&out->IPaddress);
+	auto sai6 = reinterpret_cast<struct sockaddr_in6 *>(&out->IPaddress);
+	char *srvname = nullptr;
+	char *srvport = nullptr;
+	char *last_dot = nullptr;
 	unsigned short int port;
 	int af = AF_UNSPEC;
 	size_t hostport_size;
@@ -120,7 +120,7 @@ static int parse_hostport(
 		*c = '\0';
 		if (has_port == 1)
 			c++;
-		if (last_dot != NULL && isdigit(*(last_dot + 1)))
+		if (last_dot != nullptr && isdigit(*(last_dot + 1)))
 			/* Must be an IPv4 address. */
 			af = AF_INET;
 		else {
@@ -131,7 +131,7 @@ static int parse_hostport(
 			hints.ai_family = AF_UNSPEC;
 			hints.ai_socktype = SOCK_STREAM;
 
-			ret = getaddrinfo(srvname, NULL, &hints, &res0);
+			ret = getaddrinfo(srvname, nullptr, &hints, &res0);
 			if (ret == 0) {
 				for (res = res0; res; res = res->ai_next) {
 					switch (res->ai_family) {
@@ -146,7 +146,7 @@ static int parse_hostport(
 				}
 			found:
 				freeaddrinfo(res0);
-				if (res == NULL)
+				if (res == nullptr)
 					/* Didn't find an AF_INET or AF_INET6 address. */
 					return UPNP_E_INVALID_URL;
 			} else
@@ -160,25 +160,25 @@ static int parse_hostport(
 		srvport = c;
 		while (*c != '\0' && isdigit(*c))
 			c++;
-		port = (unsigned short int)atoi(srvport);
+		port = static_cast<unsigned short int>(atoi(srvport));
 		if (port == 0)
 			/* Bad port number. */
 			return UPNP_E_INVALID_URL;
 	} else
 		/* Port was not specified, use default port. */
-		port = 80u;
+		port = 80U;
 	/* The length of the host and port string can be calculated by */
 	/* subtracting pointers. */
 	hostport_size = (size_t)c - (size_t)workbuf;
 	/* Fill in the 'out' information. */
 	switch (af) {
 	case AF_INET:
-		sai4->sin_family = (sa_family_t)af;
+		sai4->sin_family = static_cast<sa_family_t>(af);
 		sai4->sin_port = htons(port);
 		ret = inet_pton(AF_INET, srvname, &sai4->sin_addr);
 		break;
 	case AF_INET6:
-		sai6->sin6_family = (sa_family_t)af;
+		sai6->sin6_family = static_cast<sa_family_t>(af);
 		sai6->sin6_port = htons(port);
 		sai6->sin6_scope_id = gIF_INDEX;
 		ret = inet_pton(AF_INET6, srvname, &sai6->sin6_addr);
@@ -186,7 +186,7 @@ static int parse_hostport(
 	default:
 		/* IP address was set by the hostname (getaddrinfo). */
 		/* Override port: */
-		if (out->IPaddress.ss_family == (sa_family_t)AF_INET)
+		if (out->IPaddress.ss_family == static_cast<sa_family_t>(AF_INET))
 			sai4->sin_port = htons(port);
 		else
 			sai6->sin6_port = htons(port);
@@ -197,7 +197,7 @@ static int parse_hostport(
 		return UPNP_E_INVALID_URL;
 	out->text.assign(in, hostport_size);
 
-	return (int)hostport_size;
+	return static_cast<int>(hostport_size);
 }
 
 /*!
@@ -241,10 +241,10 @@ static inline int h2d(int c)
 {
 	if ('0' <= c && c <= '9')
 		return c - '0';
-	else if ('A' <= c && c <= 'F')
+	if ('A' <= c && c <= 'F')
 		return 10 + c - 'A';
-	else 
-		return -1;
+
+	return -1;
 }
 
 std::string remove_escaped_chars(const std::string& in)
@@ -305,9 +305,9 @@ std::string remove_dots(const std::string& in)
             if (vpath.empty()) {
                 // This is an error: trying to go behind /
                 return std::string();
-            } else {
-                vpath.pop_back();
-            }
+            }                 vpath.pop_back();
+
+           
         } else {
             vpath.push_back(elt);
         }
@@ -384,7 +384,7 @@ std::string resolve_rel_url(
 					if (base.path.back() == '/') {
 						base.path.pop_back();
 					}
-					std::string::size_type pos = base.path.rfind("/");
+					std::string::size_type pos = base.path.rfind('/');
 					url.path = base.path.substr(0, pos+1) + rel.path;
 				}
 				url.query = rel.query;
@@ -417,7 +417,7 @@ int parse_uri(const std::string& in, uri_type *out)
 			return begin_path;
 		}
 	} else {
-		begin_path = (int)begin_hostport;
+		begin_path = static_cast<int>(begin_hostport);
 	}
 	std::string::size_type question = in.find('?', begin_path);
 	std::string::size_type hash = in.find('#', begin_path);

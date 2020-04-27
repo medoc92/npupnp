@@ -41,7 +41,7 @@
 
 #include <curl/curl.h>
 
-#include <assert.h>
+#include <cassert>
 
 #include "gena.h"
 #include "httputils.h"
@@ -148,7 +148,7 @@ static int genaNotify(const std::string& propertySet, const subscription *sub)
 		curl_easy_setopt(easy, CURLOPT_POSTFIELDS, propertySet.c_str()); 
 		curl_easy_setopt(easy, CURLOPT_CUSTOMREQUEST, "NOTIFY"); 
 
-		struct curl_slist *list = NULL;
+		struct curl_slist *list = nullptr;
 		list = curl_slist_append(list, "NT: upnp:event");
 		list = curl_slist_append(list, "NTS: upnp:propchange");
 		list = curl_slist_append(list,(std::string("SID: ") + sub->sid).c_str());
@@ -226,7 +226,7 @@ static void free_notify_struct(Notification *input)
  */
 static void *thread_genanotify(void *input)
 {
-	Notification *in = (Notification *)input;
+	auto in = static_cast<Notification *>(input);
 	subscription *sub;
 	service_info *service;
 	subscription sub_copy;
@@ -286,7 +286,7 @@ static void *thread_genanotify(void *input)
 	if (!sub->outgoing.empty()) {
 		auto notif = sub->outgoing.begin();
 		gSendThreadPool.addJob(thread_genanotify, *notif,
-							   (ThreadPool::free_routine)free_notify_struct);
+							   reinterpret_cast<ThreadPool::free_routine>(free_notify_struct));
 	}
 
 	// No idea why we do this after sending one more event. Was the
@@ -312,10 +312,10 @@ int genaInitNotifyXML(
 	int ret = GENA_SUCCESS;
 	int line = 0;
 
-	Notification *thread_struct = NULL;
+	Notification *thread_struct = nullptr;
 
-	subscription *sub = NULL;
-	service_info *service = NULL;
+	subscription *sub = nullptr;
+	service_info *service = nullptr;
 	struct Handle_Info *handle_info;
 
 	UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
@@ -330,14 +330,14 @@ int genaInitNotifyXML(
 	}
 
 	service = FindServiceId(&handle_info->ServiceTable, servId, UDN);
-	if (service == NULL) {
+	if (service == nullptr) {
 		line = __LINE__;
 		ret = GENA_E_BAD_SERVICE;
 		goto ExitFunction;
 	}
 
 	sub = GetSubscriptionSID(sid, service);
-	if (sub == NULL || sub->active) {
+	if (sub == nullptr || sub->active) {
 		line = __LINE__;
 		ret = GENA_E_BAD_SID;
 		goto ExitFunction;
@@ -346,7 +346,7 @@ int genaInitNotifyXML(
 
 	/* schedule thread for initial notification */
 	thread_struct = new Notification;
-	if (thread_struct == NULL) {
+	if (thread_struct == nullptr) {
 		line = __LINE__;
 		ret = UPNP_E_OUTOF_MEMORY;
 		goto ExitFunction;
@@ -355,11 +355,11 @@ int genaInitNotifyXML(
 	thread_struct->UDN = UDN;
 	thread_struct->propertySet = propertySet;
 	upnp_strlcpy(thread_struct->sid, sid, sizeof(thread_struct->sid));
-	thread_struct->ctime = time(0);
+	thread_struct->ctime = time(nullptr);
 	thread_struct->device_handle = device_handle;
 
 	ret = gSendThreadPool.addJob(thread_genanotify, thread_struct,
-								 (ThreadPool::free_routine)free_notify_struct);
+								 reinterpret_cast<ThreadPool::free_routine>(free_notify_struct));
 	if (ret != 0) {
 		line = __LINE__;
 		ret = UPNP_E_OUTOF_MEMORY;
@@ -439,7 +439,7 @@ void freeSubscriptionQueuedEvents(subscription *sub)
  */
 static void maybeDiscardEvents(std::list<Notification*>& outgoing)
 {
-	time_t now = time(0L);
+	time_t now = time(nullptr);
 
 	auto it = outgoing.begin();
 	// Skip first event: it's in the pool already
@@ -467,9 +467,9 @@ int genaNotifyAllXML(
 	int line = 0;
 	std::list<subscription>::iterator finger;
 	
-	Notification *thread_struct = NULL;
+	Notification *thread_struct = nullptr;
 
-	service_info *service = NULL;
+	service_info *service = nullptr;
 	struct Handle_Info *handle_info;
 
 	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
@@ -484,7 +484,7 @@ int genaNotifyAllXML(
 	} 
 
 	service = FindServiceId(&handle_info->ServiceTable, servId, UDN);
-	if (service == NULL) {
+	if (service == nullptr) {
 		line = __LINE__;
 		ret = GENA_E_BAD_SERVICE;
 		goto ExitFunction;
@@ -493,7 +493,7 @@ int genaNotifyAllXML(
 	finger = GetFirstSubscription(service);
 	while (finger != service->subscriptionList.end()) {
 		thread_struct = new Notification;
-		if (thread_struct == NULL) {
+		if (thread_struct == nullptr) {
 			line = __LINE__;
 			ret = UPNP_E_OUTOF_MEMORY;
 			break;
@@ -501,7 +501,7 @@ int genaNotifyAllXML(
 		thread_struct->UDN = UDN;
 		thread_struct->servId = servId;
 		thread_struct->propertySet = propertySet;
-		thread_struct->ctime = time(0);
+		thread_struct->ctime = time(nullptr);
 		thread_struct->device_handle = device_handle;
 		upnp_strlcpy(
 			thread_struct->sid, finger->sid, sizeof(thread_struct->sid));
@@ -514,7 +514,7 @@ int genaNotifyAllXML(
 		if (finger->outgoing.size() == 1) {
 			ret = gSendThreadPool.addJob(
 				thread_genanotify, thread_struct,
-				(ThreadPool::free_routine)free_notify_struct);
+				reinterpret_cast<ThreadPool::free_routine>(free_notify_struct));
 			if (ret != 0) {
 				line = __LINE__;
 				if (ret == EOUTOFMEM) {
@@ -619,7 +619,7 @@ static int create_url_list(const std::string& ulist, std::vector<uri_type> *out)
 			out->push_back(temp);
 		}
 	}
-    return (int)out->size();
+    return static_cast<int>(out->size());
 }
 
 void gena_process_subscription_request(MHDTransaction *mhdt)
@@ -671,7 +671,7 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
 		return;
 	}
 
-	if (service == NULL || !service->active) {
+	if (service == nullptr || !service->active) {
 		http_SendStatusResponse(mhdt, HTTP_NOT_FOUND);
 		HandleUnlock();
 		return;
@@ -733,7 +733,7 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
 		}
 	}
 	if (time_out >= 0) {
-		sub->expireTime = time(NULL) + time_out;
+		sub->expireTime = time(nullptr) + time_out;
 	} else {
 		/* infinite time */
 		sub->expireTime = 0;
@@ -743,7 +743,7 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
 	rc = snprintf(sub->sid, sizeof(sub->sid),"uuid:%s", gena_sid_uuid().c_str());
 
 	/* respond OK */
-	if (rc < 0 || (unsigned int) rc >= sizeof(sub->sid) ||
+	if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(sub->sid) ||
 		respond_ok(mhdt, time_out, &(*sub)) != UPNP_E_SUCCESS) {
 		service->subscriptionList.pop_back();
 		HandleUnlock();
@@ -806,8 +806,8 @@ void gena_process_subscription_renewal_request(MHDTransaction *mhdt)
     }
 
     /* get subscription */
-    if(service == NULL || !service->active ||
-	   ((sub = GetSubscriptionSID( sid, service )) == NULL)) {
+    if(service == nullptr || !service->active ||
+	   ((sub = GetSubscriptionSID( sid, service )) == nullptr)) {
         http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
         HandleUnlock();
         return;
@@ -842,7 +842,7 @@ void gena_process_subscription_renewal_request(MHDTransaction *mhdt)
     if(time_out == -1) {
         sub->expireTime = 0;
     } else {
-        sub->expireTime = time(NULL) + time_out;
+        sub->expireTime = time(nullptr) + time_out;
     }
 
     if (respond_ok(mhdt, time_out, sub) != UPNP_E_SUCCESS) {
@@ -889,8 +889,8 @@ void gena_process_unsubscribe_request(MHDTransaction *mhdt)
     }
 
     /* validate service */
-    if (service == NULL ||
-        !service->active || GetSubscriptionSID(sid, service) == NULL) {
+    if (service == nullptr ||
+        !service->active || GetSubscriptionSID(sid, service) == nullptr) {
         http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
         HandleUnlock();
         return;

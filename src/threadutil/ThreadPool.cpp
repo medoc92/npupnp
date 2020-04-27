@@ -33,10 +33,10 @@
 
 #include "ThreadPool.h"
 
-#include <assert.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>	/* for memset()*/
+#include <cassert>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>	/* for memset()*/
 
 #include <chrono>
 #include <thread>
@@ -67,7 +67,7 @@ struct ThreadPoolJob {
 
 class ThreadPool::Internal {
 public:
-	Internal(ThreadPoolAttr *attr);
+	explicit Internal(ThreadPoolAttr *attr);
 	bool ok{false};
 	int createWorker(std::unique_lock<std::mutex>& lck);
 	void addWorker(std::unique_lock<std::mutex>& lck);
@@ -147,19 +147,19 @@ int ThreadPool::start(ThreadPoolAttr *attr)
 void ThreadPool::Internal::StatsAccountLQ(long diffTime)
 {
 	this->stats.totalJobsLQ++;
-	this->stats.totalTimeLQ += (double)diffTime;
+	this->stats.totalTimeLQ += static_cast<double>(diffTime);
 }
 
 void ThreadPool::Internal::StatsAccountMQ(long diffTime)
 {
 	this->stats.totalJobsMQ++;
-	this->stats.totalTimeMQ += (double)diffTime;
+	this->stats.totalTimeMQ += static_cast<double>(diffTime);
 }
 
 void ThreadPool::Internal::StatsAccountHQ(long diffTime)
 {
 	this->stats.totalJobsHQ++;
-	this->stats.totalTimeHQ += (double)diffTime;
+	this->stats.totalTimeHQ += static_cast<double>(diffTime);
 }
 
 /*!
@@ -173,7 +173,7 @@ void ThreadPool::Internal::StatsAccountHQ(long diffTime)
  */
 void ThreadPool::Internal::CalcWaitTime(ThreadPriority p, ThreadPoolJob *job)
 {
-	assert(job != NULL);
+	assert(job != nullptr);
 
 	auto now = steady_clock::now();
     auto ms =
@@ -295,11 +295,11 @@ exit_function:
 void ThreadPool::Internal::bumpPriority()
 {
 	int done = 0;
-	ThreadPoolJob *tempJob = NULL;
+	ThreadPoolJob *tempJob = nullptr;
 
 	auto now = steady_clock::now();
 	while (!done) {
-		if (this->medJobQ.size()) {
+		if (!this->medJobQ.empty()) {
 			tempJob = this->medJobQ.front();
 			long diffTime = duration_cast<milliseconds>(
 				now - tempJob->requestTime).count();
@@ -312,7 +312,7 @@ void ThreadPool::Internal::bumpPriority()
 				continue;
 			}
 		}
-		if (this->lowJobQ.size()) {
+		if (!this->lowJobQ.empty()) {
 			tempJob = this->lowJobQ.front();
 			long diffTime = duration_cast<milliseconds>(
 				now - tempJob->requestTime).count();
@@ -332,7 +332,7 @@ void ThreadPool::Internal::bumpPriority()
 /*
  * \brief Sets seed for random number generator. Each thread sets the seed
  * random number generator. */
-static void SetSeed(void)
+static void SetSeed()
 {
 	const auto p1 = std::chrono::system_clock::now();
 	auto cnt = p1.time_since_epoch().count();
@@ -340,7 +340,7 @@ static void SetSeed(void)
 	cnt = cnt % 1000000000;
 	std::hash<std::thread::id> id_hash;
 	size_t h = id_hash(std::this_thread::get_id());
-	srand((unsigned int)(cnt+h));
+	srand(static_cast<unsigned int>(cnt+h));
 }
 
 /*!
@@ -354,9 +354,9 @@ static void SetSeed(void)
  */
 static void *WorkerThread(void *arg)
 {
-	ThreadPool::Internal *tp = (ThreadPool::Internal *)arg;
+	auto tp = static_cast<ThreadPool::Internal *>(arg);
 	time_t start = 0;
-	ThreadPoolJob *job = NULL;
+	ThreadPoolJob *job = nullptr;
 	std::cv_status retCode;
 	int persistent = -1;
 
@@ -372,15 +372,15 @@ static void *WorkerThread(void *arg)
 	
 	SetSeed();
 	start = time(nullptr);
-	while (1) {
+	while (true) {
 		lck.lock();
 		if (job) {
 			tp->busyThreads--;
 			delete job;
-			job = NULL;
+			job = nullptr;
 		}
 		tp->stats.idleThreads++;
-		tp->stats.totalWorkTime += (double)time(nullptr) - (double)start;
+		tp->stats.totalWorkTime += static_cast<double>(time(nullptr)) - static_cast<double>(start);
 		start = time(nullptr);
 		if (persistent == 0) {
 			tp->stats.workerThreads--;
@@ -391,9 +391,9 @@ static void *WorkerThread(void *arg)
 
 		/* Check for a job or shutdown */
 		retCode = std::cv_status::no_timeout;
-		while (tp->lowJobQ.size() == 0 &&
-		       tp->medJobQ.size()  == 0 &&
-		       tp->highJobQ.size() == 0 &&
+		while (tp->lowJobQ.empty() &&
+		       tp->medJobQ.empty() &&
+		       tp->highJobQ.empty() &&
 		       !tp->persistentJob && !tp->shuttingdown) {
 			/* If wait timed out and we currently have more than the
 			 * min threads, or if we have more than the max threads
@@ -412,7 +412,7 @@ static void *WorkerThread(void *arg)
 		}
 		tp->stats.idleThreads--;
 		/* idle time */
-		tp->stats.totalIdleTime += (double)time(nullptr) - (double)start;
+		tp->stats.totalIdleTime += static_cast<double>(time(nullptr)) - static_cast<double>(start);
 		/* work time */
 		start = time(nullptr);
 		/* bump priority of starved jobs */
@@ -424,7 +424,7 @@ static void *WorkerThread(void *arg)
 			/* Pick up persistent job if available */
 			if (tp->persistentJob) {
 				job = tp->persistentJob;
-				tp->persistentJob = NULL;
+				tp->persistentJob = nullptr;
 				tp->persistentThreads++;
 				persistent = 1;
 				tp->start_and_shutdown.notify_all();
@@ -432,15 +432,15 @@ static void *WorkerThread(void *arg)
 				tp->stats.workerThreads++;
 				persistent = 0;
 				/* Pick the highest priority job */
-				if (tp->highJobQ.size() > 0) {
+				if (!tp->highJobQ.empty()) {
 					job = tp->highJobQ.front();
 					tp->highJobQ.pop_front();
 					tp->CalcWaitTime(ThreadPool::HIGH_PRIORITY, job);
-				} else if (tp->medJobQ.size() > 0) {
+				} else if (!tp->medJobQ.empty()) {
 					job = tp->medJobQ.front();
 					tp->medJobQ.pop_front();
 					tp->CalcWaitTime(ThreadPool::MED_PRIORITY, job);
-				} else if (tp->lowJobQ.size() > 0) {
+				} else if (!tp->lowJobQ.empty()) {
 					job = tp->lowJobQ.front();
 					tp->lowJobQ.pop_front();
 					tp->CalcWaitTime(ThreadPool::LOW_PRIORITY, job);
@@ -465,7 +465,7 @@ static void *WorkerThread(void *arg)
 exit_function:
 	tp->totalThreads--;
 	tp->start_and_shutdown.notify_all();
-	return NULL;
+	return nullptr;
 }
 
 /*!
@@ -546,9 +546,9 @@ ThreadPool::Internal::Internal(ThreadPoolAttr *attr)
 		return;
 	}
 	this->stats = ThreadPoolStats();
-	this->persistentJob = NULL;
+	this->persistentJob = nullptr;
 	this->lastJobId = 0;
-	this->shuttingdown = 0;
+	this->shuttingdown = false;
 	this->totalThreads = 0;
 	this->busyThreads = 0;
 	this->persistentThreads = 0;
@@ -575,7 +575,7 @@ int ThreadPool::addPersistent(start_routine func, void *arg,
 					  ThreadPriority priority)
 {
 	int ret = 0;
-	ThreadPoolJob *job = NULL;
+	ThreadPoolJob *job = nullptr;
 
 	std::unique_lock<std::mutex> lck(m->mutex);
 
@@ -706,23 +706,23 @@ int ThreadPool::shutdown()
 
 int ThreadPool::Internal::shutdown()
 {
-	ThreadPoolJob *temp = NULL;
+	ThreadPoolJob *temp = nullptr;
 
 	std::unique_lock<std::mutex> lck(mutex);
 
-	while (this->highJobQ.size()) {
+	while (!this->highJobQ.empty()) {
 		temp = this->highJobQ.front();
 		this->highJobQ.pop_front();
 		delete temp;
 	}
 
-	while (this->medJobQ.size()) {
+	while (!this->medJobQ.empty()) {
 		temp = this->medJobQ.front();
 		this->medJobQ.pop_front();
 		delete temp;
 	}
 
-	while (this->lowJobQ.size()) {
+	while (!this->lowJobQ.empty()) {
 		temp = this->lowJobQ.front();
 		this->lowJobQ.pop_front();
 		delete temp;
@@ -732,10 +732,10 @@ int ThreadPool::Internal::shutdown()
 	if (this->persistentJob) {
 		temp = this->persistentJob;
 		delete temp;
-		this->persistentJob = NULL;
+		this->persistentJob = nullptr;
 	}
 	/* signal shutdown */
-	this->shuttingdown = 1;
+	this->shuttingdown = true;
 	this->condition.notify_all();
 	/* wait for all threads to finish */
 	while (this->totalThreads > 0) {
@@ -750,7 +750,7 @@ void ThreadPoolPrintStats(ThreadPoolStats *stats)
 	if (!stats)
 		return;
 	/* some OSses time_t length may depending on platform, promote it to long for safety */
-	printf("ThreadPoolStats at Time: %ld\n", (long)time(nullptr));
+	printf("ThreadPoolStats at Time: %ld\n", static_cast<long>(time(nullptr)));
 	printf("High Jobs pending: %d\n", stats->currentJobsHQ);
 	printf("Med Jobs Pending: %d\n", stats->currentJobsMQ);
 	printf("Low Jobs Pending: %d\n", stats->currentJobsLQ);
@@ -777,22 +777,22 @@ int ThreadPool::getStats(ThreadPoolStats *stats)
 
 	*stats = m->stats;
 	if (stats->totalJobsHQ > 0)
-		stats->avgWaitHQ = stats->totalTimeHQ / (double)stats->totalJobsHQ;
+		stats->avgWaitHQ = stats->totalTimeHQ / static_cast<double>(stats->totalJobsHQ);
 	else
 		stats->avgWaitHQ = 0.0;
 	if (stats->totalJobsMQ > 0)
-		stats->avgWaitMQ = stats->totalTimeMQ / (double)stats->totalJobsMQ;
+		stats->avgWaitMQ = stats->totalTimeMQ / static_cast<double>(stats->totalJobsMQ);
 	else
 		stats->avgWaitMQ = 0.0;
 	if (stats->totalJobsLQ > 0)
-		stats->avgWaitLQ = stats->totalTimeLQ / (double)stats->totalJobsLQ;
+		stats->avgWaitLQ = stats->totalTimeLQ / static_cast<double>(stats->totalJobsLQ);
 	else
 		stats->avgWaitLQ = 0.0;
 	stats->totalThreads = m->totalThreads;
 	stats->persistentThreads = m->persistentThreads;
-	stats->currentJobsHQ = (int)m->highJobQ.size();
-	stats->currentJobsLQ = (int)m->lowJobQ.size();
-	stats->currentJobsMQ = (int)m->medJobQ.size();
+	stats->currentJobsHQ = static_cast<int>(m->highJobQ.size());
+	stats->currentJobsLQ = static_cast<int>(m->lowJobQ.size());
+	stats->currentJobsMQ = static_cast<int>(m->medJobQ.size());
 
 	return 0;
 }

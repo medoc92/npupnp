@@ -36,12 +36,12 @@
 
 #include "httputils.h"
 
-#include <ctype.h>
-#include <limits.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <inttypes.h>
+#include <cctype>
+#include <cinttypes>
+#include <climits>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <string>
 #include <sstream>
@@ -107,7 +107,7 @@ static const std::map<std::string, int> Http_Header_Names {
 	{"usn", HDR_USN},
 };
 
-void MHDTransaction::copyClientAddress(struct sockaddr_storage *dest)
+void MHDTransaction::copyClientAddress(struct sockaddr_storage *dest) const
 {
 	if (nullptr == dest)
 		return;
@@ -138,9 +138,9 @@ http_method_t httpmethod_str2enum(const char *methname)
 	const auto it = Http_Method_Table.find(methname);
 	if (it == Http_Method_Table.end()) {
 		return HTTPMETHOD_UNKNOWN;
-	} else {
-		return (http_method_t)it->second;
 	}
+
+	return static_cast<http_method_t>(it->second);
 }
 
 int httpheader_str2int(const std::string& headername)
@@ -214,7 +214,7 @@ int http_Download(const char *surl, int timeout_secs,
 	curl_easy_setopt(easy, CURLOPT_WRITEFUNCTION, write_callback_str_curl);
 	curl_easy_setopt(easy, CURLOPT_WRITEDATA, &data);
 
-	struct curl_slist *list = NULL;
+	struct curl_slist *list = nullptr;
 	list = curl_slist_append(
 		list, (std::string("USER-AGENT: ") + get_sdk_info()).c_str());
 	list = curl_slist_append(list, "Connection: close");
@@ -255,7 +255,7 @@ int http_Download(const char *surl, int timeout_secs,
 			UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
 					   "Response content-length %" PRIu64
 					   " differs from data size %"
-					   PRIu64 "\n", sizefromheaders, (uint64_t)data.size());
+					   PRIu64 "\n", sizefromheaders, static_cast<uint64_t>(data.size()));
 		}
 	}
 
@@ -263,18 +263,18 @@ int http_Download(const char *surl, int timeout_secs,
 	if (http_status == HTTP_OK) {
 		/* extract doc from msg */
 		if (!data.empty()) {
-			*document = NULL;
-			*document = (char *)malloc(data.size() + 1);
-			if (*document == NULL) {
+			*document = nullptr;
+			*document = static_cast<char *>(malloc(data.size() + 1));
+			if (*document == nullptr) {
 				return UPNP_E_OUTOF_MEMORY;
 			}
 			memcpy(*document, data.c_str(), data.size());
 			(*document)[data.size()] = 0;
 		}
 		return 0;
-	} else {
-		return http_status;
 	}
+
+	return http_status;
 }
 
 /************************************************************************
@@ -302,7 +302,7 @@ int http_SendStatusResponse(MHDTransaction *mhdt, int status_code)
 	body <<	"<html><body><h1>" << status_code << " " << 
 		http_get_code_text(status_code) << "</h1></body></html>";
 	mhdt->response = MHD_create_response_from_buffer(
-		body.str().size(), (char*)body.str().c_str(), MHD_RESPMEM_MUST_COPY);
+		body.str().size(), const_cast<char*>(body.str().c_str()), MHD_RESPMEM_MUST_COPY);
 	MHD_add_response_header(mhdt->response, "Content-Type", "text/html");
 	mhdt->httpstatus = status_code;
 	return UPNP_E_SUCCESS;
@@ -416,10 +416,10 @@ std::string make_date_string(time_t thetime)
 	const char *month_str = "Jan\0Feb\0Mar\0Apr\0May\0Jun\0"
 	    "Jul\0Aug\0Sep\0Oct\0Nov\0Dec";
 
-	time_t curr_time = thetime ? thetime : time(NULL);
+	time_t curr_time = thetime ? thetime : time(nullptr);
 	struct tm date_storage;
 	struct tm *date = http_gmtime_r(&curr_time, &date_storage);
-	if (date == NULL)
+	if (date == nullptr)
 		return std::string();
 	char tempbuf[200];
 	snprintf(tempbuf, sizeof(tempbuf),
@@ -455,7 +455,7 @@ std::string query_encode(const std::string& qs)
 size_t header_callback_curl(char *buffer, size_t size, size_t nitems, void *s)
 {
 	size_t bufsize = size * nitems;
-	auto headers = (std::map<std::string, std::string>*)s;
+	auto headers = static_cast<std::map<std::string, std::string>*>(s);
 	const char *colon = strchr(buffer, ':');
 	if (nullptr != colon) {
 		size_t colpos = colon - buffer;
@@ -486,6 +486,6 @@ size_t write_callback_null_curl(char *buffer, size_t size, size_t nitems, void *
 
 size_t write_callback_str_curl(char *buf, size_t sz, size_t nits, void *s)
 {
-	((std::string*)s)->append(buf, sz * nits);
+	(static_cast<std::string*>(s))->append(buf, sz * nits);
 	return sz * nits;
 }

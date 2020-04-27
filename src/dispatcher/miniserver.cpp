@@ -57,14 +57,14 @@
 #include "uri.h"
 #include "inet_pton.h"
 
-#include <assert.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <iostream>
+#include <cassert>
+#include <cerrno>
 #include <chrono>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include <sys/types.h>
 #include <thread>
 
 #include <microhttpd.h>
@@ -77,14 +77,14 @@
 #define APPLICATION_LISTENING_PORT 49152
 
 /*! . */
-typedef enum {
+using MiniServerState = enum {
 	/*! . */
 	MSERV_IDLE,
 	/*! . */
 	MSERV_RUNNING,
 	/*! . */
 	MSERV_STOPPING
-} MiniServerState;
+};
 
 /*!
  * module vars
@@ -94,9 +94,9 @@ static MiniServerState gMServState = MSERV_IDLE;
 static struct MHD_Daemon *mhd;
 
 #ifdef INTERNAL_WEB_SERVER
-static MiniServerCallback gGetCallback = NULL;
-static MiniServerCallback gSoapCallback = NULL;
-static MiniServerCallback gGenaCallback = NULL;
+static MiniServerCallback gGetCallback = nullptr;
+static MiniServerCallback gSoapCallback = nullptr;
+static MiniServerCallback gGenaCallback = nullptr;
 
 void SetHTTPGetCallback(MiniServerCallback callback)
 {
@@ -127,7 +127,7 @@ static UPNP_INLINE void fdset_if_valid(SOCKET sock, fd_set *set)
 static int headers_cb(void *cls, enum MHD_ValueKind kind, 
 					  const char *k, const char *value)
 {
-	MHDTransaction *mhtt = (MHDTransaction *)cls;
+	auto mhtt = static_cast<MHDTransaction *>(cls);
 	std::string key(k);
 	stringtolower(key);
 	// It is always possible to combine multiple identically named headers
@@ -145,7 +145,7 @@ static int headers_cb(void *cls, enum MHD_ValueKind kind,
 static int queryvalues_cb(void *cls, enum MHD_ValueKind kind, 
 						  const char *key, const char *value)
 {
-	MHDTransaction *mhdt = (MHDTransaction *)cls;
+	auto mhdt = static_cast<MHDTransaction *>(cls);
 	if (mhdt) {
 		//std::cerr << "qvalues_cb:	 " << key << " -> " << value << std::endl;
 		mhdt->queryvalues[key] = value;
@@ -170,7 +170,7 @@ void request_completed_cb(
 {
 	if (nullptr == con_cls)
 		return;
-	MHDTransaction *mhdt = (MHDTransaction *)*con_cls;
+	auto mhdt = static_cast<MHDTransaction *>(*con_cls);
 	delete mhdt;
 }
 
@@ -180,17 +180,17 @@ static int answer_to_connection(
 	const char *upload_data, size_t *upload_data_size,
 	void **con_cls)
 {
-	if (NULL == *con_cls) {
+	if (nullptr == *con_cls) {
 		UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
 				   "answer_to_connection1: url [%s] method [%s]"
 				   " version [%s]\n", url, method, version);
 		// First call, allocate and set context, get the headers, etc.
-		MHDTransaction *mhdt = new MHDTransaction;
+		auto mhdt = new MHDTransaction;
 		*con_cls = mhdt;
 		MHD_get_connection_values(conn, MHD_HEADER_KIND, headers_cb, mhdt);
 		mhdt->client_address =
-			(struct sockaddr_storage*)MHD_get_connection_info (
-				conn, MHD_CONNECTION_INFO_CLIENT_ADDRESS)->client_addr;
+			reinterpret_cast<struct sockaddr_storage*>(MHD_get_connection_info (
+				conn, MHD_CONNECTION_INFO_CLIENT_ADDRESS)->client_addr);
 
 		MHD_get_connection_values(conn, MHD_GET_ARGUMENT_KIND,
 								  queryvalues_cb, mhdt);
@@ -213,7 +213,7 @@ static int answer_to_connection(
 		return MHD_YES;
 	}
 
-	MHDTransaction *mhdt = (MHDTransaction *)*con_cls;
+	auto mhdt = static_cast<MHDTransaction *>(*con_cls);
 	if (*upload_data_size) {
 		mhdt->postdata.append(upload_data, *upload_data_size);
 		*upload_data_size = 0;
@@ -245,9 +245,9 @@ static int answer_to_connection(
 		callback = gGetCallback;
 		break;
 	default:
-		callback = NULL;
+		callback = nullptr;
 	}
-	if (callback == NULL) {
+	if (callback == nullptr) {
 		return MHD_NO;
 	}
 
@@ -257,11 +257,11 @@ static int answer_to_connection(
 		UpnpPrintf(UPNP_ERROR, MSERV, __FILE__, __LINE__,
 				   "answer_to_connection: NULL response !!\n");
 		return MHD_NO;
-	} else {
-		int ret = MHD_queue_response(conn, mhdt->httpstatus, mhdt->response);
-		MHD_destroy_response(mhdt->response);
-		return ret;
 	}
+
+	int ret = MHD_queue_response(conn, mhdt->httpstatus, mhdt->response);
+	MHD_destroy_response(mhdt->response);
+	return ret;
 }
 
 static void web_server_accept(SOCKET lsock, fd_set *set)
@@ -274,13 +274,13 @@ static void web_server_accept(SOCKET lsock, fd_set *set)
 
 	if (lsock != INVALID_SOCKET && FD_ISSET(lsock, set)) {
 		clientLen = sizeof(clientAddr);
-		asock = accept(lsock, (struct sockaddr *)&clientAddr, &clientLen);
+		asock = accept(lsock, reinterpret_cast<struct sockaddr *>(&clientAddr), &clientLen);
 		if (asock == INVALID_SOCKET) {
 			posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 			UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
 					   "miniserver: accept(): %s\n", errorBuffer);
 		} else {
-			if (MHD_add_connection(mhd,asock, (struct sockaddr*)&clientAddr,
+			if (MHD_add_connection(mhd,asock, reinterpret_cast<struct sockaddr*>(&clientAddr),
 								   clientLen) != MHD_YES) {
 				UpnpPrintf(UPNP_ERROR, MSERV, __FILE__, __LINE__,
 						   "web_server_accept: MHD_add_connection failed\n");
@@ -316,12 +316,12 @@ static int receive_from_stopSock(SOCKET ssock, fd_set *set)
 
 	if (FD_ISSET(ssock, set)) {
 		clientLen = sizeof(clientAddr);
-		memset((char *)&clientAddr, 0, sizeof(clientAddr));
-		byteReceived = recvfrom(ssock, requestBuf, (size_t)25, 0,
-								(struct sockaddr *)&clientAddr, &clientLen);
+		memset(reinterpret_cast<char *>(&clientAddr), 0, sizeof(clientAddr));
+		byteReceived = recvfrom(ssock, requestBuf, static_cast<size_t>(25), 0,
+								reinterpret_cast<struct sockaddr *>(&clientAddr), &clientLen);
 		if (byteReceived > 0) {
 			requestBuf[byteReceived] = '\0';
-			inet_ntop(AF_INET, &((struct sockaddr_in*)&clientAddr)->sin_addr,
+			inet_ntop(AF_INET, &(reinterpret_cast<struct sockaddr_in*>(&clientAddr))->sin_addr,
 					  buf_ntop, sizeof(buf_ntop));
 			UpnpPrintf( UPNP_INFO, MSERV, __FILE__, __LINE__,
 						"Received response: %s From host %s \n",
@@ -329,7 +329,7 @@ static int receive_from_stopSock(SOCKET ssock, fd_set *set)
 			UpnpPrintf( UPNP_INFO, MSERV, __FILE__, __LINE__,
 						"Received multicast packet: \n %s\n",
 						requestBuf);
-			if (NULL != strstr(requestBuf, "ShutDown")) {
+			if (nullptr != strstr(requestBuf, "ShutDown")) {
 				return 1;
 			}
 		}
@@ -392,7 +392,7 @@ static void *thread_miniserver(void *)
 		fdset_if_valid(miniSocket->ssdpReqSock6, &rdSet);
 #endif /* INCLUDE_CLIENT_APIS */
 		/* select() */
-		ret = select((int) maxMiniSock, &rdSet, NULL, &expSet, NULL);
+		ret = select(static_cast<int>(maxMiniSock), &rdSet, nullptr, &expSet, nullptr);
 		if (ret == SOCKET_ERROR && errno == EINTR) {
 			continue;
 		}
@@ -401,19 +401,19 @@ static void *thread_miniserver(void *)
 			UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
 					   "miniserver: select(): %s\n", errorBuffer);
 			continue;
-		} else {
-			web_server_accept(miniSocket->miniServerSock4, &rdSet);
-			web_server_accept(miniSocket->miniServerSock6, &rdSet);
-#ifdef INCLUDE_CLIENT_APIS
-			ssdp_read(miniSocket->ssdpReqSock4, &rdSet);
-			ssdp_read(miniSocket->ssdpReqSock6, &rdSet);
-#endif /* INCLUDE_CLIENT_APIS */
-			ssdp_read(miniSocket->ssdpSock4, &rdSet);
-			ssdp_read(miniSocket->ssdpSock6, &rdSet);
-			ssdp_read(miniSocket->ssdpSock6UlaGua, &rdSet);
-			stopSock = receive_from_stopSock(
-				miniSocket->miniServerStopSock, &rdSet);
 		}
+
+		web_server_accept(miniSocket->miniServerSock4, &rdSet);
+		web_server_accept(miniSocket->miniServerSock6, &rdSet);
+#ifdef INCLUDE_CLIENT_APIS
+		ssdp_read(miniSocket->ssdpReqSock4, &rdSet);
+		ssdp_read(miniSocket->ssdpReqSock6, &rdSet);
+#endif /* INCLUDE_CLIENT_APIS */
+		ssdp_read(miniSocket->ssdpSock4, &rdSet);
+		ssdp_read(miniSocket->ssdpSock6, &rdSet);
+		ssdp_read(miniSocket->ssdpSock6UlaGua, &rdSet);
+		stopSock = receive_from_stopSock(
+			miniSocket->miniServerStopSock, &rdSet);
 	}
 
 	delete miniSocket;
@@ -438,7 +438,7 @@ static int get_port(
 	int code;
 
 	len = sizeof(sockinfo);
-	code = getsockname(sockfd, (struct sockaddr *)&sockinfo, &len);
+	code = getsockname(sockfd, reinterpret_cast<struct sockaddr *>(&sockinfo), &len);
 	if (code == -1) {
 		return -1;
 	}
@@ -448,7 +448,7 @@ static int get_port(
 		*port = ntohs(((struct sockaddr_in6*)&sockinfo)->sin6_port);
 	}
 	UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
-			   "sockfd = %d, .... port = %d\n", sockfd, (int)*port);
+			   "sockfd = %d, .... port = %d\n", sockfd, static_cast<int>(*port));
 
 	return 0;
 }
@@ -482,10 +482,10 @@ static int get_miniserver_sockets(
 	int ret = UPNP_E_INTERNAL_ERROR;
 	char errorBuffer[ERROR_BUFFER_LEN];
 	struct sockaddr_storage __ss_v4;
-	struct sockaddr_in* serverAddr4 = (struct sockaddr_in*)&__ss_v4;
+	auto serverAddr4 = reinterpret_cast<struct sockaddr_in*>(&__ss_v4);
 #ifdef UPNP_ENABLE_IPV6
 	struct sockaddr_storage __ss_v6;
-	struct sockaddr_in6* serverAddr6 = (struct sockaddr_in6*)&__ss_v6;
+	auto serverAddr6 = reinterpret_cast<struct sockaddr_in6*>(&__ss_v6);
 #endif
 
 	/* Create listen socket for IPv4/IPv6. An error here may indicate
@@ -507,7 +507,7 @@ static int get_miniserver_sockets(
 			int onOff = 1;
 			int sockError = setsockopt(
 				out->miniServerSock6, IPPROTO_IPV6,	IPV6_V6ONLY,
-				(const char*)&onOff, sizeof(onOff));
+				reinterpret_cast<const char*>(&onOff), sizeof(onOff));
 			if (sockError == SOCKET_ERROR) {
 				posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 				UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
@@ -534,19 +534,19 @@ static int get_miniserver_sockets(
 	/* As per the IANA specifications for the use of ports by applications
 	 * override the listen port passed in with the first available. */
 	if (listen_port4 < APPLICATION_LISTENING_PORT) {
-		listen_port4 = (uint16_t)APPLICATION_LISTENING_PORT;
+		listen_port4 = static_cast<uint16_t>(APPLICATION_LISTENING_PORT);
 	}
 #ifdef UPNP_ENABLE_IPV6
 	if (listen_port6 < APPLICATION_LISTENING_PORT) {
-		listen_port6 = (uint16_t)APPLICATION_LISTENING_PORT;
+		listen_port6 = static_cast<uint16_t>(APPLICATION_LISTENING_PORT);
 	}
 #endif
 	memset(&__ss_v4, 0, sizeof (__ss_v4));
-	serverAddr4->sin_family = (sa_family_t)AF_INET;
+	serverAddr4->sin_family = static_cast<sa_family_t>(AF_INET);
 	inet_pton(AF_INET, gIF_IPV4, &serverAddr4->sin_addr);
 #ifdef UPNP_ENABLE_IPV6
 	memset(&__ss_v6, 0, sizeof (__ss_v6));
-	serverAddr6->sin6_family = (sa_family_t)AF_INET6;
+	serverAddr6->sin6_family = static_cast<sa_family_t>(AF_INET6);
 	inet_pton(AF_INET6, gIF_IPV6, &serverAddr6->sin6_addr);
 	serverAddr6->sin6_scope_id = gIF_INDEX;
 #endif
@@ -558,7 +558,7 @@ static int get_miniserver_sockets(
 	if (out->miniServerSock4 != INVALID_SOCKET) {
 		if (setsockopt(
 				out->miniServerSock4, SOL_SOCKET, SO_REUSEADDR,
-				(const char*)&on, sizeof(int)) == SOCKET_ERROR) {
+				reinterpret_cast<const char*>(&on), sizeof(int)) == SOCKET_ERROR) {
 			ret = UPNP_E_SOCKET_BIND;
 			goto out;
 		}
@@ -567,7 +567,7 @@ static int get_miniserver_sockets(
 	if (out->miniServerSock6 != INVALID_SOCKET) {
 		if (setsockopt(
 				out->miniServerSock6, SOL_SOCKET, SO_REUSEADDR,
-				(const char*)&on, sizeof(int)) == SOCKET_ERROR) {
+				reinterpret_cast<const char*>(&on), sizeof(int)) == SOCKET_ERROR) {
 			ret = UPNP_E_SOCKET_BIND;
 			goto out;
 		}
@@ -582,7 +582,7 @@ static int get_miniserver_sockets(
 			serverAddr4->sin_port = htons(listen_port4++);
 			sockError = bind(
 				out->miniServerSock4,
-				(struct sockaddr *)serverAddr4, sizeof(*serverAddr4));
+				reinterpret_cast<struct sockaddr *>(serverAddr4), sizeof(*serverAddr4));
 			if (sockError == SOCKET_ERROR) {
 				errCode = UPNP_SOCK_GET_LAST_ERROR();
 				if (errno == EADDRINUSE) {
@@ -608,7 +608,7 @@ static int get_miniserver_sockets(
 			serverAddr6->sin6_port = htons(listen_port6++);
 			sockError = bind(
 				out->miniServerSock6,
-				(struct sockaddr *)serverAddr6,sizeof(*serverAddr6));
+				reinterpret_cast<struct sockaddr *>(serverAddr6),sizeof(*serverAddr6));
 			if (sockError == SOCKET_ERROR) {
 				errCode = UPNP_SOCK_GET_LAST_ERROR();
 				if (errno == EADDRINUSE) {
@@ -694,9 +694,9 @@ static int get_miniserver_stopsock(
 	}
 	/* Bind to local socket. */
 	memset(&stop_sockaddr, 0, sizeof (stop_sockaddr));
-	stop_sockaddr.sin_family = (sa_family_t)AF_INET;
+	stop_sockaddr.sin_family = static_cast<sa_family_t>(AF_INET);
 	stop_sockaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-	ret = bind(out->miniServerStopSock, (struct sockaddr *)&stop_sockaddr,
+	ret = bind(out->miniServerStopSock, reinterpret_cast<struct sockaddr *>(&stop_sockaddr),
 			   sizeof(stop_sockaddr));
 	if (ret == SOCKET_ERROR) {
 		UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
@@ -730,7 +730,7 @@ int StartMiniServer(
 	}
 
 	miniSocket = new MiniServerSockArray;
-	if (NULL == miniSocket) {
+	if (nullptr == miniSocket) {
 		return UPNP_E_OUTOF_MEMORY;
 	}
 
@@ -766,11 +766,11 @@ int StartMiniServer(
 
 	/* Wait for miniserver to start. */
 	for (int count = 0; count < 10000; count++) {
-		if (gMServState == (MiniServerState)MSERV_RUNNING)
+		if (gMServState == static_cast<MiniServerState>(MSERV_RUNNING))
 			break;
 		std::this_thread::sleep_for(std::chrono::milliseconds(50));
 	}
-	if (gMServState != (MiniServerState)MSERV_RUNNING) {
+	if (gMServState != static_cast<MiniServerState>(MSERV_RUNNING)) {
 		/* Took it too long to start that thread. */
 		ret_code = UPNP_E_INTERNAL_ERROR;
 		goto out;
@@ -789,16 +789,16 @@ int StartMiniServer(
 		MHD_USE_INTERNAL_POLLING_THREAD |
 		MHD_USE_DEBUG,
 		-1, /* No port because we supply the listen fd */
-		NULL, NULL, /* Accept policy callback and arg */
+		nullptr, nullptr, /* Accept policy callback and arg */
 		/* handler and arg */
-		&answer_to_connection, NULL,
+		&answer_to_connection, nullptr,
 		MHD_OPTION_NOTIFY_COMPLETED, request_completed_cb, nullptr,
-		MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int)UPNP_TIMEOUT,
+		MHD_OPTION_CONNECTION_TIMEOUT, static_cast<unsigned int>(UPNP_TIMEOUT),
 #if LET_MHD_LISTEN_ON_SOCK4
 		MHD_OPTION_LISTEN_SOCKET, miniSocket->miniServerSock4,
 #endif
 		MHD_OPTION_END);
-	if (NULL == mhd) {
+	if (nullptr == mhd) {
 		ret_code = UPNP_E_OUTOF_MEMORY;
 		goto out;
 	}
@@ -834,13 +834,13 @@ int StopMiniServer()
 				   "StopMiniserver: socket(): %s\n", errorBuffer);
 		return 0;
 	}
-	while(gMServState != (MiniServerState)MSERV_IDLE) {
-		ssdpAddr.sin_family = (sa_family_t)AF_INET;
+	while(gMServState != static_cast<MiniServerState>(MSERV_IDLE)) {
+		ssdpAddr.sin_family = static_cast<sa_family_t>(AF_INET);
 		ssdpAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
 		ssdpAddr.sin_port = htons(miniSocket->stopPort);
-		sendto(sock, buf, bufLen, 0, (struct sockaddr *)&ssdpAddr, socklen);
+		sendto(sock, buf, bufLen, 0, reinterpret_cast<struct sockaddr *>(&ssdpAddr), socklen);
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
-		if (gMServState == (MiniServerState)MSERV_IDLE) {
+		if (gMServState == static_cast<MiniServerState>(MSERV_IDLE)) {
 			break;
 		}
 		std::this_thread::sleep_for(std::chrono::seconds(1));
