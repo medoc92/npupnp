@@ -39,6 +39,8 @@
 #include <utility>
 #include <mutex>
 
+#include <curl/curl.h>
+
 #include "upnpapi.h"
 #include "httputils.h"
 #include "ssdplib.h"
@@ -580,6 +582,7 @@ static int UpnpInitPreamble()
 		return retVal;
 	}
 #endif
+	curl_global_init(CURL_GLOBAL_ALL);
 	
 	/* needed by SSDP or other parts. */
 	srand(static_cast<unsigned int>(time(nullptr)));
