@@ -29,17 +29,15 @@
  *
  **************************************************************************/
 
-
 #include "gena_sids.h"
-
-#include "upnpapi.h"
 
 #include <mutex>
 #include <sstream>
 #include <iostream>
 #include <chrono>
 #include <thread>
-#include <sys/types.h>
+#include <cstdlib>
+
 #include <unistd.h>
 
 #include "md5.h"
@@ -47,8 +45,9 @@
 static std::mutex uuid_mutex;
 
 // We generate time-based pseudo-random uuids with a slight effort to
-// avoid cross-host collisions (not that they would be likely in this
-// context).
+// avoid cross-host collisions, based on a random number (which is
+// what the old pupnp did). It would probably be nicer to use the
+// ethernet address, but more sysdeps then.
 std::string gena_sid_uuid()
 {
 	std::lock_guard<std::mutex> mylock(uuid_mutex);
@@ -56,23 +55,16 @@ std::string gena_sid_uuid()
     auto now = std::chrono::high_resolution_clock::now();
 	int64_t tp = now.time_since_epoch().count();
 
-	std::string ip;
-	unsigned int port;
-	if (gIF_IPV4[0]) {
-		ip = gIF_IPV4;
-		port = LOCAL_PORT_V4;
-	} else if (gIF_IPV6_ULA_GUA[0]) {
-		ip = gIF_IPV6_ULA_GUA;
-		port = LOCAL_PORT_V6;
-	} else if (gIF_IPV6[0]) {
-		ip = gIF_IPV6;
-		port = LOCAL_PORT_V6;
-	} else {
-        port = 0;
-    }
+	static int counter;
+	static int host_rand;
+	if (host_rand == 0) {
+		srand(static_cast<unsigned int>(tp & 0xffffffff));
+		host_rand = rand();
+	}
+	counter++;
 	
 	std::ostringstream str;
-	str << tp << "-" << getpid() << "-" << ip << "-" << port;
+	str << tp << "-" << getpid() << "-" << counter << "-" << host_rand;
 	// std::cerr << "UUID SOURCE [" << str.str() << "]\n";
 
 	MD5_CTX c;
@@ -82,8 +74,7 @@ std::string gena_sid_uuid()
 	MD5Final(hash, &c);
 
 	std::string out;
-	// 4-2-2-2-6->20
-    out.reserve(21);
+    out.reserve(37);
     static const char hex[]="0123456789abcdef";
     for (int i = 0; i < 16; i++) {
 		out.append(1, hex[hash[i] >> 4]);
@@ -92,6 +83,5 @@ std::string gena_sid_uuid()
 			out.append("-");
 		}
     }
-	std::this_thread::sleep_for(std::chrono::milliseconds(1));
     return out;
 }
