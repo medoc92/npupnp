@@ -116,16 +116,16 @@ subscription *GetSubscriptionSID(const Upnp_SID sid, service_info *service)
 		return nullptr;
 	}
 	/*get the current_time */
-	time_t current_time = time(0);
+	time_t current_time = time(nullptr);
 	if ((found->expireTime != 0) && (found->expireTime < current_time)) {
 		UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
 				   "GetSubscriptionSID: erasing expired subscription\n");
 		sublist.erase(found);
 		service->TotalSubscriptions--;
 		return nullptr;
-	} else {
-		return &(*found);
 	}
+
+	return &(*found);
 }
 
 std::list<subscription>::iterator GetNextSubscription(
@@ -134,7 +134,7 @@ std::list<subscription>::iterator GetNextSubscription(
 {
 	auto& sublist(service->subscriptionList);
 
-	time_t current_time = time(0);
+	time_t current_time = time(nullptr);
 	if (!getfirst) {
 		current++;
 	}
@@ -193,9 +193,9 @@ service_info *FindServiceId(
 				!UDN.compare(si.UDN);});
 	if (it == table->serviceList.end()) {
 		return nullptr;
-	} else {
-		return &(*it);
-	}
+	} 		return &(*it);
+
+
 }
 
 /************************************************************************
@@ -266,7 +266,7 @@ service_info *FindServiceControlURLPath(
 	service_table *table, const std::string& controlURLPath)
 {
 	if (nullptr == table) {
-		return NULL;
+		return nullptr;
 	}
 	
 	uri_type parsed_url_in;
@@ -421,7 +421,7 @@ static int fillServiceList(const UPnPDeviceDesc& dev, service_table *stable)
 
 	for (const UPnPServiceDesc& sdesc : dev.services) {
 		int fail = 0;
-		std::list<service_info>::iterator current =
+		auto current =
 			stable->serviceList.emplace(stable->serviceList.end());
 		current->active = 1;
 		current->UDN = dev.UDN;
@@ -448,7 +448,7 @@ static int fillServiceList(const UPnPDeviceDesc& dev, service_table *stable)
 			stable->serviceList.erase(current);
 		}
 	}
-	return stable->serviceList.size() != 0;
+	return !stable->serviceList.empty();
 }
 
 /************************************************************************

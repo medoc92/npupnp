@@ -48,7 +48,7 @@
 #include <mutex>
 #include <condition_variable>
 
-#include <inttypes.h>
+#include <cinttypes>
 
 #include "httputils.h"
 #include "ssdplib.h"
@@ -58,7 +58,7 @@
 #include "VirtualDir.h"
 #include "smallut.h"
 
-#include <assert.h>
+#include <cassert>
 #include <fcntl.h>
 #include <sys/stat.h>
 
@@ -244,12 +244,12 @@ int web_server_unset_localdoc(const std::string& path)
 int web_server_init()
 {
 	if (bWebServerState == WEB_SERVER_DISABLED) {
-		virtualDirCallback.get_info = NULL;
-		virtualDirCallback.open = NULL;
-		virtualDirCallback.read = NULL;
-		virtualDirCallback.write = NULL;
-		virtualDirCallback.seek = NULL;
-		virtualDirCallback.close = NULL;
+		virtualDirCallback.get_info = nullptr;
+		virtualDirCallback.open = nullptr;
+		virtualDirCallback.read = nullptr;
+		virtualDirCallback.write = nullptr;
+		virtualDirCallback.seek = nullptr;
+		virtualDirCallback.close = nullptr;
 		bWebServerState = WEB_SERVER_ENABLED;
 	}
 	return 0;
@@ -261,7 +261,7 @@ int web_server_init()
  * WEB_SERVER_DISABLED.
  *
  */
-void web_server_destroy(void)
+void web_server_destroy()
 {
 	if (bWebServerState == WEB_SERVER_ENABLED) {
 		gDocumentRootDir.clear();
@@ -285,7 +285,7 @@ static int get_file_info(const char *filename, struct File_Info *info)
 		return -1;
 	/* check readable */
 	FILE *fp = fopen(filename, "r");
-	info->is_readable = (fp != NULL);
+	info->is_readable = (fp != nullptr);
 	if (fp)
 		fclose(fp);
 	info->file_length = s.st_size;
@@ -293,7 +293,7 @@ static int get_file_info(const char *filename, struct File_Info *info)
 	int rc = get_content_type(filename, info->content_type);
 	UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
 			   "get_file_info: %s, sz: %" PRIi64 ", mtime=%s rdable=%d\n",
-			   filename, (int64_t)info->file_length,
+			   filename, info->file_length,
 			   make_date_string(info->last_modified).c_str(),
 			   info->is_readable);
 
@@ -304,7 +304,7 @@ int web_server_set_root_dir(const char *root_dir)
 {
 	gDocumentRootDir = root_dir;
 	/* remove trailing '/', if any */
-	if (gDocumentRootDir.size() > 0 && gDocumentRootDir.back() == '/') {
+	if (!gDocumentRootDir.empty() && gDocumentRootDir.back() == '/') {
 		gDocumentRootDir.pop_back();
 	}
 
@@ -352,7 +352,7 @@ int web_server_add_virtual_dir(
 
 int web_server_remove_virtual_dir(const char *dirname)
 {
-	if (dirname == NULL) {
+	if (dirname == nullptr) {
 		return UPNP_E_INVALID_PARAM;
 	}
 	for (auto it = virtualDirList.begin(); it != virtualDirList.end(); it++) {
@@ -478,20 +478,20 @@ static int process_request(
 	std::vector<std::pair<int64_t, int64_t> > ranges;
 	auto it = mhdt->headers.find("range");
     if (it != mhdt->headers.end()) {
-		if (parseRanges(it->second, ranges) && ranges.size()) {
+		if (parseRanges(it->second, ranges) && !ranges.empty()) {
 			if (ranges.size() > 1) {
 				return HTTP_REQUEST_RANGE_NOT_SATISFIABLE;
-			} else {
-				RespInstr->offset = ranges[0].first;
-				if (ranges[0].second >= 0) {
-					RespInstr->ReadSendSize = ranges[0].second -
-						ranges[0].first + 1;
-					if (RespInstr->ReadSendSize < 0) {
-						RespInstr->ReadSendSize = 0;
-					}
-				} else {
-					RespInstr->ReadSendSize = -1;
+			}
+
+			RespInstr->offset = ranges[0].first;
+			if (ranges[0].second >= 0) {
+				RespInstr->ReadSendSize = ranges[0].second -
+					ranges[0].first + 1;
+				if (RespInstr->ReadSendSize < 0) {
+					RespInstr->ReadSendSize = 0;
 				}
+			} else {
+				RespInstr->ReadSendSize = -1;
 			}
 		}
 	}
@@ -580,14 +580,14 @@ static int process_request(
 		RespInstr->data.swap(localdoc.data);
 	} else {
 		*rtype = RESP_FILEDOC;
-		if (gDocumentRootDir.size() == 0) {
+		if (gDocumentRootDir.empty()) {
 			return HTTP_FORBIDDEN;
 		}
 		/* get file name */
 		filename = gDocumentRootDir;
 		filename += request_doc;
 		/* remove trailing slashes */
-		while (filename.size() > 0 && filename.back() == '/') {
+		while (!filename.empty() && filename.back() == '/') {
 			filename.pop_back();
 		}
 
@@ -666,8 +666,7 @@ static int process_request(
 
 class VFileReaderCtxt {
 public:
-	~VFileReaderCtxt() {
-	}
+	~VFileReaderCtxt() = default;
 	UpnpWebFileHandle fp{nullptr};
 	const void *cookie;
 	const void *request_cookie;
@@ -676,7 +675,7 @@ public:
 static ssize_t vFileReaderCallback(void *cls, uint64_t pos, char *buf,
 								   size_t max)
 {
-	VFileReaderCtxt *ctx = (VFileReaderCtxt*)cls;
+	auto ctx = static_cast<VFileReaderCtxt*>(cls);
 	if (nullptr == ctx->fp) {
 		UpnpPrintf(UPNP_ERROR, MSERV, __FILE__, __LINE__,
 				   "vFileReaderCallback: fp is null !\n");
@@ -703,7 +702,7 @@ static ssize_t vFileReaderCallback(void *cls, uint64_t pos, char *buf,
 static void vFileFreeCallback (void *cls)
 {
 	if (cls) {
-		VFileReaderCtxt *ctx = (VFileReaderCtxt*)cls;
+		auto ctx = static_cast<VFileReaderCtxt*>(cls);
 		virtualDirCallback.close(ctx->fp, ctx->cookie, ctx->request_cookie);
 		delete ctx;
 	}
@@ -712,7 +711,7 @@ static void vFileFreeCallback (void *cls)
 void web_server_callback(MHDTransaction *mhdt)
 {
 	int ret;
-	enum resp_type rtype = (enum resp_type)0;
+	auto rtype = static_cast<enum resp_type>(0);
 	std::map<std::string,std::string> headers;
 	std::string filename;
 	struct SendInstruction RespInstr;
@@ -741,7 +740,7 @@ void web_server_callback(MHDTransaction *mhdt)
 
 		case RESP_WEBDOC:
 		{
-			VFileReaderCtxt *ctx = new VFileReaderCtxt;
+			auto ctx = new VFileReaderCtxt;
 			ctx->fp = virtualDirCallback.open(
 				filename.c_str(), UPNP_READ,
 				RespInstr.cookie,	RespInstr.request_cookie);

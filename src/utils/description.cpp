@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-#include <string.h>
+#include <cstring>
 
 #include "expatmm.hxx"
 #include "smallut.h"
@@ -15,7 +15,7 @@ public:
         : inputRefXMLParser(input), m_device(device) {}
 
 protected:
-    virtual void EndElement(const XML_Char *name) {
+    void EndElement(const XML_Char *name) override {
         trimstring(m_chardata, " \t\n\r");
 
         UPnPDeviceDesc *dev;
@@ -38,7 +38,7 @@ protected:
             dev->services.push_back(m_tservice);
             m_tservice = UPnPServiceDesc();
         } else if (!strcmp(name, "device")) {
-            if (ismain == false) {
+            if (!ismain) {
                 m_device.embedded.push_back(m_tdevice);
             }
             m_tdevice = UPnPDeviceDesc();
@@ -69,8 +69,8 @@ protected:
         m_chardata.clear();
     }
 
-    virtual void CharacterData(const XML_Char *s, int len) {
-        if (s == 0 || *s == 0)
+    void CharacterData(const XML_Char *s, int len) override {
+        if (s == nullptr || *s == 0)
             return;
         m_chardata.append(s, len);
     }
@@ -88,12 +88,12 @@ static string baseurl(const string& url)
     if (pos == string::npos)
         return url;
 
-    pos = url.find_first_of("/", pos + 3);
+    pos = url.find_first_of('/', pos + 3);
     if (pos == string::npos) {
         return url;
-    } else {
-        return url.substr(0, pos);
     }
+
+    return url.substr(0, pos);
 }
 
 UPnPDeviceDesc::UPnPDeviceDesc(const string& url, const string& description)
@@ -116,6 +116,6 @@ UPnPDeviceDesc::UPnPDeviceDesc(const string& url, const string& description)
     for (auto& dev: embedded) {
         dev.URLBase = URLBase;
     }
-    
+
     ok = true;
 }

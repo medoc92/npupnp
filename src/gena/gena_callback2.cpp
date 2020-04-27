@@ -88,7 +88,6 @@ void genaCallback(MHDTransaction *mhdt)
 		/* handle missing functions of device or ctrl pt */
 		http_SendStatusResponse(mhdt, HTTP_NOT_IMPLEMENTED);
 	}
-	return;
 }
 #endif /* EXCLUDE_GENA */
 

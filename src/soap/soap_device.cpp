@@ -35,8 +35,8 @@
 #ifdef INCLUDE_DEVICE_APIS
 #if EXCLUDE_SOAP == 0
 
-#include <assert.h>
-#include <string.h>
+#include <cassert>
+#include <cstring>
 #include <microhttpd.h>
 
 #include <iostream>
@@ -109,7 +109,7 @@ static void send_error_response(
 	ostr << start_body << error_code << mid_body << err_msg << end_body;
 	const std::string& txt = ostr.str();
 	mhdt->response = MHD_create_response_from_buffer(
-		txt.size(), (char*)txt.c_str(), MHD_RESPMEM_MUST_COPY);
+		txt.size(), const_cast<char*>(txt.c_str()), MHD_RESPMEM_MUST_COPY);
 	MHD_add_response_header(mhdt->response, "Content-Type", "text/xml");
 	/* We do as the original code, but should this not be error_code? */
 	mhdt->httpstatus = 500;
@@ -143,7 +143,7 @@ static void send_action_response(
 	UpnpPrintf(UPNP_INFO, SOAP, __FILE__, __LINE__,
 			   "Action Response data: [%s]\n", txt.c_str());
 	mhdt->response = MHD_create_response_from_buffer(
-		txt.size(), (char*)txt.c_str(),	MHD_RESPMEM_MUST_COPY);
+		txt.size(), const_cast<char*>(txt.c_str()),	MHD_RESPMEM_MUST_COPY);
 	mhdt->httpstatus = 200;
 }
 
@@ -181,17 +181,17 @@ public:
 	std::string outxml;
 
 protected:
-	virtual void StartElement(const XML_Char *name, const XML_Char**) {
+	void StartElement(const XML_Char *name, const XML_Char**) override {
 		if (!m_isresp && m_path.size() >= 3) {
 			outxml += std::string("<") + name + ">";
 		}
 	}
-    virtual void EndElement(const XML_Char *name) {
+    void EndElement(const XML_Char *name) override {
 		const std::string& parentname = (m_path.size() == 1) ?
             "root" : m_path[m_path.size()-2].name;
         trimstring(m_chardata, " \t\n\r");
 		if (!dom_cmp_name(parentname, m_actname)) {
-			m_args.push_back({name, m_chardata});
+			m_args.emplace_back(name, m_chardata);
 		}
 		if (!m_isresp && m_path.size() >= 3) {
 			outxml += xmlQuote(m_chardata);
@@ -200,8 +200,8 @@ protected:
         m_chardata.clear();
     }
 
-    virtual void CharacterData(const XML_Char *s, int len) {
-        if (s == 0 || *s == 0)
+    void CharacterData(const XML_Char *s, int len) override {
+        if (s == nullptr || *s == 0)
             return;
         m_chardata.append(s, len);
     }
@@ -317,7 +317,7 @@ static int get_mpost_acton_hdrval(MHDTransaction *mhdt, std::string& val)
 
 	stringtolower(it->second);
 	char aname[201];
-	int ret = sscanf(it->second.c_str(), " \"%*[^\"]\" ; ns = %200s", aname);
+	int ret = sscanf(it->second.c_str(), R"( "%*[^"]" ; ns = %200s)", aname);
 	if (ret != 1) {
 		return SREQ_NOT_EXTENDED;
 	}
@@ -382,14 +382,14 @@ static int check_soapaction_hdr(
 	}
 	const char *col_pos2 = strrchr(soap_info->service_type, ':');
 	/* XXX: this should be checked when service list is generated */
-	assert(col_pos2 != NULL);
+	assert(col_pos2 != nullptr);
 	size_t cp2_diff = col_pos2 - soap_info->service_type;
 	if (cp2_diff == cp1_diff &&
 		strncmp(soap_info->service_type, serv_type.c_str(), cp1_diff) == 0) {
 		/* for action invocation, update the version information */
 		upnp_strlcpy(soap_info->service_type, serv_type, NAME_SIZE);
 	} else if (strcmp(serv_type.c_str(), QUERY_STATE_VAR_URN) == 0 &&
-			   soap_info->action_name.compare("QueryStateVariable") == 0) {
+			   soap_info->action_name == "QueryStateVariable") {
 		/* query variable */
 		soap_info->action_name.clear();
 	} else {

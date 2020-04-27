@@ -39,10 +39,10 @@
 #include "upnptools.h"
 #include "uri.h"
 
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
 #include <string>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <stdio.h>
 
 
 /*! Maximum action header buffer length. */
@@ -145,7 +145,7 @@ int UpnpResolveURL2(const char *BaseURL, const char *RelURL, char **AbsURL)
 	if (!RelURL) {
 		return UPNP_E_INVALID_PARAM;
 	}
-	std::string temp = resolve_rel_url((char *)BaseURL, (char *)RelURL);
+	std::string temp = resolve_rel_url(const_cast<char *>(BaseURL), const_cast<char *>(RelURL));
 	if (!temp.empty()) {
 		*AbsURL = strdup(temp.c_str());
 	} else {

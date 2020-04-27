@@ -20,7 +20,7 @@
 #include "config.h"
 #include "md5.h"
 
-#include <string.h>
+#include <cstring>
 
 #define PUT_BIT_LE(i, cp, value) do {			\
 	(cp)[i] = (uint8_t)(((value) >> 8 * i) & 0xFF);	\
@@ -71,15 +71,15 @@ MD5Init(MD5_CTX *ctx)
 void
 MD5Update(MD5_CTX *ctx, const void *inputptr, size_t len)
 {
-	const uint8_t *input = (const uint8_t *)inputptr;
+	auto input = static_cast<const uint8_t *>(inputptr);
 	size_t have, need;
 
 	/* Check how many bytes we already have and how many more we need. */
-	have = (size_t)((ctx->count >> 3) & (MD5_BLOCK_LENGTH - 1));
+	have = static_cast<size_t>((ctx->count >> 3) & (MD5_BLOCK_LENGTH - 1));
 	need = MD5_BLOCK_LENGTH - have;
 
 	/* Update bitcount */
-	ctx->count += (uint64_t)len << 3;
+	ctx->count += static_cast<uint64_t>(len) << 3;
 
 	if (len >= need) {
 		if (have != 0) {

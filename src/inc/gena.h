@@ -240,7 +240,7 @@ extern int genaNotifyAllXML(
 	char *UDN,
 	/*! [in] Service ID. */
 	char *servId,
-	const std::string& propset);
+	const std::string& propertySet);
 
 
 /*!

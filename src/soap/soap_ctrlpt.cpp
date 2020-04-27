@@ -33,10 +33,10 @@
 #ifdef INCLUDE_CLIENT_APIS
 #if EXCLUDE_SOAP == 0
 
-#include <stdlib.h>
-#include <sstream>
-#include <iostream>
+#include <cstdlib>
 #include <curl/curl.h>
+#include <iostream>
+#include <sstream>
 
 #include "miniserver.h"
 #include "httputils.h"
@@ -63,7 +63,7 @@ public:
 	}
 
 protected:
-	virtual void EndElement(const XML_Char *name) {
+	void EndElement(const XML_Char *name) override {
 		const std::string& parentname = (m_path.size() == 1) ?
 			"root" : m_path[m_path.size()-2].name;
 		trimstring(m_chardata, " \t\n\r");
@@ -75,13 +75,13 @@ protected:
 				errdesc = m_chardata;
 			}
 		} else if (!dom_cmp_name(parentname, responseName)) {
-			data.push_back({name, m_chardata});
+			data.emplace_back(name, m_chardata);
 		}
 		m_chardata.clear();
 	}
 
-	virtual void CharacterData(const XML_Char *s, int len) {
-		if (s == 0 || *s == 0)
+	void CharacterData(const XML_Char *s, int len) override {
+		if (s == nullptr || *s == 0)
 			return;
 		m_chardata.append(s, len);
 	}
@@ -125,7 +125,7 @@ get_response_value(
 int SoapSendAction(
 	const std::string& xml_header_str, const std::string& actionURL,
 	const std::string& serviceType,	const std::string& actionName,
-	const std::vector<std::pair<std::string, std::string>> actionArgs,
+	const std::vector<std::pair<std::string, std::string>>& actionArgs,
 	std::vector<std::pair<std::string, std::string>>& respdata,
 	int *errcodep, std::string& errdesc)
 {
@@ -188,7 +188,7 @@ int SoapSendAction(
 		curl_easy_setopt(easy, CURLOPT_TIMEOUT, long(UPNP_TIMEOUT));
 		curl_easy_setopt(easy, CURLOPT_POST, long(1));
 		curl_easy_setopt(easy, CURLOPT_POSTFIELDS, payload.c_str()); 
-		struct curl_slist *list = NULL;
+		struct curl_slist *list = nullptr;
 		list = curl_slist_append(list,
 								 "Content-Type: text/xml; charset=\"utf-8\"");
 		list = curl_slist_append(list, soapaction.c_str());
