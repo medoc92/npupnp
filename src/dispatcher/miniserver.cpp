@@ -147,7 +147,8 @@ static int queryvalues_cb(void *cls, enum MHD_ValueKind kind,
 {
 	auto mhdt = static_cast<MHDTransaction *>(cls);
 	if (mhdt) {
-		//std::cerr << "qvalues_cb:	 " << key << " -> " << value << std::endl;
+		UpnpPrintf(UPNP_ALL, MSERV, __FILE__, __LINE__,
+				   "miniserver:request value: [%s: %s]\n", key, value);
 		mhdt->queryvalues[key] = value;
 	}
 	return MHD_YES;
@@ -465,17 +466,16 @@ static int get_port(
  *	\li UPNP_E_INTERNAL_ERROR: Port returned by the socket layer is < 0.
  *	\li UPNP_E_SUCCESS: Success.
  */
-static int get_miniserver_sockets(
+static int create_miniserver_sockets(
 	/*! [in] Socket Array. */
 	MiniServerSockArray *out,
 	/*! [in] port on which the server is listening for incoming IPv4
 	 * connections. */
 	uint16_t listen_port4
 #ifdef UPNP_ENABLE_IPV6
-	,
 	/*! [in] port on which the server is listening for incoming IPv6
 	 * connections. */
-	uint16_t listen_port6
+	, uint16_t listen_port6
 #endif
 	)
 {
@@ -543,12 +543,20 @@ static int get_miniserver_sockets(
 #endif
 	memset(&__ss_v4, 0, sizeof (__ss_v4));
 	serverAddr4->sin_family = static_cast<sa_family_t>(AF_INET);
-	inet_pton(AF_INET, gIF_IPV4, &serverAddr4->sin_addr);
+	if (gIF_IPV4[0]) {
+		inet_pton(AF_INET, gIF_IPV4, &serverAddr4->sin_addr);
+	} else {
+		serverAddr4->sin_addr.s_addr = INADDR_ANY;
+	}
 #ifdef UPNP_ENABLE_IPV6
 	memset(&__ss_v6, 0, sizeof (__ss_v6));
 	serverAddr6->sin6_family = static_cast<sa_family_t>(AF_INET6);
-	inet_pton(AF_INET6, gIF_IPV6, &serverAddr6->sin6_addr);
-	serverAddr6->sin6_scope_id = gIF_INDEX;
+	if (gIF_IPV6[0]) {
+		inet_pton(AF_INET6, gIF_IPV6, &serverAddr6->sin6_addr);
+		serverAddr6->sin6_scope_id = gIF_INDEX;
+	} else {
+		memcpy(&serverAddr6->sin6_addr, &in6addr_any, sizeof(in6addr_any));
+	}
 #endif
 
 #ifdef UPNP_MINISERVER_REUSEADDR
@@ -558,7 +566,7 @@ static int get_miniserver_sockets(
 	if (out->miniServerSock4 != INVALID_SOCKET) {
 		if (setsockopt(
 				out->miniServerSock4, SOL_SOCKET, SO_REUSEADDR,
-				reinterpret_cast<const char*>(&on), sizeof(int)) == SOCKET_ERROR) {
+				reinterpret_cast<const char*>(&on),sizeof(int)) ==SOCKET_ERROR) {
 			ret = UPNP_E_SOCKET_BIND;
 			goto out;
 		}
@@ -567,7 +575,7 @@ static int get_miniserver_sockets(
 	if (out->miniServerSock6 != INVALID_SOCKET) {
 		if (setsockopt(
 				out->miniServerSock6, SOL_SOCKET, SO_REUSEADDR,
-				reinterpret_cast<const char*>(&on), sizeof(int)) == SOCKET_ERROR) {
+				reinterpret_cast<const char*>(&on),sizeof(int)) ==SOCKET_ERROR) {
 			ret = UPNP_E_SOCKET_BIND;
 			goto out;
 		}
@@ -580,9 +588,9 @@ static int get_miniserver_sockets(
 		int sockError, errCode = 0;
 		do {
 			serverAddr4->sin_port = htons(listen_port4++);
-			sockError = bind(
-				out->miniServerSock4,
-				reinterpret_cast<struct sockaddr *>(serverAddr4), sizeof(*serverAddr4));
+			sockError = bind(out->miniServerSock4,
+							 reinterpret_cast<struct sockaddr *>(serverAddr4),
+							 sizeof(*serverAddr4));
 			if (sockError == SOCKET_ERROR) {
 				errCode = UPNP_SOCK_GET_LAST_ERROR();
 				if (errno == EADDRINUSE) {
@@ -736,7 +744,7 @@ int StartMiniServer(
 
 #ifdef INTERNAL_WEB_SERVER
 	/* V4 and V6 http listeners. */
-	ret_code = get_miniserver_sockets(miniSocket, *listen_port4
+	ret_code = create_miniserver_sockets(miniSocket, *listen_port4
 #ifdef UPNP_ENABLE_IPV6
 									  , *listen_port6
 #endif

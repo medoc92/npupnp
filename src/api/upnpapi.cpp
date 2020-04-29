@@ -48,7 +48,7 @@
 #include "ThreadPool.h"
 #include "upnp_timeout.h"
 #include "smallut.h"
-#include "inet_pton.h"
+#include "netif.h"
 
 /* Needed for GENA */
 #include "gena.h"
@@ -68,29 +68,11 @@
 #include <cstdlib>
 #include <cstring>
 
-#ifdef _WIN32
-/* Do not include these files */
-#else
+#ifndef _WIN32
 #include <unistd.h>
-#include <sys/ioctl.h>
 #include <sys/param.h>
 #include <sys/types.h>
-#ifdef HAVE_GETIFADDRS
-#include <ifaddrs.h>
 #endif
-#endif
-
-#ifndef IN6_IS_ADDR_GLOBAL
-#define IN6_IS_ADDR_GLOBAL(a)										\
-	((((__const uint32_t *) (a))[0] & htonl((uint32_t)0x70000000))	\
-	 == htonl ((uint32_t)0x20000000))
-#endif /* IS ADDR GLOBAL */
-
-#ifndef IN6_IS_ADDR_ULA
-#define IN6_IS_ADDR_ULA(a)											\
-	((((__const uint32_t *) (a))[0] & htonl((uint32_t)0xfe000000))	\
-	 == htonl ((uint32_t)0xfc000000))
-#endif /* IS ADDR ULA */
 
 /*! This structure is for virtual directory callbacks */
 struct VirtualDirCallbacks virtualDirCallback;
@@ -102,7 +84,7 @@ std::mutex GlobalClientSubscribeMutex;
 
 // Mutex to synchronize handles (root device or control point
 // handle). This used to be an rwlock but this was probably not worth
-// the trouble given the small expected contention level */
+// the trouble given the small expected contention level
 std::mutex GlobalHndRWLock;
 
 /*! Initialization mutex. */
@@ -194,197 +176,6 @@ int UpnpSdkDeviceregisteredV6 = 0;
 Upnp_SID gUpnpSdkNLSuuid;
 #endif /* UPNP_HAVE_OPTSSDP */
 
-#ifdef _WIN32
-
-int getIfInfoImpl(bool& ifname_set, std::string& if_name,
-				  bool& gotv4, struct in_addr& v4_addr,
-				  bool &gotv6, struct in6_addr& v6_addr)
-{
-	/* ---------------------------------------------------- */
-	/* WIN32 implementation will use the IpHlpAPI library. */
-	/* ---------------------------------------------------- */
-	PIP_ADAPTER_ADDRESSES adapts = NULL;
-	PIP_ADAPTER_ADDRESSES adapts_item;
-	PIP_ADAPTER_UNICAST_ADDRESS uni_addr;
-	SOCKADDR *ip_addr;
-	ULONG adapts_sz = 0;
-	ULONG ret;
-
-	/* Get Adapters addresses required size. */
-	ret = GetAdaptersAddresses(
-		AF_UNSPEC,  GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_DNS_SERVER,
-		NULL, adapts, &adapts_sz);
-	if (ret != ERROR_BUFFER_OVERFLOW) {
-		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-				   "GetAdaptersAddresses: fail1\n");
-		return UPNP_E_INIT;
-	}
-	/* Allocate enough memory. */
-	adapts = (PIP_ADAPTER_ADDRESSES) malloc(adapts_sz);
-	if (adapts == NULL) {
-		return UPNP_E_OUTOF_MEMORY;
-	}
-	/* Do the call that will actually return the info. */
-	ret = GetAdaptersAddresses(
-		AF_UNSPEC, GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_DNS_SERVER,
-		NULL, adapts, &adapts_sz);
-	if (ret != ERROR_SUCCESS) {
-		free(adapts);
-		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-				   "GetAdaptersAddresses: fail2\n");
-		return UPNP_E_INIT;
-	}
-	adapts_item = adapts;
-	while (adapts_item != NULL) {
-		if (adapts_item->Flags & IP_ADAPTER_NO_MULTICAST) {
-			adapts_item = adapts_item->Next;
-			continue;
-		}
-		/*
-		 * Partial fix for VC - friendly name is wchar string,
-		 * try to convert it, which will work with many (but not
-		 * all) adapters. A full fix would require a lot of
-		 * big changes.
-		 */
-		char tmpIfName[LINE_SIZE];
-		wcstombs(tmpIfName, adapts_item->FriendlyName, sizeof(tmpIfName));
-		if (!ifname_set) {
-			if_name = tmpIfName;
-			ifname_set = true;
-		} else {
-			if (if_name != tmpIfName) {
-				/* This is not the interface we're looking for. */
-				continue;
-			}
-		}
-		/* Loop thru this adapter's unicast IP addresses. */
-		uni_addr = adapts_item->FirstUnicastAddress;
-		bool valid_addr_found{false};
-		while (uni_addr) {
-			ip_addr = uni_addr->Address.lpSockaddr;
-			switch (ip_addr->sa_family) {
-			case AF_INET:
-				memcpy(&v4_addr, &((struct sockaddr_in *)ip_addr)->sin_addr,
-					   sizeof(v4_addr));
-				gotv4 = true;
-				valid_addr_found = true;
-				break;
-			case AF_INET6:
-				/* Only keep IPv6 link-local addresses. */
-				if (IN6_IS_ADDR_LINKLOCAL(
-						&((struct sockaddr_in6 *)ip_addr)->sin6_addr)) {
-					memcpy(&v6_addr,&((struct sockaddr_in6 *)ip_addr)->sin6_addr,
-						   sizeof(v6_addr));
-					gotv6 = true;
-					valid_addr_found = true;
-				}
-				break;
-			default:
-				if (!valid_addr_found) {
-					/* Address is not IPv4 or IPv6 and no valid
-					    address has yet been found for this
-					    interface. Discard interface name. */
-					ifname_set = false;
-				}
-				break;
-			}
-			/* Next address. */
-			uni_addr = uni_addr->Next;
-		}
-		if (valid_addr_found) {
-			gIF_INDEX = adapts_item->IfIndex;
-			break;
-		}
-		/* Next adapter. */
-		adapts_item = adapts_item->Next;
-	}
-	free(adapts);
-	return 0;
-}
-
-#elif defined(HAVE_GETIFADDRS)
-
-int getIfInfoImpl(bool& ifname_set, std::string& if_name,
-				  bool& gotv4, struct in_addr& v4_addr,
-				  bool &gotv6, struct in6_addr& v6_addr)
-{
-	struct ifaddrs *ifap, *ifa;
-
-	/* Get system interface addresses. */
-	if (getifaddrs(&ifap) != 0) {
-		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__, "getifaddrs error\n");
-		return UPNP_E_INIT;
-	}
-	/* Walk through the available interfaces and their addresses. The
-	   way we do things results in choosing the interface which was
-	   named through the IfName parameter if set (but see comment
-	   below), or the first interface with either a valid ipv4 or ipv6
-	   address (because we freeze the name as soon as we find a valid
-	   address). This was carried from pupnp but it seems that the
-	   logic is dependant on the order in the list so it's probably
-	   questionable. */
-	for (ifa = ifap; ifa != nullptr; ifa = ifa->ifa_next) {
-		/* Skip interfaces which are address-less, LOOPBACK, DOWN, or
-		   that don't support MULTICAST. */
-		if (nullptr == ifa->ifa_addr
-			|| (ifa->ifa_flags & IFF_LOOPBACK)
-			|| (!(ifa->ifa_flags & IFF_UP))
-			|| (!(ifa->ifa_flags & IFF_MULTICAST))) {
-			UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "Skipping %s because"
-					   "noaddr||loopback||down||nomulticast.\n", ifa->ifa_name);
-			continue;
-		}
-		if (ifname_set == 0) {
-			if_name = ifa->ifa_name;
-			ifname_set = 1;
-		} else {
-			if (if_name != ifa->ifa_name) {
-				/* This is not the interface we're looking for. */
-				continue;
-			}
-		}
-		/* Keep interface addresses for later. */
-		bool valid_addr_found{false};
-		switch (ifa->ifa_addr->sa_family) {
-		case AF_INET:
-			memcpy(&v4_addr, &(reinterpret_cast<struct sockaddr_in *>(ifa->ifa_addr))->sin_addr,
-				   sizeof(v4_addr));
-			gotv4 = true;
-			valid_addr_found = true;
-			break;
-		case AF_INET6:
-			/* Only keep IPv6 link-local addresses. */
-			if (IN6_IS_ADDR_LINKLOCAL(
-					&((struct sockaddr_in6 *)(ifa->ifa_addr))->sin6_addr)) {
-				memcpy(&v6_addr,
-					   &(reinterpret_cast<struct sockaddr_in6 *>(ifa->ifa_addr))->sin6_addr,
-					   sizeof(v6_addr));
-				gotv6 = true;
-				valid_addr_found = true;
-			}
-			break;
-		default:
-			if (!valid_addr_found) {
-				/* Address is not IPv4 or IPv6 and no valid address
-				   has yet been found for this interface. Discard
-				   interface name. Carried from pupnp but we should
-				   not do this if the interface name was given as a
-				   parameter as this could lead to choosing a
-				   different interface instead of generating an
-				   error. */
-				ifname_set = false;
-			}
-			break;
-		}
-	}
-	freeifaddrs(ifap);
-	gIF_INDEX = if_nametoindex(if_name.c_str());
-	return 0;
-}
-#else
-#error Neither windows nor getifaddrs. Lift the old linux code from pupnp?
-#endif
-
 /* Find an appropriate interface (possibly specified in input) and set
  * the global IP addresses and interface names. The interface must fulfill 
  * these requirements:
@@ -398,119 +189,83 @@ int getIfInfoImpl(bool& ifname_set, std::string& if_name,
 */
 int UpnpGetIfInfo(const char *IfName)
 {
-	bool ifname_set{false};
-	bool gotv4{false}, gotv6{false};
-	struct in_addr v4_addr;
-	struct in6_addr v6_addr;
-	memset(&v4_addr, 0, sizeof(v4_addr));
-	memset(&v6_addr, 0, sizeof(v6_addr));
-	std::string if_name;
-
-	/* Copy interface name, if it was provided. */
-	if (IfName && *IfName) {
-		if_name = IfName;
-		ifname_set = true;
+	NetIF::Interfaces *ifs = NetIF::Interfaces::theInterfaces();
+	NetIF::Interface *netifp{nullptr};
+	std::vector<NetIF::Interface> selected;
+	if (IfName && IfName[0]) {
+		netifp = ifs->findByName(IfName);
+	} else {
+		NetIF::Interfaces::Filter
+			filt{.needs={NetIF::Interface::Flags::HASIPV4,
+						 NetIF::Interface::Flags::HASIPV6},
+				 .rejects={NetIF::Interface::Flags::LOOPBACK}
+		};
+		selected = ifs->select(filt);
+		if (!selected.empty()) {
+			netifp = &selected[0];
+		}
 	}
-
-	if (getIfInfoImpl(ifname_set,if_name, gotv4,v4_addr, gotv6,v6_addr) != 0) {
+	if (nullptr == netifp) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
 				   "No adapter with usable IP addresses.\n");
 		return UPNP_E_INVALID_INTERFACE;
 	}
-
-	/* Failed to find a valid interface, or valid address. */
-	if (!ifname_set || !(gotv4 || gotv6)) {
-		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-				   "No adapter with usable IP addresses.\n");
-		return UPNP_E_INVALID_INTERFACE;
+	gIF_INDEX = netifp->getindex();
+	if (netifp->hasflag(NetIF::Interface::Flags::HASIPV4)) {
+		const NetIF::IPAddr *addr = netifp->firstipv4addr();
+		if (nullptr != addr) {
+			std::string sa = addr->straddr();
+			upnp_strlcpy(gIF_IPV4, sa.c_str(), sizeof(gIF_IPV4));
+		}
 	}
-	if (gotv4)
-		inet_ntop(AF_INET, &v4_addr, gIF_IPV4, sizeof(gIF_IPV4));
-	if (gotv6)
-		inet_ntop(AF_INET6, &v6_addr, gIF_IPV6, sizeof(gIF_IPV6));
-
+	if (netifp->hasflag(NetIF::Interface::Flags::HASIPV6)) {
+		const NetIF::IPAddr *addr =
+			netifp->firstipv6addr(NetIF::IPAddr::Scope::LINK);
+		if (nullptr != addr) {
+			std::string sa = addr->straddr();
+			upnp_strlcpy(gIF_IPV6, sa.c_str(), sizeof(gIF_IPV6));
+		} 
+	}
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
 			   "Ifname=%s, index=%d, v4=%s, v6=%s, ULA/GUA v6=%s\n",
-			   if_name.c_str(),gIF_INDEX,gIF_IPV4,gIF_IPV6,gIF_IPV6_ULA_GUA);
+			   netifp->getname().c_str(), gIF_INDEX, gIF_IPV4, gIF_IPV6,
+			   gIF_IPV6_ULA_GUA);
 
 	return UPNP_E_SUCCESS;
 }
 
-/* This is the old version for supposedly deprecated UpnpInit: v4 only and 
-   if the interface is specified, it's done by IP address */
-int getlocalhostname(char *out, size_t out_len)
+/* This is the old version for supposedly deprecated UpnpInit: v4 only
+   and if the interface is specified, it's done by IP address. We are
+   called if the address was not specified, and select the first ipv4
+   we find */
+static int getmyipv4()
 {
-	int ret = UPNP_E_SUCCESS;
-	char tempstr[INET_ADDRSTRLEN];
-	const char *p = nullptr;
-	
-#ifdef _WIN32
-	struct hostent *h = NULL;
-	struct sockaddr_in LocalAddr;
-
-	memset(&LocalAddr, 0, sizeof(LocalAddr));
-
-	gethostname(out, out_len);
-	out[out_len-1] = 0;
-	h = gethostbyname(out);
-	if (h != NULL) {
-		memcpy(&LocalAddr.sin_addr, h->h_addr_list[0], 4);
-		p = inet_ntop(AF_INET, &LocalAddr.sin_addr, tempstr, sizeof(tempstr));
-		if (p) {
-			upnp_strlcpy(out, p, out_len);
-		} else {
-			UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-						"getlocalhostname: inet_ntop error\n");
-			ret = UPNP_E_INIT;
-		}
-	} else {
-		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-					"getlocalhostname: gethostbyname error\n");
-		ret = UPNP_E_INIT;
+	NetIF::Interfaces *ifs = NetIF::Interfaces::theInterfaces();
+	NetIF::Interface *netifp{nullptr};
+	NetIF::Interfaces::Filter
+		filt{.needs={NetIF::Interface::Flags::HASIPV4},
+			 .rejects={NetIF::Interface::Flags::LOOPBACK}
+	};
+	std::vector<NetIF::Interface> selected = ifs->select(filt);
+	if (!selected.empty()) {
+		netifp = &selected[0];
 	}
-
-#elif defined(HAVE_GETIFADDRS)
-	struct ifaddrs *ifap, *ifa;
-
-	if (getifaddrs(&ifap) != 0) {
-		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-				   "DiscoverInterfaces: getifaddrs error\n");
-		return UPNP_E_INIT;
+	if (nullptr == netifp) {
+		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
+				   "No adapter with usable IPV4 address.\n");
+		return UPNP_E_INVALID_INTERFACE;
 	}
-
-	/* cycle through available interfaces */
-	for (ifa = ifap; ifa != nullptr; ifa = ifa->ifa_next) {
-		/* Skip loopback, point-to-point and down interfaces, 
-		 * except don't skip down interfaces
-		 * if we're trying to get a list of configurable interfaces. */
-		if ((ifa->ifa_flags & IFF_LOOPBACK) || (!(ifa->ifa_flags & IFF_UP))) {
-			continue;
-		}
-		if (ifa->ifa_addr->sa_family == AF_INET) {
-			/* We don't want the loopback interface. */
-			if ((reinterpret_cast<struct sockaddr_in *>(ifa->ifa_addr))->sin_addr.s_addr ==
-				htonl(INADDR_LOOPBACK)) {
-				continue;
-			}
-			p = inet_ntop(AF_INET,
-						  &(reinterpret_cast<struct sockaddr_in *>(ifa->ifa_addr))->sin_addr,
-						  tempstr, sizeof(tempstr));
-			if (p) {
-				upnp_strlcpy(out, p, out_len);
-			} else {
-				UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-						   "getlocalhostname: inet_ntop error\n");
-			}
-			break;
+	if (netifp->hasflag(NetIF::Interface::Flags::HASIPV4)) {
+		const NetIF::IPAddr *addr = netifp->firstipv4addr();
+		if (nullptr != addr) {
+			std::string sa = addr->straddr();
+			upnp_strlcpy(gIF_IPV4, sa.c_str(), sizeof(gIF_IPV4));
+			UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Ifname=%s, v4=%s\n",
+					   netifp->getname().c_str(), gIF_IPV4);
+			return UPNP_E_SUCCESS;
 		}
 	}
-	freeifaddrs(ifap);
-
-	ret = ifa ? UPNP_E_SUCCESS : UPNP_E_INIT;
-#else
-#error Neither windows nor getifaddrs. Lift the old linux code from pupnp?
-#endif
-	return ret;
+	return UPNP_E_INVALID_INTERFACE;
 }
 
 /* Initializes the Windows Winsock library. */
@@ -705,7 +460,7 @@ static int upnpInitCommonV4V6(bool dov6, const char *HostIP,
 		if (HostIP != nullptr) {
 			upnp_strlcpy(gIF_IPV4, HostIP, sizeof(gIF_IPV4));
 		} else {
-			if (getlocalhostname(gIF_IPV4, sizeof(gIF_IPV4)) != UPNP_E_SUCCESS){
+			if (getmyipv4() != UPNP_E_SUCCESS){
 				retVal = UPNP_E_INIT_FAILED;
 				goto exit_function;
 			}

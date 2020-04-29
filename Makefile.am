@@ -48,6 +48,7 @@ libnpupnp_la_SOURCES = \
 	src/inc/inet_pton.h \
 	src/inc/md5.h \
 	src/inc/miniserver.h \
+	src/utils/netif.h \
 	src/inc/service_table.h \
 	src/inc/smallut.h \
 	src/inc/soaplib.h \
@@ -84,6 +85,7 @@ libnpupnp_la_SOURCES += \
 	src/utils/smallut.cpp \
 	src/utils/httputils.cpp \
 	src/utils/inet_pton.cpp \
+	src/utils/netif.cpp \
 	src/utils/statcodes.cpp \
 	src/webserver/webserver.cpp \
 	src/utils/md5.cpp \
