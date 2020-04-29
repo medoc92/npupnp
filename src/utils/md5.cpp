@@ -273,7 +273,7 @@ string& MD5HexPrint(const string& digest, string &out)
     out.erase();
     out.reserve(33);
     static const char hex[]="0123456789abcdef";
-    const unsigned char *hash = (const unsigned char *)digest.c_str();
+    auto hash = (const unsigned char *)digest.c_str();
     for (int i = 0; i < 16; i++) {
 	out.append(1, hex[hash[i] >> 4]);
 	out.append(1, hex[hash[i] & 0x0f]);

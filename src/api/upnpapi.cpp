@@ -334,9 +334,9 @@ int getIfInfoImpl(bool& ifname_set, std::string& if_name,
 					   "noaddr||loopback||down||nomulticast.\n", ifa->ifa_name);
 			continue;
 		}
-		if (ifname_set == 0) {
+		if (!ifname_set) {
 			if_name = ifa->ifa_name;
-			ifname_set = 1;
+			ifname_set = true;
 		} else {
 			if (if_name != ifa->ifa_name) {
 				/* This is not the interface we're looking for. */
