@@ -93,7 +93,8 @@ public:
 	 *  embedded null characters). Empty if no hardware address was
 	 *  found for this interface */
 	const std::string& gethwaddr() const;
-
+	/** Return hardware address in traditional colon-separated hex */
+	std::string gethexhwaddr() const;
 	bool hasflag(Flags f) const;
 	/** Return the first ipv4 address if any, or nullptr */
 	const IPAddr *firstipv4addr() const;

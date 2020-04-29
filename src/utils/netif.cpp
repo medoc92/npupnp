@@ -244,6 +244,15 @@ const std::string& Interface::gethwaddr() const
 	return m->hwaddr;
 }
 
+std::string Interface::gethexhwaddr() const
+{
+	char buf[20];
+	snprintf(buf, 20, "%02x:%02x:%02x:%02x:%02x:%02x",
+			 m->hwaddr[0]&0xFF, m->hwaddr[1]&0xFF, m->hwaddr[2]&0xFF,
+			 m->hwaddr[3]&0xFF, m->hwaddr[4]&0xFF, m->hwaddr[5]&0xFF);
+	return buf;
+}
+
 int Interface::getindex() const
 {
 	return m->index;
@@ -316,11 +325,7 @@ std::ostream& Interface::print(std::ostream& out) const
 		out << "|" << *it++;
 	out << ">\n";
 	if (!m->hwaddr.empty()) {
-		char buf[20];
-		snprintf(buf, 20, "%02x:%02x:%02x:%02x:%02x:%02x",
-				 m->hwaddr[0]&0xFF, m->hwaddr[1]&0xFF, m->hwaddr[2]&0xFF,
-				 m->hwaddr[3]&0xFF, m->hwaddr[4]&0xFF, m->hwaddr[5]&0xFF);
-		out << "hwaddr " << buf << "\n";
+		out << "hwaddr " << gethexhwaddr() << "\n";
 	}
 	for (unsigned int i = 0; i < m->addresses.size(); i++) {
 		out << m->addresses[i].straddr() << " " <<
@@ -576,7 +581,8 @@ Interface *Interfaces::findByName(const char *nm) const
 {
 	auto it = std::find_if(m->interfaces.begin(), m->interfaces.end(),
 						   [nm] (const Interface& ifr) {
-							   return nm == ifr.m->name;});
+							   return nm == ifr.m->name ||
+								   nm == ifr.m->friendlyname;});
 	return &(*it);
 }
 

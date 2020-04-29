@@ -226,6 +226,13 @@ int UpnpGetIfInfo(const char *IfName)
 			upnp_strlcpy(gIF_IPV6, sa.c_str(), sizeof(gIF_IPV6));
 		} 
 	}
+
+	if (gIF_IPV4[0] == 0 && gIF_IPV6[0] == 0) {
+		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
+				   "No usable IP addresses were found.\n");
+		return UPNP_E_INVALID_INTERFACE;
+	}
+	
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
 			   "Ifname=%s, index=%d, v4=%s, v6=%s, ULA/GUA v6=%s\n",
 			   netifp->getname().c_str(), gIF_INDEX, gIF_IPV4, gIF_IPV6,

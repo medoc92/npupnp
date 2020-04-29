@@ -41,13 +41,14 @@
 #include <unistd.h>
 
 #include "md5.h"
+#include "netif.h"
 
 static std::mutex uuid_mutex;
 
 // We generate time-based pseudo-random uuids with a slight effort to
 // avoid cross-host collisions, based on a random number (which is
-// what the old pupnp did). It would probably be nicer to use the
-// ethernet address, but more sysdeps then.
+// what the old pupnp did). It now based on an interface ethernet
+// address, if possible, random number else.
 std::string gena_sid_uuid()
 {
 	std::lock_guard<std::mutex> mylock(uuid_mutex);
@@ -56,16 +57,34 @@ std::string gena_sid_uuid()
 	int64_t tp = now.time_since_epoch().count();
 
 	static int counter;
-	static int host_rand;
-	if (host_rand == 0) {
-		srand(static_cast<unsigned int>(tp & 0xffffffff));
-		host_rand = rand();
-	}
 	counter++;
-	
+
+	static std::string hwaddr;
+	if (hwaddr.empty()) {
+		NetIF::Interfaces *ifs = NetIF::Interfaces::theInterfaces();
+		NetIF::Interfaces::Filter
+			filt{.needs={NetIF::Interface::Flags::HASHWADDR,
+						 NetIF::Interface::Flags::HASIPV4},
+				 .rejects={NetIF::Interface::Flags::LOOPBACK}
+		};
+		auto selected = ifs->select(filt);
+		for (const auto& entry : selected) {
+			hwaddr = entry.gethexhwaddr();
+			if (!hwaddr.empty()) {
+				break;
+			}
+		}
+		if (hwaddr.empty()) {
+			srand(static_cast<unsigned int>(tp & 0xffffffff));
+			int randval = rand();
+			char buf[40];
+			snprintf(buf, 40, "%d", randval);
+			hwaddr = buf;
+		}
+	}
+
 	std::ostringstream str;
-	str << tp << "-" << getpid() << "-" << counter << "-" << host_rand;
-	// std::cerr << "UUID SOURCE [" << str.str() << "]\n";
+	str << tp << getpid() << counter << hwaddr;
 
 	MD5_CTX c;
 	unsigned char hash[16];
