@@ -354,8 +354,8 @@ static int gena_subscribe(
 		char addrbuf[64];
 		struct sockaddr_storage locaddr;
 		socklen_t lasize = sizeof(locaddr);
-		struct sockaddr_in *la4 = (struct sockaddr_in *)&locaddr;
-		struct sockaddr_in6 *la6 = (struct sockaddr_in6 *)&locaddr;
+		auto la4 = (struct sockaddr_in *)&locaddr;
+		auto la6 = (struct sockaddr_in6 *)&locaddr;
 		
 		hdls.hconnect = curl_easy_init();
 		curl_easy_setopt(hdls.hconnect, CURLOPT_URL,  urlforcurl.c_str());

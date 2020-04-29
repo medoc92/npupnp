@@ -193,7 +193,9 @@ service_info *FindServiceId(
 				!UDN.compare(si.UDN);});
 	if (it == table->serviceList.end()) {
 		return nullptr;
-	} 		return &(*it);
+	}
+
+	return &(*it);
 
 
 }
