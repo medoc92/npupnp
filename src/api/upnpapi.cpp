@@ -547,14 +547,11 @@ static int UpnpInitThreadPools()
 	attr.maxIdleTime = THREAD_IDLE_TIME;
 	attr.maxJobsTotal = MAX_JOBS_TOTAL;
 
-	for (const auto& entry : o_threadpools) {
-		if (entry.first->start(&attr) != UPNP_E_SUCCESS) {
-			ret = UPNP_E_INIT_FAILED;
-			break;
-		}
-	}
+	auto i = std::any_of(o_threadpools.begin(), o_threadpools.end(), [&](const std::pair<ThreadPool*, const char*> &entry)
+		{ return entry.first->start(&attr) != UPNP_E_SUCCESS; });
 
-	if (ret != UPNP_E_SUCCESS) {
+	if (i) {
+		ret = UPNP_E_INIT_FAILED;
 		UpnpSdkInit = 0;
 		UpnpFinish();
 	}

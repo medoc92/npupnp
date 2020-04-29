@@ -37,6 +37,8 @@
 
 #include "client_table.h"
 
+#include <algorithm>
+
 void RemoveClientSubClientSID(std::list<ClientSubscription>& lst,
 							  const std::string& sid)
 {
@@ -52,24 +54,20 @@ void RemoveClientSubClientSID(std::list<ClientSubscription>& lst,
 ClientSubscription *GetClientSubClientSID(std::list<ClientSubscription>& lst,
 										  const std::string& sid)
 {
-	for (auto& entry : lst) {
-		if (entry.SID == sid) {
-			return &entry;
-		}
-	}
-	return nullptr;
+	auto i = std::find_if(lst.begin(), lst.end(), [&](const ClientSubscription &entry)
+		{ return entry.SID == sid; });
+
+	return &(*i);
 }
 
 
 ClientSubscription *GetClientSubActualSID(std::list<ClientSubscription>& lst,
 										  const std::string& sid)
 {
-	for (auto& entry : lst) {
-		if (entry.actualSID == sid) {
-			return &entry;
-		}
-	}
-	return nullptr;
+	auto i = std::find_if(lst.begin(), lst.end(), [&](const ClientSubscription &entry)
+		{ return entry.actualSID == sid; });
+
+	return &(*i);
 }
 
 #endif /* EXCLUDE_GENA */
