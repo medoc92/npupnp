@@ -223,6 +223,8 @@ static int sendPackets(struct sockaddr *DestAddr, int NumPacket,
         UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
                    ">>> SSDP SEND to %s >>>\n%s\n",
                    buf_ntop, RqPacket[Index].c_str());
+		std::cerr << "SSDP: sending to " << buf_ntop << " data: \n" <<
+			RqPacket[Index] << "\n";
         rc = sendto(ReplySock, RqPacket[Index].c_str(),
                     RqPacket[Index].size(), 0, DestAddr, socklen);
         if (rc == -1) {
