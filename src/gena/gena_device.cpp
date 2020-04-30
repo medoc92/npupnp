@@ -170,7 +170,8 @@ static int genaNotify(const std::string& propertySet, const subscription *sub)
 			return_code = UPNP_E_SUCCESS;
 			curl_easy_getinfo (easy, CURLINFO_RESPONSE_CODE, &http_code);
 		} else {
-			UpnpPrintf(UPNP_ERROR, GENA, __FILE__, __LINE__,
+			// Note: this is common: e.g. client exited without unsubscribing
+			UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
 					   "CURL ERROR MESSAGE %s\n", curlerrormessage);
 			return_code = UPNP_E_BAD_RESPONSE;
 		}
