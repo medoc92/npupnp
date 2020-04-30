@@ -26,11 +26,15 @@
  *
  ******************************************************************************/
 
+#include "config.h"
+
 #include "ssdpparser.h"
 
 #include <iostream>
 #include <string>
 #include <regex>
+
+#include "upnpdebug.h"
 
 #define CCRLF "\r\n"
 
@@ -114,7 +118,8 @@ bool SSDPPacketParser::parse()
 		status  = (m_packet + m.position(3));
 		status[m[3].length()] = 0;
 	} else {
-		//std::cerr << "NO match for msearch request/response line\n";
+		UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,	"SSDP parser: could "
+				   "not find request line in [%s]\n", m_packet);
 		return false;
 	}
 		
@@ -197,10 +202,17 @@ bool SSDPPacketParser::parse()
 			cerr << "Unknown header name [" << nm << "]\n";
 		}
 #else
-        (void)known;
+		if (!known) {
+			UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
+					   "SSDP parser: unknown header name [%s]\n", nm);
+		}			
 #endif
 		cp += m.length();
 	}
-
-	return strcmp(cp, "\r\n") == 0;
+	bool ret = strcmp(cp, "\r\n") == 0;
+	if (!ret) {
+		UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
+				   "SSDP parser: no empty line at end of packet: [%s]\n", cp);
+	}
+	return ret;
 }

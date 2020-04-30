@@ -113,13 +113,6 @@ struct ThreadData {
 	struct sockaddr_storage DestAddr;
 };
 
-struct SsdpSearchReply {
-	int MaxAge;
-	UpnpDevice_Handle handle;
-	struct sockaddr_storage dest_addr;
-	SsdpEvent event;
-};
-
 struct SsdpSearchArg {
 	SsdpSearchArg(char *st, void *ck, SsdpSearchType rt)
 		: searchTarget(st), cookie(ck), requestType(rt) {
@@ -130,7 +123,6 @@ struct SsdpSearchArg {
 	enum SsdpSearchType requestType;
 };
 
-
 /* globals */
 
 #ifdef INCLUDE_CLIENT_APIS
@@ -139,13 +131,7 @@ struct SsdpSearchArg {
 		extern SOCKET gSsdpReqSocket6;
 	#endif /* UPNP_ENABLE_IPV6 */
 #endif /* INCLUDE_CLIENT_APIS */
-typedef int (*ParserFun)(char *, SsdpEvent *);
 
-/*!
- * \name SSDP Server Functions
- *
- * @{
- */
 
 /*!
  * \brief Sends SSDP advertisements, replies and shutdown messages.
@@ -223,7 +209,6 @@ int get_ssdp_sockets(
 	/* [out] Array of SSDP sockets. */
 	MiniServerSockArray *out);
 
-/* @} SSDP Server Functions */
 
 /*!
  * \name SSDP Control Point Functions
@@ -278,220 +263,23 @@ int SearchByTarget(
 /* @} SSDP Control Point Functions */
 
 /*!
- * \name SSDP Device Functions
- *
- * @{
- */
-
-/*!
- * \brief Wrapper function to reply the search request coming from the
- * control point.
- *
- * \return always return NULL
- */
-void *advertiseAndReplyThread(
-	/* [in] Structure containing the search request. */
-	void *data);
-
-/*!
  * \brief Handles the search request. It does the sanity checks of the
  * request and then schedules a thread to send a random time reply
  * (random within maximum time given by the control point to reply).
  */
 #ifdef INCLUDE_DEVICE_APIS
+
 void ssdp_handle_device_request(
 	/* [in] . */
 	SSDPPacketParser& parser,
 	/* [in] . */
 	struct sockaddr_storage *dest_addr);
+
 #else /* INCLUDE_DEVICE_APIS */
+
 static UPNP_INLINE void ssdp_handle_device_request(
-	/* [in] . */
-	SSDPPacketParser& parser,
-	/* [in] . */
-	struct sockaddr_storage *dest_addr) {}
+	SSDPPacketParser&, struct sockaddr_storage *) {}
+
 #endif /* INCLUDE_DEVICE_APIS */
-
-/*!
- * \brief Creates the device advertisement request based on the input
- * parameter, and send it to the multicast channel.
- *
- * \return UPNP_E_SUCCESS if successful else appropriate error.
- */
-int DeviceAdvertisement(
-	/* [in] type of the device. */
-	const char *DevType,
-	/* [in] flag to indicate if the device is root device. */
-	int RootDev,
-	/* [in] UDN. */
-	const char *Udn, 
-	/* [in] Location URL. */
-	const char *Location,
-	/* [in] Service duration in sec. */
-	int Duration,
-	/* [in] Device address family. */
-	int AddressFamily,
-	/* [in] PowerState as defined by UPnP Low Power. */
-	int PowerState,
-	/* [in] SleepPeriod as defined by UPnP Low Power. */
-	int SleepPeriod,
-	/* [in] RegistrationState as defined by UPnP Low Power. */
-	int RegistrationState);
-
-/*!
- * \brief Creates the reply packet based on the input parameter, and send it
- * to the client addesss given in its input parameter DestAddr.
- *
- * \return UPNP_E_SUCCESS if successful else appropriate error.
- */
-int SendReply(
-	/* [in] destination IP address. */
-	struct sockaddr *DestAddr, 
-	/* [in] Device type. */
-	const char *DevType, 
-	/* [in] 1 means root device 0 means embedded device. */
-	int RootDev, 
-	/* [in] Device UDN. */
-	const char *Udn, 
-	/* [in] Location of Device description document. */
-	const char *Location, 
-	/* [in] Life time of this device. */
-	int Duration, 
-	/* [in] . */
-	int ByType,
-	/* [in] PowerState as defined by UPnP Low Power. */
-	int PowerState,
-	/* [in] SleepPeriod as defined by UPnP Low Power. */
-	int SleepPeriod,
-	/* [in] RegistrationState as defined by UPnP Low Power. */
-	int RegistrationState);
-
-/*!
- * \brief Creates the reply packet based on the input parameter, and send it
- * to the client address given in its input parameter DestAddr.
- *
- * \return UPNP_E_SUCCESS if successful else appropriate error.
- */
-int DeviceReply(
-	/* [in] destination IP address. */
-	struct sockaddr *DestAddr, 
-	/* [in] Device type. */
-	const char *DevType, 
-	/* [in] 1 means root device 0 means embedded device. */
-	int RootDev, 
-	/* [in] Device UDN. */
-	const char *Udn, 
-	/* [in] Location of Device description document. */
-	const char *Location, 
-	/* [in] Life time of this device. */
-	int Duration,
-	/* [in] PowerState as defined by UPnP Low Power. */
-	int PowerState,
-	/* [in] SleepPeriod as defined by UPnP Low Power. */
-	int SleepPeriod,
-	/* [in] RegistrationState as defined by UPnP Low Power. */
-	int RegistrationState);
-
-/*!
- * \brief Creates the advertisement packet based on the input parameter,
- * and send it to the multicast channel.
- *
- * \return UPNP_E_SUCCESS if successful else appropriate error.
- */
-int ServiceAdvertisement(
-	/* [in] Device UDN. */
-	const char *Udn, 
-	/* [in] Service Type. */
-	const char *ServType,
-	/* [in] Location of Device description document. */
-	const char *Location,
-	/* [in] Life time of this device. */
-	int Duration,
-	/* [in] Device address family. */
-	int AddressFamily,
-	/* [in] PowerState as defined by UPnP Low Power. */
-	int PowerState,
-	/* [in] SleepPeriod as defined by UPnP Low Power. */
-	int SleepPeriod,
-	/* [in] RegistrationState as defined by UPnP Low Power. */
-	int RegistrationState);
-
-/*!
- * \brief Creates the advertisement packet based on the input parameter,
- * and send it to the multicast channel.
- *
- * \return UPNP_E_SUCCESS if successful else appropriate error.
- */
-int ServiceReply(
-	/* [in] . */
-	struct sockaddr *DestAddr,  
-	/* [in] Service Type. */
-	const char *ServType, 
-	/* [in] Device UDN. */
-	const char *Udn, 
-	/* [in] Location of Device description document. */
-	const char *Location,
-	/* [in] Life time of this device. */
-	int Duration,
-	/* [in] PowerState as defined by UPnP Low Power. */
-	int PowerState,
-	/* [in] SleepPeriod as defined by UPnP Low Power. */
-	int SleepPeriod,
-	/* [in] RegistrationState as defined by UPnP Low Power. */
-	int RegistrationState);
-
-/*!
- * \brief Creates a HTTP service shutdown request packet and sends it to the
- * multicast channel through RequestHandler.
- *
- * \return UPNP_E_SUCCESS if successful else appropriate error.
- */
-int ServiceShutdown(
-	/* [in] Device UDN. */
-	const char *Udn,
-	/* [in] Service Type. */
-	const char *ServType,
-	/* [in] Location of Device description document. */
-	const char *Location,
-	/* [in] Service duration in sec. */
-	int Duration,
-	/* [in] Device address family. */
-	int AddressFamily,
-	/* [in] PowerState as defined by UPnP Low Power. */
-	int PowerState,
-	/* [in] SleepPeriod as defined by UPnP Low Power. */
-	int SleepPeriod,
-	/* [in] RegistrationState as defined by UPnP Low Power. */
-	int RegistrationState);
-
-/*!
- * \brief Creates a HTTP device shutdown request packet and send it to the
- * multicast channel through RequestHandler.
- *
- * \return UPNP_E_SUCCESS if successful else appropriate error.
- */
-int DeviceShutdown(
-	/* [in] Device Type. */
-	const char *DevType, 
-	/* [in] 1 means root device. */
-	int RootDev,
-	/* [in] Device UDN. */
-	const char *Udn, 
-	/* [in] Location URL. */
-	const char *Location, 
-	/* [in] Device duration in sec. */
-	int Duration,
-	/* [in] Device address family. */
-	int AddressFamily,
-	/* [in] PowerState as defined by UPnP Low Power. */
-	int PowerState,
-	/* [in] SleepPeriod as defined by UPnP Low Power. */
-	int SleepPeriod,
-	/* [in] RegistrationState as defined by UPnP Low Power. */
-	int RegistrationState);
-
-/* @} SSDP Device Functions */
-
-/* @} SSDPlib SSDP Library */
 
 #endif /* SSDPLIB_H */

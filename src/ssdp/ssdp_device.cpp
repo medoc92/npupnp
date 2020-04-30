@@ -52,10 +52,18 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <thread>
 
 #define MSGTYPE_SHUTDOWN    0
 #define MSGTYPE_ADVERTISEMENT   1
 #define MSGTYPE_REPLY       2
+
+struct SsdpSearchReply {
+	int MaxAge;
+	UpnpDevice_Handle handle;
+	struct sockaddr_storage dest_addr;
+	SsdpEvent event;
+};
 
 static void* thread_advertiseandreply(void *data)
 {
@@ -143,19 +151,8 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
     }
 }
 
-/*!
- * \brief Works as a request handler which passes the HTTP request string
- * to multicast channel.
- *
- * \return UPNP_E_SUCCESS if successful else appropriate error.
- */
-static int NewRequestHandler(
-    /*! [in] Ip address, to send the reply. */
-    struct sockaddr *DestAddr,
-    /*! [in] Number of packet to be sent. */
-    int NumPacket,
-    /*! [in] . */
-    std::string *RqPacket)
+/* Send the device packet to the network */
+static int sendPackets(struct sockaddr *DestAddr, int NumPacket, std::string *RqPacket)
 {
     char errorBuffer[ERROR_BUFFER_LEN];
     SOCKET ReplySock;
@@ -174,7 +171,7 @@ static int NewRequestHandler(
     if (ReplySock == INVALID_SOCKET) {
         posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
         UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
-                   "NewRequestHandler: socket(): %s\n", errorBuffer);
+                   "sendPackets: socket(): %s\n", errorBuffer);
         return UPNP_E_OUTOF_SOCKET;
     }
 
@@ -203,7 +200,7 @@ static int NewRequestHandler(
         UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
                    "Invalid destination address specified.");
         ret = UPNP_E_NETWORK_ERROR;
-        goto end_NewRequestHandler;
+        goto end_sendPackets;
     }
 
     for (Index = 0; Index < NumPacket; Index++) {
@@ -216,13 +213,13 @@ static int NewRequestHandler(
         if (rc == -1) {
             posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
             UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
-                       "NewRequestHandler: socket(): %s\n", errorBuffer);
+                       "sendPackets: socket(): %s\n", errorBuffer);
             ret = UPNP_E_SOCKET_WRITE;
-            goto end_NewRequestHandler;
+            goto end_sendPackets;
         }
     }
 
-end_NewRequestHandler:
+end_sendPackets:
     UpnpCloseSocket(ReplySock);
 
     return ret;
@@ -244,11 +241,7 @@ static int extractIPv6address(const char *url, char *address, int maxlen)
 	return 1;
 }
 
-/*!
- * \brief
- *
- * \return 1 if the Url contains an ULA or GUA IPv6 address, 0 otherwise.
- */
+/* Return 1 if the Url contains an ULA or GUA IPv6 address, 0 otherwise. */
 static int isUrlV6UlaGua(const char *descdocUrl)
 {
     char address[INET6_ADDRSTRLEN+10];
@@ -262,33 +255,10 @@ static int isUrlV6UlaGua(const char *descdocUrl)
     return 0;
 }
 
-/*!
- * \brief Creates a HTTP request packet. Depending on the input parameter,
- * it either creates a service advertisement request or service shutdown
- * request etc.
- */
+/* Creates a device notify or search reply packet. */
 static void CreateServicePacket(
-    /*! [in] type of the message (Search Reply, Advertisement
-     * or Shutdown). */
-    int msg_type,
-    /*! [in] ssdp type. */
-    const char *nt,
-    /*! [in] unique service name ( go in the HTTP Header). */
-    const char *usn,
-    /*! [in] Location URL. */
-    const char *location,
-    /*! [in] Service duration in sec. */
-    int duration,
-    /*! [out] Output buffer filled with HTTP statement. */
-    std::string &packet,
-    /*! [in] Address family of the HTTP request. */
-    int AddressFamily,
-    /*! [in] PowerState as defined by UPnP Low Power. */
-    int PowerState,
-    /*! [in] SleepPeriod as defined by UPnP Low Power. */
-    int SleepPeriod,
-    /*! [in] RegistrationState as defined by UPnP Low Power. */
-    int RegistrationState)
+    int msg_type, const char *nt, const char *usn, const char *location, int duration,
+    std::string &packet, int AddressFamily, int PowerState, int SleepPeriod, int RegistrationState)
 {
 	std::ostringstream str;
     if (msg_type == MSGTYPE_REPLY) {
@@ -307,7 +277,7 @@ static void CreateServicePacket(
 			"ST: " << nt << "\r\n" <<
 			"USN: " << usn << "\r\n";
 
-    } else if (msg_type == MSGTYPE_ADVERTISEMENT||msg_type == MSGTYPE_SHUTDOWN) {
+    } else if (msg_type == MSGTYPE_ADVERTISEMENT || msg_type == MSGTYPE_SHUTDOWN) {
 
 		const char *nts = (msg_type == MSGTYPE_ADVERTISEMENT) ?
 			"ssdp:alive" : "ssdp:byebye";
@@ -380,7 +350,7 @@ static bool setDestAddr(struct sockaddr_storage& __ss, const char *Location,
 	return true;
 }
 
-int DeviceAdvertisementOrShutdown(
+static int DeviceAdvertisementOrShutdown(
 	int msgtype, const char *DevType, int RootDev, const char *Udn, const char *Location,
 	int Duration, int AddressFamily, int PowerState,
 	int SleepPeriod, int RegistrationState)
@@ -424,10 +394,10 @@ int DeviceAdvertisementOrShutdown(
     /* send packets */
     if (RootDev) {
         /* send 3 msg types */
-        ret_code = NewRequestHandler(reinterpret_cast<struct sockaddr *>(&__ss), 3, &msgs[0]);
+        ret_code = sendPackets(reinterpret_cast<struct sockaddr *>(&__ss), 3, &msgs[0]);
     } else {        /* sub-device */
         /* send 2 msg types */
-        ret_code = NewRequestHandler(reinterpret_cast<struct sockaddr *>(&__ss), 2, &msgs[1]);
+        ret_code = sendPackets(reinterpret_cast<struct sockaddr *>(&__ss), 2, &msgs[1]);
     }
 
 error_handler:
@@ -435,16 +405,16 @@ error_handler:
 
 }
 
-int DeviceAdvertisement(const char *DevType, int RootDev, const char *Udn, const char *Location,
-                        int Duration, int AddressFamily, int PowerState,
-                        int SleepPeriod, int RegistrationState)
+static int DeviceAdvertisement(const char *DevType, int RootDev, const char *Udn,
+							   const char *Location, int Duration, int AddressFamily,
+							   int PowerState, int SleepPeriod, int RegistrationState)
 {
 	return DeviceAdvertisementOrShutdown(
 		MSGTYPE_ADVERTISEMENT, DevType, RootDev, Udn, Location,	Duration,
 		AddressFamily, PowerState, SleepPeriod, RegistrationState);
 }
 
-int DeviceShutdown(const char *DevType, int RootDev, const char *Udn,
+static int DeviceShutdown(const char *DevType, int RootDev, const char *Udn,
                    const char *Location, int Duration, int AddressFamily,
                    int PowerState, int SleepPeriod, int RegistrationState)
 {
@@ -453,9 +423,9 @@ int DeviceShutdown(const char *DevType, int RootDev, const char *Udn,
 		AddressFamily, PowerState, SleepPeriod, RegistrationState);
 }
 
-int SendReply(struct sockaddr *DestAddr, const char *DevType, int RootDev,
-              const char *Udn, const char *Location, int Duration, int ByType,
-              int PowerState, int SleepPeriod, int RegistrationState)
+static int SendReply(struct sockaddr *DestAddr, const char *DevType, int RootDev,
+					 const char *Udn, const char *Location, int Duration, int ByType,
+					 int PowerState, int SleepPeriod, int RegistrationState)
 {
     int ret_code = UPNP_E_OUTOF_MEMORY;
 	std::string msgs[2];
@@ -502,15 +472,15 @@ int SendReply(struct sockaddr *DestAddr, const char *DevType, int RootDev,
         }
     }
     /* send msgs */
-    ret_code = NewRequestHandler(DestAddr, num_msgs, msgs);
+    ret_code = sendPackets(DestAddr, num_msgs, msgs);
 
 error_handler:
     return ret_code;
 }
 
-int DeviceReply(struct sockaddr *DestAddr, const char *DevType, int RootDev,
-                const char *Udn, const char *Location, int Duration, int PowerState,
-                int SleepPeriod, int RegistrationState)
+static int DeviceReply(struct sockaddr *DestAddr, const char *DevType, int RootDev,
+					   const char *Udn, const char *Location, int Duration, int PowerState,
+					   int SleepPeriod, int RegistrationState)
 {
 	std::string szReq[3];
 	char Mil_Nt[LINE_SIZE], Mil_Usn[LINE_SIZE];
@@ -553,19 +523,18 @@ int DeviceReply(struct sockaddr *DestAddr, const char *DevType, int RootDev,
     }
     /* send replies */
     if (RootDev) {
-        RetVal = NewRequestHandler(DestAddr, 3, szReq);
+        RetVal = sendPackets(DestAddr, 3, szReq);
     } else {
-        RetVal = NewRequestHandler(DestAddr, 2, &szReq[1]);
+        RetVal = sendPackets(DestAddr, 2, &szReq[1]);
     }
 
 error_handler:
     return RetVal;
 }
 
-static int ServiceSend(
-	int tp, struct sockaddr *DestAddr, const char *ServType, const char *Udn,
-	const char *Location, int Duration, int PowerState, int SleepPeriod,
-	int RegistrationState)
+static int ServiceSend(int tp, struct sockaddr *DestAddr, const char *ServType, const char *Udn,
+					   const char *Location, int Duration, int PowerState, int SleepPeriod,
+					   int RegistrationState)
 {
     char Mil_Usn[LINE_SIZE];
 	std::string szReq[1];
@@ -580,19 +549,18 @@ static int ServiceSend(
                         PowerState, SleepPeriod, RegistrationState);
     if (szReq[0].empty())
         goto error_handler;
-    RetVal = NewRequestHandler(DestAddr, 1, szReq);
+    RetVal = sendPackets(DestAddr, 1, szReq);
 
 error_handler:
     return RetVal;
 }
 
-int ServiceReply(struct sockaddr *DestAddr, const char *ServType,
-				 const char *Udn, const char *Location, int Duration,
-				 int PowerState, int SleepPeriod, int RegistrationState)
+static int ServiceReply(struct sockaddr *DestAddr, const char *ServType,
+						const char *Udn, const char *Location, int Duration,
+						int PowerState, int SleepPeriod, int RegistrationState)
 {
-	return ServiceSend(
-		MSGTYPE_REPLY, DestAddr, ServType, Udn, Location,
-		Duration, PowerState, SleepPeriod, RegistrationState);
+	return ServiceSend(MSGTYPE_REPLY, DestAddr, ServType, Udn, Location,
+					   Duration, PowerState, SleepPeriod, RegistrationState);
 }
 
 static int ServiceAdvShut(int tp, const char *Udn, const char *ServType,
@@ -601,31 +569,251 @@ static int ServiceAdvShut(int tp, const char *Udn, const char *ServType,
 {
     struct sockaddr_storage __ss;
 	if (!setDestAddr(__ss, Location, AddressFamily)) {
-        UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-                   "Invalid device address family.\n");
+        UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__, "Invalid device address family.\n");
 		return UPNP_E_BAD_REQUEST;
 	}
-    return ServiceSend(
-		tp, reinterpret_cast<struct sockaddr *>(&__ss), ServType, Udn, Location,
-		Duration, PowerState, SleepPeriod, RegistrationState);
+    return ServiceSend(tp, reinterpret_cast<struct sockaddr *>(&__ss), ServType, Udn, Location,
+					   Duration, PowerState, SleepPeriod, RegistrationState);
 }
 
-int ServiceAdvertisement(const char *Udn, const char *ServType,
-						 const char *Location, int Duration, int AddressFamily,
-                         int PowerState, int SleepPeriod, int RegistrationState)
+static int ServiceAdvertisement(const char *Udn, const char *ServType,
+								const char *Location, int Duration, int AddressFamily,
+								int PowerState, int SleepPeriod, int RegistrationState)
 {
     return ServiceAdvShut(
 		MSGTYPE_ADVERTISEMENT, Udn, ServType, Location, Duration, AddressFamily,
 		PowerState, SleepPeriod, RegistrationState);
 }
 
-int ServiceShutdown(const char *Udn, const char *ServType, const char *Location,
+static int ServiceShutdown(const char *Udn, const char *ServType, const char *Location,
 					int Duration, int AddressFamily, int PowerState,
                     int SleepPeriod, int RegistrationState)
 {
     return ServiceAdvShut(
 		MSGTYPE_SHUTDOWN, Udn, ServType, Location, Duration, AddressFamily,
 		PowerState, SleepPeriod, RegistrationState);
+}
+
+int AdvertiseAndReply(int AdFlag, UpnpDevice_Handle Hnd,
+					  enum SsdpSearchType SearchType,
+					  struct sockaddr *DestAddr, char *DeviceType,
+					  char *DeviceUDN, char *ServiceType, int Exp)
+{
+	int retVal = UPNP_E_SUCCESS;
+	int defaultExp = DEFAULT_MAXAGE;
+	int NumCopy = 0;
+	std::vector<const UPnPDeviceDesc*> alldevices;
+
+	UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+			   "Inside AdvertiseAndReply: AdFlag = %d\n", AdFlag);
+
+	/* Use a read lock */
+	HandleReadLock();
+	struct Handle_Info *SInfo = nullptr;
+	if (GetHandleInfo(Hnd, &SInfo) != HND_DEVICE) {
+		retVal = UPNP_E_INVALID_HANDLE;
+		goto end_function;
+	}
+	defaultExp = SInfo->MaxAge;
+
+	// Store the root and embedded devices in a single vector for convenience
+	alldevices.push_back(&SInfo->devdesc);
+	for (const auto& dev : SInfo->devdesc.embedded) {
+		alldevices.push_back(&dev);
+	}
+
+	/* send advertisements/replies */
+	while (NumCopy == 0 || (AdFlag && NumCopy < NUM_SSDP_COPY)) {
+		if (NumCopy != 0)
+			std::this_thread::sleep_for(std::chrono::milliseconds(SSDP_PAUSE));
+		NumCopy++;
+
+		for (auto& devp : alldevices) {
+			bool isroot = &devp == &(*alldevices.begin());
+			const char *devType = devp->deviceType.c_str();
+			const char *UDNstr = devp->UDN.c_str();
+			if (AdFlag) {
+				/* send the device advertisement */
+				if (AdFlag == 1) {
+					DeviceAdvertisement(
+						devType, isroot, UDNstr, SInfo->DescURL, Exp,
+						SInfo->DeviceAf, SInfo->PowerState,	SInfo->SleepPeriod,
+						SInfo->RegistrationState);
+				} else {
+					/* AdFlag == -1 */
+					DeviceShutdown(
+						devType, isroot, UDNstr, SInfo->DescURL, Exp,
+						SInfo->DeviceAf, SInfo->PowerState, SInfo->SleepPeriod,
+						SInfo->RegistrationState);
+				}
+			} else {
+				switch (SearchType) {
+				case SSDP_ALL:
+					DeviceReply(
+						DestAddr, devType, isroot, UDNstr, SInfo->DescURL,
+						defaultExp, SInfo->PowerState, SInfo->SleepPeriod,
+						SInfo->RegistrationState);
+					break;
+				case SSDP_ROOTDEVICE:
+					if (isroot) {
+						SendReply(
+							DestAddr, devType, 1, UDNstr, SInfo->DescURL,
+							defaultExp, 0, SInfo->PowerState, SInfo->SleepPeriod,
+							SInfo->RegistrationState);
+					}
+					break;
+				case SSDP_DEVICEUDN: {
+					if (DeviceUDN && strlen(DeviceUDN)) {
+						if (strcasecmp(DeviceUDN, UDNstr) != 0) {
+							UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+									   "DeviceUDN=%s/search UDN=%s NOMATCH\n",
+									   UDNstr, DeviceUDN);
+							break;
+						}
+
+						UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+								   "DeviceUDN=%s/search UDN=%s MATCH\n",
+								   UDNstr, DeviceUDN);
+						SendReply(
+							DestAddr, devType, 0, UDNstr, SInfo->DescURL,
+							defaultExp, 0, SInfo->PowerState,
+							SInfo->SleepPeriod, SInfo->RegistrationState);
+						break;
+					}
+				}
+				case SSDP_DEVICETYPE: {
+					if (!strncasecmp(DeviceType,devType,strlen(DeviceType)-2)) {
+						if (atoi(strrchr(DeviceType, ':') + 1)
+						    < atoi(&devType[strlen(devType) - static_cast<size_t>(1)])) {
+							/* the requested version is lower than the
+							   device version must reply with the
+							   lower version number and the lower
+							   description URL */
+							UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+									   "DeviceType=%s/srchdevType=%s MATCH\n",
+									   devType, DeviceType);
+							SendReply(DestAddr, DeviceType, 0, UDNstr,
+									  SInfo->LowerDescURL, defaultExp, 1,
+									  SInfo->PowerState, SInfo->SleepPeriod,
+									  SInfo->RegistrationState);
+						} else if (atoi(strrchr(DeviceType, ':') + 1)
+								   == atoi(&devType[strlen(devType) - 1])) {
+							UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+									   "DeviceType=%s/srchDevType=%s MATCH\n",
+									   devType, DeviceType);
+							SendReply(DestAddr, DeviceType, 0,
+									  UDNstr, SInfo->DescURL, defaultExp, 1,
+									  SInfo->PowerState, SInfo->SleepPeriod,
+									  SInfo->RegistrationState);
+						} else {
+							UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+									   "DeviceType=%s/srchDevType=%s NOMATCH\n",
+									   devType, DeviceType);
+						}
+					} else {
+						UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+								   "DeviceType=%s /srchdevType=%s NOMATCH\n",
+								   devType, DeviceType);
+					}
+					break;
+				}
+				default:
+					break;
+				}
+			}
+
+			/* send service advertisements for services corresponding
+			 * to the same device */
+			UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+					   "Sending service advertisements\n");
+			/* Correct service traversal such that each device's serviceList
+			 * is directly traversed as a child of its parent device. This
+			 * ensures that the service's alive message uses the UDN of
+			 * the parent device. */
+			for (const auto& service : devp->services) {
+				const char *servType = service.serviceType.c_str();
+				UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+						   "ServiceType = %s\n", servType);
+				if (AdFlag) {
+					if (AdFlag == 1) {
+						ServiceAdvertisement(
+							UDNstr, servType, SInfo->DescURL, Exp,
+							SInfo->DeviceAf, SInfo->PowerState,
+							SInfo->SleepPeriod, SInfo->RegistrationState);
+					} else {
+						/* AdFlag == -1 */
+						ServiceShutdown(
+							UDNstr,	servType, SInfo->DescURL,
+							Exp, SInfo->DeviceAf, SInfo->PowerState,
+							SInfo->SleepPeriod,	SInfo->RegistrationState);
+					}
+				} else {
+					switch (SearchType) {
+					case SSDP_ALL:
+						ServiceReply(DestAddr, servType, UDNstr,
+									 SInfo->DescURL, defaultExp,
+									 SInfo->PowerState, SInfo->SleepPeriod,
+									 SInfo->RegistrationState);
+						break;
+					case SSDP_SERVICE:
+						if (ServiceType) {
+							if (!strncasecmp(ServiceType, servType,
+											 strlen(ServiceType) - 2)) {
+								if (atoi(strrchr(ServiceType, ':') + 1) <
+								    atoi(&servType[strlen(servType) - 1])) {
+									/* the requested version is lower
+									   than the service version must
+									   reply with the lower version
+									   number and the lower
+									   description URL */
+									UpnpPrintf(
+										UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+										"ServiceTp=%s/searchServTp=%s MATCH\n",
+										ServiceType, servType);
+									SendReply(DestAddr, ServiceType, 0, UDNstr,
+											  SInfo->LowerDescURL, defaultExp, 1,
+											  SInfo->PowerState,
+											  SInfo->SleepPeriod,
+											  SInfo->RegistrationState);
+								} else if (
+									atoi(strrchr (ServiceType, ':') + 1)
+									== atoi(&servType[strlen(servType) - 1])) {
+									UpnpPrintf(
+										UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+										"ServiceTp=%s/searchServTp=%s MATCH\n",
+										ServiceType, servType);
+									SendReply(DestAddr, ServiceType, 0, UDNstr,
+											  SInfo->DescURL, defaultExp, 1,
+											  SInfo->PowerState,
+											  SInfo->SleepPeriod,
+											  SInfo->RegistrationState);
+								} else {
+									UpnpPrintf(
+										UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+										"ServiceTp=%s/srchServTp=%s NO MATCH\n",
+										ServiceType, servType);
+								}
+							} else {
+								UpnpPrintf(
+									UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+									"ServiceTp=%s/srchServTp=%s NO MATCH\n",
+									ServiceType, servType);
+							}
+						}
+						break;
+					default:
+						break;
+					}
+				}
+			}
+		}
+	}
+
+end_function:
+	UpnpPrintf(UPNP_ALL, SSDP, __FILE__, __LINE__, "AdvertiseAndReply exit\n");
+	HandleUnlock();
+
+	return retVal;
 }
 
 #endif /* EXCLUDE_SSDP */
