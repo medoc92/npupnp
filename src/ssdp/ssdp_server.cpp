@@ -208,16 +208,19 @@ static void *thread_ssdp_event_handler(void *the_data)
 {
 	auto data = static_cast<ssdp_thread_data *>(the_data);
 
+	std::cerr << "thread_ssdp_event: got data:\n" << data->packet << "\n";
 	// The parser takes ownership of the buffer
 	SSDPPacketParser parser(data->packet);
 	data->packet = nullptr;
 	if (!parser.parse()) {
+		std::cerr << "thread_ssdp_event: parser failed\n";
 		UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,	"SSDP parser error\n");
 		return nullptr;
 	}
 
 	http_method_t method = valid_ssdp_msg(parser);
 	if (method == HTTPMETHOD_UNKNOWN) {
+		std::cerr << "thread_ssdp_event: unknown method\n";
 		return nullptr;
 	}
 

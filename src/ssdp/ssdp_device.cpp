@@ -91,15 +91,21 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
     int maxAge;
 
     /* check man hdr. */
-    if (!parser.man || strcmp(parser.man, "\"ssdp:discover\"") != 0)
+    if (!parser.man || strcmp(parser.man, "\"ssdp:discover\"") != 0) {
         /* bad or missing hdr. */
+		std::cerr << "ssdp_handle_device_req: no/bad MAN header\n";
         return;
+	}
     /* MX header. Must be >= 1*/
-    if (!parser.mx || (mx = atoi(parser.mx)) <= 0)
+    if (!parser.mx || (mx = atoi(parser.mx)) <= 0) {
+		std::cerr << "ssdp_handle_device_req: no/bad MX header\n";
         return;
+	}
     /* ST header. */
-    if (!parser.st || ssdp_request_type(parser.st, &event) == -1)
+    if (!parser.st || ssdp_request_type(parser.st, &event) == -1) {
+		std::cerr << "ssdp_handle_device_req: no/bad ST header\n";
         return;
+	}
 
 	// Loop to dispatch the packet to each of our configured devices
 	// by starting the handle search at the last processed
@@ -148,6 +154,8 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
         if (mx < 1)
             mx = 1;
         replyTime = rand() % mx;
+		std::cerr << "ssdp_handle_device_req: scheduling resp in " <<
+			replyTime << "S\n";
         gTimerThread->schedule(
 			TimerThread::SHORT_TERM, TimerThread::REL_SEC, replyTime, nullptr,
 			thread_advertiseandreply, threadArg,
@@ -157,7 +165,8 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
 }
 
 /* Send the device packet to the network */
-static int sendPackets(struct sockaddr *DestAddr, int NumPacket, std::string *RqPacket)
+static int sendPackets(struct sockaddr *DestAddr, int NumPacket,
+					   std::string *RqPacket)
 {
     char errorBuffer[ERROR_BUFFER_LEN];
     SOCKET ReplySock;
@@ -202,6 +211,7 @@ static int sendPackets(struct sockaddr *DestAddr, int NumPacket, std::string *Rq
         break;
 #endif
     default:
+		std::cerr << "SSDP send: bad dest address \n";
         UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
                    "Invalid destination address specified.");
         ret = UPNP_E_NETWORK_ERROR;
@@ -216,6 +226,7 @@ static int sendPackets(struct sockaddr *DestAddr, int NumPacket, std::string *Rq
         rc = sendto(ReplySock, RqPacket[Index].c_str(),
                     RqPacket[Index].size(), 0, DestAddr, socklen);
         if (rc == -1) {
+			std::cerr << "SSDP: sendto " << buf_ntop << " failed\n";
             posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
             UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
                        "sendPackets: socket(): %s\n", errorBuffer);
