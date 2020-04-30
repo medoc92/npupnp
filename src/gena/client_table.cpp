@@ -51,23 +51,30 @@ void RemoveClientSubClientSID(std::list<ClientSubscription>& lst,
 	}
 }
 
-ClientSubscription *GetClientSubClientSID(std::list<ClientSubscription>& lst,
-										  const std::string& sid)
+ClientSubscription *GetClientSubClientSID(
+	std::list<ClientSubscription>& lst, const std::string& sid)
 {
-	auto i = std::find_if(lst.begin(), lst.end(), [&](const ClientSubscription &entry)
-		{ return entry.SID == sid; });
-
-	return &(*i);
+	if (lst.empty()) {
+		return nullptr;
+	}
+	auto i = std::find_if(lst.begin(), lst.end(),
+						  [&](const ClientSubscription &entry) {
+							  return entry.SID == sid;});
+	return i == lst.end() ? nullptr : &(*i);
 }
 
+#include <iostream>
 
-ClientSubscription *GetClientSubActualSID(std::list<ClientSubscription>& lst,
-										  const std::string& sid)
+ClientSubscription *GetClientSubActualSID(
+	std::list<ClientSubscription>& lst, const std::string& sid)
 {
-	auto i = std::find_if(lst.begin(), lst.end(), [&](const ClientSubscription &entry)
-		{ return entry.actualSID == sid; });
-
-	return &(*i);
+	if (lst.empty()) {
+		return nullptr;
+	}
+	auto i = std::find_if(lst.begin(), lst.end(),
+						  [&](const ClientSubscription &entry) {
+							  return entry.actualSID == sid;});
+	return i == lst.end() ? nullptr : &(*i);
 }
 
 #endif /* EXCLUDE_GENA */

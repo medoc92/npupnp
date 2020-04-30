@@ -579,11 +579,15 @@ std::vector<Interface> Interfaces::select(const Filter& filt) const
 
 Interface *Interfaces::findByName(const char *nm) const
 {
-	auto it = std::find_if(m->interfaces.begin(), m->interfaces.end(),
-						   [nm] (const Interface& ifr) {
-							   return nm == ifr.m->name ||
-								   nm == ifr.m->friendlyname;});
-	return &(*it);
+	if (m->interfaces.empty()) {
+		return nullptr;
+	}
+	auto it = std::find_if(
+		m->interfaces.begin(), m->interfaces.end(),
+		[nm] (const Interface& ifr) {
+			return nm == ifr.m->name || nm == ifr.m->friendlyname;});
+
+	return it == m->interfaces.end() ? nullptr : &(*it);
 }
 
 } /* namespace NetIF */

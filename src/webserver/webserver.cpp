@@ -378,14 +378,18 @@ void web_server_clear_virtual_dirs()
  */
 static const VirtualDirListEntry *isFileInVirtualDir(const std::string& path)
 {
-        // We ensure that vd entries paths end with /. Meaning that if
-        // the paths compare equal up to the vd path len, the input
-        // path is in a subdir of the vd path.
+	// We ensure that vd entries paths end with /. Meaning that if
+	// the paths compare equal up to the vd path len, the input
+	// path is in a subdir of the vd path.
+	if (virtualDirList.empty()) {
+		return nullptr;
+	}
+	auto i = std::find_if(
+		virtualDirList.begin(), virtualDirList.end(),
+		[&](const VirtualDirListEntry &vd) {
+			return !vd.path.compare(0,vd.path.size(), path, 0,vd.path.size());});
 
-	auto i = std::find_if(virtualDirList.begin(), virtualDirList.end(), [&](const VirtualDirListEntry &vd)
-		{ return !vd.path.compare(0, vd.path.size(), path, 0, vd.path.size()); });
-
-	return &(*i);
+	return i == virtualDirList.end() ? nullptr : &(*i);
 }
 
 /* Parse a Range header */
