@@ -34,6 +34,13 @@
 
 #if EXCLUDE_MINISERVER == 0
 
+/* MHD has a bug where dead connections are never cleaned up if we use
+   it with NO_LISTEN_SOCKET and add_connection(). So we let it listen
+   on the webserver socket (and possibly still use add_connection()
+   for ipv6 connections */
+#define LET_MHD_LISTEN_ON_SOCK4 1
+
+
 /*!
  * \file
  *
@@ -268,35 +275,38 @@ static int answer_to_connection(
 static void web_server_accept(SOCKET lsock, fd_set *set)
 {
 #ifdef INTERNAL_WEB_SERVER
-	SOCKET asock;
-	socklen_t clientLen;
-	struct sockaddr_storage clientAddr;
-	char errorBuffer[ERROR_BUFFER_LEN];
 
-	if (lsock != INVALID_SOCKET && FD_ISSET(lsock, set)) {
-		clientLen = sizeof(clientAddr);
-		asock = accept(lsock, reinterpret_cast<struct sockaddr *>(&clientAddr), &clientLen);
-		if (asock == INVALID_SOCKET) {
-			posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-			UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
-					   "miniserver: accept(): %s\n", errorBuffer);
-		} else {
-			if (MHD_add_connection(mhd,asock, reinterpret_cast<struct sockaddr*>(&clientAddr),
-								   clientLen) != MHD_YES) {
-				UpnpPrintf(UPNP_ERROR, MSERV, __FILE__, __LINE__,
-						   "web_server_accept: MHD_add_connection failed\n");
-			}
+	if (lsock == INVALID_SOCKET || !FD_ISSET(lsock, set)) {
+		return;
+	}
+
+	struct sockaddr_storage clientAddr;
+	auto sap = reinterpret_cast<struct sockaddr *>(&clientAddr);
+	socklen_t saddrlen = sizeof(clientAddr);
+
+	SOCKET asock = accept(lsock, sap, &saddrlen);
+
+	if (asock == INVALID_SOCKET) {
+		char errorBuffer[ERROR_BUFFER_LEN];
+		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
+		UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+				   "miniserver: accept(): %s\n", errorBuffer);
+		return;
+	}
+
+	if (MHD_add_connection(	mhd, asock, sap, saddrlen) != MHD_YES) {
+		UpnpPrintf(UPNP_ERROR, MSERV, __FILE__, __LINE__,
+				   "web_server_accept: MHD_add_connection failed\n");
+	}
 
 #if 1
-			const union MHD_DaemonInfo *info = 
-				MHD_get_daemon_info(mhd, MHD_DAEMON_INFO_CURRENT_CONNECTIONS);
-			if (info) {
-				UpnpPrintf(UPNP_ALL, MSERV, __FILE__, __LINE__,
-						   "MHD connection count: %d\n", info->num_connections);
-			}
-#endif
-		}
+	const union MHD_DaemonInfo *info = 
+		MHD_get_daemon_info(mhd, MHD_DAEMON_INFO_CURRENT_CONNECTIONS);
+	if (info) {
+		UpnpPrintf(UPNP_ALL, MSERV, __FILE__, __LINE__,
+				   "MHD connection count: %d\n", info->num_connections);
 	}
+#endif
 #endif /* INTERNAL_WEB_SERVER */
 }
 
@@ -338,12 +348,6 @@ static int receive_from_stopSock(SOCKET ssock, fd_set *set)
 
 	return 0;
 }
-
-/* MHD has a bug where dead connections are never cleaned up if we use
-   it with NO_LISTEN_SOCKET and add_connection(). So we let it listen
-   on the webserver socket (and possibly still use add_connection()
-   for ipv6 connections */
-#define LET_MHD_LISTEN_ON_SOCK4 1
 
 /*!
  * \brief Run the miniserver.
