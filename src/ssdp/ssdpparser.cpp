@@ -203,7 +203,7 @@ bool SSDPPacketParser::parse()
 		}
 #else
 		if (!known) {
-			UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
+			UpnpPrintf(UPNP_ALL, SSDP, __FILE__, __LINE__,
 					   "SSDP parser: unknown header name [%s]\n", nm);
 		}			
 #endif

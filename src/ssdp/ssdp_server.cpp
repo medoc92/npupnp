@@ -42,7 +42,7 @@
 #include "ThreadPool.h"
 #include "upnpapi.h"
 #include "smallut.h"
-#include "inet_pton.h"
+#include "netif.h"
 
 #include <chrono>
 #include <cstdio>
@@ -203,9 +203,7 @@ static http_method_t valid_ssdp_msg(SSDPPacketParser& parser)
 	return method;
 }
 
-/*!
- * \brief This function is a thread that handles SSDP requests.
- */
+/* Thread routine to process one received SSDP message */
 static void *thread_ssdp_event_handler(void *the_data)
 {
 	auto data = static_cast<ssdp_thread_data *>(the_data);
@@ -223,7 +221,7 @@ static void *thread_ssdp_event_handler(void *the_data)
 		return nullptr;
 	}
 
-	/* send msg to device or ctrlpt */
+	/* Dispatch message to device or ctrlpt */
 	if (method == HTTPMETHOD_NOTIFY ||
 		(parser.isresponse && method == HTTPMETHOD_MSEARCH)) {
 #ifdef INCLUDE_CLIENT_APIS
@@ -237,57 +235,38 @@ static void *thread_ssdp_event_handler(void *the_data)
 
 void readFromSSDPSocket(SOCKET socket)
 {
-	struct sockaddr_storage __ss;
-	ssdp_thread_data *data = nullptr;
-	socklen_t socklen = sizeof(__ss);
-	ssize_t byteReceived = 0;
-
-	data = static_cast<ssdp_thread_data*>(malloc(sizeof(ssdp_thread_data)));
+	ssdp_thread_data *data = 
+		static_cast<ssdp_thread_data*>(malloc(sizeof(ssdp_thread_data)));
 	if (!data) {
-		fprintf(stderr, "Out of memory in readFromSSDPSocket\n");
+		std::cerr << "Out of memory in readFromSSDPSocket\n";
 		abort();
 	}
 	data->packet = static_cast<char*>(malloc(BUFSIZE));
 	if (!data->packet) {
-		fprintf(stderr, "Out of memory in readFromSSDPSocket\n");
+		std::cerr << "Out of memory in readFromSSDPSocket\n";
 		abort();
 	}
 	
-	byteReceived = recvfrom(socket, data->packet, BUFSIZE - 1, 0,
-							reinterpret_cast<struct sockaddr *>(&__ss), &socklen);
-	if (byteReceived > 0) {
-		data->packet[byteReceived] = '\0';
-
-		char ntop_buf[INET6_ADDRSTRLEN];
-		switch (__ss.ss_family) {
-		case AF_INET:
-			inet_ntop(AF_INET,
-					  &(reinterpret_cast<struct sockaddr_in *>(&__ss))->sin_addr,
-					  ntop_buf, sizeof(ntop_buf));
-			break;
-#ifdef UPNP_ENABLE_IPV6
-		case AF_INET6:
-			inet_ntop(AF_INET6,
-					  &(reinterpret_cast<struct sockaddr_in6 *>(&__ss))->sin6_addr,
-					  ntop_buf, sizeof(ntop_buf));
-			break;
-#endif /* UPNP_ENABLE_IPV6 */
-		default:
-			upnp_strlcpy(ntop_buf, "<Invalid address family>", sizeof(ntop_buf));
-		}
-		UpnpPrintf(
-			UPNP_DEBUG, SSDP, __FILE__, __LINE__,
-			"Start of received response ----------------------------------\n"
-			"%s\n"
-			"End of received response ------------------------------------\n"
-			"From host %s\n", data->packet, ntop_buf);
-
+	struct sockaddr_storage saddr;
+	struct sockaddr *sap = reinterpret_cast<struct sockaddr *>(&saddr);
+	socklen_t socklen = sizeof(saddr);
+	ssize_t cnt = recvfrom(socket, data->packet, BUFSIZE - 1, 0, sap, &socklen);
+	if (cnt > 0) {
+		data->packet[cnt] = '\0';
+		NetIF::IPAddr nipa(sap);
+		UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
+				   "\nSSDP message from host %s --------------------\n"
+				   "%s\n"
+				   "End of received data -----------------------------\n",
+				   nipa.straddr().c_str(), data->packet);
 		/* add thread pool job to handle request */
-		memcpy(&data->dest_addr, &__ss, sizeof(__ss));
+		memcpy(&data->dest_addr, &saddr, sizeof(saddr));
 		if (gRecvThreadPool.addJob(thread_ssdp_event_handler, data,
 								   free_ssdp_event_handler_data) != 0) {
 			free_ssdp_event_handler_data(data);
 		}
+	} else {
+		free_ssdp_event_handler_data(data);
 	}
 }
 

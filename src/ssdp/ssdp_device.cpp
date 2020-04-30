@@ -53,6 +53,7 @@
 #include <sstream>
 #include <string>
 #include <thread>
+#include <algorithm>
 
 #define MSGTYPE_SHUTDOWN    0
 #define MSGTYPE_ADVERTISEMENT   1
@@ -77,8 +78,6 @@ static void* thread_advertiseandreply(void *data)
 	return nullptr;
 }
 
-#define MAXVAL(a, b) ( (a) > (b) ? (a) : (b) )
-
 void ssdp_handle_device_request(SSDPPacketParser& parser,
 								struct sockaddr_storage *dest_addr)
 {
@@ -102,11 +101,15 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
     if (!parser.st || ssdp_request_type(parser.st, &event) == -1)
         return;
 
+	// Loop to dispatch the packet to each of our configured devices
+	// by starting the handle search at the last processed
+	// position. each device response is scheduled by the ThreadPool
+	// with a random delay based on the MX header of the search packet.
     start = 0;
     for (;;) {
         HandleLock();
         /* device info. */
-        switch (GetDeviceHandleInfo(start, static_cast<int>(dest_addr->ss_family),
+        switch (GetDeviceHandleInfo(start,static_cast<int>(dest_addr->ss_family),
                                     &handle, &dev_info)) {
         case HND_DEVICE:
             break;
@@ -128,7 +131,8 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
                    "DeviceUuid   =  %s\n", event.UDN);
         UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
                    "ServiceType =  %s\n", event.ServiceType);
-        threadArg = static_cast<SsdpSearchReply *>(malloc(sizeof(SsdpSearchReply)));
+        threadArg =
+			static_cast<SsdpSearchReply *>(malloc(sizeof(SsdpSearchReply)));
         if (threadArg == nullptr)
             return;
         threadArg->handle = handle;
@@ -140,13 +144,14 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
          * delays (i.e. if search is for 30 seconds, respond
          * within 0 - 27 seconds). */
         if (mx >= 2)
-            mx -= MAXVAL(1, mx / MX_FUDGE_FACTOR);
+            mx -= std::max(1, mx / MX_FUDGE_FACTOR);
         if (mx < 1)
             mx = 1;
         replyTime = rand() % mx;
         gTimerThread->schedule(
 			TimerThread::SHORT_TERM, TimerThread::REL_SEC, replyTime, nullptr,
-			thread_advertiseandreply, threadArg, static_cast<ThreadPool::free_routine>(free));
+			thread_advertiseandreply, threadArg,
+			static_cast<ThreadPool::free_routine>(free));
         start = handle;
     }
 }
