@@ -82,9 +82,9 @@ IPAddr& IPAddr::operator=(const IPAddr& o)
 IPAddr::IPAddr(const char *caddr)
 	: IPAddr()
 {
-	memset(&m->address, 0, sizeof(m->address));
+	std::memset(&m->address, 0, sizeof(m->address));
 	
-	if (strchr(caddr, ':') != nullptr) {
+	if (std::strchr(caddr, ':') != nullptr) {
 		if (inet_pton(
 				AF_INET6, caddr,
 				&reinterpret_cast<struct sockaddr_in6*>(m->saddr)->sin6_addr)
