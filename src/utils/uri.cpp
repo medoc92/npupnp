@@ -180,7 +180,7 @@ static int parse_hostport(
 	case AF_INET6:
 		sai6->sin6_family = static_cast<sa_family_t>(af);
 		sai6->sin6_port = htons(port);
-		sai6->sin6_scope_id = gIF_INDEX;
+		sai6->sin6_scope_id = apiFirstIPV6Index();
 		ret = inet_pton(AF_INET6, srvname, &sai6->sin6_addr);
 		break;
 	default:

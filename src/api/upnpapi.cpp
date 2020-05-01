@@ -107,26 +107,14 @@ static std::vector<std::pair<ThreadPool *, const char *> > o_threadpools{
 /*! Flag to indicate the state of web server */
 WebServerState bWebServerState = WEB_SERVER_DISABLED;
 
-/*! Static buffer to contain interface IPv4 address. (extern'ed in upnp.h) */
-char gIF_IPV4[INET_ADDRSTRLEN] = { '\0' };
+/* Interfaces we are using */
+std::vector<NetIF::Interface> g_netifs;
 
-/*! Static buffer to contain interface IPv6 address. (extern'ed in upnp.h) */
-char gIF_IPV6[INET6_ADDRSTRLEN] = { '\0' };
-
-/*! Static buffer to contain interface ULA or GUA IPv6 address. (extern'ed 
-  in upnp.h) */
-/* NPUPNP NOTE: in pupnp, this was set by the non-getifaddr code which
-   is used on Linux, but not by the BSD or Windows versions. We're
-   only doing getifaddrs or Windows at this point, so this is never
-   set. To be fixed if needed. */
-char gIF_IPV6_ULA_GUA[INET6_ADDRSTRLEN] = { '\0' };
-
-/*! Contains interface index. V6 scope id or such. (extern'ed in upnp.h) */
-unsigned gIF_INDEX = static_cast<unsigned>(-1);
+/* Marker to be replaced by an appropriate address in LOCATION URLs */
+const std::string g_HostForTemplate{"@HOST_ADDR_FOR@"};
 
 /*! local IPv4 port for the mini-server */
 unsigned short LOCAL_PORT_V4;
-
 /*! local IPv6 port for the mini-server */
 unsigned short LOCAL_PORT_V6;
 
@@ -176,17 +164,42 @@ int UpnpSdkDeviceregisteredV6 = 0;
 Upnp_SID gUpnpSdkNLSuuid;
 #endif /* UPNP_HAVE_OPTSSDP */
 
-/* Find an appropriate interface (possibly specified in input) and set
- * the global IP addresses and interface names. The interface must fulfill 
- * these requirements:
+// Functions to retrieve an address from our interface(s) when we don't care
+// which.
+std::string apiFirstIPV4Str()
+{
+	if (g_netifs.empty())
+		return std::string();
+	const NetIF::IPAddr *a = g_netifs.begin()->firstipv4addr();
+	if (nullptr == a)
+		return std::string();
+	return a->straddr();
+}
+std::string apiFirstIPV6Str()
+{
+	if (g_netifs.empty())
+		return std::string();
+	const NetIF::IPAddr *a = g_netifs.begin()->firstipv6addr();
+	if (nullptr == a)
+		return std::string();
+	return a->straddr();
+}
+int apiFirstIPV6Index()
+{
+	for (const auto& netif : g_netifs) {
+		if (netif.hasflag(NetIF::Interface::Flags::HASIPV6)) {
+			return netif.getindex();
+		}
+	}
+	return 0;
+}
+
+/* Find either the specified interface or the first appropriate interface
+ * The interface must fulfill these requirements:
  *  UP / Not LOOPBACK / Support MULTICAST / valid IPv4 or IPv6 address.
  *
  * We'll retrieve the following information from the interface:
- *  gIF_IPV4 -> IPv4 address (if any).
- *  gIF_IPV6 -> IPv6 address (if any).
- *  gIF_IPV6_ULA_GUA -> ULA or GUA IPv6 address (if any)
- *  gIF_INDEX -> Interface index number. For v6 sin6_scope_id
-*/
+ */
 int UpnpGetIfInfo(const char *IfName)
 {
 	NetIF::Interfaces *ifs = NetIF::Interfaces::theInterfaces();
@@ -210,33 +223,32 @@ int UpnpGetIfInfo(const char *IfName)
 				   "No adapter with usable IP addresses.\n");
 		return UPNP_E_INVALID_INTERFACE;
 	}
-	gIF_INDEX = netifp->getindex();
+	std::string v4addr;
 	if (netifp->hasflag(NetIF::Interface::Flags::HASIPV4)) {
 		const NetIF::IPAddr *addr = netifp->firstipv4addr();
 		if (nullptr != addr) {
-			std::string sa = addr->straddr();
-			upnp_strlcpy(gIF_IPV4, sa.c_str(), sizeof(gIF_IPV4));
+			v4addr = addr->straddr();
 		}
 	}
+	std::string v6addr;
 	if (netifp->hasflag(NetIF::Interface::Flags::HASIPV6)) {
 		const NetIF::IPAddr *addr =
 			netifp->firstipv6addr(NetIF::IPAddr::Scope::LINK);
 		if (nullptr != addr) {
-			std::string sa = addr->straddr();
-			upnp_strlcpy(gIF_IPV6, sa.c_str(), sizeof(gIF_IPV6));
+			v6addr = addr->straddr();
 		} 
 	}
 
-	if (gIF_IPV4[0] == 0 && gIF_IPV6[0] == 0) {
+	if (v4addr.empty() && v6addr.empty()) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
 				   "No usable IP addresses were found.\n");
 		return UPNP_E_INVALID_INTERFACE;
 	}
-	
+	g_netifs.emplace_back(*netifp);
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-			   "Ifname=%s, index=%d, v4=%s, v6=%s, ULA/GUA v6=%s\n",
-			   netifp->getname().c_str(), gIF_INDEX, gIF_IPV4, gIF_IPV6,
-			   gIF_IPV6_ULA_GUA);
+			   "Ifname=%s, index=%d, v4=%s, v6=%s\n",
+			   netifp->getname().c_str(), netifp->getindex(),
+			   v4addr.c_str(), v6addr.c_str());
 
 	return UPNP_E_SUCCESS;
 }
@@ -245,7 +257,7 @@ int UpnpGetIfInfo(const char *IfName)
    and if the interface is specified, it's done by IP address. We are
    called if the address was not specified, and select the first ipv4
    we find */
-static int getmyipv4()
+static int getmyipv4(const char *inipv4 = nullptr)
 {
 	NetIF::Interfaces *ifs = NetIF::Interfaces::theInterfaces();
 	NetIF::Interface *netifp{nullptr};
@@ -254,25 +266,43 @@ static int getmyipv4()
 			 .rejects={NetIF::Interface::Flags::LOOPBACK}
 	};
 	std::vector<NetIF::Interface> selected = ifs->select(filt);
-	if (!selected.empty()) {
-		netifp = &selected[0];
-	}
-	if (nullptr == netifp) {
+	if (selected.empty()) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
 				   "No adapter with usable IPV4 address.\n");
 		return UPNP_E_INVALID_INTERFACE;
 	}
-	if (netifp->hasflag(NetIF::Interface::Flags::HASIPV4)) {
-		const NetIF::IPAddr *addr = netifp->firstipv4addr();
-		if (nullptr != addr) {
-			std::string sa = addr->straddr();
-			upnp_strlcpy(gIF_IPV4, sa.c_str(), sizeof(gIF_IPV4));
-			UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Ifname=%s, v4=%s\n",
-					   netifp->getname().c_str(), gIF_IPV4);
-			return UPNP_E_SUCCESS;
+
+	if (inipv4) {
+		for (auto& iface : selected) {
+			const auto addrs = iface.getaddresses().first;
+			for (const auto& addr : addrs) {
+				if (addr.straddr() == inipv4) {
+					netifp = &iface;
+					goto ipv4found;
+				}
+			}
+		}
+	ipv4found:
+		if (nullptr == netifp) {
+			UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
+					   "No adapter found with specified IPV4 address.\n");
+			return UPNP_E_INVALID_INTERFACE;
 		}
 	}
-	return UPNP_E_INVALID_INTERFACE;
+	
+	const NetIF::IPAddr *addr{nullptr};
+	if (nullptr != netifp && netifp->hasflag(NetIF::Interface::Flags::HASIPV4)) {
+		addr = netifp->firstipv4addr();
+	}
+	if (nullptr == addr) {
+		// can't happen, really
+		return UPNP_E_INVALID_INTERFACE;
+	}
+
+	g_netifs.push_back(*netifp);
+	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Ifname=%s, v4=%s\n",
+			   netifp->getname().c_str(), addr->straddr().c_str());
+	return UPNP_E_SUCCESS;
 }
 
 /* Initializes the Windows Winsock library. */
@@ -461,13 +491,9 @@ static int upnpInitCommonV4V6(bool dov6, const char *HostIP,
 		}
 	} else {
 		/* Verify HostIP, if provided, or find it ourselves. */
-		if (HostIP != nullptr) {
-			upnp_strlcpy(gIF_IPV4, HostIP, sizeof(gIF_IPV4));
-		} else {
-			if (getmyipv4() != UPNP_E_SUCCESS){
-				retVal = UPNP_E_INIT_FAILED;
-				goto exit_function;
-			}
+		if (getmyipv4(HostIP) != UPNP_E_SUCCESS){
+			retVal = UPNP_E_INIT_FAILED;
+			goto exit_function;
 		}
 	}
 	
@@ -481,7 +507,8 @@ static int upnpInitCommonV4V6(bool dov6, const char *HostIP,
 	}
 
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-			   "UpnPInit output: Host Ip: %s Host Port: %d\n", gIF_IPV4,
+			   "UpnPInit output: Host Ip: %s Host Port: %d\n",
+			   g_netifs.begin()->firstipv4addr()->straddr().c_str(),
 			   static_cast<int>(LOCAL_PORT_V4));
 
 exit_function:
@@ -631,24 +658,19 @@ const char *UpnpGetServerIpAddress()
 {
 	if (UpnpSdkInit != 1)
 		return nullptr;
-
-	return gIF_IPV4;
+	return apiFirstIPV4Str().c_str();
 }
 
 const char *UpnpGetServerIp6Address()
 {
-	if (UpnpSdkInit != 1)
+	if (UpnpSdkInit != 1 || nullptr == g_netifs.begin()->firstipv6addr())
 		return nullptr;
-
-	return gIF_IPV6;
+	return apiFirstIPV6Str().c_str();
 }
 
 const char *UpnpGetServerUlaGuaIp6Address()
 {
-	if (UpnpSdkInit != 1)
-		return nullptr;
-
-	return gIF_IPV6_ULA_GUA;
+	return "";
 }
 
 /*!
@@ -1032,19 +1054,20 @@ out:
 	return ret;
 }
 
-static std::string descurl(int AddressFamily, const std::string& nm)
+static std::string descurl(int family, const std::string& nm)
 {
 	std::ostringstream url;
-	url << "http://";
-	if (AddressFamily == AF_INET) {
-		url << gIF_IPV4 << ":" << LOCAL_PORT_V4;
-	} else {
-		url << gIF_IPV6 << ":" << LOCAL_PORT_V6;
-	}
-	url << "/" << nm;
+	url << "http://" << g_HostForTemplate << ":" <<
+		(family == AF_INET ? LOCAL_PORT_V4 : LOCAL_PORT_V6) << "/" << nm;
 	return url.str();
 }
 	
+/* We do not support an URLBase set inside the description document.
+   This was advised against in upnp 1.0 and forbidden in 1.1.  Also,
+   we always server the description document internally, even if it's
+   supplied as an URL: needed in future multi-if for adjusting the
+   host according to what interface we are speaking on.
+ */
 static int GetDescDocumentAndURL(
 	Upnp_DescType descriptionType,
 	char *description,
@@ -1057,8 +1080,6 @@ static int GetDescDocumentAndURL(
 	if (!description || !*description)
 		return UPNP_E_INVALID_PARAM;
 
-	/* We do not support an URLBase set inside the description document. 
-	   This was advised against in upnp 1.0 and forbidden in 1.1 */
 	std::string localurl;
 	std::string simplename;
 	std::string descdata;
@@ -1069,7 +1090,6 @@ static int GetDescDocumentAndURL(
 		if (strlen(description) > LINE_SIZE - 1) {
 			return UPNP_E_URL_TOO_BIG;
 		}
-		upnp_strlcpy(descURL, description, LINE_SIZE);
 		char *descstr;
 		retVal = UpnpDownloadUrlItem(description, &descstr, nullptr);
 		if (retVal != UPNP_E_SUCCESS) {
@@ -1078,8 +1098,10 @@ static int GetDescDocumentAndURL(
 					   retVal);
 			return retVal;
 		}
-		desc = UPnPDeviceDesc(description, descstr);
+		descdata = descstr;
 		free(descstr);
+		simplename = "description.xml";
+		localurl = descurl(AddressFamily, "description.xml");
 	}
 	break;
 	case UPNPREG_FILENAME_DESC:

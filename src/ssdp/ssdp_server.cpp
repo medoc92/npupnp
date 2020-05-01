@@ -282,7 +282,6 @@ static int create_ssdp_sock_v4(SOCKET *ssdpSock)
 	struct sockaddr_storage __ss;
 	auto ssdpAddr4 = reinterpret_cast<struct sockaddr_in *>(&__ss);
 	int ret = 0;
-	struct in_addr addr;
 
 	*ssdpSock = socket(AF_INET, SOCK_DGRAM, 0);
 	if (*ssdpSock == INVALID_SOCKET) {
@@ -318,7 +317,8 @@ static int create_ssdp_sock_v4(SOCKET *ssdpSock)
 	ssdpAddr4->sin_family = static_cast<sa_family_t>(AF_INET);
 	ssdpAddr4->sin_addr.s_addr = htonl(INADDR_ANY);
 	ssdpAddr4->sin_port = htons(SSDP_PORT);
-	ret = bind(*ssdpSock, reinterpret_cast<struct sockaddr *>(ssdpAddr4), sizeof(*ssdpAddr4));
+	ret = bind(*ssdpSock, reinterpret_cast<struct sockaddr *>(ssdpAddr4),
+			   sizeof(*ssdpAddr4));
 	if (ret == -1) {
 		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 		UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
@@ -328,10 +328,11 @@ static int create_ssdp_sock_v4(SOCKET *ssdpSock)
 		goto error_handler;
 	}
 	memset((void *)&ssdpMcastAddr, 0, sizeof(struct ip_mreq));
-	ssdpMcastAddr.imr_interface.s_addr = inet_addr(gIF_IPV4);
+	ssdpMcastAddr.imr_interface.s_addr = inet_addr(apiFirstIPV4Str().c_str());
 	ssdpMcastAddr.imr_multiaddr.s_addr = inet_addr(SSDP_IP);
 	ret = setsockopt(*ssdpSock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-					 reinterpret_cast<char *>(&ssdpMcastAddr), sizeof(struct ip_mreq));
+					 reinterpret_cast<char *>(&ssdpMcastAddr),
+					 sizeof(struct ip_mreq));
 	if (ret == -1) {
 		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 		UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
@@ -340,8 +341,9 @@ static int create_ssdp_sock_v4(SOCKET *ssdpSock)
 		goto error_handler;
 	}
 	/* Set multicast interface. */
+	struct in_addr addr;
 	memset((void *)&addr, 0, sizeof(struct in_addr));
-	addr.s_addr = inet_addr(gIF_IPV4);
+	addr.s_addr = inet_addr(apiFirstIPV4Str().c_str());
 	ret = setsockopt(*ssdpSock, IPPROTO_IP, IP_MULTICAST_IF,
 					 reinterpret_cast<char *>(&addr), sizeof addr);
 	if (ret == -1) {
@@ -461,7 +463,7 @@ static int create_ssdp_sock_v6(bool isulagua, SOCKET *ssdpSock)
 	memset(&__ss, 0, sizeof(__ss));
 	ssdpAddr6->sin6_family = static_cast<sa_family_t>(AF_INET6);
 	ssdpAddr6->sin6_addr = in6addr_any;
-	ssdpAddr6->sin6_scope_id = gIF_INDEX;
+	ssdpAddr6->sin6_scope_id = apiFirstIPV6Index();
 	ssdpAddr6->sin6_port = htons(SSDP_PORT);
 	ret = bind(*ssdpSock, reinterpret_cast<struct sockaddr *>(ssdpAddr6),
 			   sizeof(*ssdpAddr6));
@@ -474,7 +476,7 @@ static int create_ssdp_sock_v6(bool isulagua, SOCKET *ssdpSock)
 		goto error_handler;
 	}
 	memset((void *)&ssdpMcastAddr, 0, sizeof(ssdpMcastAddr));
-	ssdpMcastAddr.ipv6mr_interface = gIF_INDEX;
+	ssdpMcastAddr.ipv6mr_interface = apiFirstIPV6Index();
 	if (isulagua) {
 		/* ULAGUA SITE LOCAL */
 		inet_pton(AF_INET6, SSDP_IPV6_SITELOCAL,
@@ -566,20 +568,11 @@ int get_ssdp_sockets(MiniServerSockArray * out)
 	int retVal = UPNP_E_SOCKET_ERROR;
 
 	closeSockets(out, 0);
-
-#ifdef INCLUDE_CLIENT_APIS
-	/* Create the IPv4 socket for SSDP REQUESTS */
-	if (strlen(gIF_IPV4) > static_cast<size_t>(0)) {
-		if ((retVal = create_ssdp_sock_reqv4(&out->ssdpReqSock4))
-			!= UPNP_E_SUCCESS) {
-			goto out;
-		}
-		/* For use by ssdp control point. */
-		gSsdpReqSocket4 = out->ssdpReqSock4;
-	}
+	bool hasIPV4 = !apiFirstIPV4Str().empty();
 #ifdef UPNP_ENABLE_IPV6
+	bool hasIPV6 = !apiFirstIPV6Str().empty();
 	/* Create the IPv6 socket for SSDP REQUESTS */
-	if (strlen(gIF_IPV6) > static_cast<size_t>(0)) {
+	if (hasIPV6) {
 		if ((retVal = create_ssdp_sock_reqv6(&out->ssdpReqSock6))
 			!= UPNP_E_SUCCESS) {
 			goto out;
@@ -588,10 +581,20 @@ int get_ssdp_sockets(MiniServerSockArray * out)
 		gSsdpReqSocket6 = out->ssdpReqSock6;
 	}
 #endif /* IPv6 */
+#ifdef INCLUDE_CLIENT_APIS
+	/* Create the IPv4 socket for SSDP REQUESTS */
+	if (hasIPV4) {
+		if ((retVal = create_ssdp_sock_reqv4(&out->ssdpReqSock4))
+			!= UPNP_E_SUCCESS) {
+			goto out;
+		}
+		/* For use by ssdp control point. */
+		gSsdpReqSocket4 = out->ssdpReqSock4;
+	}
 #endif /* INCLUDE_CLIENT_APIS */
 
 	/* Create the IPv4 socket for SSDP */
-	if (strlen(gIF_IPV4) > static_cast<size_t>(0)) {
+	if (hasIPV4) {
 		if ((retVal = create_ssdp_sock_v4(&out->ssdpSock4)) != UPNP_E_SUCCESS) {
 			goto out;
 		}
@@ -599,13 +602,13 @@ int get_ssdp_sockets(MiniServerSockArray * out)
 
 #ifdef UPNP_ENABLE_IPV6
 	/* Create the IPv6 socket for SSDP */
-	if (strlen(gIF_IPV6) > static_cast<size_t>(0)) {
+	if (hasIPV6) {
 		if ((retVal = create_ssdp_sock_v6(false, &out->ssdpSock6))
 			!= UPNP_E_SUCCESS) {
 			goto out;
 		}
 	}
-	if (strlen(gIF_IPV6_ULA_GUA) > static_cast<size_t>(0)) {
+	if (strlen(""/*gIF_IPV6_ULA_GUA*/) > static_cast<size_t>(0)) {
 		if ((retVal = create_ssdp_sock_v6(true, &out->ssdpSock6UlaGua))
 			!= UPNP_E_SUCCESS) {
 			goto out;

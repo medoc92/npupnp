@@ -429,19 +429,19 @@ static int fillServiceList(const UPnPDeviceDesc& dev, service_table *stable)
 		current->UDN = dev.UDN;
 		current->serviceType = sdesc.serviceType;
 		current->serviceId = sdesc.serviceId;
-		current->SCPDURL = resolve_rel_url(dev.URLBase, sdesc.SCPDURL);
+		current->SCPDURL = sdesc.SCPDURL;
 		//std::cerr<<"getServLst:SCPDURL: "<<current->SCPDURL<<std::endl;
 		if (current->SCPDURL.empty()) {
 			UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
 					   "BAD OR MISSING SCPDURL");
 		}
-		current->controlURL = resolve_rel_url(dev.URLBase, sdesc.controlURL);
+		current->controlURL = sdesc.controlURL;
 		//std::cerr<<"getServLst:controlURL: "<<current->controlURL<<std::endl;
 		if (current->controlURL.empty()) {
 			UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,"Bad/No CONTROL URL");
 			fail = 1;
 		}
-		current->eventURL = resolve_rel_url(dev.URLBase, sdesc.eventSubURL);
+		current->eventURL =  sdesc.eventSubURL;
 		//std::cerr<<"getServLst:eventURL: "<<current->eventURL<<std::endl;
 		if (current->eventURL.empty()) {
 			UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__, "Bad/No EVENT URL");

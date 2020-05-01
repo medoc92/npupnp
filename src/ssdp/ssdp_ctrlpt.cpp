@@ -311,7 +311,7 @@ static int CreateClientRequestPacket(
 	return UPNP_E_SUCCESS;
 }
 
-#ifdef UPNP_ENABLE_IPV6
+#ifdef UPNP_ENABLE_IPV6_AND_ULAGUA
 static int CreateClientRequestPacketUlaGua(
 	std::string& RqstBuf,
 	int Mx,
@@ -359,74 +359,45 @@ static void* thread_searchexpired(void *arg)
 
 int SearchByTarget(int Mx, char *St, void *Cookie)
 {
-	char errorBuffer[ERROR_BUFFER_LEN];
-	int *id = nullptr;
-	int ret = 0;
-	std::string ReqBufv4;
-#ifdef UPNP_ENABLE_IPV6
-	std::string ReqBufv6;
-	std::string ReqBufv6UlaGua;
-#endif
-	struct sockaddr_storage __ss_v4;
-#ifdef UPNP_ENABLE_IPV6
-	struct sockaddr_storage __ss_v6;
-#endif
-	auto destAddr4 = reinterpret_cast<struct sockaddr_in *>(&__ss_v4);
-#ifdef UPNP_ENABLE_IPV6
-	auto destAddr6 = reinterpret_cast<struct sockaddr_in6 *>(&__ss_v6);
-#endif
-	fd_set wrSet;
-	int timeTillRead = 0;
-	int handle;
-	struct Handle_Info *ctrlpt_info = nullptr;
-	enum SsdpSearchType requestType;
-	unsigned long addrv4 = inet_addr(gIF_IPV4);
-	SOCKET max_fd = 0;
-	int retVal;
-
-	requestType = ssdp_request_type1(St);
+	std::string sadrv4 = apiFirstIPV4Str();
+	if (sadrv4.empty()) {
+		UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
+				   "SearchByTarget: no IPV4??\n");
+	}
+	uint32_t hostaddrv4 = inet_addr(sadrv4.c_str());
+	
+	enum SsdpSearchType requestType = ssdp_request_type1(St);
 	if (requestType == SSDP_SERROR)
 		return UPNP_E_INVALID_PARAM;
 
-	timeTillRead = Mx;
+	int timeTillRead = Mx;
 	if (timeTillRead < MIN_SEARCH_TIME)
 		timeTillRead = MIN_SEARCH_TIME;
 	else if (timeTillRead > MAX_SEARCH_TIME)
 		timeTillRead = MAX_SEARCH_TIME;
-	retVal = CreateClientRequestPacket(ReqBufv4, timeTillRead, St, AF_INET);
+
+	std::string ReqBufv4;
+	int retVal = CreateClientRequestPacket(ReqBufv4, timeTillRead, St, AF_INET);
 	if (retVal != UPNP_E_SUCCESS)
 		return retVal;
+
 #ifdef UPNP_ENABLE_IPV6
+	std::string ReqBufv6;
 	retVal = CreateClientRequestPacket(ReqBufv6, timeTillRead, St, AF_INET6);
 	if (retVal != UPNP_E_SUCCESS)
 		return retVal;
-	retVal = CreateClientRequestPacketUlaGua(ReqBufv6UlaGua, timeTillRead,
-											 St, AF_INET6);
-	if (retVal != UPNP_E_SUCCESS)
-		return retVal;
-#endif
-
-	memset(&__ss_v4, 0, sizeof(__ss_v4));
-	destAddr4->sin_family = static_cast<sa_family_t>(AF_INET);
-	inet_pton(AF_INET, SSDP_IP, &destAddr4->sin_addr);
-	destAddr4->sin_port = htons(SSDP_PORT);
-
-#ifdef UPNP_ENABLE_IPV6
-	memset(&__ss_v6, 0, sizeof(__ss_v6));
-	destAddr6->sin6_family = static_cast<sa_family_t>(AF_INET6);
-	inet_pton(AF_INET6, SSDP_IPV6_SITELOCAL, &destAddr6->sin6_addr);
-	destAddr6->sin6_port = htons(SSDP_PORT);
-	destAddr6->sin6_scope_id = gIF_INDEX;
 #endif
 
 	/* add search criteria to list */
 	HandleLock();
+	int handle;
+	struct Handle_Info *ctrlpt_info;
 	if (GetClientHandleInfo(&handle, &ctrlpt_info) != HND_CLIENT) {
 		HandleUnlock();
 		return UPNP_E_INTERNAL_ERROR;
 	}
 	auto newArg = new SsdpSearchArg(St, Cookie, requestType);
-	id = static_cast<int *>(malloc(sizeof(int)));
+	auto id = static_cast<int *>(malloc(sizeof(int)));
 
 	/* Schedule a timeout event to remove search Arg */
 	gTimerThread->schedule(
@@ -435,26 +406,31 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
 
 	newArg->timeoutEventId = *id;
 	ctrlpt_info->SsdpSearchList.push_back(newArg);
-	HandleUnlock();
-	/* End of lock */
 
+	HandleUnlock();
+
+	fd_set wrSet;
 	FD_ZERO(&wrSet);
+	SOCKET max_fd = 0;
 	if (gSsdpReqSocket4 != INVALID_SOCKET) {
 		setsockopt(gSsdpReqSocket4, IPPROTO_IP, IP_MULTICAST_IF,
-				   reinterpret_cast<char *>(&addrv4), sizeof(addrv4));
+				   reinterpret_cast<char *>(&hostaddrv4), sizeof(hostaddrv4));
 		FD_SET(gSsdpReqSocket4, &wrSet);
 		max_fd = std::max(max_fd, gSsdpReqSocket4);
 	}
 #ifdef UPNP_ENABLE_IPV6
 	if (gSsdpReqSocket6 != INVALID_SOCKET) {
+		int index = apiFirstIPV6Index();
 		setsockopt(gSsdpReqSocket6, IPPROTO_IPV6, IPV6_MULTICAST_IF,
-				   reinterpret_cast<char *>(&gIF_INDEX), sizeof(gIF_INDEX));
+				   reinterpret_cast<char *>(&index), sizeof(index));
 		FD_SET(gSsdpReqSocket6, &wrSet);
 		max_fd = std::max(max_fd, gSsdpReqSocket6);
 	}
 #endif
-	ret = select(max_fd + 1, nullptr, &wrSet, nullptr, nullptr);
+
+	int ret = select(max_fd + 1, nullptr, &wrSet, nullptr, nullptr);
 	if (ret == -1) {
+		char errorBuffer[ERROR_BUFFER_LEN];
 		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 		UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
 				   "SSDP_LIB: Error in select(): %s\n", errorBuffer);
@@ -464,47 +440,44 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
 #endif
 		return UPNP_E_INTERNAL_ERROR;
 	}
-#ifdef UPNP_ENABLE_IPV6
-	if (gSsdpReqSocket6 != INVALID_SOCKET &&
-	    FD_ISSET(gSsdpReqSocket6, &wrSet)) {
-		int NumCopy = 0;
 
-		while (NumCopy < NUM_SSDP_COPY) {
-			UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
-					   ">>> SSDP SEND M-SEARCH >>>\n%s\n",
-					   ReqBufv6UlaGua.c_str());
-			sendto(gSsdpReqSocket6,
-			       ReqBufv6UlaGua.c_str(), ReqBufv6UlaGua.size(), 0,
-			       reinterpret_cast<struct sockaddr *>(&__ss_v6),
-			       sizeof(struct sockaddr_in6));
-			NumCopy++;
-			std::this_thread::sleep_for(std::chrono::milliseconds(SSDP_PAUSE));
-		}
-		NumCopy = 0;
+#ifdef UPNP_ENABLE_IPV6
+	if (gSsdpReqSocket6 != INVALID_SOCKET && FD_ISSET(gSsdpReqSocket6, &wrSet)) {
+		struct sockaddr_storage ssv6;
+		memset(&ssv6, 0, sizeof(ssv6));
+		
+		auto destAddr6 = reinterpret_cast<struct sockaddr_in6 *>(&ssv6);
+		destAddr6->sin6_family = static_cast<sa_family_t>(AF_INET6);
 		inet_pton(AF_INET6, SSDP_IPV6_LINKLOCAL, &destAddr6->sin6_addr);
-		while (NumCopy < NUM_SSDP_COPY) {
+		destAddr6->sin6_port = htons(SSDP_PORT);
+		destAddr6->sin6_scope_id = apiFirstIPV6Index();
+		
+		for (int cnt = 0; cnt < NUM_SSDP_COPY; cnt++) {
 			UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
-					   ">>> SSDP SEND M-SEARCH >>>\n%s\n",
-					   ReqBufv6.c_str());
-			sendto(gSsdpReqSocket6,
-			       ReqBufv6.c_str(), ReqBufv6.size(), 0,
-			       reinterpret_cast<struct sockaddr *>(&__ss_v6),
+					   ">>> SSDP SEND M-SEARCH >>>\n%s\n", ReqBufv6.c_str());
+			sendto(gSsdpReqSocket6, ReqBufv6.c_str(), ReqBufv6.size(), 0,
+			       reinterpret_cast<struct sockaddr *>(destAddr6),
 			       sizeof(struct sockaddr_in6));
-			NumCopy++;
 			std::this_thread::sleep_for(std::chrono::milliseconds(SSDP_PAUSE));
 		}
 	}
 #endif /* IPv6 */
-	if (gSsdpReqSocket4 != INVALID_SOCKET &&
-		FD_ISSET(gSsdpReqSocket4, &wrSet)) {
+
+	if (gSsdpReqSocket4 != INVALID_SOCKET && FD_ISSET(gSsdpReqSocket4, &wrSet)) {
+		struct sockaddr_storage ssv4;
+		memset(&ssv4, 0, sizeof(ssv4));
+
+		auto destAddr4 = reinterpret_cast<struct sockaddr_in *>(&ssv4);
+		destAddr4->sin_family = static_cast<sa_family_t>(AF_INET);
+		inet_pton(AF_INET, SSDP_IP, &destAddr4->sin_addr);
+		destAddr4->sin_port = htons(SSDP_PORT);
+
 		int NumCopy = 0;
 		while (NumCopy < NUM_SSDP_COPY) {
 			UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
-					   ">>> SSDP SEND M-SEARCH >>>\n%s\n",
-					   ReqBufv4.c_str());
-			sendto(gSsdpReqSocket4,
-			       ReqBufv4.c_str(), ReqBufv4.size(), 0,
-			       reinterpret_cast<struct sockaddr *>(&__ss_v4),
+					   ">>> SSDP SEND M-SEARCH >>>\n%s\n", ReqBufv4.c_str());
+			sendto(gSsdpReqSocket4, ReqBufv4.c_str(), ReqBufv4.size(), 0,
+			       reinterpret_cast<struct sockaddr *>(destAddr4),
 			       sizeof(struct sockaddr_in));
 			NumCopy++;
 			std::this_thread::sleep_for(std::chrono::milliseconds(SSDP_PAUSE));

@@ -45,6 +45,7 @@
 #include "TimerThread.h"
 #include "upnpdescription.h"
 #include "client_table.h"
+#include "netif.h"
 
 #define MAX_INTERFACES 256
 
@@ -214,13 +215,15 @@ Upnp_Handle_Type GetDeviceHandleInfoForPath(
 	service_info **serv_info
 	);
 
-
-extern char gIF_IPV4[INET_ADDRSTRLEN];
-extern char gIF_IPV6[INET6_ADDRSTRLEN];
-extern char gIF_IPV6_ULA_GUA[INET6_ADDRSTRLEN];
-extern unsigned gIF_INDEX;
 extern unsigned short LOCAL_PORT_V4;
 extern unsigned short LOCAL_PORT_V6;
+extern std::vector<NetIF::Interface> g_netifs;
+// Get first usable addresses, for when we don't care
+extern std::string apiFirstIPV4Str();
+extern std::string apiFirstIPV6Str();
+extern int apiFirstIPV6Index();
+
+extern const std::string g_HostForTemplate;
 
 /*! NLS uuid. */
 extern Upnp_SID gUpnpSdkNLSuuid;

@@ -501,7 +501,7 @@ static int create_miniserver_sockets(
 				   "miniserver: IPv4 socket(): %s\n",  errorBuffer);
 	}
 #ifdef UPNP_ENABLE_IPV6
-	if (gIF_IPV6[0]) {
+	if (!apiFirstIPV6Str().empty()) {
 		out->miniServerSock6 = socket(AF_INET6, SOCK_STREAM, 0);
 		if (out->miniServerSock6 == INVALID_SOCKET) {
 			posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
@@ -547,19 +547,22 @@ static int create_miniserver_sockets(
 #endif
 	memset(&__ss_v4, 0, sizeof (__ss_v4));
 	serverAddr4->sin_family = static_cast<sa_family_t>(AF_INET);
-	if (gIF_IPV4[0]) {
-		inet_pton(AF_INET, gIF_IPV4, &serverAddr4->sin_addr);
-	} else {
+	std::string ipv4 = apiFirstIPV4Str();
+	if (ipv4.empty()) {
 		serverAddr4->sin_addr.s_addr = INADDR_ANY;
+	} else {
+		inet_pton(AF_INET, ipv4.c_str(), &serverAddr4->sin_addr);
 	}
 #ifdef UPNP_ENABLE_IPV6
 	memset(&__ss_v6, 0, sizeof (__ss_v6));
 	serverAddr6->sin6_family = static_cast<sa_family_t>(AF_INET6);
-	if (gIF_IPV6[0]) {
-		inet_pton(AF_INET6, gIF_IPV6, &serverAddr6->sin6_addr);
-		serverAddr6->sin6_scope_id = gIF_INDEX;
-	} else {
+	std::string ipv6 = apiFirstIPV6Str();
+	int ipv6index = apiFirstIPV6Index();
+	if (ipv6.empty()) {
 		memcpy(&serverAddr6->sin6_addr, &in6addr_any, sizeof(in6addr_any));
+	} else {
+		inet_pton(AF_INET6, ipv6.c_str(), &serverAddr6->sin6_addr);
+		serverAddr6->sin6_scope_id = ipv6index;
 	}
 #endif
 
