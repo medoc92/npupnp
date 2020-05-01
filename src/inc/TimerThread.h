@@ -34,6 +34,7 @@
 #define TIMERTHREAD_H
 
 #include <list>
+#include <chrono>
 
 #include "ThreadPool.h"
 
@@ -73,13 +74,29 @@ public:
 	 */
 	int schedule(
 		/*! [in] . */
-		Duration duration,
+		Duration persistence,
 		/*! [in] either ABS_SEC, or REL_SEC. If REL_SEC, then the event
 		 * will be scheduled at the current time + REL_SEC. */
 		TimeoutType type,
 		/*! [in] time of event. Either in absolute seconds, or relative
 		 * seconds in the future. */
 		time_t time, 
+		/* [out] Id of timer event. (can be null). */
+		int *id,
+		start_routine func,
+		void *arg = nullptr, 
+		ThreadPool::free_routine free_func = nullptr,
+		ThreadPool::ThreadPriority priority = ThreadPool::MED_PRIORITY);
+
+	int schedule(Duration persistence, std::chrono::system_clock::time_point when, 
+		/* [out] Id of timer event. (can be null). */
+		int *id,
+		start_routine func,
+		void *arg = nullptr, 
+		ThreadPool::free_routine free_func = nullptr,
+		ThreadPool::ThreadPriority priority = ThreadPool::MED_PRIORITY);
+
+	int schedule(Duration persistence, std::chrono::milliseconds delay, 
 		/* [out] Id of timer event. (can be null). */
 		int *id,
 		start_routine func,

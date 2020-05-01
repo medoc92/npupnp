@@ -45,6 +45,7 @@
 #include "TimerThread.h"
 #include "smallut.h"
 #include "inet_pton.h"
+#include "netif.h"
 
 #include <cassert>
 #include <cstdio>
@@ -54,6 +55,7 @@
 #include <string>
 #include <thread>
 #include <algorithm>
+#include <chrono>
 
 #define MSGTYPE_SHUTDOWN    0
 #define MSGTYPE_ADVERTISEMENT   1
@@ -81,13 +83,11 @@ static void* thread_advertiseandreply(void *data)
 void ssdp_handle_device_request(SSDPPacketParser& parser,
 								struct sockaddr_storage *dest_addr)
 {
-#define MX_FUDGE_FACTOR 10
     int handle, start;
     struct Handle_Info *dev_info = nullptr;
     int mx;
     SsdpEvent event;
     SsdpSearchReply *threadArg = nullptr;
-    int replyTime;
     int maxAge;
 
     /* check man hdr. */
@@ -146,19 +146,14 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
         threadArg->event = event;
         threadArg->MaxAge = maxAge;
 
-        /* Subtract a percentage from the mx to allow for network and processing
-         * delays (i.e. if search is for 30 seconds, respond
-         * within 0 - 27 seconds). */
-        if (mx >= 2)
-            mx -= std::max(1, mx / MX_FUDGE_FACTOR);
-        if (mx < 1)
-            mx = 1;
-        replyTime = rand() % mx;
+		mx = std::max(1, mx);
+        /* Subtract a bit from the mx to allow for network/processing delays */
+        int delayms = rand() %  (mx * 1000 - 100);
 		std::cerr << "ssdp_handle_device_req: scheduling resp in " <<
-			replyTime << "S\n";
+			delayms << " ms\n";
         gTimerThread->schedule(
-			TimerThread::SHORT_TERM, TimerThread::REL_SEC, replyTime, nullptr,
-			thread_advertiseandreply, threadArg,
+			TimerThread::SHORT_TERM, std::chrono::milliseconds(delayms),
+			nullptr, thread_advertiseandreply, threadArg,
 			static_cast<ThreadPool::free_routine>(free));
         start = handle;
     }
@@ -171,6 +166,7 @@ static int sendPackets(struct sockaddr *DestAddr, int NumPacket,
     char errorBuffer[ERROR_BUFFER_LEN];
     SOCKET ReplySock;
     socklen_t socklen = sizeof(struct sockaddr_storage);
+	NetIF::IPAddr ipaddr(DestAddr);
     int Index;
     unsigned long replyAddr = inet_addr(gIF_IPV4);
     /* a/c to UPNP Spec */
@@ -178,7 +174,6 @@ static int sendPackets(struct sockaddr *DestAddr, int NumPacket,
 #ifdef UPNP_ENABLE_IPV6
     int hops = 1;
 #endif
-    char buf_ntop[INET6_ADDRSTRLEN];
     int ret = UPNP_E_SUCCESS;
 
     ReplySock = socket(static_cast<int>(DestAddr->sa_family), SOCK_DGRAM, 0);
@@ -191,8 +186,6 @@ static int sendPackets(struct sockaddr *DestAddr, int NumPacket,
 
     switch (DestAddr->sa_family) {
     case AF_INET:
-        inet_ntop(AF_INET, &(reinterpret_cast<struct sockaddr_in *>(DestAddr))->sin_addr,
-                  buf_ntop, sizeof(buf_ntop));
         setsockopt(ReplySock, IPPROTO_IP, IP_MULTICAST_IF,
                    reinterpret_cast<char *>(&replyAddr), sizeof(replyAddr));
         setsockopt(ReplySock, IPPROTO_IP, IP_MULTICAST_TTL,
@@ -201,9 +194,6 @@ static int sendPackets(struct sockaddr *DestAddr, int NumPacket,
         break;
 #ifdef UPNP_ENABLE_IPV6
     case AF_INET6:
-        inet_ntop(AF_INET6,
-                  &(reinterpret_cast<struct sockaddr_in6 *>(DestAddr))->sin6_addr,
-                  buf_ntop, sizeof(buf_ntop));
         setsockopt(ReplySock, IPPROTO_IPV6, IPV6_MULTICAST_IF,
                    reinterpret_cast<char *>(&gIF_INDEX), sizeof(gIF_INDEX));
         setsockopt(ReplySock, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
@@ -222,13 +212,13 @@ static int sendPackets(struct sockaddr *DestAddr, int NumPacket,
         ssize_t rc;
         UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
                    ">>> SSDP SEND to %s >>>\n%s\n",
-                   buf_ntop, RqPacket[Index].c_str());
-		std::cerr << "SSDP: sending to " << buf_ntop << " data: \n" <<
+                   ipaddr.straddr().c_str(), RqPacket[Index].c_str());
+		std::cerr << "SSDP: sending to " << ipaddr.straddr() << " data: \n" <<
 			RqPacket[Index] << "\n";
         rc = sendto(ReplySock, RqPacket[Index].c_str(),
                     RqPacket[Index].size(), 0, DestAddr, socklen);
         if (rc == -1) {
-			std::cerr << "SSDP: sendto " << buf_ntop << " failed\n";
+			std::cerr << "SSDP: sendto " << ipaddr.straddr() << " failed\n";
             posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
             UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
                        "sendPackets: socket(): %s\n", errorBuffer);

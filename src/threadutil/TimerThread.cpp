@@ -158,27 +158,17 @@ TimerThread::~TimerThread()
 }
 
 int TimerThread::schedule(
-	Duration duration, TimeoutType type, time_t time, int *id,
+	Duration persistence, std::chrono::system_clock::time_point when, int *id,
 	start_routine func, void *arg, ThreadPool::free_routine free_func, 
 	ThreadPool::ThreadPriority priority
 	)
 {
-	int rc = EOUTOFMEM;
-	int found = 0;
-	TimerEvent *newEvent = nullptr;
-
-	system_clock::time_point when;
-	if (type == TimerThread::ABS_SEC) {
-		when = system_clock::from_time_t(time);
-	} else {
-		when = system_clock::now() + std::chrono::seconds(time);
-	}
-
 	std::unique_lock<std::mutex> lck(m->mutex);
+	int rc = EOUTOFMEM;
 
-	newEvent = new TimerEvent(func, arg, free_func, priority,
-							  duration, when, m->lastEventId);
-	if (newEvent == nullptr ) {
+	TimerEvent *newEvent = new TimerEvent(func, arg, free_func, priority,
+										  persistence, when, m->lastEventId);
+	if (newEvent == nullptr) {
 		return rc;
 	}
 	if (id) {
@@ -187,6 +177,7 @@ int TimerThread::schedule(
 	/* add job to Q. Q is ordered by eventTime with the head of the Q being
 	 * the next event. */
 	rc = 0;
+	int found = 0;
 	for (auto it = m->eventQ.begin(); it != m->eventQ.end(); it++) {
 		if ((*it)->eventTime >= when) {
 			m->eventQ.insert(it, newEvent);
@@ -203,6 +194,34 @@ int TimerThread::schedule(
 	m->lastEventId++;
 
 	return rc;
+}
+
+int TimerThread::schedule(
+	Duration persistence, std::chrono::milliseconds delay, int *id,
+	start_routine func, void *arg, ThreadPool::free_routine free_func, 
+	ThreadPool::ThreadPriority priority
+	)
+{
+	system_clock::time_point when;
+	when = system_clock::now() + delay;
+	return TimerThread::schedule(persistence, when, id, func,
+								 arg, free_func, priority);
+}
+
+int TimerThread::schedule(
+	Duration persistence, TimeoutType type, time_t time, int *id,
+	start_routine func, void *arg, ThreadPool::free_routine free_func, 
+	ThreadPool::ThreadPriority priority
+	)
+{
+	system_clock::time_point when;
+	if (type == TimerThread::ABS_SEC) {
+		when = system_clock::from_time_t(time);
+	} else {
+		when = system_clock::now() + std::chrono::seconds(time);
+	}
+	return TimerThread::schedule(persistence, when, id, func,
+								 arg, free_func, priority);
 }
 
 int TimerThread::remove(int id)
