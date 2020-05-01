@@ -229,7 +229,7 @@ static int inet_pton4(const char *src, u_char *dst)
 	while ((ch = *src++) != '\0') {
 		const char *pch;
 
-		if ((pch = strchr(digits, ch)) != NULL) {
+		if ((pch = std::strchr(digits, ch)) != NULL) {
 			u_int uiNew = *tp * 10 + (pch - digits);
 
 			if (saw_digit && *tp == 0)
@@ -293,8 +293,8 @@ static int inet_pton6(const char *src, u_char *dst)
 	while ((ch = *src++) != '\0') {
 		const char *pch;
 
-		if ((pch = strchr((xdigits = xdigits_l), ch)) == NULL)
-			pch = strchr((xdigits = xdigits_u), ch);
+		if ((pch = std::strchr((xdigits = xdigits_l), ch)) == NULL)
+			pch = std::strchr((xdigits = xdigits_u), ch);
 		if (pch != NULL) {
 			val <<= 4;
 			val |= (pch - xdigits);

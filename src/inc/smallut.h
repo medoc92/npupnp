@@ -63,13 +63,6 @@ inline int posix_strerror_r(int err, char *buf, size_t len) {
 
 #endif /* _WIN32 */
 
-#ifndef MAX
-#define MAX(a, b)   (((a)>(b))? (a):(b))
-#endif
-#ifndef MIN
-#define MIN(a, b)   (((a)<(b))? (a):(b))
-#endif
-
 #ifdef __cplusplus
 #include <string>
 

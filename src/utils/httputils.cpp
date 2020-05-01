@@ -456,7 +456,7 @@ size_t header_callback_curl(char *buffer, size_t size, size_t nitems, void *s)
 {
 	size_t bufsize = size * nitems;
 	auto headers = static_cast<std::map<std::string, std::string>*>(s);
-	const char *colon = strchr(buffer, ':');
+	const char *colon = std::strchr(buffer, ':');
 	if (nullptr != colon) {
 		size_t colpos = colon - buffer;
 		std::string nm = std::string(buffer, colpos);

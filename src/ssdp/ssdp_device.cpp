@@ -247,14 +247,14 @@ end_sendPackets:
 static int extractIPv6address(const char *url, char *address, int maxlen)
 {
 	address[0] = 0;
-    char *op = strchr(const_cast<char*>(url), '[');
+    char *op = std::strchr(const_cast<char*>(url), '[');
 	if (op == nullptr) 
 		return 0;
-	char *cl = strchr(op, ']');
+	char *cl = std::strchr(op, ']');
 	if (cl == nullptr || cl <= op + 1 || cl - op >= maxlen) {
 		return 0;
     }
-	memcpy(address, op + 1, cl - op - 1);
+	std::memcpy(address, op + 1, cl - op - 1);
 	address[cl-op] = 0;
 	return 1;
 }
@@ -701,8 +701,8 @@ int AdvertiseAndReply(int AdFlag, UpnpDevice_Handle Hnd,
 				}
 				case SSDP_DEVICETYPE: {
 					if (!strncasecmp(DeviceType,devType,strlen(DeviceType)-2)) {
-						if (atoi(strrchr(DeviceType, ':') + 1)
-						    < atoi(&devType[strlen(devType) - static_cast<size_t>(1)])) {
+						if (std::atoi(std::strrchr(DeviceType, ':') + 1)
+						    < std::atoi(&devType[std::strlen(devType) - static_cast<size_t>(1)])) {
 							/* the requested version is lower than the
 							   device version must reply with the
 							   lower version number and the lower
@@ -714,8 +714,8 @@ int AdvertiseAndReply(int AdFlag, UpnpDevice_Handle Hnd,
 									  SInfo->LowerDescURL, defaultExp, 1,
 									  SInfo->PowerState, SInfo->SleepPeriod,
 									  SInfo->RegistrationState);
-						} else if (atoi(strrchr(DeviceType, ':') + 1)
-								   == atoi(&devType[strlen(devType) - 1])) {
+						} else if (std::atoi(std::strrchr(DeviceType, ':') + 1)
+								   == std::atoi(&devType[std::strlen(devType) - 1])) {
 							UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
 									   "DeviceType=%s/srchDevType=%s MATCH\n",
 									   devType, DeviceType);
@@ -777,8 +777,8 @@ int AdvertiseAndReply(int AdFlag, UpnpDevice_Handle Hnd,
 						if (ServiceType) {
 							if (!strncasecmp(ServiceType, servType,
 											 strlen(ServiceType) - 2)) {
-								if (atoi(strrchr(ServiceType, ':') + 1) <
-								    atoi(&servType[strlen(servType) - 1])) {
+								if (std::atoi(std::strrchr(ServiceType, ':') + 1) <
+								    std::atoi(&servType[std::strlen(servType) - 1])) {
 									/* the requested version is lower
 									   than the service version must
 									   reply with the lower version
@@ -794,8 +794,8 @@ int AdvertiseAndReply(int AdFlag, UpnpDevice_Handle Hnd,
 											  SInfo->SleepPeriod,
 											  SInfo->RegistrationState);
 								} else if (
-									atoi(strrchr (ServiceType, ':') + 1)
-									== atoi(&servType[strlen(servType) - 1])) {
+									std::atoi(std::strrchr (ServiceType, ':') + 1)
+									== std::atoi(&servType[std::strlen(servType) - 1])) {
 									UpnpPrintf(
 										UPNP_DEBUG, SSDP, __FILE__, __LINE__,
 										"ServiceTp=%s/searchServTp=%s MATCH\n",

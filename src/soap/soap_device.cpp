@@ -380,7 +380,7 @@ static int check_soapaction_hdr(
 	if (std::string::npos == cp1_diff) {
 		return ret_code;
 	}
-	const char *col_pos2 = strrchr(soap_info->service_type, ':');
+	const char *col_pos2 = std::strrchr(soap_info->service_type, ':');
 	/* XXX: this should be checked when service list is generated */
 	assert(col_pos2 != nullptr);
 	size_t cp2_diff = col_pos2 - soap_info->service_type;
