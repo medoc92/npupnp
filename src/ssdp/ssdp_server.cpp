@@ -41,7 +41,7 @@
 #include "miniserver.h"
 #include "ThreadPool.h"
 #include "upnpapi.h"
-#include "smallut.h"
+#include "genut.h"
 #include "netif.h"
 
 #include <chrono>

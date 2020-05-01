@@ -47,7 +47,7 @@
 #include "soaplib.h"
 #include "ThreadPool.h"
 #include "upnp_timeout.h"
-#include "smallut.h"
+#include "genut.h"
 #include "netif.h"
 
 /* Needed for GENA */

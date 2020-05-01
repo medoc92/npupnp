@@ -49,7 +49,7 @@
 #include "statcodes.h"
 #include "upnpapi.h"
 #include "httputils.h"
-#include "smallut.h"
+#include "genut.h"
 
 #define SREQ_HDR_NOT_FOUND	 -1
 #define SREQ_BAD_HDR_FORMAT	 -2

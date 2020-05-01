@@ -48,7 +48,7 @@
 #include "statcodes.h"
 #include "upnpapi.h"
 #include "gena_sids.h"
-#include "smallut.h"
+#include "genut.h"
 
 const static char *XML_PROPERTYSET_HEADER =
 	"<e:propertyset xmlns:e=\"urn:schemas-upnp-org:event-1-0\">\n";

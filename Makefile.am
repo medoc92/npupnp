@@ -50,7 +50,7 @@ libnpupnp_la_SOURCES = \
 	src/inc/miniserver.h \
 	src/utils/netif.h \
 	src/inc/service_table.h \
-	src/inc/smallut.h \
+	src/inc/genut.h \
 	src/inc/soaplib.h \
 	src/inc/ssdplib.h \
 	src/inc/ssdpparser.h \
@@ -82,7 +82,7 @@ endif
 libnpupnp_la_SOURCES += \
 	src/dispatcher/miniserver.cpp \
 	src/utils/description.cpp \
-	src/utils/smallut.cpp \
+	src/utils/genut.cpp \
 	src/utils/httputils.cpp \
 	src/utils/inet_pton.cpp \
 	src/utils/netif.cpp \

@@ -45,7 +45,7 @@ SOURCES += \
 ../../src/dispatcher/miniserver.cpp \
 ../../src/utils/description.cpp \
 ../../src/utils/inet_pton.cpp \
-../../src/utils/smallut.cpp \
+../../src/utils/genut.cpp \
 ../../src/utils/httputils.cpp \
 ../../src/utils/statcodes.cpp \
 ../../src/webserver/webserver.cpp \

@@ -47,7 +47,7 @@
 #include "statcodes.h"
 #include "upnpapi.h"
 #include "upnp_timeout.h"
-#include "smallut.h"
+#include "genut.h"
 #include "TimerThread.h"
 #include "gena_sids.h"
 #include "expatmm.hxx"

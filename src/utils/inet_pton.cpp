@@ -23,7 +23,7 @@
 #include "UpnpInet.h"
 #include "inet_pton.h"
 /* For upnp_strlcpy */
-#include "smallut.h"
+#include "genut.h"
 
 /*%
  * WARNING: Don't even consider trying to compile this on a system where

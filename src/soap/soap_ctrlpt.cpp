@@ -45,7 +45,7 @@
 #include "soaplib.h"
 #include "uri.h"
 #include "upnp.h"
-#include "smallut.h"
+#include "genut.h"
 #include "expatmm.hxx"
 
 class UPnPResponseParser : public inputRefXMLParser {

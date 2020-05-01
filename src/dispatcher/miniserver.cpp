@@ -60,7 +60,7 @@
 #include "statcodes.h"
 #include "ThreadPool.h"
 #include "upnpapi.h"
-#include "smallut.h"
+#include "genut.h"
 #include "uri.h"
 #include "inet_pton.h"
 

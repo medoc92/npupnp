@@ -51,7 +51,7 @@ nnn * Redistribution and use in source and binary forms, with or without
 #include "upnpapi.h"
 #include "UpnpInet.h"
 #include "ThreadPool.h"
-#include "smallut.h"
+#include "genut.h"
 #include "inet_pton.h"
 
 /*!

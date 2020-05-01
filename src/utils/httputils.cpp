@@ -52,7 +52,7 @@
 #include <curl/curl.h>
 
 #include "UpnpInet.h"
-#include "smallut.h"
+#include "genut.h"
 #include "statcodes.h"
 #include "upnp.h"
 #include "upnpdebug.h"

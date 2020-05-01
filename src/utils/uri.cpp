@@ -56,7 +56,7 @@
 #include <cassert>
 
 #include "uri.h"
-#include "smallut.h"
+#include "genut.h"
 #include "upnpapi.h"
 #include "inet_pton.h"
 

@@ -43,7 +43,7 @@
 #include "UpnpInet.h"
 #include "upnpdebug.h"
 #include "TimerThread.h"
-#include "smallut.h"
+#include "genut.h"
 #include "inet_pton.h"
 #include "netif.h"
 #include "upnpapi.h"

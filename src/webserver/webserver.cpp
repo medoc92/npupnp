@@ -56,7 +56,7 @@
 #include "upnp.h"
 #include "upnpapi.h"
 #include "VirtualDir.h"
-#include "smallut.h"
+#include "genut.h"
 
 #include <cassert>
 #include <fcntl.h>

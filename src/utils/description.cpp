@@ -5,7 +5,7 @@
 #include <cstring>
 
 #include "expatmm.hxx"
-#include "smallut.h"
+#include "genut.h"
 
 using namespace std;
 
