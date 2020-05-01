@@ -104,7 +104,7 @@ public:
 	/** Return the interface addresses and the corresponding netmasks,
 	   as parallel arrays */
 	const std::pair<const std::vector<IPAddr>&, const std::vector<IPAddr>&>
-	getaddresses();
+	getaddresses() const;
 	int getindex() const;
 	
 	/** Print out, a bit like "ip addr" output */

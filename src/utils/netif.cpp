@@ -264,7 +264,7 @@ const std::string& Interface::getname() const
 }
 
 const std::pair<const std::vector<IPAddr>&, const std::vector<IPAddr>&>
-Interface::getaddresses()
+Interface::getaddresses() const
 {
 	return std::pair<const std::vector<IPAddr>&, const std::vector<IPAddr>&>
 		(m->addresses, m->netmasks);
