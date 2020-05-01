@@ -366,15 +366,15 @@ static void *thread_miniserver(void *)
 	int stopSock = 0;
 
 	maxMiniSock = 0;
-	maxMiniSock = MAX(maxMiniSock, miniSocket->miniServerSock4);
-	maxMiniSock = MAX(maxMiniSock, miniSocket->miniServerSock6);
-	maxMiniSock = MAX(maxMiniSock, miniSocket->miniServerStopSock);
-	maxMiniSock = MAX(maxMiniSock, miniSocket->ssdpSock4);
-	maxMiniSock = MAX(maxMiniSock, miniSocket->ssdpSock6);
-	maxMiniSock = MAX(maxMiniSock, miniSocket->ssdpSock6UlaGua);
+	maxMiniSock = std::max(maxMiniSock, miniSocket->miniServerSock4);
+	maxMiniSock = std::max(maxMiniSock, miniSocket->miniServerSock6);
+	maxMiniSock = std::max(maxMiniSock, miniSocket->miniServerStopSock);
+	maxMiniSock = std::max(maxMiniSock, miniSocket->ssdpSock4);
+	maxMiniSock = std::max(maxMiniSock, miniSocket->ssdpSock6);
+	maxMiniSock = std::max(maxMiniSock, miniSocket->ssdpSock6UlaGua);
 #ifdef INCLUDE_CLIENT_APIS
-	maxMiniSock = MAX(maxMiniSock, miniSocket->ssdpReqSock4);
-	maxMiniSock = MAX(maxMiniSock, miniSocket->ssdpReqSock6);
+	maxMiniSock = std::max(maxMiniSock, miniSocket->ssdpReqSock4);
+	maxMiniSock = std::max(maxMiniSock, miniSocket->ssdpReqSock6);
 #endif /* INCLUDE_CLIENT_APIS */
 	++maxMiniSock;
 

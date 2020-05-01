@@ -233,13 +233,13 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
 				break;
 			case SSDP_DEVICETYPE:
 			{
-				size_t m = MIN(stlen, searchArg->searchTarget.size());
+				size_t m = std::min(stlen, searchArg->searchTarget.size());
 				matched =!strncmp(searchArg->searchTarget.c_str(), parser.st, m);
 				break;
 			}
 			case SSDP_SERVICE:
 			{
-				size_t m = MIN(stlen, searchArg->searchTarget.size());
+				size_t m = std::min(stlen, searchArg->searchTarget.size());
 				matched = !strncmp(searchArg->searchTarget.c_str(),parser.st, m);
 				break;
 			}
@@ -443,14 +443,14 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
 		setsockopt(gSsdpReqSocket4, IPPROTO_IP, IP_MULTICAST_IF,
 				   reinterpret_cast<char *>(&addrv4), sizeof(addrv4));
 		FD_SET(gSsdpReqSocket4, &wrSet);
-		max_fd = MAX(max_fd, gSsdpReqSocket4);
+		max_fd = std::max(max_fd, gSsdpReqSocket4);
 	}
 #ifdef UPNP_ENABLE_IPV6
 	if (gSsdpReqSocket6 != INVALID_SOCKET) {
 		setsockopt(gSsdpReqSocket6, IPPROTO_IPV6, IPV6_MULTICAST_IF,
 				   reinterpret_cast<char *>(&gIF_INDEX), sizeof(gIF_INDEX));
 		FD_SET(gSsdpReqSocket6, &wrSet);
-		max_fd = MAX(max_fd, gSsdpReqSocket6);
+		max_fd = std::max(max_fd, gSsdpReqSocket6);
 	}
 #endif
 	ret = select(max_fd + 1, nullptr, &wrSet, nullptr, nullptr);
