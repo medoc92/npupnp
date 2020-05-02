@@ -85,6 +85,19 @@ std::string xmlQuote(const std::string& in);
 /* Compare element names, ignoring namespaces */
 int dom_cmp_name(const std::string& domname, const std::string& ref);
 
+/**
+ * Parse input string into list of strings.
+ *
+ * Token delimiter is " \t\n" except inside dquotes. dquote inside
+ * dquotes can be escaped with \ etc...
+ * Input is handled a byte at a time, things will work as long as
+ * space tab etc. have the ascii values and can't appear as part of a
+ * multibyte char. utf-8 ok but so are the iso-8859-x and surely
+ * others. addseps do have to be single-bytes
+ */
+template <class T> bool stringToStrings(const std::string& s, T& tokens,
+                                        const std::string& addseps = "");
+
 #endif /* __cplusplus */
 
 #endif /* _SMALLUT_H_INCLUDED_ */
