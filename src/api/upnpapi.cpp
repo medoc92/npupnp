@@ -194,20 +194,50 @@ int apiFirstIPV6Index()
 	return 0;
 }
 
-/* Find either the specified interface or the first appropriate interface
+/* Find either the specified interfaces or the first appropriate interface
  * The interface must fulfill these requirements:
  *  UP / Not LOOPBACK / Support MULTICAST / valid IPv4 or IPv6 address.
  *
  * We'll retrieve the following information from the interface:
  */
-int UpnpGetIfInfo(const char *IfName)
+int UpnpGetIfInfo(const char *IfNames)
 {
+	std::vector<std::string> vifnames;
+	if (IfNames) {
+		stringToStrings(IfNames, vifnames);
+	}
 	NetIF::Interfaces *ifs = NetIF::Interfaces::theInterfaces();
 	NetIF::Interface *netifp{nullptr};
 	std::vector<NetIF::Interface> selected;
-	if (IfName && IfName[0]) {
-		netifp = ifs->findByName(IfName);
+	std::string v4addr;
+	std::string v6addr;
+	std::string actifnames;
+	if (!vifnames.empty()) {
+		for (const auto& name : vifnames) {
+			netifp = ifs->findByName(name);
+			if (nullptr == netifp) {
+				UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
+						   "Adapter %s not founds\n", name.c_str());
+				return UPNP_E_INVALID_INTERFACE;
+			}
+			if (netifp->hasflag(NetIF::Interface::Flags::HASIPV4)) {
+				const NetIF::IPAddr *addr = netifp->firstipv4addr();
+				if (nullptr != addr) {
+					v4addr += addr->straddr() + " ";
+				}
+			}
+			if (netifp->hasflag(NetIF::Interface::Flags::HASIPV6)) {
+				const NetIF::IPAddr *addr =
+					netifp->firstipv6addr(NetIF::IPAddr::Scope::LINK);
+				if (nullptr != addr) {
+					v6addr += addr->straddr() + " ";
+				} 
+			}
+			selected.emplace_back(*netifp);
+			actifnames += netifp->getname() + " ";
+		}
 	} else {
+		// No interface specified. Use first appropriate one.
 		NetIF::Interfaces::Filter
 			filt{.needs={NetIF::Interface::Flags::HASIPV4,
 						 NetIF::Interface::Flags::HASIPV6},
@@ -215,40 +245,41 @@ int UpnpGetIfInfo(const char *IfName)
 		};
 		selected = ifs->select(filt);
 		if (!selected.empty()) {
+			selected.resize(1);
 			netifp = &selected[0];
+			if (netifp->hasflag(NetIF::Interface::Flags::HASIPV4)) {
+				const NetIF::IPAddr *addr = netifp->firstipv4addr();
+				if (nullptr != addr) {
+					v4addr = addr->straddr();
+				}
+			}
+			if (netifp->hasflag(NetIF::Interface::Flags::HASIPV6)) {
+				const NetIF::IPAddr *addr =
+					netifp->firstipv6addr(NetIF::IPAddr::Scope::LINK);
+				if (nullptr != addr) {
+					v6addr = addr->straddr();
+				}
+			}
+			actifnames += netifp->getname() + " ";
 		}
+			
 	}
-	if (nullptr == netifp) {
+	if (selected.empty()) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
 				   "No adapter with usable IP addresses.\n");
 		return UPNP_E_INVALID_INTERFACE;
 	}
-	std::string v4addr;
-	if (netifp->hasflag(NetIF::Interface::Flags::HASIPV4)) {
-		const NetIF::IPAddr *addr = netifp->firstipv4addr();
-		if (nullptr != addr) {
-			v4addr = addr->straddr();
-		}
-	}
-	std::string v6addr;
-	if (netifp->hasflag(NetIF::Interface::Flags::HASIPV6)) {
-		const NetIF::IPAddr *addr =
-			netifp->firstipv6addr(NetIF::IPAddr::Scope::LINK);
-		if (nullptr != addr) {
-			v6addr = addr->straddr();
-		} 
-	}
-
 	if (v4addr.empty() && v6addr.empty()) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
 				   "No usable IP addresses were found.\n");
 		return UPNP_E_INVALID_INTERFACE;
 	}
-	g_netifs.emplace_back(*netifp);
+
+	g_netifs = selected;
+
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-			   "Ifname=%s, index=%d, v4=%s, v6=%s\n",
-			   netifp->getname().c_str(), netifp->getindex(),
-			   v4addr.c_str(), v6addr.c_str());
+			   "interfaces= %s, v4= %s, v6= %s\n",
+			   actifnames.c_str(), v4addr.c_str(), v6addr.c_str());
 
 	return UPNP_E_SUCCESS;
 }
@@ -460,8 +491,8 @@ static int UpnpInitStartServers(unsigned short DestPort)
 	return UPNP_E_SUCCESS;
 }
 
-static int upnpInitCommonV4V6(bool dov6, const char *HostIP,
-							  const char *ifNameForV6, unsigned short DestPort)
+static int upnpInitCommon(const char *HostIP,
+						  const char *ifName, unsigned short DestPort)
 {
 	int retVal = UPNP_E_SUCCESS;
 
@@ -483,9 +514,9 @@ static int upnpInitCommonV4V6(bool dov6, const char *HostIP,
 			   "UpnpInit: HostIP=%s, DestPort=%d.\n", 
 			   HostIP ? HostIP : "", static_cast<int>(DestPort));
 
-	if (dov6) {
+	if (ifName) {
 		/* Retrieve interface information (Addresses, index, etc). */
-		retVal = UpnpGetIfInfo(ifNameForV6);
+		retVal = UpnpGetIfInfo(ifName);
 		if (retVal != UPNP_E_SUCCESS) {
 			goto exit_function;
 		}
@@ -517,13 +548,13 @@ exit_function:
 
 int UpnpInit(const char *HostIP, unsigned short DestPort)
 {
-	return upnpInitCommonV4V6(false, HostIP, nullptr, DestPort);
+	return upnpInitCommon(HostIP, nullptr, DestPort);
 }
 
 #ifdef UPNP_ENABLE_IPV6
 int UpnpInit2(const char *IfName, unsigned short DestPort)
 {
-	return upnpInitCommonV4V6(true, nullptr, IfName, DestPort);
+	return upnpInitCommon(nullptr, IfName, DestPort);
 }
 #endif
 
@@ -904,7 +935,8 @@ int UpnpUnRegisterRootDeviceLowPower(UpnpDevice_Handle Hnd, int PowerState,
 
 #if EXCLUDE_SSDP == 0
 	retVal = AdvertiseAndReply(
-		-1, Hnd, static_cast<enum SsdpSearchType>(0), nullptr, nullptr, nullptr, nullptr, HInfo->MaxAge);
+		MSGTYPE_SHUTDOWN, Hnd, static_cast<enum SsdpSearchType>(0),
+		nullptr, nullptr,nullptr,nullptr, HInfo->MaxAge);
 #endif
 
 	if (checkLockHandle(HND_INVALID, Hnd, &HInfo) == HND_INVALID) {
@@ -1234,8 +1266,9 @@ int UpnpSendAdvertisementLowPower(
 	SInfo->SleepPeriod = SleepPeriod;
 	SInfo->RegistrationState = RegistrationState;
 	HandleUnlock();
-	retVal = AdvertiseAndReply(1, Hnd, static_cast<enum SsdpSearchType>(0),
-							   nullptr, nullptr, nullptr, nullptr, Exp);
+	retVal = AdvertiseAndReply(
+		MSGTYPE_ADVERTISEMENT, Hnd, static_cast<enum SsdpSearchType>(0),
+		nullptr, nullptr, nullptr, nullptr, Exp);
 
 	if(retVal != UPNP_E_SUCCESS)
 		return retVal;
