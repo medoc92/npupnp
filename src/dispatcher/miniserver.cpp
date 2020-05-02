@@ -547,28 +547,16 @@ static int create_miniserver_sockets(
 #endif
 	memset(&__ss_v4, 0, sizeof (__ss_v4));
 	serverAddr4->sin_family = static_cast<sa_family_t>(AF_INET);
-	std::string ipv4 = apiFirstIPV4Str();
-	if (ipv4.empty()) {
-		serverAddr4->sin_addr.s_addr = INADDR_ANY;
-	} else {
-		inet_pton(AF_INET, ipv4.c_str(), &serverAddr4->sin_addr);
-	}
+	serverAddr4->sin_addr.s_addr = INADDR_ANY;
 #ifdef UPNP_ENABLE_IPV6
 	memset(&__ss_v6, 0, sizeof (__ss_v6));
 	serverAddr6->sin6_family = static_cast<sa_family_t>(AF_INET6);
-	std::string ipv6 = apiFirstIPV6Str();
-	int ipv6index = apiFirstIPV6Index();
-	if (ipv6.empty()) {
-		memcpy(&serverAddr6->sin6_addr, &in6addr_any, sizeof(in6addr_any));
-	} else {
-		inet_pton(AF_INET6, ipv6.c_str(), &serverAddr6->sin6_addr);
-		serverAddr6->sin6_scope_id = ipv6index;
-	}
+	memcpy(&serverAddr6->sin6_addr, &in6addr_any, sizeof(in6addr_any));
 #endif
 
 #ifdef UPNP_MINISERVER_REUSEADDR
 	UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
-			   "miniserver: resuseaddr is set.\n");
+			   "miniserver: reuseaddr is set.\n");
 	int on=1;
 	if (out->miniServerSock4 != INVALID_SOCKET) {
 		if (setsockopt(
@@ -623,7 +611,8 @@ static int create_miniserver_sockets(
 			serverAddr6->sin6_port = htons(listen_port6++);
 			sockError = bind(
 				out->miniServerSock6,
-				reinterpret_cast<struct sockaddr *>(serverAddr6),sizeof(*serverAddr6));
+				reinterpret_cast<struct sockaddr *>(serverAddr6),
+				sizeof(*serverAddr6));
 			if (sockError == SOCKET_ERROR) {
 				errCode = UPNP_SOCK_GET_LAST_ERROR();
 				if (errno == EADDRINUSE) {

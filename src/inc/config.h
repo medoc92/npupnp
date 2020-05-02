@@ -139,7 +139,7 @@
  *
  * @{
  */
-#define MAX_JOBS_TOTAL 100
+#define MAX_JOBS_TOTAL 1000
 /* @} */
 
 /*! \name MAX_SUBSCRIPTION_QUEUED_EVENTS

@@ -208,19 +208,17 @@ static void *thread_ssdp_event_handler(void *the_data)
 {
 	auto data = static_cast<ssdp_thread_data *>(the_data);
 
-	std::cerr << "thread_ssdp_event: got data:\n" << data->packet << "\n";
 	// The parser takes ownership of the buffer
 	SSDPPacketParser parser(data->packet);
 	data->packet = nullptr;
 	if (!parser.parse()) {
-		std::cerr << "thread_ssdp_event: parser failed\n";
 		UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,	"SSDP parser error\n");
 		return nullptr;
 	}
 
 	http_method_t method = valid_ssdp_msg(parser);
 	if (method == HTTPMETHOD_UNKNOWN) {
-		std::cerr << "thread_ssdp_event: unknown method\n";
+		UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,	"SSDP unknown method\n");
 		return nullptr;
 	}
 
@@ -257,7 +255,7 @@ void readFromSSDPSocket(SOCKET socket)
 	if (cnt > 0) {
 		data->packet[cnt] = '\0';
 		NetIF::IPAddr nipa(sap);
-		UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
+		UpnpPrintf(UPNP_ALL, SSDP, __FILE__, __LINE__,
 				   "\nSSDP message from host %s --------------------\n"
 				   "%s\n"
 				   "End of received data -----------------------------\n",
@@ -275,103 +273,80 @@ void readFromSSDPSocket(SOCKET socket)
 
 static int create_ssdp_sock_v4(SOCKET *ssdpSock)
 {
-	char errorBuffer[ERROR_BUFFER_LEN];
-	char ttl = 4;
 	int onOff;
-	struct ip_mreq ssdpMcastAddr;
-	struct sockaddr_storage __ss;
-	auto ssdpAddr4 = reinterpret_cast<struct sockaddr_in *>(&__ss);
-	int ret = 0;
-
+	struct sockaddr_storage ss;
+	auto ssdpAddr4 = reinterpret_cast<struct sockaddr_in *>(&ss);
+	int ret = UPNP_E_SOCKET_ERROR;
+	std::string errorcause;
+	
 	*ssdpSock = socket(AF_INET, SOCK_DGRAM, 0);
 	if (*ssdpSock == INVALID_SOCKET) {
-		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-		UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-				   "socket(): %s\n", errorBuffer);
-
-		return UPNP_E_OUTOF_SOCKET;
+		errorcause = "socket()";
+		ret = UPNP_E_OUTOF_SOCKET;
+		goto error_handler;
 	}
+
 	onOff = 1;
 	ret = setsockopt(*ssdpSock, SOL_SOCKET, SO_REUSEADDR,
 					 reinterpret_cast<char *>(&onOff), sizeof(onOff));
 	if (ret == -1) {
-		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-		UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-				   "setsockopt() SO_REUSEADDR: %s\n", errorBuffer);
-		ret = UPNP_E_SOCKET_ERROR;
+		errorcause = "setsockopt() SO_REUSEADDR";
 		goto error_handler;
 	}
+
 #if (defined(BSD) && !defined(__GNU__)) || defined(__OSX__) || defined(__APPLE__)
 	onOff = 1;
 	ret = setsockopt(*ssdpSock, SOL_SOCKET, SO_REUSEPORT,
 					 (char *)&onOff, sizeof(onOff));
 	if (ret == -1) {
-		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-		UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-				   "setsockopt() SO_REUSEPORT: %s\n", errorBuffer);
-		ret = UPNP_E_SOCKET_ERROR;
+		errorcause = "setsockopt() SO_REUSEPORT";
 		goto error_handler;
 	}
 #endif /* BSD, __OSX__, __APPLE__ */
-	memset(&__ss, 0, sizeof(__ss));
+
+	memset(&ss, 0, sizeof(ss));
 	ssdpAddr4->sin_family = static_cast<sa_family_t>(AF_INET);
 	ssdpAddr4->sin_addr.s_addr = htonl(INADDR_ANY);
 	ssdpAddr4->sin_port = htons(SSDP_PORT);
 	ret = bind(*ssdpSock, reinterpret_cast<struct sockaddr *>(ssdpAddr4),
 			   sizeof(*ssdpAddr4));
 	if (ret == -1) {
-		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-		UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-				   "bind(), addr=0x%08lX, port=%d: %s\n",
-				   static_cast<unsigned long>INADDR_ANY, SSDP_PORT, errorBuffer);
+		errorcause = "bind(INADDR_ANY)";
 		ret = UPNP_E_SOCKET_BIND;
 		goto error_handler;
 	}
-	memset((void *)&ssdpMcastAddr, 0, sizeof(struct ip_mreq));
-	ssdpMcastAddr.imr_interface.s_addr = inet_addr(apiFirstIPV4Str().c_str());
-	ssdpMcastAddr.imr_multiaddr.s_addr = inet_addr(SSDP_IP);
-	ret = setsockopt(*ssdpSock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-					 reinterpret_cast<char *>(&ssdpMcastAddr),
-					 sizeof(struct ip_mreq));
-	if (ret == -1) {
-		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-		UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-				   "setsockopt() IP_ADD_MEMBERSHIP: %s\n", errorBuffer);
-		ret = UPNP_E_SOCKET_ERROR;
-		goto error_handler;
+
+	for (const auto& netif : g_netifs) {
+		struct ip_mreq ssdpMcastAddr;
+		memset((void *)&ssdpMcastAddr, 0, sizeof(struct ip_mreq));
+		auto addrmask = netif.getaddresses();
+		for (const auto& addr : addrmask.first) {
+			if (addr.family() != NetIF::IPAddr::Family::IPV4)
+				continue;
+			ssdpMcastAddr.imr_interface.s_addr =
+				inet_addr(addr.straddr().c_str());
+			ssdpMcastAddr.imr_multiaddr.s_addr = inet_addr(SSDP_IP);
+			ret = setsockopt(*ssdpSock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+							 reinterpret_cast<char *>(&ssdpMcastAddr),
+							 sizeof(struct ip_mreq));
+			if (ret == -1) {
+				errorcause = "setsockopt() IP_ADD_MEMBERSHIP";
+				goto error_handler;
+			}
+		}
 	}
-	/* Set multicast interface. */
-	struct in_addr addr;
-	memset((void *)&addr, 0, sizeof(struct in_addr));
-	addr.s_addr = inet_addr(apiFirstIPV4Str().c_str());
-	ret = setsockopt(*ssdpSock, IPPROTO_IP, IP_MULTICAST_IF,
-					 reinterpret_cast<char *>(&addr), sizeof addr);
-	if (ret == -1) {
-		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-		UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
-				   "setsockopt() IP_MULTICAST_IF: %s\n", errorBuffer);
-		/* This is probably not a critical error, so let's continue. */
-	}
-	/* result is not checked becuase it will fail in WinMe and Win9x. */
-	setsockopt(*ssdpSock, IPPROTO_IP,
-			   IP_MULTICAST_TTL, &ttl, sizeof(ttl));
-	onOff = 1;
-	ret = setsockopt(*ssdpSock, SOL_SOCKET, SO_BROADCAST,
-					 reinterpret_cast<char *>(&onOff), sizeof(onOff));
-	if (ret == -1) {
-		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-		UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-				   "setsockopt() SO_BROADCAST: %s\n", errorBuffer);
-		ret = UPNP_E_NETWORK_ERROR;
-		goto error_handler;
-	}
-	ret = UPNP_E_SUCCESS;
+
+	return UPNP_E_SUCCESS;
 
 error_handler:
-	if (ret != UPNP_E_SUCCESS) {
+	char errorBuffer[ERROR_BUFFER_LEN];
+	posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
+	UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
+			   "%s: %s\n", errorcause.c_str(), errorBuffer);
+	if (*ssdpSock >= 0) {
 		UpnpCloseSocket(*ssdpSock);
+		*ssdpSock = -1;
 	}
-
 	return ret;
 }
 
@@ -413,107 +388,91 @@ static int create_ssdp_sock_reqv4(SOCKET *ssdpReqSock)
 
 static int create_ssdp_sock_v6(bool isulagua, SOCKET *ssdpSock)
 {
-	char errorBuffer[ERROR_BUFFER_LEN];
-	struct ipv6_mreq ssdpMcastAddr;
-	struct sockaddr_storage __ss;
-	auto ssdpAddr6 = reinterpret_cast<struct sockaddr_in6 *>(&__ss);
 	int onOff;
-	int ret = 0;
-
+	int ret = UPNP_E_SOCKET_ERROR;
+	std::string errorcause;
+	
 	*ssdpSock = socket(AF_INET6, SOCK_DGRAM, 0);
 	if (*ssdpSock == INVALID_SOCKET) {
-		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-		UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-				   "socket(): %s\n", errorBuffer);
-
-		return UPNP_E_OUTOF_SOCKET;
+		errorcause = "socket()";
+		ret = UPNP_E_OUTOF_SOCKET;
+		goto error_handler;
 	}
+
 	onOff = 1;
 	ret = setsockopt(*ssdpSock, SOL_SOCKET, SO_REUSEADDR,
 					 reinterpret_cast<char *>(&onOff), sizeof(onOff));
 	if (ret == -1) {
-		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-		UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-				   "setsockopt() SO_REUSEADDR: %s\n", errorBuffer);
-		ret = UPNP_E_SOCKET_ERROR;
+		errorcause = "setsockopt() SO_REUSEADDR";
 		goto error_handler;
 	}
+
 #if (defined(BSD) && !defined(__GNU__)) || defined(__OSX__) || defined(__APPLE__)
 	onOff = 1;
 	ret = setsockopt(*ssdpSock, SOL_SOCKET, SO_REUSEPORT,
 					 (char *)&onOff, sizeof(onOff));
 	if (ret == -1) {
-		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-		UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-				   "setsockopt() SO_REUSEPORT: %s\n", errorBuffer);
-		ret = UPNP_E_SOCKET_ERROR;
+		errorcause = "setsockopt() SO_REUSEPORT";
 		goto error_handler;
 	}
 #endif /* BSD, __OSX__, __APPLE__ */
+
 	onOff = 1;
 	ret = setsockopt(*ssdpSock, IPPROTO_IPV6, IPV6_V6ONLY,
 					 reinterpret_cast<char *>(&onOff), sizeof(onOff));
 	if (ret == -1) {
-		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-		UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-				   "setsockopt() IPV6_V6ONLY: %s\n", errorBuffer);
-		ret = UPNP_E_SOCKET_ERROR;
+		errorcause = "setsockopt() IPV6_V6ONLY";
 		goto error_handler;
 	}
-	memset(&__ss, 0, sizeof(__ss));
-	ssdpAddr6->sin6_family = static_cast<sa_family_t>(AF_INET6);
-	ssdpAddr6->sin6_addr = in6addr_any;
-	ssdpAddr6->sin6_scope_id = apiFirstIPV6Index();
-	ssdpAddr6->sin6_port = htons(SSDP_PORT);
-	ret = bind(*ssdpSock, reinterpret_cast<struct sockaddr *>(ssdpAddr6),
-			   sizeof(*ssdpAddr6));
-	if (ret == -1) {
-		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-		UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-				   "bind(): addr=0x%032lX, port=%d: %s\n", 0LU, SSDP_PORT,
-				   errorBuffer);
-		ret = UPNP_E_SOCKET_BIND;
-		goto error_handler;
+
+	{
+		struct sockaddr_storage ss;
+		auto ssdpAddr6 = reinterpret_cast<struct sockaddr_in6 *>(&ss);
+		memset(&ss, 0, sizeof(ss));
+		ssdpAddr6->sin6_family = static_cast<sa_family_t>(AF_INET6);
+		ssdpAddr6->sin6_addr = in6addr_any;
+		ssdpAddr6->sin6_scope_id = 0;
+		ssdpAddr6->sin6_port = htons(SSDP_PORT);
+		ret = bind(*ssdpSock, reinterpret_cast<struct sockaddr *>(ssdpAddr6),
+				   sizeof(*ssdpAddr6));
+		if (ret == -1) {
+			errorcause = "bind()";
+			goto error_handler;
+		}
+		struct ipv6_mreq ssdpMcastAddr;
+		memset((void *)&ssdpMcastAddr, 0, sizeof(ssdpMcastAddr));
+		ssdpMcastAddr.ipv6mr_interface = 0;
+		if (isulagua) {
+			/* ULAGUA SITE LOCAL */
+			inet_pton(AF_INET6, SSDP_IPV6_SITELOCAL,
+					  &ssdpMcastAddr.ipv6mr_multiaddr);
+		} else {
+			inet_pton(AF_INET6, SSDP_IPV6_LINKLOCAL,
+					  &ssdpMcastAddr.ipv6mr_multiaddr);
+		}
+		ret = setsockopt(*ssdpSock, IPPROTO_IPV6, IPV6_JOIN_GROUP,
+						 reinterpret_cast<char *>(&ssdpMcastAddr),
+						 sizeof(ssdpMcastAddr));
+		if (ret == -1) {
+			errorcause = "setsockopt() IPV6_JOIN_GROUP";
+			goto error_handler;
+		}
 	}
-	memset((void *)&ssdpMcastAddr, 0, sizeof(ssdpMcastAddr));
-	ssdpMcastAddr.ipv6mr_interface = apiFirstIPV6Index();
-	if (isulagua) {
-		/* ULAGUA SITE LOCAL */
-		inet_pton(AF_INET6, SSDP_IPV6_SITELOCAL,
-				  &ssdpMcastAddr.ipv6mr_multiaddr);
-	} else {
-		inet_pton(AF_INET6, SSDP_IPV6_LINKLOCAL,
-				  &ssdpMcastAddr.ipv6mr_multiaddr);
-	}
-	ret = setsockopt(*ssdpSock, IPPROTO_IPV6, IPV6_JOIN_GROUP,
-					 reinterpret_cast<char *>(&ssdpMcastAddr),
-					 sizeof(ssdpMcastAddr));
-	if (ret == -1) {
-		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-		UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-				   "setsockopt() IPV6_JOIN_GROUP: %s\n", errorBuffer);
-		ret = UPNP_E_SOCKET_ERROR;
-		goto error_handler;
-	}
-	onOff = 1;
-	ret = setsockopt(*ssdpSock, SOL_SOCKET, SO_BROADCAST,
-					 reinterpret_cast<char *>(&onOff), sizeof(onOff));
-	if (ret == -1) {
-		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-		UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-				   "setsockopt() SO_BROADCAST: %s\n", errorBuffer);
-		ret = UPNP_E_NETWORK_ERROR;
-		goto error_handler;
-	}
-	ret = UPNP_E_SUCCESS;
+
+	return UPNP_E_SUCCESS;
 
 error_handler:
-	if (ret != UPNP_E_SUCCESS) {
+	char errorBuffer[ERROR_BUFFER_LEN];
+	posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
+	UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
+			   "setsockopt() IPV6_JOIN_GROUP: %s\n", errorBuffer);
+	if (*ssdpSock >= 0) {
 		UpnpCloseSocket(*ssdpSock);
+		*ssdpSock = -1;
 	}
-
 	return ret;
 }
+
 
 #ifdef INCLUDE_CLIENT_APIS
 /* Create the SSDP IPv6 socket to be used by the control point. */

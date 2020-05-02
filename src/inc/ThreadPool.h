@@ -71,7 +71,7 @@ struct ThreadPoolAttr {
 	/*! Jobs per thread to maintain. */
 	int jobsPerThread{10};
 	/*! Maximum number of jobs that can be queued totally. */
-	int maxJobsTotal{100};
+	int maxJobsTotal{500};
 	/*! the time a low priority or med priority job waits before getting
 	 * bumped up a priority (in milliseconds). */
 	int starvationTime{500};

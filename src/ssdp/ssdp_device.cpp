@@ -58,10 +58,6 @@
 #include <algorithm>
 #include <chrono>
 
-#define MSGTYPE_SHUTDOWN    0
-#define MSGTYPE_ADVERTISEMENT   1
-#define MSGTYPE_REPLY       2
-
 struct SsdpSearchReply {
 	int MaxAge;
 	UpnpDevice_Handle handle;
@@ -69,11 +65,11 @@ struct SsdpSearchReply {
 	SsdpEvent event;
 };
 
-static void* thread_advertiseandreply(void *data)
+static void *thread_advertiseandreply(void *data)
 {
     auto arg = static_cast<SsdpSearchReply *>(data);
 
-    AdvertiseAndReply(0, arg->handle,
+    AdvertiseAndReply(MSGTYPE_REPLY, arg->handle,
                       arg->event.RequestType,
                       reinterpret_cast<struct sockaddr *>(&arg->dest_addr),
                       arg->event.DeviceType,
@@ -94,17 +90,20 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
     /* check man hdr. */
     if (!parser.man || strcmp(parser.man, "\"ssdp:discover\"") != 0) {
         /* bad or missing hdr. */
-		std::cerr << "ssdp_handle_device_req: no/bad MAN header\n";
+        UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+				   "ssdp_handle_device_req: no/bad MAN header\n");
         return;
 	}
     /* MX header. Must be >= 1*/
     if (!parser.mx || (mx = atoi(parser.mx)) <= 0) {
-		std::cerr << "ssdp_handle_device_req: no/bad MX header\n";
+        UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+				   "ssdp_handle_device_req: no/bad MX header\n");
         return;
 	}
     /* ST header. */
     if (!parser.st || ssdp_request_type(parser.st, &event) == -1) {
-		std::cerr << "ssdp_handle_device_req: no/bad ST header\n";
+        UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+				   "ssdp_handle_device_req: no/bad ST header\n");
         return;
 	}
 
@@ -150,8 +149,8 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
 		mx = std::max(1, mx);
         /* Subtract a bit from the mx to allow for network/processing delays */
         int delayms = rand() %  (mx * 1000 - 100);
-		std::cerr << "ssdp_handle_device_req: scheduling resp in " <<
-			delayms << " ms\n";
+        UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+				   "ssdp_handle_device_req: scheduling resp in %d ms\n",delayms);
         gTimerThread->schedule(
 			TimerThread::SHORT_TERM, std::chrono::milliseconds(delayms),
 			nullptr, thread_advertiseandreply, threadArg,
@@ -160,90 +159,219 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
     }
 }
 
-/* Send the device packet to the network */
-static int sendPackets(struct sockaddr *DestAddr, int NumPacket,
-					   std::string *RqPacket)
+// Create the reply socket and determine the appropriate host address
+// for setting the LOCATION header
+static int createMulticastSocket4(
+	const struct sockaddr_in *srcaddr, std::string& lochost)
 {
-    char errorBuffer[ERROR_BUFFER_LEN];
-    /* a/c to UPNP Spec */
-    int ttl = 4;
+    char ttl = 2;
+	int bcast = 1;
+	const NetIF::IPAddr
+		ipaddr(reinterpret_cast<const struct sockaddr *>(srcaddr));
+	lochost = ipaddr.straddr();
+    SOCKET sock = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sock < 0) {
+		return INVALID_SOCKET;
+	}
+	uint32_t srcAddr = srcaddr->sin_addr.s_addr;
+	if (setsockopt(sock, IPPROTO_IP, IP_MULTICAST_IF,
+				   reinterpret_cast<char *>(&srcAddr), sizeof(srcAddr)) < 0) {
+		goto error;
+	}
+	if (setsockopt(sock, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl)) < 0) {
+		goto error;
+	}
+	if(setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &bcast, sizeof(bcast)) < 0) {
+		goto error;
+	}
+	if (bind(sock, reinterpret_cast<const struct sockaddr *>(srcaddr),
+			 sizeof(struct sockaddr_in)) < 0) {
+		goto error;
+	}
+	return sock;
+error:
+	close(sock);
+	return -1;
+}
+
+static int createReplySocket4(
+	struct sockaddr_in *destaddr, std::string& lochost)
+{
+    SOCKET sock = socket(static_cast<int>(destaddr->sin_family), SOCK_DGRAM, 0);
+    if (sock < 0) {
+		return INVALID_SOCKET;
+    }
+	// Determine the proper interface and compute the location string
+	NetIF::IPAddr dipaddr(reinterpret_cast<struct sockaddr*>(destaddr));
+	NetIF::IPAddr hostaddr;
+	const NetIF::Interface *netif =
+		NetIF::Interfaces::interfaceForAddress(dipaddr, g_netifs, hostaddr);
+	if (netif && hostaddr.ok()) {
+		lochost = hostaddr.straddr();
+	} else {
+		lochost = apiFirstIPV4Str();
+	}
+	return sock;
+}
+
 #ifdef UPNP_ENABLE_IPV6
+static int createMulticastSocket6(int index, std::string& lochost)
+{
     int hops = 1;
-#endif
-    int ret = UPNP_E_SUCCESS;
-
-    SOCKET sock = socket(static_cast<int>(DestAddr->sa_family), SOCK_DGRAM, 0);
-    if (sock == INVALID_SOCKET) {
-        posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-        UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
-                   "sendPackets: socket(): %s\n", errorBuffer);
-        return UPNP_E_OUTOF_SOCKET;
+    SOCKET sock = socket(AF_INET6, SOCK_DGRAM, 0);
+    if (sock < 0) {
+		return INVALID_SOCKET;
     }
+	if (setsockopt(sock, IPPROTO_IPV6, IPV6_MULTICAST_IF,
+				   reinterpret_cast<char *>(&index), sizeof(index)) < 0) {
+		goto error;
+	}
+	if (setsockopt(sock, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
+                   reinterpret_cast<char *>(&hops), sizeof(hops)) < 0) {
+		goto error;
+	}
+	lochost.clear();
+	for (const auto& netif : g_netifs) {
+		if (netif.getindex() == index) {
+			const NetIF::IPAddr *ipaddr =
+				netif.firstipv6addr(NetIF::IPAddr::Scope::LINK);
+			if (ipaddr) {
+				lochost = ipaddr->straddr();
+				break;
+			} 
+		}
+	}
+	if (lochost.empty()) {
+		lochost = apiFirstIPV6Str();
+	}
+	return sock;
+error:
+	close(sock);
+	return INVALID_SOCKET;
+}
 
-	std::string srcAddrStr;
-	socklen_t socklen;
-	NetIF::IPAddr destip(DestAddr); // for printing
-    switch (DestAddr->sa_family) {
-    case AF_INET:
-	{
-		uint32_t srcAddr = inet_addr(apiFirstIPV4Str().c_str());		
-        setsockopt(sock, IPPROTO_IP, IP_MULTICAST_IF,
-                   reinterpret_cast<char *>(&srcAddr), sizeof(srcAddr));
-        setsockopt(sock, IPPROTO_IP, IP_MULTICAST_TTL,
-                   reinterpret_cast<char *>(&ttl), sizeof(int));
-        socklen = sizeof(struct sockaddr_in);
-		srcAddrStr = apiFirstIPV4Str();
+static int createReplySocket6(
+	struct sockaddr_in6 *destaddr, std::string& lochost)
+{
+    SOCKET sock = socket(AF_INET6, SOCK_DGRAM, 0);
+    if (sock < 0) {
+		return INVALID_SOCKET;
 	}
-	break;
-#ifdef UPNP_ENABLE_IPV6
-    case AF_INET6:
-	{
-		int index = apiFirstIPV6Index();
-        setsockopt(sock, IPPROTO_IPV6, IPV6_MULTICAST_IF,
-                   reinterpret_cast<char *>(&index), sizeof(int));
-        setsockopt(sock, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
-                   reinterpret_cast<char *>(&hops), sizeof(hops));
-        socklen = sizeof(struct sockaddr_in6);
-		srcAddrStr = apiFirstIPV6Str();
+	int index = destaddr->sin6_scope_id;
+	lochost.clear();
+	for (const auto& netif : g_netifs) {
+		if (netif.getindex() == index) {
+			const NetIF::IPAddr *ipaddr =
+				netif.firstipv6addr(NetIF::IPAddr::Scope::LINK);
+			if (ipaddr) {
+				lochost = ipaddr->straddr();
+				break;
+			} 
+		}
 	}
-	break;
+	if (lochost.empty()) {
+		lochost = apiFirstIPV6Str();
+	}
+	return sock;
+}
 #endif
-    default:
-		std::cerr << "SSDP send: bad dest address \n";
-        UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-                   "Invalid destination address specified.");
-        ret = UPNP_E_NETWORK_ERROR;
-        goto end_sendPackets;
-    }
 
-    for (int Index = 0; Index < NumPacket; Index++) {
-		// Edit the packet LOCATION to match the appropriate interface.
-		// Temporary, move up to interface loop later
-		std::string packet = RqPacket[Index];
+static int reallySendPackets(
+	SOCKET sock, const std::string& lochost,
+	struct sockaddr *daddr, int cnt, std::string *packets)
+{
+	NetIF::IPAddr destip(daddr);
+	int socklen = daddr->sa_family == AF_INET ? sizeof(struct sockaddr_in) :
+		sizeof(struct sockaddr_in6);
 
+    for (int i = 0; i < cnt; i++) {
+		// Edit the location string
+		std::string packet = packets[i];
 		std::string::size_type locpos = packet.find(g_HostForTemplate);
 		if (locpos != std::string::npos) {
-			packet = packet.replace(locpos, g_HostForTemplate.size(),srcAddrStr);
+			packet = packet.replace(locpos, g_HostForTemplate.size(), lochost);
 		}
         ssize_t rc;
         UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
                    ">>> SSDP SEND to %s >>>\n%s\n",
-                   destip.straddr().c_str(), RqPacket[Index].c_str());
-		std::cerr << "SSDP: sending to " << destip.straddr() << " data: \n" <<
-			RqPacket[Index] << "\n";
-        rc = sendto(sock, packet.c_str(), packet.size(), 0, DestAddr, socklen);
+				   destip.straddr().c_str(), packet.c_str());
+        rc = sendto(sock, packet.c_str(), packet.size(), 0, daddr, socklen);
+					
         if (rc == -1) {
-			std::cerr << "SSDP: sendto " << destip.straddr() << " failed\n";
+			char errorBuffer[ERROR_BUFFER_LEN];
             posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
             UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
-                       "sendPackets: socket(): %s\n", errorBuffer);
-            ret = UPNP_E_SOCKET_WRITE;
-            goto end_sendPackets;
+                       "sendPackets: sendto: %s\n", errorBuffer);
+            return UPNP_E_SOCKET_WRITE;
+
         }
     }
+	return UPNP_E_SUCCESS;
+}
 
-end_sendPackets:
-    UpnpCloseSocket(sock);
+/* Send the device packet to the network */
+static int sendPackets(bool multicast, struct sockaddr *destaddr, int cnt,
+					   std::string *packets)
+{
+    int ret = UPNP_E_SUCCESS;
+	std::string lochost;
+	SOCKET sock = -1;
+	if (multicast) {
+		// Loop on our interfaces and addresses
+		for (const auto& netif : g_netifs) {
+            UpnpPrintf(UPNP_ALL, SSDP, __FILE__, __LINE__,
+					   "ssdp_device: mcast for %s\n", netif.getname().c_str());
+			auto addresses = netif.getaddresses();
+			sock = createMulticastSocket6(netif.getindex(), lochost);
+			if (sock < 0) {
+				goto exitfunc;
+			}
+			ret = reallySendPackets(sock, lochost, destaddr, cnt, packets);
+			if (ret != UPNP_E_SUCCESS) {
+				UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
+						   "SSDP dev: IPV6 SEND failed for %s\n",
+						   netif.getname().c_str());
+				goto exitfunc;
+			}
+			for (const auto& ipaddr : addresses.first) {
+				if (ipaddr.family() == NetIF::IPAddr::Family::IPV4) {
+					const struct sockaddr_storage& ss{ipaddr.getaddr()};
+					sock = createMulticastSocket4(
+						reinterpret_cast<const struct sockaddr_in*>(&ss),
+						lochost);
+				} else {
+					continue;
+				}
+				if (sock < 0) {
+					goto exitfunc;
+				}
+				ret = reallySendPackets(sock, lochost, destaddr, cnt, packets);
+				close(sock);
+				sock = -1;
+			}
+		}
+	} else {
+		sock = destaddr->sa_family == AF_INET ?
+			createReplySocket4(
+				reinterpret_cast<struct sockaddr_in*>(destaddr), lochost) :
+			createReplySocket6(
+				reinterpret_cast<struct sockaddr_in6*>(destaddr), lochost);
+		if (sock < 0) {
+			goto exitfunc;
+		}
+		ret = reallySendPackets(sock, lochost, destaddr, cnt, packets);
+	}
+
+exitfunc:
+	if (ret != UPNP_E_SUCCESS) {
+		char errorBuffer[ERROR_BUFFER_LEN];
+        posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
+        UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
+                   "sendPackets: %s\n", errorBuffer);
+        return UPNP_E_NETWORK_ERROR;
+    }
+	if (sock >= 0) 
+		UpnpCloseSocket(sock);
     return ret;
 }
 
@@ -279,12 +407,13 @@ static int isUrlV6UlaGua(const char *descdocUrl)
 
 /* Creates a device notify or search reply packet. */
 static void CreateServicePacket(
-    int msg_type, const char *nt, const char *usn, const char *location,
-	int duration, std::string &packet, int AddressFamily, int PowerState,
-	int SleepPeriod, int RegistrationState)
+    SSDPDevMessageType msg_type, const char *nt, const char *usn,
+	const char *location, int duration, std::string &packet, int AddressFamily,
+	int PowerState, int SleepPeriod, int RegistrationState)
 {
 	std::ostringstream str;
-    if (msg_type == MSGTYPE_REPLY) {
+    switch (msg_type) {
+	case MSGTYPE_REPLY:
 		str <<
 			"HTTP/1.1 " << HTTP_OK << " OK\r\n" <<
 			"CACHE-CONTROL: max-age=" << duration << "\r\n" <<
@@ -299,9 +428,10 @@ static void CreateServicePacket(
 #endif
 			"ST: " << nt << "\r\n" <<
 			"USN: " << usn << "\r\n";
-
-    } else if (msg_type == MSGTYPE_ADVERTISEMENT || msg_type == MSGTYPE_SHUTDOWN) {
-
+		break;
+    case MSGTYPE_ADVERTISEMENT:
+	case MSGTYPE_SHUTDOWN:
+	{
 		const char *nts = (msg_type == MSGTYPE_ADVERTISEMENT) ?
 			"ssdp:alive" : "ssdp:byebye";
 
@@ -328,10 +458,11 @@ static void CreateServicePacket(
 			"NT: " << nt << "\r\n" <<
 			"NTS: " << nts << "\r\n" <<
 			"USN: " << usn << "\r\n";
-
-    } else {
-        /* unknown msg */
-        assert(0);
+    }
+	break;
+	default:
+		std::cerr << "Unknown message type in CreateServicePacket\n";
+		abort();
 	}
 
 	if (PowerState > 0) {
@@ -344,15 +475,14 @@ static void CreateServicePacket(
 	str << "\r\n";
 
     packet = str.str();
-	// std::cerr << "SERVICEPACKET:\n" << packet << std::endl;
 }
 
-static bool setDestAddr(struct sockaddr_storage& __ss, const char *Location,
-						int AddressFamily)
+// Set the UPnP predefined multicast destination addresses
+static bool setDestAddr(struct sockaddr_storage& ss, int AddressFamily)
 {
-    auto DestAddr4 = reinterpret_cast<struct sockaddr_in *>(&__ss);
-    auto DestAddr6 = reinterpret_cast<struct sockaddr_in6 *>(&__ss);
-    memset(&__ss, 0, sizeof(__ss));
+    auto DestAddr4 = reinterpret_cast<struct sockaddr_in *>(&ss);
+    auto DestAddr6 = reinterpret_cast<struct sockaddr_in6 *>(&ss);
+    memset(&ss, 0, sizeof(ss));
     switch (AddressFamily) {
     case AF_INET:
         DestAddr4->sin_family = static_cast<sa_family_t>(AF_INET);
@@ -361,11 +491,8 @@ static bool setDestAddr(struct sockaddr_storage& __ss, const char *Location,
         break;
     case AF_INET6:
         DestAddr6->sin6_family = static_cast<sa_family_t>(AF_INET6);
-        inet_pton(AF_INET6,
-                  (isUrlV6UlaGua(Location)) ? SSDP_IPV6_SITELOCAL :
-                  SSDP_IPV6_LINKLOCAL, &DestAddr6->sin6_addr);
+        inet_pton(AF_INET6, SSDP_IPV6_LINKLOCAL, &DestAddr6->sin6_addr);
         DestAddr6->sin6_port = htons(SSDP_PORT);
-        DestAddr6->sin6_scope_id = apiFirstIPV6Index();
         break;
     default:
 		return false;
@@ -374,17 +501,18 @@ static bool setDestAddr(struct sockaddr_storage& __ss, const char *Location,
 }
 
 static int DeviceAdvertisementOrShutdown(
-	int msgtype, const char *DevType, int RootDev, const char *Udn,
+	SSDPDevMessageType msgtype, const char *DevType, int RootDev,const char *Udn,
 	const char *Location, int Duration, int AddressFamily, int PowerState,
 	int SleepPeriod, int RegistrationState)
 {
-    struct sockaddr_storage __ss;
+    struct sockaddr_storage ss;
+	auto ssp = reinterpret_cast<struct sockaddr *>(&ss);
     char Mil_Usn[LINE_SIZE];
 	std::string msgs[3];
     int ret_code = UPNP_E_OUTOF_MEMORY;
     int rc = 0;
 
-	if (!setDestAddr(__ss, Location, AddressFamily)) {
+	if (!setDestAddr(ss, AddressFamily)) {
         UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
                    "Invalid device address family.\n");
 		return UPNP_E_BAD_REQUEST;
@@ -417,34 +545,14 @@ static int DeviceAdvertisementOrShutdown(
     /* send packets */
     if (RootDev) {
         /* send 3 msg types */
-        ret_code = sendPackets(reinterpret_cast<struct sockaddr *>(&__ss), 3, &msgs[0]);
+        ret_code = sendPackets(true, ssp, 3, &msgs[0]);
     } else {        /* sub-device */
         /* send 2 msg types */
-        ret_code = sendPackets(reinterpret_cast<struct sockaddr *>(&__ss), 2, &msgs[1]);
+        ret_code = sendPackets(true, ssp, 2, &msgs[1]);
     }
 
 error_handler:
     return ret_code;
-
-}
-
-static int DeviceAdvertisement(
-	const char *DevType, int RootDev, const char *Udn, const char *Location,
-	int Duration, int AddressFamily, int PowerState, int SleepPeriod, int
-	RegistrationState)
-{
-	return DeviceAdvertisementOrShutdown(
-		MSGTYPE_ADVERTISEMENT, DevType, RootDev, Udn, Location,	Duration,
-		AddressFamily, PowerState, SleepPeriod, RegistrationState);
-}
-
-static int DeviceShutdown(const char *DevType, int RootDev, const char *Udn,
-                   const char *Location, int Duration, int AddressFamily,
-                   int PowerState, int SleepPeriod, int RegistrationState)
-{
-	return DeviceAdvertisementOrShutdown(
-		MSGTYPE_SHUTDOWN, DevType, RootDev, Udn, Location, Duration,
-		AddressFamily, PowerState, SleepPeriod, RegistrationState);
 }
 
 static int SendReply(
@@ -497,7 +605,7 @@ static int SendReply(
         }
     }
     /* send msgs */
-    ret_code = sendPackets(DestAddr, num_msgs, msgs);
+    ret_code = sendPackets(false, DestAddr, num_msgs, msgs);
 
 error_handler:
     return ret_code;
@@ -510,7 +618,6 @@ static int DeviceReply(
 {
 	std::string szReq[3];
 	char Mil_Nt[LINE_SIZE], Mil_Usn[LINE_SIZE];
-    int RetVal = UPNP_E_OUTOF_MEMORY;
     int rc = 0;
 
     /* create 2 or 3 msgs */
@@ -519,7 +626,7 @@ static int DeviceReply(
         upnp_strlcpy(Mil_Nt, "upnp:rootdevice", sizeof(Mil_Nt));
         rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::upnp:rootdevice", Udn);
         if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Usn))
-            goto error_handler;
+            return UPNP_E_OUTOF_MEMORY;
         CreateServicePacket(MSGTYPE_REPLY, Mil_Nt, Mil_Usn,
                             Location, Duration, szReq[0],
                             static_cast<int>(DestAddr->sa_family), PowerState,
@@ -527,106 +634,57 @@ static int DeviceReply(
     }
     rc = snprintf(Mil_Nt, sizeof(Mil_Nt), "%s", Udn);
     if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Nt))
-        goto error_handler;
+        return UPNP_E_OUTOF_MEMORY;
     rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s", Udn);
     if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Usn))
-        goto error_handler;
+        return UPNP_E_OUTOF_MEMORY;
     CreateServicePacket(MSGTYPE_REPLY, Mil_Nt, Mil_Usn,
                         Location, Duration, szReq[1],
 						static_cast<int>(DestAddr->sa_family),
                         PowerState, SleepPeriod, RegistrationState);
     rc = snprintf(Mil_Nt, sizeof(Mil_Nt), "%s", DevType);
     if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Nt))
-        goto error_handler;
+        return UPNP_E_OUTOF_MEMORY;
     rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::%s", Udn, DevType);
     if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Usn))
-        goto error_handler;
+        return UPNP_E_OUTOF_MEMORY;
     CreateServicePacket(MSGTYPE_REPLY, Mil_Nt, Mil_Usn,
                         Location, Duration, szReq[2],
 						static_cast<int>(DestAddr->sa_family),
                         PowerState, SleepPeriod, RegistrationState);
     /* check error */
     if ((RootDev && szReq[0].empty()) || szReq[1].empty() || szReq[2].empty()) {
-        goto error_handler;
+        return UPNP_E_OUTOF_MEMORY;
     }
     /* send replies */
     if (RootDev) {
-        RetVal = sendPackets(DestAddr, 3, szReq);
-    } else {
-        RetVal = sendPackets(DestAddr, 2, &szReq[1]);
+        return sendPackets(false, DestAddr, 3, szReq);
     }
-
-error_handler:
-    return RetVal;
+	return sendPackets(false, DestAddr, 2, &szReq[1]);
 }
 
 static int ServiceSend(
-	int tp, struct sockaddr *DestAddr, const char *ServType, const char *Udn,
-	const char *Location, int Duration, int PowerState, int SleepPeriod,
-	int RegistrationState)
+	SSDPDevMessageType tp, struct sockaddr *DestAddr, const char *ServType,
+	const char *Udn, const char *Location, int Duration, int PowerState,
+	int SleepPeriod, int RegistrationState)
 {
     char Mil_Usn[LINE_SIZE];
 	std::string szReq[1];
-    int RetVal = UPNP_E_OUTOF_MEMORY;
     int rc = 0;
 
     rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::%s", Udn, ServType);
     if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Usn))
-        goto error_handler;
+		return UPNP_E_OUTOF_MEMORY;
     CreateServicePacket(tp, ServType, Mil_Usn,
                         Location, Duration, szReq[0],
 						static_cast<int>(DestAddr->sa_family),
                         PowerState, SleepPeriod, RegistrationState);
     if (szReq[0].empty())
-        goto error_handler;
-    RetVal = sendPackets(DestAddr, 1, szReq);
-
-error_handler:
-    return RetVal;
+        return UPNP_E_OUTOF_MEMORY;
+    return sendPackets(!(tp == MSGTYPE_REPLY), DestAddr, 1, szReq);
 }
 
-static int ServiceReply(struct sockaddr *DestAddr, const char *ServType,
-						const char *Udn, const char *Location, int Duration,
-						int PowerState, int SleepPeriod, int RegistrationState)
-{
-	return ServiceSend(MSGTYPE_REPLY, DestAddr, ServType, Udn, Location,
-					   Duration, PowerState, SleepPeriod, RegistrationState);
-}
-
-static int ServiceAdvShut(int tp, const char *Udn, const char *ServType,
-						  const char *Location, int Duration, int AddressFamily,
-						  int PowerState, int SleepPeriod, int RegistrationState)
-{
-    struct sockaddr_storage __ss;
-	if (!setDestAddr(__ss, Location, AddressFamily)) {
-        UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-				   "Invalid device address family.\n");
-		return UPNP_E_BAD_REQUEST;
-	}
-    return ServiceSend(tp, reinterpret_cast<struct sockaddr *>(&__ss), ServType,
-					   Udn, Location,
-					   Duration, PowerState, SleepPeriod, RegistrationState);
-}
-
-static int ServiceAdvertisement(
-	const char *Udn, const char *ServType, const char *Location, int Duration,
-	int AddressFamily, int PowerState, int SleepPeriod, int RegistrationState)
-{
-    return ServiceAdvShut(
-		MSGTYPE_ADVERTISEMENT, Udn, ServType, Location, Duration, AddressFamily,
-		PowerState, SleepPeriod, RegistrationState);
-}
-
-static int ServiceShutdown(
-	const char *Udn, const char *ServType, const char *Location, int Duration,
-	int AddressFamily, int PowerState, int SleepPeriod, int RegistrationState)
-{
-    return ServiceAdvShut(
-		MSGTYPE_SHUTDOWN, Udn, ServType, Location, Duration, AddressFamily,
-		PowerState, SleepPeriod, RegistrationState);
-}
-
-int AdvertiseAndReply(int AdFlag, UpnpDevice_Handle Hnd,
+int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
 					  enum SsdpSearchType SearchType,
 					  struct sockaddr *DestAddr, char *DeviceType,
 					  char *DeviceUDN, char *ServiceType, int Exp)
@@ -635,10 +693,8 @@ int AdvertiseAndReply(int AdFlag, UpnpDevice_Handle Hnd,
 	int defaultExp = DEFAULT_MAXAGE;
 	int NumCopy = 0;
 	std::vector<const UPnPDeviceDesc*> alldevices;
-
-	UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
-			   "Inside AdvertiseAndReply: AdFlag = %d\n", AdFlag);
-
+	bool isNotify =	(tp == MSGTYPE_ADVERTISEMENT || tp == MSGTYPE_SHUTDOWN);
+	
 	/* Use a read lock */
 	HandleReadLock();
 	struct Handle_Info *SInfo = nullptr;
@@ -655,7 +711,7 @@ int AdvertiseAndReply(int AdFlag, UpnpDevice_Handle Hnd,
 	}
 
 	/* send advertisements/replies */
-	while (NumCopy == 0 || (AdFlag && NumCopy < NUM_SSDP_COPY)) {
+	while (NumCopy == 0 || (isNotify && NumCopy < NUM_SSDP_COPY)) {
 		if (NumCopy != 0)
 			std::this_thread::sleep_for(std::chrono::milliseconds(SSDP_PAUSE));
 		NumCopy++;
@@ -664,20 +720,11 @@ int AdvertiseAndReply(int AdFlag, UpnpDevice_Handle Hnd,
 			bool isroot = &devp == &(*alldevices.begin());
 			const char *devType = devp->deviceType.c_str();
 			const char *UDNstr = devp->UDN.c_str();
-			if (AdFlag) {
-				/* send the device advertisement */
-				if (AdFlag == 1) {
-					DeviceAdvertisement(
-						devType, isroot, UDNstr, SInfo->DescURL, Exp,
-						SInfo->DeviceAf, SInfo->PowerState,	SInfo->SleepPeriod,
-						SInfo->RegistrationState);
-				} else {
-					/* AdFlag == -1 */
-					DeviceShutdown(
-						devType, isroot, UDNstr, SInfo->DescURL, Exp,
-						SInfo->DeviceAf, SInfo->PowerState, SInfo->SleepPeriod,
-						SInfo->RegistrationState);
-				}
+			if (isNotify) {
+				DeviceAdvertisementOrShutdown(
+					tp, devType, isroot, UDNstr, SInfo->DescURL, Exp,
+					SInfo->DeviceAf, SInfo->PowerState,	SInfo->SleepPeriod,
+					SInfo->RegistrationState);
 			} else {
 				switch (SearchType) {
 				case SSDP_ALL:
@@ -766,23 +813,20 @@ int AdvertiseAndReply(int AdFlag, UpnpDevice_Handle Hnd,
 				const char *servType = service.serviceType.c_str();
 				UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
 						   "ServiceType = %s\n", servType);
-				if (AdFlag) {
-					if (AdFlag == 1) {
-						ServiceAdvertisement(
-							UDNstr, servType, SInfo->DescURL, Exp,
-							SInfo->DeviceAf, SInfo->PowerState,
-							SInfo->SleepPeriod, SInfo->RegistrationState);
-					} else {
-						/* AdFlag == -1 */
-						ServiceShutdown(
-							UDNstr,	servType, SInfo->DescURL,
-							Exp, SInfo->DeviceAf, SInfo->PowerState,
-							SInfo->SleepPeriod,	SInfo->RegistrationState);
+				if (isNotify) {
+					struct sockaddr_storage ss;
+					if (!setDestAddr(ss, SInfo->DeviceAf)) {
+						UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
+								   "Invalid device address family.\n");
 					}
+					ServiceSend(
+						tp,	reinterpret_cast<struct sockaddr *>(&ss),
+						servType, UDNstr, SInfo->DescURL, Exp,SInfo->PowerState,
+						SInfo->SleepPeriod, SInfo->RegistrationState);
 				} else {
 					switch (SearchType) {
 					case SSDP_ALL:
-						ServiceReply(DestAddr, servType, UDNstr,
+						ServiceSend(MSGTYPE_REPLY, DestAddr, servType, UDNstr,
 									 SInfo->DescURL, defaultExp,
 									 SInfo->PowerState, SInfo->SleepPeriod,
 									 SInfo->RegistrationState);
