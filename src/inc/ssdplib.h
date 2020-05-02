@@ -133,14 +133,15 @@ struct SsdpSearchArg {
 #endif /* INCLUDE_CLIENT_APIS */
 
 
+enum SSDPDevMessageType {MSGTYPE_SHUTDOWN, MSGTYPE_ADVERTISEMENT, MSGTYPE_REPLY};
+
 /*!
- * \brief Sends SSDP advertisements, replies and shutdown messages.
+ * \brief Sends SSDP device advertisements, replies and shutdown messages.
  *
  * \return UPNP_E_SUCCESS if successful else appropriate error.
  */
 int AdvertiseAndReply(
-	/* [in] -1 = Send shutdown, 0 = send reply, 1 = Send Advertisement. */
-	int AdFlag, 
+	SSDPDevMessageType tp,
 	/* [in] Device handle. */
 	UpnpDevice_Handle Hnd, 
 	/* [in] Search type for sending replies. */
