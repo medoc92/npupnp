@@ -202,8 +202,10 @@ int apiFirstIPV6Index()
  */
 int UpnpGetIfInfo(const char *IfNames)
 {
+	bool useall = (IfNames && std::string("*") == IfNames);
+		
 	std::vector<std::string> vifnames;
-	if (IfNames) {
+	if (!useall && IfNames) {
 		stringToStrings(IfNames, vifnames);
 	}
 	NetIF::Interfaces *ifs = NetIF::Interfaces::theInterfaces();
@@ -217,58 +219,47 @@ int UpnpGetIfInfo(const char *IfNames)
 			netifp = ifs->findByName(name);
 			if (nullptr == netifp) {
 				UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-						   "Adapter %s not founds\n", name.c_str());
+						   "Adapter %s not found\n", name.c_str());
 				return UPNP_E_INVALID_INTERFACE;
 			}
-			if (netifp->hasflag(NetIF::Interface::Flags::HASIPV4)) {
-				const NetIF::IPAddr *addr = netifp->firstipv4addr();
-				if (nullptr != addr) {
-					v4addr += addr->straddr() + " ";
-				}
-			}
-			if (netifp->hasflag(NetIF::Interface::Flags::HASIPV6)) {
-				const NetIF::IPAddr *addr =
-					netifp->firstipv6addr(NetIF::IPAddr::Scope::LINK);
-				if (nullptr != addr) {
-					v6addr += addr->straddr() + " ";
-				} 
-			}
 			selected.emplace_back(*netifp);
-			actifnames += netifp->getname() + " ";
 		}
 	} else {
-		// No interface specified. Use first appropriate one.
+		// No interface specified. Use first appropriate one, or all.
 		NetIF::Interfaces::Filter
 			filt{.needs={NetIF::Interface::Flags::HASIPV4,
 						 NetIF::Interface::Flags::HASIPV6},
 				 .rejects={NetIF::Interface::Flags::LOOPBACK}
 		};
 		selected = ifs->select(filt);
-		if (!selected.empty()) {
+		if (!selected.empty() && !useall) {
 			selected.resize(1);
-			netifp = &selected[0];
-			if (netifp->hasflag(NetIF::Interface::Flags::HASIPV4)) {
-				const NetIF::IPAddr *addr = netifp->firstipv4addr();
-				if (nullptr != addr) {
-					v4addr = addr->straddr();
-				}
-			}
-			if (netifp->hasflag(NetIF::Interface::Flags::HASIPV6)) {
-				const NetIF::IPAddr *addr =
-					netifp->firstipv6addr(NetIF::IPAddr::Scope::LINK);
-				if (nullptr != addr) {
-					v6addr = addr->straddr();
-				}
-			}
-			actifnames += netifp->getname() + " ";
 		}
-			
 	}
+
 	if (selected.empty()) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
 				   "No adapter with usable IP addresses.\n");
 		return UPNP_E_INVALID_INTERFACE;
 	}
+
+	for (const auto& netif: selected) {
+		if (netif.hasflag(NetIF::Interface::Flags::HASIPV4)) {
+			const NetIF::IPAddr *addr = netif.firstipv4addr();
+			if (nullptr != addr) {
+				v4addr += addr->straddr() + " ";
+			}
+		}
+		if (netif.hasflag(NetIF::Interface::Flags::HASIPV6)) {
+			const NetIF::IPAddr *addr =
+				netif.firstipv6addr(NetIF::IPAddr::Scope::LINK);
+			if (nullptr != addr) {
+				v6addr += addr->straddr() + " ";
+			} 
+		}
+		actifnames += netif.getname() + " ";
+	}
+
 	if (v4addr.empty() && v6addr.empty()) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
 				   "No usable IP addresses were found.\n");
