@@ -53,7 +53,7 @@ public:
 	explicit IPAddr(const std::string& s)
 		: IPAddr(s.c_str()) {}
 	/** Build from binary address in network byte order */
-	explicit IPAddr(struct sockaddr *sa);
+	explicit IPAddr(const struct sockaddr *sa);
 
 	IPAddr(const IPAddr&);
 	IPAddr& operator=(const IPAddr&);
@@ -65,6 +65,8 @@ public:
 	Family family() const;
 	/** Copies out for use with a system interface */
 	void copyToStorage(struct sockaddr_storage *dest) const;
+	const struct sockaddr_storage& getaddr() const;
+	
 	/** Convert to textual representation */
 	std::string straddr() const;
 	
@@ -140,6 +142,15 @@ public:
 	
 	/** Print out, a bit like "ip addr" output */
 	std::ostream& print(std::ostream&);
+
+	/** Find interface address belongs too in input interface vector 
+	 *  Returns both the interface and the address inside the interface.
+	 */
+	static const Interface *interfaceForAddress(
+		const IPAddr& addr, const std::vector<Interface>& vifs,IPAddr& hostaddr);
+	/** Find interface address belongs too among all interfaces
+	 *  Returns both the interface and the address inside the interface. */
+	const Interface *interfaceForAddress(const IPAddr& addr, IPAddr& hostaddr);
 	
 private:
     Interfaces(const Interfaces &) = delete;

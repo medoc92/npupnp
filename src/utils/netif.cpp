@@ -102,7 +102,7 @@ IPAddr::IPAddr(const char *caddr)
 	}
 }
 
-IPAddr::IPAddr(struct sockaddr *sa)
+IPAddr::IPAddr(const struct sockaddr *sa)
 	: IPAddr()
 {
 	memset(&m->address, 0, sizeof(m->address));
@@ -137,6 +137,11 @@ void IPAddr::copyToStorage(struct sockaddr_storage *dest) const
 	} else {
 		memset(dest, 0, sizeof(struct sockaddr_storage));
 	}
+}
+
+const struct sockaddr_storage& IPAddr::getaddr() const
+{
+	return m->address;
 }
 
 IPAddr::Family IPAddr::family() const
@@ -588,6 +593,85 @@ Interface *Interfaces::findByName(const char *nm) const
 			return nm == ifr.m->name || nm == ifr.m->friendlyname;});
 
 	return it == m->interfaces.end() ? nullptr : &(*it);
+}
+
+static const Interface* interfaceForAddress4(
+	uint32_t peeraddr, const std::vector<Interface>& vifs, IPAddr& hostaddr)
+{
+	struct sockaddr_storage sbuf, mbuf;
+	for (const auto& netif : vifs) {
+		auto addresses = netif.getaddresses();
+		for (unsigned int i = 0; i < addresses.first.size(); i++) {
+			if (addresses.first[i].family() == IPAddr::Family::IPV4) {
+				addresses.first[i].copyToStorage(&sbuf);
+				addresses.second[i].copyToStorage(&mbuf);
+				uint32_t addr = reinterpret_cast<struct sockaddr_in*>(
+					&sbuf)->sin_addr.s_addr;
+				uint32_t mask = reinterpret_cast<struct sockaddr_in*>(
+					&mbuf)->sin_addr.s_addr;
+				if ((peeraddr & mask) == (addr & mask)) {
+					hostaddr = addresses.first[i];
+					return &netif;
+				}
+			}
+		}
+	}
+	return nullptr;
+}
+	
+const Interface *Interfaces::interfaceForAddress(
+	const IPAddr& addr, const std::vector<Interface>& vifs, IPAddr& hostaddr)
+{
+	struct sockaddr_storage peerbuf;
+	addr.copyToStorage(&peerbuf);
+
+	if (addr.family() == IPAddr::Family::IPV4) {
+		uint32_t peeraddr = reinterpret_cast<struct sockaddr_in*>(
+			&peerbuf)->sin_addr.s_addr;
+		return interfaceForAddress4(peeraddr, vifs, hostaddr);
+	}
+	
+	if (addr.family() == IPAddr::Family::IPV6)	{
+		struct sockaddr_in6 *peeraddr =
+			reinterpret_cast<struct sockaddr_in6*>(&peerbuf);
+		if (IN6_IS_ADDR_V4MAPPED(&peeraddr->sin6_addr)) {
+			uint32_t addr4;
+			memcpy(&addr4, &peeraddr->sin6_addr.s6_addr[12], 4);
+			return interfaceForAddress4(addr4, vifs, hostaddr);
+		} else {
+			int index = -1;
+			if (peeraddr->sin6_scope_id > 0) {
+				index = static_cast<int>(peeraddr->sin6_scope_id);
+			}
+
+			const Interface *netifp{nullptr};
+			for (const auto& netif : vifs) {
+				if (netif.hasflag(Interface::Flags::HASIPV6)) {
+					if (nullptr == netifp) {
+						netifp = &netif;
+					}
+					if (netif.getindex() == index) {
+						netifp = &netif;
+					}
+				}
+			}
+			hostaddr = IPAddr();
+			if (netifp) {
+				const IPAddr *ipaddr =netifp->firstipv6addr(IPAddr::Scope::LINK);
+				if (ipaddr) {
+					hostaddr = *ipaddr;
+				} 
+			}
+			return netifp;
+		}
+	}
+	return nullptr;
+}
+
+const Interface* Interfaces::interfaceForAddress(const IPAddr& addr,
+												 IPAddr& hostaddr)
+{
+	return interfaceForAddress(addr, m->interfaces, hostaddr);
 }
 
 } /* namespace NetIF */
