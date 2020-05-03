@@ -204,16 +204,27 @@ int UpnpGetIfInfo(const char *IfNames)
 {
 	bool useall = (IfNames && std::string("*") == IfNames);
 		
-	std::vector<std::string> vifnames;
-	if (!useall && IfNames) {
-		stringToStrings(IfNames, vifnames);
-	}
 	NetIF::Interfaces *ifs = NetIF::Interfaces::theInterfaces();
 	NetIF::Interface *netifp{nullptr};
 	std::vector<NetIF::Interface> selected;
 	std::string v4addr;
 	std::string v6addr;
 	std::string actifnames;
+
+	std::vector<std::string> vifnames;
+	/* Special case for compatibility: if the IfNames string
+	   matches an interface name, this is a call from a
+	   non-multi-interface-aware app (on Windows where adapter
+	   names can contain space chars), and we don't split the
+	   string, but use it whole as the first vector element */
+	if (!useall && IfNames) {
+		if (ifs->findByName(IfNames) != nullptr) {
+			vifnames.push_back(IfNames);
+		} else {
+			stringToStrings(IfNames, vifnames);
+		}
+	}
+
 	if (!vifnames.empty()) {
 		for (const auto& name : vifnames) {
 			netifp = ifs->findByName(name);
@@ -542,12 +553,19 @@ int UpnpInit(const char *HostIP, unsigned short DestPort)
 	return upnpInitCommon(HostIP, nullptr, DestPort);
 }
 
-#ifdef UPNP_ENABLE_IPV6
 int UpnpInit2(const char *IfName, unsigned short DestPort)
 {
 	return upnpInitCommon(nullptr, IfName, DestPort);
 }
-#endif
+
+int UpnpInit2(const std::vector<std::string>& ifnames, unsigned short DestPort)
+{
+	// A bit wasteful, but really simpler. Just build an interfaces
+	// list string and continue with this.
+	std::string names = stringsToString(ifnames);
+	return upnpInitCommon(nullptr, names.c_str(), DestPort);
+}
+
 
 #ifdef DEBUG
 /*!

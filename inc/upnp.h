@@ -47,6 +47,7 @@
 #define NAME_SIZE  (size_t)256
 #define UPNP_INFINITE		-1
 
+
 /*!
  * \name Error codes 
  *
@@ -833,7 +834,9 @@ EXPORT_SPEC int UpnpInit(
 	 * "192.168.0.1", or \c NULL to use the first IPv4 adapter's IP address. */
 	const char *HostIP,
 	/*! Local Port to listen for incoming connections
-	 * \c NULL will pick an arbitrary free port. */
+	 * \c 0 will pick the first free port at or above the configured default 
+	 * (49152).
+	 */
 	unsigned short DestPort);
 
 /*!
@@ -843,14 +846,14 @@ EXPORT_SPEC int UpnpInit(
  * It should be called only once. Subsequent calls to this API return a
  * \c UPNP_E_INIT error code.
  *
- * Optionally, the application can specify an interface name (in the
- * case of a multi-homed configuration) and a port number to use for
- * all UPnP operations.  Since a port number can be used only by one
- * process, multiple processes using the SDK must specify
- * different port numbers.
- *
- * If unspecified, the SDK will use the first suitable interface and an 
- * arbitrary port.
+ * Optionally, the application can specify an one or several interface names.
+ * If the interface is unspecified, the SDK will use the first suitable one.
+
+ * The application can also specify a port number. Since a port number
+ * can be used only by one process, multiple processes using the SDK
+ * must specify different port numbers. If the port number is left
+ * unspecified, the SDK will pick the first available port at or above
+ * the configured default (49152).
  *
  * This call is synchronous.
  *
@@ -868,16 +871,30 @@ EXPORT_SPEC int UpnpInit(
  *     \li \c UPNP_E_INVALID_INTERFACE: IfName is invalid or does not
  *             have a valid IPv4 or IPv6 addresss configured.
  */
-#ifdef UPNP_ENABLE_IPV6
 EXPORT_SPEC int UpnpInit2( 
-	/*! The interface name to use by the UPnP SDK operations.
-	 * Examples: "eth0", "xl0", "Local Area Connection", \c NULL to
-	 * use the first suitable interface. */
+	/*! The interface name(s) to use by the UPnP SDK operations, as a
+	 * space-separated list. Use double quotes or backslashes escapes
+	 * if there are space characters inside the interface name. Use a
+	 * single "*" character to use all available interfaces.
+	 * \c NULL to use the first suitable interface. */
 	const char *IfName,
 	/*!  Local Port to listen for incoming connections.
-	 * \c NULL will pick an arbitrary free port. */
+	 * \c NULL will pick the first free port at or above the configured default
+	 */
 	unsigned short DestPort);
-#endif
+
+EXPORT_SPEC int UpnpInit2( 
+	/*! The interface name(s) to use by the UPnP SDK operations, as a
+	 * space-separated list. Use double quotes or backslashes escapes
+	 * if there are space characters inside the interface name. Use a
+	 * single "*" character to use all available interfaces.
+	 * \c NULL to use the first suitable interface. */
+	const std::vector<std::string>& ifnames,
+	/*!  Local Port to listen for incoming connections.
+	 * \c NULL will pick the first free port at or above the configured default
+	 */
+	unsigned short DestPort);
+
 
 /*!
  * \brief Terminates the Linux SDK for UPnP Devices.

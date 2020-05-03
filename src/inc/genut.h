@@ -98,6 +98,10 @@ int dom_cmp_name(const std::string& domname, const std::string& ref);
 template <class T> bool stringToStrings(const std::string& s, T& tokens,
                                         const std::string& addseps = "");
 
+/** stringToStrings inverse operation (does appropriate quoting) */
+template <class T> void stringsToString(const T& tokens, std::string& s);
+template <class T> std::string stringsToString(const T& tokens);
+
 #endif /* __cplusplus */
 
 #endif /* _SMALLUT_H_INCLUDED_ */
