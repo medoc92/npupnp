@@ -98,6 +98,8 @@ public:
 	/** Return hardware address in traditional colon-separated hex */
 	std::string gethexhwaddr() const;
 	bool hasflag(Flags f) const;
+	/** Remove all addresses not in the input vector */
+	bool trimTo(const std::vector<IPAddr>& keep);
 	/** Return the first ipv4 address if any, or nullptr */
 	const IPAddr *firstipv4addr() const;
 	/** Return the first ipv6 address if any, or nullptr */

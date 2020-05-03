@@ -275,6 +275,25 @@ Interface::getaddresses() const
 		(m->addresses, m->netmasks);
 }
 
+bool Interface::trimTo(const std::vector<IPAddr>& keep)
+{
+	auto mit = m->netmasks.begin();
+	for (auto ait = m->addresses.begin(); ait != m->addresses.end();) {
+		auto it = find_if(keep.begin(), keep.end(),
+						  [ait] (const IPAddr& a) {
+							  return ait->straddr() == a.straddr();
+						  });
+		if (it == keep.end()) {
+			ait = m->addresses.erase(ait);
+			mit = m->netmasks.erase(mit);
+		} else {
+			ait++;
+			mit++;
+		}
+	}
+	return m->addresses.empty() ? false : true;
+}
+
 const IPAddr *Interface::firstipv4addr() const
 {
 	if (!hasflag(Flags::HASIPV4)) {

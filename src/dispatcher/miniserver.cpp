@@ -709,6 +709,8 @@ static int get_miniserver_stopsock(
 	}
 	ret = get_port(out->miniServerStopSock, &out->stopPort);
 	if (ret < 0) {
+		UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
+				   "get_port failed for stop socket\n");
 		return UPNP_E_INTERNAL_ERROR;
 	}
 	return UPNP_E_SUCCESS;
@@ -803,12 +805,16 @@ int StartMiniServer(
 #endif
 		MHD_OPTION_END);
 	if (nullptr == mhd) {
+		UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
+				   "MHD_start_daemon failed\n");
 		ret_code = UPNP_E_OUTOF_MEMORY;
 		goto out;
 	}
 
 out:
 	if (ret_code != UPNP_E_SUCCESS) {
+		UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
+				   "startminiserver failed\n");
 		delete miniSocket;
 		miniSocket = nullptr;
 	}

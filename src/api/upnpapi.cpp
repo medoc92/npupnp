@@ -322,11 +322,20 @@ static int getmyipv4(const char *inipv4 = nullptr)
 			return UPNP_E_INVALID_INTERFACE;
 		}
 	}
-	
-	const NetIF::IPAddr *addr{nullptr};
-	if (nullptr != netifp && netifp->hasflag(NetIF::Interface::Flags::HASIPV4)) {
-		addr = netifp->firstipv4addr();
+
+	if (nullptr == netifp) {
+		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
+				   "No appropriate network adapter found.\n");
+		return UPNP_E_INVALID_INTERFACE;
 	}
+
+	// If an IP was specified, trim the addresses from the found adapter
+	if (nullptr != inipv4) {
+		netifp->trimTo({NetIF::IPAddr(inipv4)});
+	}
+
+	// Double-check that we do have an IPV4 addr
+	const NetIF::IPAddr *addr = netifp->firstipv4addr();
 	if (nullptr == addr) {
 		// can't happen, really
 		return UPNP_E_INVALID_INTERFACE;
@@ -540,8 +549,8 @@ static int upnpInitCommon(const char *HostIP,
 	}
 
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-			   "UpnPInit output: Host Ip: %s Host Port: %d\n",
-			   g_netifs.begin()->firstipv4addr()->straddr().c_str(),
+			   "UpnPInit output: retVal %d Host Ip: %s Host Port: %d\n",
+			   retVal, g_netifs.begin()->firstipv4addr()->straddr().c_str(),
 			   static_cast<int>(LOCAL_PORT_V4));
 
 exit_function:
