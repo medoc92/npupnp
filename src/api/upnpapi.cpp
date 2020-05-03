@@ -925,9 +925,8 @@ int UpnpUnRegisterRootDeviceLowPower(UpnpDevice_Handle Hnd, int PowerState,
 	HandleUnlock();
 
 #if EXCLUDE_SSDP == 0
-	retVal = AdvertiseAndReply(
-		MSGTYPE_SHUTDOWN, Hnd, static_cast<enum SsdpSearchType>(0),
-		nullptr, nullptr,nullptr,nullptr, HInfo->MaxAge);
+	retVal = AdvertiseAndReply(MSGTYPE_SHUTDOWN, Hnd, SSDP_SERROR,
+							   nullptr, nullptr,nullptr,nullptr, HInfo->MaxAge);
 #endif
 
 	if (checkLockHandle(HND_INVALID, Hnd, &HInfo) == HND_INVALID) {
@@ -1257,9 +1256,8 @@ int UpnpSendAdvertisementLowPower(
 	SInfo->SleepPeriod = SleepPeriod;
 	SInfo->RegistrationState = RegistrationState;
 	HandleUnlock();
-	retVal = AdvertiseAndReply(
-		MSGTYPE_ADVERTISEMENT, Hnd, static_cast<enum SsdpSearchType>(0),
-		nullptr, nullptr, nullptr, nullptr, Exp);
+	retVal = AdvertiseAndReply(MSGTYPE_ADVERTISEMENT, Hnd, SSDP_SERROR,
+							   nullptr, nullptr, nullptr, nullptr, Exp);
 
 	if(retVal != UPNP_E_SUCCESS)
 		return retVal;

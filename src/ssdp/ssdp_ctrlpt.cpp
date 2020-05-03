@@ -68,7 +68,7 @@ static void* thread_cb_search_result(void *data)
 
 void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
 							struct sockaddr_storage *dest_addr,
-							int timeout, void *cookie)
+							void *cookie)
 {
 	int handle;
 	struct Handle_Info *ctrlpt_info = nullptr;
@@ -95,14 +95,6 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
 	ctrlpt_cookie = ctrlpt_info->Cookie;
 	HandleUnlock();
 
-	/* Search timeout. JFD: I don't think that this is ever reached, I
-	   can't find a call to this routine with timeout set. Probably
-	   they forgot to code it... */
-	if (timeout) {
-		ctrlpt_callback(UPNP_DISCOVERY_SEARCH_TIMEOUT, nullptr, cookie);
-		return;
-	}
-	
 	param.ErrCode = UPNP_E_SUCCESS;
 	/* MAX-AGE, assume error */
 	param.Expires = -1;

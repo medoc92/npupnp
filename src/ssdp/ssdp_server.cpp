@@ -3,6 +3,7 @@
  * Copyright (c) 2000-2003 Intel Corporation 
  * All rights reserved. 
  * Copyright (C) 2011-2012 France Telecom All rights reserved. 
+ * Copyright (c) 2020 J.F. Dockes
  *
  * Redistribution and use in source and binary forms, with or without 
  * modification, are permitted provided that the following conditions are met: 
@@ -125,9 +126,7 @@ int ssdp_request_type(const char *cmd, SsdpEvent *Evt)
 	/* clear event */
 	memset(Evt, 0, sizeof(SsdpEvent));
 	unique_service_name(cmd, Evt);
-	Evt->ErrCode = NO_ERROR_FOUND;
 	if ((Evt->RequestType = ssdp_request_type1(cmd)) == SSDP_SERROR) {
-		Evt->ErrCode = E_HTTP_SYNTEX;
 		return -1;
 	}
 	return 0;
@@ -226,7 +225,7 @@ static void *thread_ssdp_event_handler(void *the_data)
 	if (method == HTTPMETHOD_NOTIFY ||
 		(parser.isresponse && method == HTTPMETHOD_MSEARCH)) {
 #ifdef INCLUDE_CLIENT_APIS
-		ssdp_handle_ctrlpt_msg(parser, &data->dest_addr, 0, nullptr);
+		ssdp_handle_ctrlpt_msg(parser, &data->dest_addr, nullptr);
 #endif /* INCLUDE_CLIENT_APIS */
 	} else {
 		ssdp_handle_device_request(parser, &data->dest_addr);
