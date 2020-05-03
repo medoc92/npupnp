@@ -807,7 +807,8 @@ int UpnpRegisterRootDeviceAllForms(
 		goto exit_function;
 	}
 
-	if (Hnd == nullptr || Fun == nullptr || description == nullptr || *description == 0 ||
+	if (Hnd == nullptr || Fun == nullptr || description == nullptr ||
+		*description == 0 ||
 		(AddressFamily != AF_INET && AddressFamily != AF_INET6)) {
 		retVal = UPNP_E_INVALID_PARAM;
 		goto exit_function;
@@ -1139,21 +1140,43 @@ static int GetDescDocumentAndURL(
 	switch (descriptionType) {
 	case UPNPREG_URL_DESC:
 	{
-		if (strlen(description) > LINE_SIZE - 1) {
+		std::string globurl{description};
+		if (globurl.size() > LINE_SIZE - 1) {
 			return UPNP_E_URL_TOO_BIG;
 		}
+		upnp_strlcpy(descURL, globurl.c_str(), LINE_SIZE);
 		char *descstr;
-		retVal = UpnpDownloadUrlItem(description, &descstr, nullptr);
+		retVal = UpnpDownloadUrlItem(globurl.c_str(), &descstr, 0);
 		if (retVal != UPNP_E_SUCCESS) {
-			UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+			UpnpPrintf(UPNP_ERROR, API, __FILE__, __LINE__,
 					   "UpnpRegisterRootDevice: error downloading doc: %d\n",
 					   retVal);
 			return retVal;
 		}
 		descdata = descstr;
 		free(descstr);
-		simplename = "description.xml";
-		localurl = descurl(AddressFamily, "description.xml");
+		// We replace the host part with the address replacement template
+		uri_type parsed_url;
+		if (parse_uri(globurl, &parsed_url) != UPNP_E_SUCCESS) {
+			UpnpPrintf(UPNP_ERROR, API, __FILE__, __LINE__,
+					   "UpnpRegisterRootDevice: can't parse description URL\n");
+			return UPNP_E_INVALID_URL;
+		}
+		std::string hp{parsed_url.hostport.text};
+		std::string::size_type pos = hp.rfind(':');
+		if (pos != std::string::npos) {
+			hp = hp.erase(pos);
+		}
+		localurl = globurl;
+		pos = localurl.find(hp);
+		if (pos != std::string::npos) {
+			std::string::size_type inc{0};
+			if (pos > 0 && localurl[pos-1] == '[') {
+				pos--;
+				inc = 2;
+			}
+			localurl = localurl.replace(pos, hp.size()+inc, g_HostForTemplate);
+		}
 	}
 	break;
 	case UPNPREG_FILENAME_DESC:
@@ -1179,6 +1202,8 @@ static int GetDescDocumentAndURL(
 	}
 
 	if (!localurl.empty()) {
+		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+				   "UpnpRegisterRootDevice: local url: %s\n", localurl.c_str());
 		upnp_strlcpy(descURL, localurl.c_str(), LINE_SIZE);
 		desc = UPnPDeviceDesc(localurl, descdata);
 		if (desc.ok) {
