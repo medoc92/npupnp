@@ -109,6 +109,9 @@ WebServerState bWebServerState = WEB_SERVER_DISABLED;
 
 /* Interfaces we are using */
 std::vector<NetIF::Interface> g_netifs;
+/* Small optimisation: if the interfaces parameter to UpnpInit2() was
+   "*", no need for the web server to filter accepted connections */
+bool g_use_all_interfaces;
 
 /* Marker to be replaced by an appropriate address in LOCATION URLs */
 const std::string g_HostForTemplate{"@HOST_ADDR_FOR@"};
@@ -202,7 +205,7 @@ int apiFirstIPV6Index()
  */
 int UpnpGetIfInfo(const char *IfNames)
 {
-	bool useall = (IfNames && std::string("*") == IfNames);
+	g_use_all_interfaces = (IfNames && std::string("*") == IfNames);
 		
 	NetIF::Interfaces *ifs = NetIF::Interfaces::theInterfaces();
 	NetIF::Interface *netifp{nullptr};
@@ -217,7 +220,7 @@ int UpnpGetIfInfo(const char *IfNames)
 	   non-multi-interface-aware app (on Windows where adapter
 	   names can contain space chars), and we don't split the
 	   string, but use it whole as the first vector element */
-	if (!useall && IfNames) {
+	if (!g_use_all_interfaces && IfNames) {
 		if (ifs->findByName(IfNames) != nullptr) {
 			vifnames.push_back(IfNames);
 		} else {
@@ -243,7 +246,7 @@ int UpnpGetIfInfo(const char *IfNames)
 				 .rejects={NetIF::Interface::Flags::LOOPBACK}
 		};
 		selected = ifs->select(filt);
-		if (!selected.empty() && !useall) {
+		if (!selected.empty() && !g_use_all_interfaces) {
 			selected.resize(1);
 		}
 	}

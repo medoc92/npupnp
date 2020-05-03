@@ -217,7 +217,12 @@ Upnp_Handle_Type GetDeviceHandleInfoForPath(
 
 extern unsigned short LOCAL_PORT_V4;
 extern unsigned short LOCAL_PORT_V6;
+/* The network interfaces we were told to use */
 extern std::vector<NetIF::Interface> g_netifs;
+/* Small optimisation: if the interfaces parameter to UpnpInit2() was
+   "*", no need for the web server to filter accepted connections */
+extern bool g_use_all_interfaces;
+
 // Get first usable addresses, for when we don't care
 extern std::string apiFirstIPV4Str();
 extern std::string apiFirstIPV6Str();

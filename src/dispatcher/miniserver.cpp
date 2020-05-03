@@ -62,7 +62,7 @@
 #include "upnpapi.h"
 #include "genut.h"
 #include "uri.h"
-#include "inet_pton.h"
+#include "netif.h"
 
 #include <cassert>
 #include <cerrno>
@@ -180,6 +180,26 @@ void request_completed_cb(
 		return;
 	auto mhdt = static_cast<MHDTransaction *>(*con_cls);
 	delete mhdt;
+}
+
+
+// We listen on INADDR_ANY, but only accept connections from our
+// configured interfaces
+static int filter_connections(
+	void *, const struct sockaddr *addr, socklen_t addrlen)
+{
+	if (g_use_all_interfaces) {
+		return MHD_YES;
+	}
+	NetIF::IPAddr incoming{addr};
+	NetIF::IPAddr ifaddr;
+	if (NetIF::Interfaces::interfaceForAddress(
+			incoming, g_netifs, ifaddr) == nullptr) {
+		UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+				   "Refusing connection from %s\n", incoming.straddr().c_str());
+		return MHD_NO;
+	}
+	return MHD_YES;
 }
 
 static int answer_to_connection(
@@ -320,26 +340,23 @@ static void ssdp_read(SOCKET rsock, fd_set *set)
 static int receive_from_stopSock(SOCKET ssock, fd_set *set)
 {
 	ssize_t byteReceived;
-	socklen_t clientLen;
-	struct sockaddr_storage clientAddr;
-	char requestBuf[256];
-	char buf_ntop[INET6_ADDRSTRLEN];
+	socklen_t len;
+	struct sockaddr_storage ss;
+	struct sockaddr *fromaddr = reinterpret_cast<struct sockaddr *>(&ss);
+	char requestBuf[100];
 
 	if (FD_ISSET(ssock, set)) {
-		clientLen = sizeof(clientAddr);
-		memset(reinterpret_cast<char *>(&clientAddr), 0, sizeof(clientAddr));
-		byteReceived = recvfrom(ssock, requestBuf, static_cast<size_t>(25), 0,
-								reinterpret_cast<struct sockaddr *>(&clientAddr), &clientLen);
+		len = sizeof(ss);
+		memset(&ss, 0, sizeof(ss));
+		byteReceived = recvfrom(
+			ssock, requestBuf, static_cast<size_t>(25), 0, fromaddr, &len);
+		
 		if (byteReceived > 0) {
 			requestBuf[byteReceived] = '\0';
-			inet_ntop(AF_INET, &(reinterpret_cast<struct sockaddr_in*>(&clientAddr))->sin_addr,
-					  buf_ntop, sizeof(buf_ntop));
-			UpnpPrintf( UPNP_INFO, MSERV, __FILE__, __LINE__,
-						"Received response: %s From host %s \n",
-						requestBuf, buf_ntop );
-			UpnpPrintf( UPNP_INFO, MSERV, __FILE__, __LINE__,
-						"Received multicast packet: \n %s\n",
-						requestBuf);
+			NetIF::IPAddr ipa{fromaddr};
+			UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+					   "Received response: %s From host %s.\n data: %s\n",
+					   requestBuf, ipa.straddr().c_str(), requestBuf);
 			if (nullptr != strstr(requestBuf, "ShutDown")) {
 				return 1;
 			}
@@ -795,7 +812,7 @@ int StartMiniServer(
 		MHD_USE_INTERNAL_POLLING_THREAD |
 		MHD_USE_DEBUG,
 		-1, /* No port because we supply the listen fd */
-		nullptr, nullptr, /* Accept policy callback and arg */
+		filter_connections, nullptr, /* Accept policy callback and arg */
 		/* handler and arg */
 		&answer_to_connection, nullptr,
 		MHD_OPTION_NOTIFY_COMPLETED, request_completed_cb, nullptr,
