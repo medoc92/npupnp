@@ -214,7 +214,12 @@ static int createReplySocket4(
 	return sock;
 }
 
+
 #ifdef UPNP_ENABLE_IPV6
+static std::string strInBrackets(const std::string& straddr)
+{
+	return std::string("[") + straddr + "]";
+}
 static int createMulticastSocket6(int index, std::string& lochost)
 {
     int hops = 1;
@@ -236,13 +241,13 @@ static int createMulticastSocket6(int index, std::string& lochost)
 			const NetIF::IPAddr *ipaddr =
 				netif.firstipv6addr(NetIF::IPAddr::Scope::LINK);
 			if (ipaddr) {
-				lochost = ipaddr->straddr();
+				lochost = strInBrackets(ipaddr->straddr());
 				break;
 			} 
 		}
 	}
 	if (lochost.empty()) {
-		lochost = apiFirstIPV6Str();
+		lochost = strInBrackets(apiFirstIPV6Str());
 	}
 	return sock;
 error:
@@ -264,13 +269,13 @@ static int createReplySocket6(
 			const NetIF::IPAddr *ipaddr =
 				netif.firstipv6addr(NetIF::IPAddr::Scope::LINK);
 			if (ipaddr) {
-				lochost = ipaddr->straddr();
+				lochost = strInBrackets(ipaddr->straddr());
 				break;
 			} 
 		}
 	}
 	if (lochost.empty()) {
-		lochost = apiFirstIPV6Str();
+		lochost = strInBrackets(apiFirstIPV6Str());
 	}
 	return sock;
 }
