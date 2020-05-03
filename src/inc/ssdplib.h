@@ -92,21 +92,13 @@ struct SsdpSearchArg {
 	void *cookie;
 };
 
-/* Structure used by the SSDP packet parser to return the extracted data */
-struct SsdpEvent {
+/* Storage for the data extracted from a received M-SEARCH Search
+   Target (ST) or NOTIFY Notification Type (NT) header. */
+struct SsdpEntity {
 	enum SsdpSearchType RequestType;
-	int  Mx;
 	char UDN[LINE_SIZE];
 	char DeviceType[LINE_SIZE];
-	/* NT or ST */
 	char ServiceType[LINE_SIZE];
-	char Location[LINE_SIZE];
-	char HostAddr[LINE_SIZE];
-	char Os[LINE_SIZE];
-	char Ext[LINE_SIZE];
-	char Date[LINE_SIZE];
-	struct sockaddr *DestAddr;
-	void *Cookie;
 #if 0
 	void dump(std::ostream& ostr) {
 		ostr <<	" RequestType " << RequestType << 
@@ -163,7 +155,7 @@ int unique_service_name(
 	const char *cmd,
 	/* [out] The SSDP event structure partially filled by all the
 	 * function. */
-	SsdpEvent *Evt);
+	SsdpEntity *Evt);
 
 /*!
  * \brief This function figures out the type of the SSDP search in the in the
@@ -186,7 +178,7 @@ int ssdp_request_type(
 	/* [in] command came in the ssdp request. */
 	const char *cmd,
 	/* [out] The event structure partially filled by this function. */
-	SsdpEvent *Evt);
+	SsdpEntity *Evt);
 
 /*!
  * \brief This function reads the data from the ssdp socket.

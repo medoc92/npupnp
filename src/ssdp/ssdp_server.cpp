@@ -72,7 +72,7 @@ SOCKET gSsdpReqSocket6 = INVALID_SOCKET;
 //   uuid:device-UUID::urn:schemas-upnp-org:device:deviceType:v
 //   uuid:device-UUID::urn:schemas-upnp-org:service:serviceType:v
 // We get the UDN, device or service type as available.
-int unique_service_name(const char *cmd, SsdpEvent *Evt)
+int unique_service_name(const char *cmd, SsdpEntity *Evt)
 {
 	int CommandFound = 0;
 
@@ -121,10 +121,10 @@ enum SsdpSearchType ssdp_request_type1(const char *cmd)
 	return SSDP_SERROR;
 }
 
-int ssdp_request_type(const char *cmd, SsdpEvent *Evt)
+int ssdp_request_type(const char *cmd, SsdpEntity *Evt)
 {
 	/* clear event */
-	memset(Evt, 0, sizeof(SsdpEvent));
+	memset(Evt, 0, sizeof(SsdpEntity));
 	unique_service_name(cmd, Evt);
 	if ((Evt->RequestType = ssdp_request_type1(cmd)) == SSDP_SERROR) {
 		return -1;
@@ -365,21 +365,52 @@ static int sock_make_no_blocking(SOCKET sock)
 /* Create the SSDP IPv4 socket to be used by the control point. */
 static int create_ssdp_sock_reqv4(SOCKET *ssdpReqSock)
 {
-	char errorBuffer[ERROR_BUFFER_LEN];
-
-	*ssdpReqSock = socket(AF_INET, SOCK_DGRAM, 0);
-	if (*ssdpReqSock == INVALID_SOCKET) {
-		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-		UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-				   "socket(): %s\n", errorBuffer);
-		return UPNP_E_OUTOF_SOCKET;
-	}
 	char ttl = 4;
-	setsockopt(*ssdpReqSock, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl));
+	SOCKET sock;
+	std::string errorcause;
+	int ret = UPNP_E_SOCKET_ERROR;
+	*ssdpReqSock = -1;
+	
+	std::string sadrv4 = apiFirstIPV4Str();
+	if (sadrv4.empty()) {
+		UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
+				   "create_ssdp_sock_reqv4: no IPV4??\n");
+		return ret;
+	}
+	uint32_t hostaddrv4 = inet_addr(sadrv4.c_str());
+
+	sock = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sock == INVALID_SOCKET) {
+		errorcause = "socket()";
+		ret = UPNP_E_OUTOF_SOCKET;
+		goto error_handler;
+	}
+	if (setsockopt(
+			sock, IPPROTO_IP, IP_MULTICAST_IF,
+			reinterpret_cast<char *>(&hostaddrv4), sizeof(hostaddrv4)) < 0) {
+		errorcause = "setsockopt(IP_MULTICAST_IF)";
+		goto error_handler;
+	}
+	if (setsockopt(sock, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl)) < 0) {
+		errorcause = "setsockopt(IP_MULTICAST_TTL)";
+		goto error_handler;
+	}
+
 	/* just do it, regardless if fails or not. */
 	sock_make_no_blocking(*ssdpReqSock);
 
+	*ssdpReqSock = sock;
 	return UPNP_E_SUCCESS;
+
+error_handler:
+	char errorBuffer[ERROR_BUFFER_LEN];
+	posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
+	UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
+			   "%s: %s\n", errorcause.c_str(), errorBuffer);
+	if (sock >= 0) {
+		UpnpCloseSocket(sock);
+	}
+	return ret;
 }
 #endif /* INCLUDE_CLIENT_APIS */
 
@@ -464,7 +495,7 @@ error_handler:
 	char errorBuffer[ERROR_BUFFER_LEN];
 	posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 	UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-			   "setsockopt() IPV6_JOIN_GROUP: %s\n", errorBuffer);
+			   "%s: %s\n", errorcause.c_str(), errorBuffer);
 	if (*ssdpSock >= 0) {
 		UpnpCloseSocket(*ssdpSock);
 		*ssdpSock = -1;
@@ -477,25 +508,46 @@ error_handler:
 /* Create the SSDP IPv6 socket to be used by the control point. */
 static int create_ssdp_sock_reqv6(SOCKET *ssdpReqSock)
 {
-	char errorBuffer[ERROR_BUFFER_LEN];
-	char hops = 1;
+	int hops = 1;
+	int index = apiFirstIPV6Index();
+	SOCKET sock;
+	std::string errorcause;
+	int ret = UPNP_E_SOCKET_ERROR;
 
-	*ssdpReqSock = socket(AF_INET6, SOCK_DGRAM, 0);
-	if (*ssdpReqSock == INVALID_SOCKET) {
-		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-		UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-				   "socket(): %s\n", errorBuffer);
-		return UPNP_E_OUTOF_SOCKET;
+	*ssdpReqSock = -1;
+
+	if ((sock = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
+		errorcause = "socket()";
+		ret = UPNP_E_OUTOF_SOCKET;
+		goto error_handler;
 	}
-	/* MUST use scoping of IPv6 addresses to control the propagation os SSDP
-	 * messages instead of relying on the Hop Limit (Equivalent to the TTL
-	 * limit in IPv4). */
-	setsockopt(*ssdpReqSock, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
-			   &hops, sizeof(hops));
-	/* just do it, regardless if fails or not. */
-	sock_make_no_blocking(*ssdpReqSock);
+	if (setsockopt(sock, IPPROTO_IPV6, IPV6_MULTICAST_IF,
+				   reinterpret_cast<char *>(&index), sizeof(index)) < 0) {
+		errorcause = "setsockopt(IPV6_MULTICAST_IF)";
+		goto error_handler;
+	}
 
+	if (setsockopt(
+			sock, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &hops, sizeof(hops)) < 0) {
+		errorcause = "setsockopt(IPV6_MULTICAST_HOPS)";
+		goto error_handler;
+	}
+
+	/* just do it, regardless if fails or not. */
+	sock_make_no_blocking(sock);
+
+	*ssdpReqSock = sock;
 	return UPNP_E_SUCCESS;
+
+error_handler:
+	char errorBuffer[ERROR_BUFFER_LEN];
+	posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
+	UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
+			   "%s: %s\n", errorcause.c_str(), errorBuffer);
+	if (sock >= 0) {
+		UpnpCloseSocket(sock);
+	}
+	return ret;
 }
 #endif /* INCLUDE_CLIENT_APIS */
 

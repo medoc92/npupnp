@@ -74,7 +74,7 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
 	struct Handle_Info *ctrlpt_info = nullptr;
 	int is_byebye;
 	struct Upnp_Discovery param;
-	SsdpEvent event;
+	SsdpEntity event;
 	int nt_found;
 	int usn_found;
 	int st_found;
@@ -351,13 +351,6 @@ static void* thread_searchexpired(void *arg)
 
 int SearchByTarget(int Mx, char *St, void *Cookie)
 {
-	std::string sadrv4 = apiFirstIPV4Str();
-	if (sadrv4.empty()) {
-		UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
-				   "SearchByTarget: no IPV4??\n");
-	}
-	uint32_t hostaddrv4 = inet_addr(sadrv4.c_str());
-	
 	enum SsdpSearchType requestType = ssdp_request_type1(St);
 	if (requestType == SSDP_SERROR)
 		return UPNP_E_INVALID_PARAM;
@@ -405,16 +398,11 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
 	FD_ZERO(&wrSet);
 	SOCKET max_fd = 0;
 	if (gSsdpReqSocket4 != INVALID_SOCKET) {
-		setsockopt(gSsdpReqSocket4, IPPROTO_IP, IP_MULTICAST_IF,
-				   reinterpret_cast<char *>(&hostaddrv4), sizeof(hostaddrv4));
 		FD_SET(gSsdpReqSocket4, &wrSet);
 		max_fd = std::max(max_fd, gSsdpReqSocket4);
 	}
 #ifdef UPNP_ENABLE_IPV6
 	if (gSsdpReqSocket6 != INVALID_SOCKET) {
-		int index = apiFirstIPV6Index();
-		setsockopt(gSsdpReqSocket6, IPPROTO_IPV6, IPV6_MULTICAST_IF,
-				   reinterpret_cast<char *>(&index), sizeof(index));
 		FD_SET(gSsdpReqSocket6, &wrSet);
 		max_fd = std::max(max_fd, gSsdpReqSocket6);
 	}

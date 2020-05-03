@@ -62,7 +62,7 @@ struct SsdpSearchReply {
 	int MaxAge;
 	UpnpDevice_Handle handle;
 	struct sockaddr_storage dest_addr;
-	SsdpEvent event;
+	SsdpEntity event;
 };
 
 static void *thread_advertiseandreply(void *data)
@@ -83,7 +83,7 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
     int handle, start;
     struct Handle_Info *dev_info = nullptr;
     int mx;
-    SsdpEvent event;
+    SsdpEntity event;
     SsdpSearchReply *threadArg = nullptr;
     int maxAge;
 
@@ -130,7 +130,7 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
         UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
                    "MAX-AGE     =  %d\n", maxAge);
         UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-                   "MX     =  %d\n", event.Mx);
+                   "MX     =  %d\n", maxAge);
         UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
                    "DeviceType   =  %s\n", event.DeviceType);
         UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
