@@ -281,6 +281,33 @@ static int createReplySocket6(
 }
 #endif
 
+// Set the UPnP predefined multicast destination addresses
+static bool ssdpMcastAddr(struct sockaddr_storage& ss, int AddressFamily)
+{
+    memset(&ss, 0, sizeof(ss));
+    switch (AddressFamily) {
+    case AF_INET:
+	{
+		auto DestAddr4 = reinterpret_cast<struct sockaddr_in *>(&ss);
+        DestAddr4->sin_family = static_cast<sa_family_t>(AF_INET);
+        inet_pton(AF_INET, SSDP_IP, &DestAddr4->sin_addr);
+        DestAddr4->sin_port = htons(SSDP_PORT);
+	}
+	break;
+    case AF_INET6:
+	{
+		auto DestAddr6 = reinterpret_cast<struct sockaddr_in6 *>(&ss);
+        DestAddr6->sin6_family = static_cast<sa_family_t>(AF_INET6);
+        inet_pton(AF_INET6, SSDP_IPV6_LINKLOCAL, &DestAddr6->sin6_addr);
+        DestAddr6->sin6_port = htons(SSDP_PORT);
+	}
+	break;
+    default:
+		return false;
+    }
+	return true;
+}
+
 static int reallySendPackets(
 	SOCKET sock, const std::string& lochost,
 	struct sockaddr *daddr, int cnt, std::string *packets)
@@ -297,7 +324,7 @@ static int reallySendPackets(
 			packet = packet.replace(locpos, g_HostForTemplate.size(), lochost);
 		}
         ssize_t rc;
-        UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
+        UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
                    ">>> SSDP SEND to %s >>>\n%s\n",
 				   destip.straddr().c_str(), packet.c_str());
         rc = sendto(sock, packet.c_str(), packet.size(), 0, daddr, socklen);
@@ -326,7 +353,12 @@ static int sendPackets(bool multicast, struct sockaddr *destaddr, int cnt,
 		for (const auto& netif : g_netifs) {
             UpnpPrintf(UPNP_ALL, SSDP, __FILE__, __LINE__,
 					   "ssdp_device: mcast for %s\n", netif.getname().c_str());
-			auto addresses = netif.getaddresses();
+
+			// Ignore the destination address: set it according to the family
+			struct sockaddr_storage dss;
+			destaddr = reinterpret_cast<struct sockaddr*>(&dss);
+
+			ssdpMcastAddr(dss, AF_INET6);
 			sock = createMulticastSocket6(netif.getindex(), lochost);
 			if (sock < 0) {
 				goto exitfunc;
@@ -338,11 +370,14 @@ static int sendPackets(bool multicast, struct sockaddr *destaddr, int cnt,
 						   netif.getname().c_str());
 				goto exitfunc;
 			}
+
+			ssdpMcastAddr(dss, AF_INET);
+			auto addresses = netif.getaddresses();
 			for (const auto& ipaddr : addresses.first) {
 				if (ipaddr.family() == NetIF::IPAddr::Family::IPV4) {
-					const struct sockaddr_storage& ss{ipaddr.getaddr()};
+					const struct sockaddr_storage& fss{ipaddr.getaddr()};
 					sock = createMulticastSocket4(
-						reinterpret_cast<const struct sockaddr_in*>(&ss),
+						reinterpret_cast<const struct sockaddr_in*>(&fss),
 						lochost);
 				} else {
 					continue;
@@ -482,48 +517,20 @@ static void CreateServicePacket(
     packet = str.str();
 }
 
-// Set the UPnP predefined multicast destination addresses
-static bool setDestAddr(struct sockaddr_storage& ss, int AddressFamily)
-{
-    auto DestAddr4 = reinterpret_cast<struct sockaddr_in *>(&ss);
-    auto DestAddr6 = reinterpret_cast<struct sockaddr_in6 *>(&ss);
-    memset(&ss, 0, sizeof(ss));
-    switch (AddressFamily) {
-    case AF_INET:
-        DestAddr4->sin_family = static_cast<sa_family_t>(AF_INET);
-        inet_pton(AF_INET, SSDP_IP, &DestAddr4->sin_addr);
-        DestAddr4->sin_port = htons(SSDP_PORT);
-        break;
-    case AF_INET6:
-        DestAddr6->sin6_family = static_cast<sa_family_t>(AF_INET6);
-        inet_pton(AF_INET6, SSDP_IPV6_LINKLOCAL, &DestAddr6->sin6_addr);
-        DestAddr6->sin6_port = htons(SSDP_PORT);
-        break;
-    default:
-		return false;
-    }
-	return true;
-}
-
 static int DeviceAdvertisementOrShutdown(
-	SSDPDevMessageType msgtype, const char *DevType, int RootDev,const char *Udn,
-	const char *Location, int Duration, int AddressFamily, int PowerState,
-	int SleepPeriod, int RegistrationState)
+	SSDPDevMessageType msgtype, const char *DevType, int RootDev,
+	const char *Udn, const char *Location, int Duration, int AddressFamily,
+	int PowerState,	int SleepPeriod, int RegistrationState)
 {
-    struct sockaddr_storage ss;
-	auto ssp = reinterpret_cast<struct sockaddr *>(&ss);
     char Mil_Usn[LINE_SIZE];
 	std::string msgs[3];
     int ret_code = UPNP_E_OUTOF_MEMORY;
     int rc = 0;
+    struct sockaddr_storage ss;
+	memset(&ss, 0, sizeof(ss));
+	struct sockaddr *ssp = reinterpret_cast<struct sockaddr*>(&ss);
 
-	if (!setDestAddr(ss, AddressFamily)) {
-        UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-                   "Invalid device address family.\n");
-		return UPNP_E_BAD_REQUEST;
-	}
-
-    /* If deviceis a root device, we need to send 3 messages */
+	/* If device is a root device, we need to send 3 messages */
     if (RootDev) {
         rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::upnp:rootdevice", Udn);
         if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Usn))
@@ -728,7 +735,7 @@ int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
 			if (isNotify) {
 				DeviceAdvertisementOrShutdown(
 					tp, devType, isroot, UDNstr, SInfo->DescURL, Exp,
-					SInfo->DeviceAf, SInfo->PowerState,	SInfo->SleepPeriod,
+					SInfo->DeviceAf, SInfo->PowerState, SInfo->SleepPeriod,
 					SInfo->RegistrationState);
 			} else {
 				switch (SearchType) {
@@ -820,7 +827,7 @@ int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
 						   "ServiceType = %s\n", servType);
 				if (isNotify) {
 					struct sockaddr_storage ss;
-					if (!setDestAddr(ss, SInfo->DeviceAf)) {
+					if (!ssdpMcastAddr(ss, SInfo->DeviceAf)) {
 						UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
 								   "Invalid device address family.\n");
 					}
