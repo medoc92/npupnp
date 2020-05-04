@@ -295,6 +295,7 @@ int UpnpGetIfInfo(const char *IfNames)
    we find */
 static int getmyipv4(const char *inipv4 = nullptr)
 {
+	bool ipspecified = (nullptr != inipv4 && 0 != inipv4[0]);
 	NetIF::Interfaces *ifs = NetIF::Interfaces::theInterfaces();
 	NetIF::Interface *netifp{nullptr};
 	NetIF::Interfaces::Filter
@@ -308,7 +309,7 @@ static int getmyipv4(const char *inipv4 = nullptr)
 		return UPNP_E_INVALID_INTERFACE;
 	}
 
-	if (inipv4) {
+	if (ipspecified) {
 		for (auto& iface : selected) {
 			const auto addrs = iface.getaddresses().first;
 			for (const auto& addr : addrs) {
@@ -327,13 +328,17 @@ static int getmyipv4(const char *inipv4 = nullptr)
 	}
 
 	if (nullptr == netifp) {
-		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-				   "No appropriate network adapter found.\n");
-		return UPNP_E_INVALID_INTERFACE;
+		if (selected.empty()) {
+			UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
+					   "No appropriate network adapter found.\n");
+			return UPNP_E_INVALID_INTERFACE;
+		} else {
+			netifp = &selected[0];
+		}
 	}
 
 	// If an IP was specified, trim the addresses from the found adapter
-	if (nullptr != inipv4) {
+	if (ipspecified) {
 		netifp->trimTo({NetIF::IPAddr(inipv4)});
 	}
 
@@ -525,8 +530,8 @@ static int upnpInitCommon(const char *HostIP,
 	}
 
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-			   "UpnpInit: HostIP=%s, DestPort=%d.\n", 
-			   HostIP ? HostIP : "", static_cast<int>(DestPort));
+			   "UpnpInit: HostIP=%s, ifName=%s, DestPort=%d.\n", 
+			   HostIP ? HostIP : "",ifName?ifName:"",static_cast<int>(DestPort));
 
 	if (ifName) {
 		/* Retrieve interface information (Addresses, index, etc). */
@@ -710,14 +715,22 @@ const char *UpnpGetServerIpAddress()
 {
 	if (UpnpSdkInit != 1)
 		return nullptr;
-	return apiFirstIPV4Str().c_str();
+	static std::string addr;
+	if (addr.empty()) {
+		addr = apiFirstIPV4Str();
+	}
+	return addr.c_str();
 }
 
 const char *UpnpGetServerIp6Address()
 {
 	if (UpnpSdkInit != 1 || nullptr == g_netifs.begin()->firstipv6addr())
 		return nullptr;
-	return apiFirstIPV6Str().c_str();
+	static std::string addr;
+	if (addr.empty()) {
+		addr = apiFirstIPV6Str();
+	}
+	return addr.c_str();
 }
 
 const char *UpnpGetServerUlaGuaIp6Address()
