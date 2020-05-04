@@ -791,6 +791,7 @@ void web_server_callback(MHDTransaction *mhdt)
 	}
 	MHD_add_response_header(mhdt->response, "Accept-Ranges", "bytes");
 	
-	UpnpPrintf(UPNP_INFO,HTTP,__FILE__,__LINE__, "webserver: response ready.\n");
+	UpnpPrintf(UPNP_INFO,HTTP,__FILE__,__LINE__,
+			   "webserver: response ready. Status %d\n", mhdt->httpstatus);
 }
 #endif /* EXCLUDE_WEB_SERVER */
