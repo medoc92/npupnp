@@ -36,10 +36,6 @@
 #include "UpnpInet.h"
 
 struct MiniServerSockArray {
-	/*! IPv4 socket for listening for miniserver requests. */
-	SOCKET miniServerSock4{INVALID_SOCKET};
-	/*! IPv6 Socket for listening for miniserver requests. */
-	SOCKET miniServerSock6{INVALID_SOCKET};
 	/*! Socket for stopping miniserver */
 	SOCKET miniServerStopSock{INVALID_SOCKET};
 	/*! IPv4 SSDP Socket for incoming advertisments and search requests. */
@@ -64,8 +60,6 @@ struct MiniServerSockArray {
 #endif /* INCLUDE_CLIENT_APIS */
 
 	~MiniServerSockArray() {
-		maybeClose(miniServerSock4);
-		maybeClose(miniServerSock6);
 		maybeClose(miniServerStopSock);
 		maybeClose(ssdpSock4);
 		maybeClose(ssdpSock6);
