@@ -188,8 +188,6 @@ Upnp_Handle_Type GetClientHandleInfo(
 Upnp_Handle_Type GetDeviceHandleInfo(
 	/*! [in] place to start the search (i.e. last value returned). */
 	UpnpDevice_Handle start, 
-	/*! [in] Address family. */
-	int AddressFamily,
 	/*! [out] Device handle pointer. */
 	int *device_handle_out, 
 	/*! [out] Device handle structure passed by this function. */
@@ -205,8 +203,6 @@ Upnp_Handle_Type GetDeviceHandleInfo(
 Upnp_Handle_Type GetDeviceHandleInfoForPath(
 	/*! The Uri path. */
 	const std::string& path, 
-	/*! [in] Address family. */
-	int AddressFamily,
 	/*! [out] Device handle pointer. */
 	int *devhdl, 
 	/*! [out] Device handle structure passed by this function. */

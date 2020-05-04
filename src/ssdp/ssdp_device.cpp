@@ -115,8 +115,7 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
     for (;;) {
         HandleLock();
         /* device info. */
-        switch (GetDeviceHandleInfo(start,static_cast<int>(dest_addr->ss_family),
-                                    &handle, &dev_info)) {
+        switch (GetDeviceHandleInfo(start, &handle, &dev_info)) {
         case HND_DEVICE:
             break;
         default:

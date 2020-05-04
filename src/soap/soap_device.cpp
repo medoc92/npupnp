@@ -278,7 +278,7 @@ error_handler:
  * \return 0 if OK, -1 on error.
  */
 static int get_dev_service(
-	MHDTransaction *mhdt, int addrfamily,  soap_devserv_t *soap_info)
+	MHDTransaction *mhdt, soap_devserv_t *soap_info)
 {
 	struct Handle_Info *hdlinfo;
 	int device_hnd;
@@ -287,10 +287,12 @@ static int get_dev_service(
 	HandleReadLock();
 
 	auto hdltp = GetDeviceHandleInfoForPath(
-		mhdt->url, addrfamily, &device_hnd, &hdlinfo, &serv_info);
+		mhdt->url, &device_hnd, &hdlinfo, &serv_info);
 
 	if (hdltp != HND_DEVICE || nullptr == serv_info) {
 		HandleUnlock();
+		UpnpPrintf(UPNP_ERROR, SOAP, __FILE__, __LINE__,
+				   "get_dev_service: client not found.\n");
 		return -1;
 	}
 
@@ -416,7 +418,7 @@ void soap_device_callback(MHDTransaction *mhdt)
 	std::string strippedxml;
 	
 	/* The device/service identified by the request URI */
-	if (get_dev_service(mhdt, mhdt->client_address->ss_family,&soap_info) < 0) {
+	if (get_dev_service(mhdt, &soap_info) < 0) {
 		err_code = HTTP_NOT_FOUND;
 		goto error_handler;
 	}

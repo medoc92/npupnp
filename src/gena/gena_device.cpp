@@ -659,14 +659,13 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
 		return;
 	}
 	/* look up service by eventURL */
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
+	UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
 			   "SubscriptionRequest for event URL path: %s\n",mhdt->url.c_str());
 
 	HandleLock();
 
 	if (GetDeviceHandleInfoForPath(
-			mhdt->url, mhdt->client_address->ss_family,
-			&device_handle, &handle_info, &service) != HND_DEVICE) {
+			mhdt->url, &device_handle, &handle_info, &service) != HND_DEVICE) {
 		http_SendStatusResponse(mhdt, HTTP_INTERNAL_SERVER_ERROR);
 		HandleUnlock();
 		return;
@@ -751,6 +750,8 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
 		return;
 	}
 	service->TotalSubscriptions++;
+	UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
+			   "Subscription Request granted\n");
 
 	/* finally generate callback for init table dump */
 	request_struct.ServiceId = service->serviceId.c_str();
@@ -799,8 +800,7 @@ void gena_process_subscription_renewal_request(MHDTransaction *mhdt)
     HandleLock();
 	
 	if (GetDeviceHandleInfoForPath(
-			mhdt->url, mhdt->client_address->ss_family,
-			&device_handle, &handle_info, &service) != HND_DEVICE ) {
+			mhdt->url, &device_handle, &handle_info, &service) != HND_DEVICE ) {
         http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
         HandleUnlock();
         return;
@@ -882,8 +882,7 @@ void gena_process_unsubscribe_request(MHDTransaction *mhdt)
     HandleLock();
 
 	if (GetDeviceHandleInfoForPath(
-			mhdt->url, mhdt->client_address->ss_family,
-			&device_handle, &handle_info, &service) != HND_DEVICE) {
+			mhdt->url, &device_handle, &handle_info, &service) != HND_DEVICE) {
         http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
         HandleUnlock();
         return;

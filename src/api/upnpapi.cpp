@@ -646,12 +646,7 @@ int UpnpFinish()
 		return UPNP_E_FINISH;
 
 #ifdef INCLUDE_DEVICE_APIS
-	while (GetDeviceHandleInfo(
-			   0, AF_INET, &device_handle, &temp) ==  HND_DEVICE) {
-		UpnpUnRegisterRootDevice(device_handle);
-	}
-	while (GetDeviceHandleInfo(
-			   0, AF_INET6, &device_handle, &temp) == HND_DEVICE) {
+	while (GetDeviceHandleInfo(0, &device_handle, &temp) ==  HND_DEVICE) {
 		UpnpUnRegisterRootDevice(device_handle);
 	}
 #endif
@@ -1779,12 +1774,10 @@ Upnp_Handle_Type GetClientHandleInfo(
 
 Upnp_Handle_Type GetDeviceHandleInfo(
 	UpnpDevice_Handle start, 
-	int AddressFamily,
 	UpnpDevice_Handle *device_handle_out,
 	struct Handle_Info **HndInfo)
 {
 #ifdef INCLUDE_DEVICE_APIS
-	/* Check if we've got a registered device of the address family specified.*/
 	if (start < 0 || start >= NUM_HANDLE-1) {
 		*device_handle_out = -1;
 		return HND_INVALID;
@@ -1795,9 +1788,7 @@ Upnp_Handle_Type GetDeviceHandleInfo(
 		 (*device_handle_out)++) {
 		switch (GetHandleInfo(*device_handle_out, HndInfo)) {
 		case HND_DEVICE:
-			if ((*HndInfo)->DeviceAf == AddressFamily) {
-				return HND_DEVICE;
-			}
+			return HND_DEVICE;
 			break;
 		default:
 			break;
@@ -1812,7 +1803,7 @@ Upnp_Handle_Type GetDeviceHandleInfo(
 
 /* Check if we've got a registered device of the address family specified. */
 Upnp_Handle_Type GetDeviceHandleInfoForPath(
-	const std::string& path, int AddressFamily, UpnpDevice_Handle *devhdl,
+	const std::string& path, UpnpDevice_Handle *devhdl,
 	struct Handle_Info **HndInfo, service_info **serv_info)
 {
 	*devhdl = -1;
@@ -1822,8 +1813,7 @@ Upnp_Handle_Type GetDeviceHandleInfoForPath(
 
 	for (int idx = 1; idx < NUM_HANDLE;	idx++) {
 		Handle_Info *hinf;
-		if (GetHandleInfo(idx, &hinf) == HND_DEVICE &&
-			hinf->DeviceAf == AddressFamily) {
+		if (GetHandleInfo(idx, &hinf) == HND_DEVICE) {
 			if ((*serv_info = FindServiceControlURLPath(
 					 &hinf->ServiceTable,	path)) ||
 				(*serv_info = FindServiceEventURLPath(
