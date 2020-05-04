@@ -151,16 +151,8 @@ int g_UpnpSdkEQMaxAge = MAX_SUBSCRIPTION_EVENT_AGE;
 int UpnpSdkInit = 0;
 
 /*! Global variable to denote the state of Upnp SDK client registration.
- * == 0 if unregistered, == 1 if registered. */
+ * == 0 if unregistered, == 1 if registered. We only accept one client (CP) */
 int UpnpSdkClientRegistered = 0;
-
-/*! Global variable to denote the state of Upnp SDK IPv4 device registration.
- * == 0 if unregistered, == 1 if registered. */
-int UpnpSdkDeviceRegisteredV4 = 0;
-
-/*! Global variable to denote the state of Upnp SDK IPv6 device registration.
- * == 0 if unregistered, == 1 if registered. */
-int UpnpSdkDeviceregisteredV6 = 0;
 
 #ifdef UPNP_HAVE_OPTSSDP
 /*! Global variable used in discovery notifications. */
@@ -887,14 +879,6 @@ int UpnpRegisterRootDeviceAllForms(
 	}
 #endif /* EXCLUDE_GENA */
 
-	switch (AddressFamily) {
-	case AF_INET:
-		UpnpSdkDeviceRegisteredV4 = 1;
-		break;
-	default:
-		UpnpSdkDeviceregisteredV6 = 1;
-	}
-
 	retVal = UPNP_E_SUCCESS;
 
 exit_function:
@@ -975,16 +959,6 @@ int UpnpUnRegisterRootDeviceLowPower(UpnpDevice_Handle Hnd, int PowerState,
 
 	if (checkLockHandle(HND_INVALID, Hnd, &HInfo) == HND_INVALID) {
 		return UPNP_E_INVALID_HANDLE;
-	}
-	switch (HInfo->DeviceAf) {
-	case AF_INET:
-		UpnpSdkDeviceRegisteredV4 = 0;
-		break;
-	case AF_INET6:
-		UpnpSdkDeviceregisteredV6 = 0;
-		break;
-	default:
-		break;
 	}
 	FreeHandle(Hnd);
 	HandleUnlock();
@@ -1811,11 +1785,6 @@ Upnp_Handle_Type GetDeviceHandleInfo(
 {
 #ifdef INCLUDE_DEVICE_APIS
 	/* Check if we've got a registered device of the address family specified.*/
-	if ((AddressFamily == AF_INET  && UpnpSdkDeviceRegisteredV4 == 0) ||
-		(AddressFamily == AF_INET6 && UpnpSdkDeviceregisteredV6 == 0)) {
-		*device_handle_out = -1;
-		return HND_INVALID;
-	}
 	if (start < 0 || start >= NUM_HANDLE-1) {
 		*device_handle_out = -1;
 		return HND_INVALID;
@@ -1850,11 +1819,6 @@ Upnp_Handle_Type GetDeviceHandleInfoForPath(
 	*serv_info = nullptr;
 
 #ifdef INCLUDE_DEVICE_APIS
-	if ((AddressFamily == AF_INET  && UpnpSdkDeviceRegisteredV4 == 0) ||
-		(AddressFamily == AF_INET6 && UpnpSdkDeviceregisteredV6 == 0)) {
-		*devhdl = -1;
-		return HND_INVALID;
-	}
 
 	for (int idx = 1; idx < NUM_HANDLE;	idx++) {
 		Handle_Info *hinf;
