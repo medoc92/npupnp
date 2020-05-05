@@ -369,7 +369,9 @@ static int sendPackets(bool multicast, struct sockaddr *destaddr, int cnt,
 						   netif.getname().c_str());
 				goto exitfunc;
 			}
-
+			close(sock);
+			sock = -1;
+			
 			ssdpMcastAddr(dss, AF_INET);
 			auto addresses = netif.getaddresses();
 			for (const auto& ipaddr : addresses.first) {
