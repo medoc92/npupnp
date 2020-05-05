@@ -91,8 +91,6 @@ struct Handle_Info
 	/*! URL for the use of SSDP when answering to legacy CPs (CP searching
 	 * for a v1 when the device is v2). */
 	char  LowerDescURL[LINE_SIZE];
-	/*! XML file path for device description. */
-	char  DescXML[LINE_SIZE];
 	/* Advertisement timeout */
 	int MaxAge{0};
 	/* Power State as defined by UPnP Low Power. */
@@ -109,8 +107,6 @@ struct Handle_Info
 	int MaxSubscriptions{0};
 	/*! . */
 	int MaxSubscriptionTimeOut{0};
-	/*! Address family: AF_INET or AF_INET6. */
-	int DeviceAf{0};
 #endif
 
 	/* Client only */
@@ -218,6 +214,8 @@ extern std::vector<NetIF::Interface> g_netifs;
 /* Small optimisation: if the interfaces parameter to UpnpInit2() was
    "*", no need for the web server to filter accepted connections */
 extern bool g_use_all_interfaces;
+
+extern unsigned int g_option_flags;
 
 // Get first usable addresses, for when we don't care
 extern std::string apiFirstIPV4Str();

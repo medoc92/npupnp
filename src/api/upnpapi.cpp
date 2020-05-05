@@ -38,7 +38,6 @@
 #include <vector>
 #include <utility>
 #include <mutex>
-
 #include <curl/curl.h>
 
 #include "upnpapi.h"
@@ -112,6 +111,9 @@ std::vector<NetIF::Interface> g_netifs;
 /* Small optimisation: if the interfaces parameter to UpnpInit2() was
    "*", no need for the web server to filter accepted connections */
 bool g_use_all_interfaces;
+
+/* General option flags */
+unsigned int g_option_flags;
 
 /* Marker to be replaced by an appropriate address in LOCATION URLs */
 const std::string g_HostForTemplate{"@HOST_ADDR_FOR@"};
@@ -195,8 +197,9 @@ int apiFirstIPV6Index()
  *
  * We'll retrieve the following information from the interface:
  */
-int UpnpGetIfInfo(const char *IfNames)
+int UpnpGetIfInfo(const char *IfNames, unsigned int flags)
 {
+	bool ipv6 = (flags & UPNP_FLAG_IPV6) != 0;
 	g_use_all_interfaces = (IfNames && std::string("*") == IfNames);
 		
 	NetIF::Interfaces *ifs = NetIF::Interfaces::theInterfaces();
@@ -232,9 +235,13 @@ int UpnpGetIfInfo(const char *IfNames)
 		}
 	} else {
 		// No interface specified. Use first appropriate one, or all.
+		std::vector<NetIF::Interface::Flags>
+			needed{NetIF::Interface::Flags::HASIPV4};
+		if (!ipv6) {
+			needed.push_back(NetIF::Interface::Flags::HASIPV6);
+		}
 		NetIF::Interfaces::Filter
-			filt{.needs={NetIF::Interface::Flags::HASIPV4,
-						 NetIF::Interface::Flags::HASIPV6},
+			filt{.needs=needed,
 				 .rejects={NetIF::Interface::Flags::LOOPBACK}
 		};
 		selected = ifs->select(filt);
@@ -256,7 +263,7 @@ int UpnpGetIfInfo(const char *IfNames)
 				v4addr += addr->straddr() + " ";
 			}
 		}
-		if (netif.hasflag(NetIF::Interface::Flags::HASIPV6)) {
+		if (ipv6 && netif.hasflag(NetIF::Interface::Flags::HASIPV6)) {
 			const NetIF::IPAddr *addr =
 				netif.firstipv6addr(NetIF::IPAddr::Scope::LINK);
 			if (nullptr != addr) {
@@ -274,6 +281,19 @@ int UpnpGetIfInfo(const char *IfNames)
 
 	g_netifs = selected;
 
+	if (!ipv6) {
+		// Trim the ipv6 addresses
+		for (auto& netif : g_netifs) {
+			auto addrmasks = netif.getaddresses();
+			std::vector<NetIF::IPAddr> kept;
+			for (auto& addr: addrmasks.first) {
+				if (addr.family() == NetIF::IPAddr::Family::IPV4) {
+					kept.push_back(addr);
+				}
+			}
+			netif.trimto(kept);
+		}
+	}
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
 			   "interfaces= %s, v4= %s, v6= %s\n",
 			   actifnames.c_str(), v4addr.c_str(), v6addr.c_str());
@@ -331,7 +351,7 @@ static int getmyipv4(const char *inipv4 = nullptr)
 
 	// If an IP was specified, trim the addresses from the found adapter
 	if (ipspecified) {
-		netifp->trimTo({NetIF::IPAddr(inipv4)});
+		netifp->trimto({NetIF::IPAddr(inipv4)});
 	}
 
 	// Double-check that we do have an IPV4 addr
@@ -502,8 +522,8 @@ static int UpnpInitStartServers(unsigned short DestPort)
 	return UPNP_E_SUCCESS;
 }
 
-static int upnpInitCommon(const char *HostIP,
-						  const char *ifName, unsigned short DestPort)
+static int upnpInitCommon(const char *HostIP, const char *ifName,
+						  unsigned short DestPort, unsigned int flags)
 {
 	int retVal = UPNP_E_SUCCESS;
 
@@ -527,7 +547,7 @@ static int upnpInitCommon(const char *HostIP,
 
 	if (ifName) {
 		/* Retrieve interface information (Addresses, index, etc). */
-		retVal = UpnpGetIfInfo(ifName);
+		retVal = UpnpGetIfInfo(ifName, flags);
 		if (retVal != UPNP_E_SUCCESS) {
 			goto exit_function;
 		}
@@ -559,20 +579,43 @@ exit_function:
 
 int UpnpInit(const char *HostIP, unsigned short DestPort)
 {
-	return upnpInitCommon(HostIP, nullptr, DestPort);
+	return upnpInitCommon(HostIP, nullptr, DestPort, 0);
 }
 
 int UpnpInit2(const char *IfName, unsigned short DestPort)
 {
-	return upnpInitCommon(nullptr, IfName, DestPort);
+	return upnpInitCommon(nullptr, IfName, DestPort, 0);
 }
 
-int UpnpInit2(const std::vector<std::string>& ifnames, unsigned short DestPort)
+int UpnpInit2(const std::vector<std::string>& ifnames, unsigned short port)
 {
 	// A bit wasteful, but really simpler. Just build an interfaces
 	// list string and continue with this.
 	std::string names = stringsToString(ifnames);
-	return upnpInitCommon(nullptr, names.c_str(), DestPort);
+	return upnpInitCommon(nullptr, names.c_str(), port, 0);
+}
+
+EXPORT_SPEC int UpnpInitWithOptions(
+	const char *ifnames, unsigned short port, unsigned int flags,  ...)
+{
+	va_list ap;
+	int ret = UPNP_E_SUCCESS;
+
+	g_option_flags = flags;
+
+	va_start(ap, flags);
+	int option = (Upnp_InitOption) va_arg(ap, int);
+	if (option != UPNP_OPTION_END) {
+		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
+				   "UpnPInitWithOptions: bad option %d in list (not END)\n",
+			option);
+		ret = UPNP_E_INVALID_PARAM;
+	}
+	va_end(ap);
+	if (ret == UPNP_E_SUCCESS) {
+		ret = upnpInitCommon(nullptr, ifnames, port, flags);
+	}
+	return ret;
 }
 
 
@@ -788,7 +831,6 @@ int UpnpRegisterRootDeviceAllForms(
 	Upnp_FunPtr Fun,
 	const void *Cookie,
 	UpnpDevice_Handle *Hnd,
-	int AddressFamily,
 	const char *LowerDescUrl)
 {
 	struct Handle_Info *HInfo = nullptr;
@@ -807,9 +849,8 @@ int UpnpRegisterRootDeviceAllForms(
 		goto exit_function;
 	}
 
-	if (Hnd == nullptr || Fun == nullptr || description == nullptr ||
-		*description == 0 ||
-		(AddressFamily != AF_INET && AddressFamily != AF_INET6)) {
+	if (Hnd == nullptr || Fun == nullptr ||
+		description == nullptr ||*description == 0) {
 		retVal = UPNP_E_INVALID_PARAM;
 		goto exit_function;
 	}
@@ -853,7 +894,6 @@ int UpnpRegisterRootDeviceAllForms(
 	HInfo->MaxAge = DEFAULT_MAXAGE;
 	HInfo->MaxSubscriptions = UPNP_INFINITE;
 	HInfo->MaxSubscriptionTimeOut = UPNP_INFINITE;
-	HInfo->DeviceAf = AddressFamily;
 
 	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
 			   "UpnpRegisterRootDeviceAllForms: Ok Description at : %s\n",
@@ -886,15 +926,7 @@ int UpnpRegisterRootDevice(
 	UpnpDevice_Handle *Hnd)
 {
 	return UpnpRegisterRootDeviceAllForms(
-		UPNPREG_URL_DESC, DescUrl, 0, 0, Fun, Cookie, Hnd, AF_INET, nullptr);
-}
-
-int UpnpRegisterRootDevice3(
-	const char *DescUrl, Upnp_FunPtr Fun, const void *Cookie,
-	UpnpDevice_Handle *Hnd,	int AddressFamily)
-{
-	return UpnpRegisterRootDeviceAllForms(
-		UPNPREG_URL_DESC, DescUrl, 0, 0, Fun, Cookie, Hnd, AddressFamily, nullptr);
+		UPNPREG_URL_DESC, DescUrl, 0, 0, Fun, Cookie, Hnd, nullptr);
 }
 
 int UpnpRegisterRootDevice2(
@@ -904,16 +936,15 @@ int UpnpRegisterRootDevice2(
 {
 	return UpnpRegisterRootDeviceAllForms(
 		descriptionType, description_const, 0, config_baseURL, Fun,
-		Cookie,	Hnd, AF_INET, nullptr);
+		Cookie,	Hnd, nullptr);
 }
 
 int UpnpRegisterRootDevice4(
 	const char *DescUrl, Upnp_FunPtr Fun, const void *Cookie,
-	UpnpDevice_Handle *Hnd, int AddressFamily, const char *LowerDescUrl)
+	UpnpDevice_Handle *Hnd, int /*AddressFamily*/, const char *LowerDescUrl)
 {
 	return UpnpRegisterRootDeviceAllForms(
-		UPNPREG_URL_DESC, DescUrl, 0, 0, Fun, Cookie, Hnd, AddressFamily,
-		LowerDescUrl);
+		UPNPREG_URL_DESC, DescUrl, 0, 0, Fun, Cookie, Hnd, LowerDescUrl);
 }
 
 int UpnpUnRegisterRootDevice(UpnpDevice_Handle Hnd)

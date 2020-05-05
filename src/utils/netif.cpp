@@ -275,7 +275,7 @@ Interface::getaddresses() const
 		(m->addresses, m->netmasks);
 }
 
-bool Interface::trimTo(const std::vector<IPAddr>& keep)
+bool Interface::trimto(const std::vector<IPAddr>& keep)
 {
 	auto mit = m->netmasks.begin();
 	for (auto ait = m->addresses.begin(); ait != m->addresses.end();) {

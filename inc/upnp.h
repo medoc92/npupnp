@@ -514,6 +514,19 @@ enum Upnp_DescType_e {
 
 typedef enum Upnp_DescType_e Upnp_DescType;
 
+/* Option values for the UpnpInitWithOptions() flags argument */
+typedef enum {
+	UPNP_FLAG_NONE = 0,
+	/** Enable IPV6 operation (the default is IPV4 only) */
+	UPNP_FLAG_IPV6 = 1,
+} Upnp_InitFlag;
+
+/* Values for the UpnpInitWithOptions() vararg options list */
+typedef enum {
+	/** Terminate the VARARGs list. */
+	UPNP_OPTION_END = 0,
+} Upnp_InitOption;
+
 /** Used in the device callback API as parameter for 
 	UPNP_CONTROL_ACTION_REQUEST */
 struct Upnp_Action_Request {
@@ -797,23 +810,24 @@ typedef int (*Upnp_FunPtr)(
  */
 
 /*!
- * \brief Initializes the Linux SDK for UPnP Devices (IPv4 only).
+ * \brief Initializes the UPnP SDK for exclusive IP V4 operation on a single 
+ *  interface.
  *
  * \deprecated Kept for backwards compatibility. Use UpnpInit2 for new
  * implementations or where IPv6 is required.
  *
- * This function must be called before any other API function can be called.
+ * This function must be called before any other API function can be called, 
+ * except for a possible initialisation of the log output file and level.
  * It should be called only once. Subsequent calls to this API return a
  * \c UPNP_E_INIT error code.
  *
- * Optionally, the application can specify a host IPv4 address (in the
- * case of a multi-homed configuration) and a port number to use for
- * all UPnP operations.  Since a port number can be used only by one
- * process, multiple processes using the SDK must specify
- * different port numbers.
- *
- * If unspecified, the SDK will use the first IPv4-capable adapter's IP address
- * and an arbitrary port.
+ * Optionally, the application can specify a host IPv4 address.
+ * By default, the SDK will use the first IPv4-capable adapter's IP
+ * first address.
+ * Optionally the application can specify a port number for the UPnP
+ * HTTP interface (used for control, eventing and serving files).
+ * The first available port number above the one
+ * specified will be used. The default base port value is 49152.
  *
  * This call is synchronous.
  *
@@ -830,8 +844,8 @@ typedef int (*Upnp_FunPtr)(
  *     \li \c UPNP_E_INTERNAL_ERROR: An internal error ocurred.
  */
 EXPORT_SPEC int UpnpInit(
-	/*! The host local IPv4 address to use, in string format, for example
-	 * "192.168.0.1", or \c NULL to use the first IPv4 adapter's IP address. */
+	/*! The host local IPv4 address to use, in dotted string format,
+	 * or \c NULL to use the first IPv4 adapter's IP address. */
 	const char *HostIP,
 	/*! Local Port to listen for incoming connections
 	 * \c 0 will pick the first free port at or above the configured default 
@@ -840,20 +854,19 @@ EXPORT_SPEC int UpnpInit(
 	unsigned short DestPort);
 
 /*!
- * \brief Initializes the Linux SDK for UPnP Devices (IPv4 or IPv6).
+ * \brief Initializes the Linux SDK
  *
- * This function must be called before any other API function can be called.
+ * This function must be called before any other API function can be called, 
+ * except for a possible initialisation of the log output file and level.
  * It should be called only once. Subsequent calls to this API return a
  * \c UPNP_E_INIT error code.
  *
  * Optionally, the application can specify an one or several interface names.
  * If the interface is unspecified, the SDK will use the first suitable one.
-
- * The application can also specify a port number. Since a port number
- * can be used only by one process, multiple processes using the SDK
- * must specify different port numbers. If the port number is left
- * unspecified, the SDK will pick the first available port at or above
- * the configured default (49152).
+ *
+ * The application can also specify a port number. The default is 49152.
+ * the SDK will pick the first available port at or above
+ * the default or specified value.
  *
  * This call is synchronous.
  *
@@ -879,7 +892,7 @@ EXPORT_SPEC int UpnpInit2(
 	 * \c NULL to use the first suitable interface. */
 	const char *IfName,
 	/*!  Local Port to listen for incoming connections.
-	 * \c NULL will pick the first free port at or above the configured default
+	 * \c 0 will pick the first free port at or above the configured default
 	 */
 	unsigned short DestPort);
 
@@ -888,12 +901,30 @@ EXPORT_SPEC int UpnpInit2(
 	 * space-separated list. Use double quotes or backslashes escapes
 	 * if there are space characters inside the interface name. Use a
 	 * single "*" character to use all available interfaces.
-	 * \c NULL to use the first suitable interface. */
+	 * \c empty to use the first suitable interface. */
 	const std::vector<std::string>& ifnames,
 	/*!  Local Port to listen for incoming connections.
-	 * \c NULL will pick the first free port at or above the configured default
+	 * \c 0 will pick the first free port at or above the configured default
 	 */
 	unsigned short DestPort);
+
+EXPORT_SPEC int UpnpInitWithOptions( 
+	/*! The interface name(s) to use by the UPnP SDK operations, as a
+	 * space-separated list. Use double quotes or backslashes escapes
+	 * if there are space characters inside the interface name. Use a
+	 * single "*" character to use all available interfaces.
+	 * \c NULL to use the first suitable interface. */
+	const char *IfName,
+	/*!  Local Port to listen for incoming connections.
+	 * \c 0 will pick the first free port at or above the configured default
+	 */
+	unsigned short DestPort,
+	/*! Bitmask of Upnp_InitFlag values */
+	unsigned int flags,
+	/*! Variable list of options terminated by
+	 * UPNP_INITOPTION_END. Future extension, currently ignored */
+	...
+	);
 
 
 /*!
@@ -1110,57 +1141,8 @@ EXPORT_SPEC int UpnpRegisterRootDevice2(
 	UpnpDevice_Handle* Hnd);
 
 /*!
- * \brief Registers a device application for a specific address family with
- * the UPnP library.
- *
- * A device application cannot make any other API calls until it registers
- * using this function. Device applications can also register as control
- * points (see \b UpnpRegisterClient to get a control point handle to perform
- * control point functionality).
- *
- * This is synchronous and does not generate any callbacks. Callbacks can occur
- * as soon as this function returns.
- *
- * \return An integer representing one of the following:
- *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
- *     \li \c UPNP_E_FINISH: The SDK is already terminated or 
- *                                is not initialized. 
- *     \li \c UPNP_E_INVALID_DESC: The description document was not 
- *             a valid device description.
- *     \li \c UPNP_E_INVALID_URL: The URL for the description document 
- *             is not valid.
- *     \li \c UPNP_E_INVALID_PARAM: Either \b Callback or \b Hnd 
- *             is not a valid pointer or \b DescURL is \c NULL.
- *     \li \c UPNP_E_NETWORK_ERROR: A network error occurred.
- *     \li \c UPNP_E_SOCKET_WRITE: An error or timeout occurred writing 
- *             to a socket.
- *     \li \c UPNP_E_SOCKET_READ: An error or timeout occurred reading 
- *             from a socket.
- *     \li \c UPNP_E_SOCKET_BIND: An error occurred binding a socket.
- *     \li \c UPNP_E_SOCKET_CONNECT: An error occurred connecting the 
- *             socket.
- *     \li \c UPNP_E_OUTOF_SOCKET: Too many sockets are currently 
- *             allocated.
- *     \li \c UPNP_E_OUTOF_MEMORY: There are insufficient resources to 
- *             register this root device.
- */
-EXPORT_SPEC int UpnpRegisterRootDevice3(
-	/*! [in] Pointer to a string containing the description URL for this root
-	 * device instance. */
-	const char *DescUrl,
-	/*! [in] Callback function.*/
-	Upnp_FunPtr Fun,
-	/*! [in] Pointer to be passed as parameter to the callback invocations. */
-	const void *Cookie,
-	/*! [out] Pointer to a variable to store the new device handle. */
-	UpnpDevice_Handle *Hnd,
-	/*! [in] Address family of this device. Can be AF_INET for an IPv4 device, or
-	 * AF_INET6 for an IPv6 device. Defaults to AF_INET. */
-	int  AddressFamily);
-
-/*!
- * \brief Registers a device application for a specific address family with
- * the UPnP library. This function can also be used to specify a dedicated
+ * \brief Registers a device application with the UPnP library. 
+ * This function can also be used to specify a dedicated
  * description URL to be returned for legacy CPs.
  *
  * A device application cannot make any other API calls until it registers
@@ -1204,9 +1186,8 @@ EXPORT_SPEC int UpnpRegisterRootDevice4(
 	const void *Cookie,
 	/*! [out] Pointer to a variable to store the new device handle. */
 	UpnpDevice_Handle *Hnd,
-	/*! [in] Address family of this device. Can be AF_INET for an IPv4 device, or
-	 * AF_INET6 for an IPv6 device. Defaults to AF_INET. */
-	int  AddressFamily,
+	/*! [in] Address family.Ignored. */
+	int,
 	/*! [in] Pointer to a string containing the description URL to be returned 
 	 * for legacy CPs for this root device instance. */
 	const char *LowerDescUrl);

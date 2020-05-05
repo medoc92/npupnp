@@ -56,6 +56,7 @@
 #include "genut.h"
 #include "uri.h"
 #include "netif.h"
+#include "upnp.h"
 
 #include <cassert>
 #include <cerrno>
@@ -519,7 +520,8 @@ int StartMiniServer(uint16_t *listen_port4, uint16_t *listen_port6)
 {
 	int port=0;
 	int ret_code = UPNP_E_OUTOF_MEMORY;
-
+	unsigned int mhdflags = 0;
+	
 	switch (gMServState) {
 	case MSERV_IDLE:
 		break;
@@ -568,14 +570,18 @@ int StartMiniServer(uint16_t *listen_port4, uint16_t *listen_port6)
 		return port;
 	*listen_port4 = port;
 	*listen_port6 = port;
-	mhd = MHD_start_daemon(
-#ifdef UPNP_ENABLE_IPV6
-		MHD_USE_IPv6 | MHD_USE_DUAL_STACK |
-#endif /* UPNP_ENABLE_IPV6 */
-		MHD_USE_THREAD_PER_CONNECTION |
+
+	mhdflags = MHD_USE_THREAD_PER_CONNECTION |
 		MHD_USE_INTERNAL_POLLING_THREAD |
-		MHD_USE_DEBUG,
-		port,
+		MHD_USE_DEBUG;
+
+#ifdef UPNP_ENABLE_IPV6
+	if (g_option_flags & UPNP_FLAG_IPV6) {
+		mhdflags |= MHD_USE_IPv6 | MHD_USE_DUAL_STACK;
+	}
+#endif /* UPNP_ENABLE_IPV6 */
+	
+	mhd = MHD_start_daemon(mhdflags, port,
 		filter_connections, nullptr, /* Accept policy callback and arg */
 		&answer_to_connection, nullptr, /* Request handler and arg */
 		MHD_OPTION_NOTIFY_COMPLETED, request_completed_cb, nullptr,
