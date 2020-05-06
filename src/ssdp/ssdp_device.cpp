@@ -307,26 +307,19 @@ static bool ssdpMcastAddr(struct sockaddr_storage& ss, int AddressFamily)
 	return true;
 }
 
-static int reallySendPackets(
-	SOCKET sock, const std::string& lochost,
-	struct sockaddr *daddr, int cnt, std::string *packets)
+static int sendPackets(
+	SOCKET sock, struct sockaddr *daddr, int cnt, std::string *pckts)
 {
 	NetIF::IPAddr destip(daddr);
 	int socklen = daddr->sa_family == AF_INET ? sizeof(struct sockaddr_in) :
 		sizeof(struct sockaddr_in6);
 
     for (int i = 0; i < cnt; i++) {
-		// Edit the location string
-		std::string packet = packets[i];
-		std::string::size_type locpos = packet.find(g_HostForTemplate);
-		if (locpos != std::string::npos) {
-			packet = packet.replace(locpos, g_HostForTemplate.size(), lochost);
-		}
         ssize_t rc;
         UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
                    ">>> SSDP SEND to %s >>>\n%s\n",
-				   destip.straddr().c_str(), packet.c_str());
-        rc = sendto(sock, packet.c_str(), packet.size(), 0, daddr, socklen);
+				   destip.straddr().c_str(), pckts[i].c_str());
+        rc = sendto(sock, pckts[i].c_str(), pckts[i].size(), 0, daddr, socklen);
 					
         if (rc == -1) {
 			char errorBuffer[ERROR_BUFFER_LEN];
@@ -338,116 +331,6 @@ static int reallySendPackets(
         }
     }
 	return UPNP_E_SUCCESS;
-}
-
-/* Send the device packet to the network */
-static int sendPackets(bool multicast, struct sockaddr *destaddr, int cnt,
-					   std::string *packets)
-{
-    int ret = UPNP_E_SUCCESS;
-	std::string lochost;
-	SOCKET sock = -1;
-	if (multicast) {
-		// Loop on our interfaces and addresses
-		for (const auto& netif : g_netifs) {
-            UpnpPrintf(UPNP_ALL, SSDP, __FILE__, __LINE__,
-					   "ssdp_device: mcast for %s\n", netif.getname().c_str());
-
-			// Ignore the destination address: set it according to the family
-			struct sockaddr_storage dss;
-			destaddr = reinterpret_cast<struct sockaddr*>(&dss);
-
-#ifdef UPNP_ENABLE_IPV6
-			if (g_option_flags & UPNP_FLAG_IPV6) {
-				ssdpMcastAddr(dss, AF_INET6);
-				sock = createMulticastSocket6(netif.getindex(), lochost);
-				if (sock < 0) {
-					goto exitfunc;
-				}
-				ret = reallySendPackets(sock, lochost, destaddr, cnt, packets);
-				if (ret != UPNP_E_SUCCESS) {
-					UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
-							   "SSDP dev: IPV6 SEND failed for %s\n",
-							   netif.getname().c_str());
-					goto exitfunc;
-				}
-				close(sock);
-				sock = -1;
-			}
-#endif /* UPNP_ENABLE_IPV6 */
-
-			ssdpMcastAddr(dss, AF_INET);
-			auto addresses = netif.getaddresses();
-			for (const auto& ipaddr : addresses.first) {
-				if (ipaddr.family() == NetIF::IPAddr::Family::IPV4) {
-					const struct sockaddr_storage& fss{ipaddr.getaddr()};
-					sock = createMulticastSocket4(
-						reinterpret_cast<const struct sockaddr_in*>(&fss),
-						lochost);
-				} else {
-					continue;
-				}
-				if (sock < 0) {
-					goto exitfunc;
-				}
-				ret = reallySendPackets(sock, lochost, destaddr, cnt, packets);
-				close(sock);
-				sock = -1;
-			}
-		}
-	} else {
-		sock = destaddr->sa_family == AF_INET ?
-			createReplySocket4(
-				reinterpret_cast<struct sockaddr_in*>(destaddr), lochost) :
-			createReplySocket6(
-				reinterpret_cast<struct sockaddr_in6*>(destaddr), lochost);
-		if (sock < 0) {
-			goto exitfunc;
-		}
-		ret = reallySendPackets(sock, lochost, destaddr, cnt, packets);
-	}
-
-exitfunc:
-	if (ret != UPNP_E_SUCCESS) {
-		char errorBuffer[ERROR_BUFFER_LEN];
-        posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-        UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
-                   "sendPackets: %s\n", errorBuffer);
-        return UPNP_E_NETWORK_ERROR;
-    }
-	if (sock >= 0) 
-		UpnpCloseSocket(sock);
-    return ret;
-}
-
-/* return 1 if an inet6 @ has been found. */
-static int extractIPv6address(const char *url, char *address, int maxlen)
-{
-	address[0] = 0;
-    char *op = std::strchr(const_cast<char*>(url), '[');
-	if (op == nullptr) 
-		return 0;
-	char *cl = std::strchr(op, ']');
-	if (cl == nullptr || cl <= op + 1 || cl - op >= maxlen) {
-		return 0;
-    }
-	std::memcpy(address, op + 1, cl - op - 1);
-	address[cl-op] = 0;
-	return 1;
-}
-
-/* Return 1 if the Url contains an ULA or GUA IPv6 address, 0 otherwise. */
-static int isUrlV6UlaGua(const char *descdocUrl)
-{
-    char address[INET6_ADDRSTRLEN+10];
-    struct in6_addr v6_addr;
-
-    if (extractIPv6address(descdocUrl, address, INET6_ADDRSTRLEN+10)) {
-        inet_pton(AF_INET6, address, &v6_addr);
-        return !IN6_IS_ADDR_LINKLOCAL(&v6_addr);
-    }
-
-    return 0;
 }
 
 /* Creates a device notify or search reply packet. */
@@ -485,8 +368,7 @@ static void CreateServicePacket(
         const char *host;
         switch (AddressFamily) {
         case AF_INET: host = SSDP_IP; break;
-        default: host = isUrlV6UlaGua(location) ? "[" SSDP_IPV6_SITELOCAL "]" :
-			"[" SSDP_IPV6_LINKLOCAL "]";
+        default: host = "[" SSDP_IPV6_LINKLOCAL "]";
         }
 
 		str <<
@@ -523,6 +405,7 @@ static void CreateServicePacket(
 }
 
 static int DeviceAdvertisementOrShutdown(
+	SOCKET sock, struct sockaddr *DestAddr,
 	SSDPDevMessageType msgtype, const char *DevType, int RootDev,
 	const char *Udn, const char *Location, int Duration,
 	int PowerState,	int SleepPeriod, int RegistrationState)
@@ -539,18 +422,18 @@ static int DeviceAdvertisementOrShutdown(
             goto error_handler;
         CreateServicePacket(msgtype, "upnp:rootdevice",
                             Mil_Usn, Location, Duration, msgs[0],
-                            AF_INET, PowerState, SleepPeriod,
+                            DestAddr->sa_family, PowerState, SleepPeriod,
                             RegistrationState);
     }
     /* both root and sub-devices need to send these two messages */
     CreateServicePacket(msgtype, Udn, Udn,
-                        Location, Duration, msgs[1], AF_INET,
+                        Location, Duration, msgs[1], DestAddr->sa_family,
                         PowerState, SleepPeriod, RegistrationState);
     rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::%s", Udn, DevType);
     if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Usn))
         goto error_handler;
     CreateServicePacket(msgtype, DevType, Mil_Usn,
-                        Location, Duration, msgs[2], AF_INET,
+                        Location, Duration, msgs[2], DestAddr->sa_family,
                         PowerState, SleepPeriod, RegistrationState);
     /* check error */
     if ((RootDev && msgs[0].empty()) || msgs[1].empty() || msgs[2].empty()) {
@@ -559,10 +442,10 @@ static int DeviceAdvertisementOrShutdown(
     /* send packets */
     if (RootDev) {
         /* send 3 msg types */
-        ret_code = sendPackets(true, nullptr, 3, &msgs[0]);
+        ret_code = sendPackets(sock, DestAddr, 3, &msgs[0]);
     } else {        /* sub-device */
         /* send 2 msg types */
-        ret_code = sendPackets(true, nullptr, 2, &msgs[1]);
+		ret_code = sendPackets(sock, DestAddr, 2, &msgs[1]);
     }
 
 error_handler:
@@ -570,7 +453,7 @@ error_handler:
 }
 
 static int SendReply(
-	struct sockaddr *DestAddr, const char *DevType, int RootDev,
+	SOCKET sock, struct sockaddr *DestAddr, const char *DevType, int RootDev,
 	const char *Udn, const char *Location, int Duration, int ByType,
 	int PowerState, int SleepPeriod, int RegistrationState)
 {
@@ -618,15 +501,15 @@ static int SendReply(
             goto error_handler;
         }
     }
-    /* send msgs */
-    ret_code = sendPackets(false, DestAddr, num_msgs, msgs);
+
+    ret_code = 	sendPackets(sock, DestAddr, num_msgs, msgs);
 
 error_handler:
     return ret_code;
 }
 
 static int DeviceReply(
-	struct sockaddr *DestAddr, const char *DevType, int RootDev,
+	SOCKET sock, struct sockaddr *DestAddr, const char *DevType, int RootDev,
 	const char *Udn, const char *Location, int Duration, int PowerState,
 	int SleepPeriod, int RegistrationState)
 {
@@ -672,15 +555,15 @@ static int DeviceReply(
     }
     /* send replies */
     if (RootDev) {
-        return sendPackets(false, DestAddr, 3, szReq);
+		return sendPackets(sock, DestAddr, 3, szReq);
     }
-	return sendPackets(false, DestAddr, 2, &szReq[1]);
+	return sendPackets(sock, DestAddr, 2, &szReq[1]);
 }
 
 static int ServiceSend(
-	SSDPDevMessageType tp, struct sockaddr *DestAddr, const char *ServType,
-	const char *Udn, const char *Location, int Duration, int PowerState,
-	int SleepPeriod, int RegistrationState)
+	SOCKET sock, SSDPDevMessageType tp, struct sockaddr *DestAddr,
+	const char *ServType, const char *Udn, const char *Location, int Duration,
+	int PowerState,	int SleepPeriod, int RegistrationState)
 {
     char Mil_Usn[LINE_SIZE];
 	std::string szReq[1];
@@ -690,17 +573,20 @@ static int ServiceSend(
     if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Usn))
 		return UPNP_E_OUTOF_MEMORY;
     CreateServicePacket(tp, ServType, Mil_Usn,
-                        Location, Duration, szReq[0], AF_INET,
+                        Location, Duration, szReq[0], DestAddr->sa_family,
                         PowerState, SleepPeriod, RegistrationState);
-    if (szReq[0].empty())
+    if (szReq[0].empty()) {
         return UPNP_E_OUTOF_MEMORY;
-    return sendPackets(!(tp == MSGTYPE_REPLY), DestAddr, 1, szReq);
+
+	}
+	
+	return sendPackets(sock, DestAddr, 1, szReq);
 }
 
-int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
-					  enum SsdpSearchType SearchType,
-					  struct sockaddr *DestAddr, char *DeviceType,
-					  char *DeviceUDN, char *ServiceType, int Exp)
+static int AdvertiseAndReplyOneDest(
+	SOCKET sock, SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
+	enum SsdpSearchType SearchType, struct sockaddr *DestAddr, char *DeviceType,
+	char *DeviceUDN, char *ServiceType, int Exp, const char *location)
 {
 	int retVal = UPNP_E_SUCCESS;
 	int defaultExp = DEFAULT_MAXAGE;
@@ -734,22 +620,22 @@ int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
 			const char *devType = devp->deviceType.c_str();
 			const char *UDNstr = devp->UDN.c_str();
 			if (isNotify) {
-				DeviceAdvertisementOrShutdown(
-					tp, devType, isroot, UDNstr, SInfo->DescURL, Exp,
+				DeviceAdvertisementOrShutdown(sock, DestAddr,
+					tp, devType,  isroot, UDNstr,location, Exp,
 					SInfo->PowerState, SInfo->SleepPeriod,
 					SInfo->RegistrationState);
 			} else {
 				switch (SearchType) {
 				case SSDP_ALL:
 					DeviceReply(
-						DestAddr, devType, isroot, UDNstr, SInfo->DescURL,
+						sock, DestAddr, devType, isroot, UDNstr, location,
 						defaultExp, SInfo->PowerState, SInfo->SleepPeriod,
 						SInfo->RegistrationState);
 					break;
 				case SSDP_ROOTDEVICE:
 					if (isroot) {
 						SendReply(
-							DestAddr, devType, 1, UDNstr, SInfo->DescURL,
+							sock, DestAddr, devType, 1, UDNstr, location,
 							defaultExp, 0, SInfo->PowerState, SInfo->SleepPeriod,
 							SInfo->RegistrationState);
 					}
@@ -767,7 +653,7 @@ int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
 								   "DeviceUDN=%s/search UDN=%s MATCH\n",
 								   UDNstr, DeviceUDN);
 						SendReply(
-							DestAddr, devType, 0, UDNstr, SInfo->DescURL,
+							sock, DestAddr, devType, 0, UDNstr, location,
 							defaultExp, 0, SInfo->PowerState,
 							SInfo->SleepPeriod, SInfo->RegistrationState);
 						break;
@@ -784,7 +670,7 @@ int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
 							UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
 									   "DeviceType=%s/srchdevType=%s MATCH\n",
 									   devType, DeviceType);
-							SendReply(DestAddr, DeviceType, 0, UDNstr,
+							SendReply(sock, DestAddr, DeviceType, 0, UDNstr,
 									  SInfo->LowerDescURL, defaultExp, 1,
 									  SInfo->PowerState, SInfo->SleepPeriod,
 									  SInfo->RegistrationState);
@@ -793,8 +679,8 @@ int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
 							UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
 									   "DeviceType=%s/srchDevType=%s MATCH\n",
 									   devType, DeviceType);
-							SendReply(DestAddr, DeviceType, 0,
-									  UDNstr, SInfo->DescURL, defaultExp, 1,
+							SendReply(sock, DestAddr, DeviceType, 0,
+									  UDNstr, location, defaultExp, 1,
 									  SInfo->PowerState, SInfo->SleepPeriod,
 									  SInfo->RegistrationState);
 						} else {
@@ -828,16 +714,16 @@ int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
 						   "ServiceType = %s\n", servType);
 				if (isNotify) {
 					ServiceSend(
-						tp,	nullptr,
-						servType, UDNstr, SInfo->DescURL, Exp,SInfo->PowerState,
-						SInfo->SleepPeriod, SInfo->RegistrationState);
+						sock, tp, DestAddr,	servType, UDNstr, location, Exp,
+						SInfo->PowerState,SInfo->SleepPeriod,
+						SInfo->RegistrationState);
 				} else {
 					switch (SearchType) {
 					case SSDP_ALL:
-						ServiceSend(MSGTYPE_REPLY, DestAddr, servType, UDNstr,
-									 SInfo->DescURL, defaultExp,
-									 SInfo->PowerState, SInfo->SleepPeriod,
-									 SInfo->RegistrationState);
+						ServiceSend(
+							sock, MSGTYPE_REPLY, DestAddr, servType, UDNstr,
+							location, defaultExp, SInfo->PowerState,
+							SInfo->SleepPeriod, SInfo->RegistrationState);
 						break;
 					case SSDP_SERVICE:
 						if (ServiceType) {
@@ -854,20 +740,20 @@ int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
 										UPNP_DEBUG, SSDP, __FILE__, __LINE__,
 										"ServiceTp=%s/searchServTp=%s MATCH\n",
 										ServiceType, servType);
-									SendReply(DestAddr, ServiceType, 0, UDNstr,
-											  SInfo->LowerDescURL, defaultExp, 1,
-											  SInfo->PowerState,
+									SendReply(sock, DestAddr, ServiceType, 0,
+											  UDNstr, SInfo->LowerDescURL,
+											  defaultExp, 1, SInfo->PowerState,
 											  SInfo->SleepPeriod,
 											  SInfo->RegistrationState);
 								} else if (
-									std::atoi(std::strrchr (ServiceType, ':') + 1)
+									std::atoi(std::strrchr(ServiceType, ':') + 1)
 									== std::atoi(&servType[std::strlen(servType) - 1])) {
 									UpnpPrintf(
 										UPNP_DEBUG, SSDP, __FILE__, __LINE__,
 										"ServiceTp=%s/searchServTp=%s MATCH\n",
 										ServiceType, servType);
-									SendReply(DestAddr, ServiceType, 0, UDNstr,
-											  SInfo->DescURL, defaultExp, 1,
+									SendReply(sock, DestAddr, ServiceType, 0,
+											  UDNstr, location, defaultExp, 1,
 											  SInfo->PowerState,
 											  SInfo->SleepPeriod,
 											  SInfo->RegistrationState);
@@ -894,10 +780,128 @@ int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
 	}
 
 end_function:
-	UpnpPrintf(UPNP_ALL, SSDP, __FILE__, __LINE__, "AdvertiseAndReply exit\n");
+	UpnpPrintf(UPNP_ALL, SSDP, __FILE__, __LINE__, "AdvertiseAndReply1 exit\n");
 	HandleUnlock();
 
 	return retVal;
+}
+
+int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
+					  enum SsdpSearchType SearchType,
+					  struct sockaddr *repDestAddr, char *DeviceType,
+					  char *DeviceUDN, char *ServiceType, int Exp)
+{
+	bool isNotify =	(tp == MSGTYPE_ADVERTISEMENT || tp == MSGTYPE_SHUTDOWN);
+    int ret = UPNP_E_SUCCESS;
+	std::string lochost;
+	SOCKET sock = -1;
+
+	/* Use a read lock */
+	HandleReadLock();
+	struct Handle_Info *SInfo = nullptr;
+	if (GetHandleInfo(Hnd, &SInfo) != HND_DEVICE) {
+		HandleUnlock();
+		return UPNP_E_INVALID_HANDLE;
+	}
+	HandleUnlock();
+
+	std::string loctmpl = SInfo->DescURL;
+	
+	if (isNotify) {
+		// Loop on our interfaces and addresses
+		for (const auto& netif : g_netifs) {
+            UpnpPrintf(UPNP_ALL, SSDP, __FILE__, __LINE__,
+					   "ssdp_device: mcast for %s\n", netif.getname().c_str());
+
+			struct sockaddr_storage dss;
+			auto destaddr = reinterpret_cast<struct sockaddr*>(&dss);
+
+#ifdef UPNP_ENABLE_IPV6
+			if (g_option_flags & UPNP_FLAG_IPV6) {
+				ssdpMcastAddr(dss, AF_INET6);
+				sock = createMulticastSocket6(netif.getindex(), lochost);
+				if (sock < 0) {
+					goto exitfunc;
+				}
+
+				std::string loc{loctmpl};
+				std::string::size_type locpos = loc.find(g_HostForTemplate);
+				if (locpos != std::string::npos) {
+					loc = loc.replace(locpos, g_HostForTemplate.size(), lochost);
+				}
+				
+				ret = AdvertiseAndReplyOneDest(
+					sock, tp, Hnd, SearchType, destaddr, DeviceType,
+					DeviceUDN, ServiceType, Exp, loc.c_str());
+				
+				if (ret != UPNP_E_SUCCESS) {
+					UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
+							   "SSDP dev: IPV6 SEND failed for %s\n",
+							   netif.getname().c_str());
+					goto exitfunc;
+				}
+				close(sock);
+				sock = -1;
+			}
+#endif /* UPNP_ENABLE_IPV6 */
+
+			ssdpMcastAddr(dss, AF_INET);
+			auto addresses = netif.getaddresses();
+			for (const auto& ipaddr : addresses.first) {
+				std::string loc{loctmpl};
+				if (ipaddr.family() == NetIF::IPAddr::Family::IPV4) {
+					const struct sockaddr_storage& fss{ipaddr.getaddr()};
+					sock = createMulticastSocket4(
+						reinterpret_cast<const struct sockaddr_in*>(&fss),
+						lochost);
+					std::string::size_type locpos = loc.find(g_HostForTemplate);
+					if (locpos != std::string::npos) {
+						loc = loc.replace(
+							locpos, g_HostForTemplate.size(), lochost);
+					}
+				} else {
+					continue;
+				}
+				if (sock < 0) {
+					goto exitfunc;
+				}
+				ret = AdvertiseAndReplyOneDest(
+					sock, tp, Hnd, SearchType, destaddr, DeviceType,
+					DeviceUDN, ServiceType, Exp, loc.c_str());
+				close(sock);
+				sock = -1;
+			}
+		}
+	} else {
+		sock = repDestAddr->sa_family == AF_INET ?
+			createReplySocket4(
+				reinterpret_cast<struct sockaddr_in*>(repDestAddr), lochost) :
+			createReplySocket6(
+				reinterpret_cast<struct sockaddr_in6*>(repDestAddr), lochost);
+		if (sock < 0) {
+			goto exitfunc;
+		}
+		std::string loc{loctmpl};
+		std::string::size_type locpos = loc.find(g_HostForTemplate);
+		if (locpos != std::string::npos) {
+			loc = loc.replace(locpos, g_HostForTemplate.size(), lochost);
+		}
+		ret = AdvertiseAndReplyOneDest(
+			sock, tp, Hnd, SearchType, repDestAddr, DeviceType,
+			DeviceUDN, ServiceType, Exp, loc.c_str());
+	}
+
+exitfunc:
+	if (ret != UPNP_E_SUCCESS) {
+		char errorBuffer[ERROR_BUFFER_LEN];
+        posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
+        UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
+                   "sendPackets: %s\n", errorBuffer);
+        return UPNP_E_NETWORK_ERROR;
+    }
+	if (sock >= 0) 
+		UpnpCloseSocket(sock);
+    return ret;
 }
 
 #endif /* EXCLUDE_SSDP */
