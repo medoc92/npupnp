@@ -316,7 +316,7 @@ static int sendPackets(
 
 	for (int i = 0; i < cnt; i++) {
 		ssize_t rc;
-		UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
+		UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
 				   ">>> SSDP SEND to %s >>>\n%s\n",
 				   destip.straddr().c_str(), pckts[i].c_str());
 		rc = sendto(sock, pckts[i].c_str(), pckts[i].size(), 0, daddr, socklen);

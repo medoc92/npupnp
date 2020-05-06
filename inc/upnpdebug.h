@@ -64,7 +64,8 @@ extern "C" {
  *    \li \c UPNP_CRITICAL [0]
  *    \li \c UPNP_ERROR [1]
  *    \li \c UPNP_INFO [2]
- *    \li \c UPNP_ALL [3]
+ *    \li \c UPNP_DEBUG [3]
+ *    \li \c UPNP_ALL [4]
  */
 typedef enum Upnp_Module {
 	SSDP,
