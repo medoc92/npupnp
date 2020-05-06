@@ -774,9 +774,8 @@ int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
 		HandleUnlock();
 		return UPNP_E_INVALID_HANDLE;
 	}
-	HandleUnlock();
-
 	std::string loctmpl = SInfo->DescURL;
+	HandleUnlock();
 	
 	if (isNotify) {
 		// Loop on our interfaces and addresses
