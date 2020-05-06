@@ -68,7 +68,7 @@ int httpheader_str2int(const std::string& headername);
 std::string query_encode(const std::string& qs);
 
 /* Context for a microhttpd request/response */
-class MHDTransaction {
+struct MHDTransaction {
 public:
 	struct MHD_Connection *conn{nullptr};
 	struct sockaddr_storage *client_address;
