@@ -1,3 +1,15 @@
+libnpupnp1 (4.0.0-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Support using multiple network interfaces: one, several, all.
+  * Support switching IPV6 use at run time.
+  * API change: upnp 1.8 compat new fields Os and user-agent in
+    action_request and file_info (gerbera compat).
+  * Many style cleanup thanks to clang-tidy and Rosen Penev
+  * Proper milliseconds delay computations for sending M-Search
+    replies. The previous delay computed in second was often 0.
+
+ -- Jean-Francois Dockes <jf@dockes.org>  Wed, 06 May 2020 11:20:00 +0100
+
 libnpupnp1 (2.2.1-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Fix issues in processing SOAP error responses

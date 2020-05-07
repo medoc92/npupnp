@@ -35,7 +35,7 @@ Description: Development package for the npupnp UPnP library,
 Package: libnpupnp1-dbg
 Architecture: any
 Section: debug
-Priority: optional
+Priority: extra
 Depends: libnpupnp1 (= ${binary:Version}), ${misc:Depends}
 Description: debugging symbols for libnpupnp
  This package contains the debugging symbols associated with libupnp6.
