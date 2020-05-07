@@ -44,7 +44,14 @@
 #include <string>
 #include <map>
 
+#ifdef USE_EXPAT
 #include "expatmm.hxx"
+#define XMLPARSERTP inputRefXMLParser
+#else
+#include "picoxml.h"
+#define XMLPARSERTP PicoXMLParser
+#endif
+
 #include "soaplib.h"
 #include "statcodes.h"
 #include "upnpapi.h"
@@ -160,7 +167,7 @@ static void send_action_response(
   As we're not in the business of checking conformity, we did not reproduce
   the tests for now.
 */
-class UPnPActionRequestParser : public inputRefXMLParser {
+class UPnPActionRequestParser : public XMLPARSERTP {
 public:
 	UPnPActionRequestParser(
 		// XML to be parsed
@@ -171,7 +178,7 @@ public:
 		// Output: action arguments
 		std::vector<std::pair<std::string, std::string>>& args,
 		bool isresponse)
-		: inputRefXMLParser(input), m_actname(actname), m_args(args),
+		: XMLPARSERTP(input), m_actname(actname), m_args(args),
 		  m_isresp(isresponse) { }
 
 	// On output, and only if we are parsing the action (not a

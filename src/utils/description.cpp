@@ -1,18 +1,27 @@
+#include "config.h"
+
 #include "upnpdescription.h"
 
 #include <algorithm>
 
 #include <cstring>
 
+#ifdef USE_EXPAT
 #include "expatmm.hxx"
+#define XMLPARSERTP inputRefXMLParser
+#else
+#include "picoxml.h"
+#define XMLPARSERTP PicoXMLParser
+#endif
+
 #include "genut.h"
 
 using namespace std;
 
-class UPnPDeviceParser : public inputRefXMLParser {
+class UPnPDeviceParser : public XMLPARSERTP {
 public:
     UPnPDeviceParser(const string& input, UPnPDeviceDesc& device)
-        : inputRefXMLParser(input), m_device(device) {}
+        : XMLPARSERTP(input), m_device(device) {}
 
 protected:
     void EndElement(const XML_Char *name) override {

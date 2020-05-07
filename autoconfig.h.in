@@ -159,6 +159,9 @@
 /* see upnpconfig.h */
 #undef UPNP_MINISERVER_REUSEADDR
 
+/* Use expat */
+#undef USE_EXPAT
+
 /* Version number of package */
 #undef VERSION
 

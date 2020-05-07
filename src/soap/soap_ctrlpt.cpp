@@ -46,9 +46,16 @@
 #include "uri.h"
 #include "upnp.h"
 #include "genut.h"
-#include "expatmm.hxx"
 
-class UPnPResponseParser : public inputRefXMLParser {
+#ifdef USE_EXPAT
+#include "expatmm.hxx"
+#define XMLPARSERTP inputRefXMLParser
+#else
+#include "picoxml.h"
+#define XMLPARSERTP PicoXMLParser
+#endif
+
+class UPnPResponseParser : public XMLPARSERTP {
 public:
 	UPnPResponseParser(
 		// XML to be parsed
@@ -58,7 +65,7 @@ public:
 		// Output data from response
 		std::vector<std::pair<std::string, std::string>>& respdata,
 		int *errp, std::string& errd)
-		: inputRefXMLParser(input), responseName(rspname), data(respdata),
+		: XMLPARSERTP(input), responseName(rspname), data(respdata),
 		  errcodep(errp), errdesc(errd)	{
 	}
 
@@ -67,7 +74,6 @@ protected:
 		const std::string& parentname = (m_path.size() == 1) ?
 			"root" : m_path[m_path.size()-2].name;
 		trimstring(m_chardata, " \t\n\r");
-
 		if (parentname == "UPnPError") {
 			if (!strcmp(name, "errorCode")) {
 				*errcodep = atoi(m_chardata.c_str());

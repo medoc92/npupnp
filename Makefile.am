@@ -49,6 +49,7 @@ libnpupnp_la_SOURCES = \
 	src/inc/md5.h \
 	src/inc/miniserver.h \
 	src/inc/netif.h \
+	src/inc/picoxml.h \
 	src/inc/service_table.h \
 	src/inc/genut.h \
 	src/inc/soaplib.h \

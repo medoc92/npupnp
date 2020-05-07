@@ -232,10 +232,18 @@ AC_SEARCH_LIBS([gethostbyname],  [nsl])
 AC_SEARCH_LIBS([sched_getparam], [rt])
 
 PKG_CHECK_MODULES([curl], [libcurl], [], AC_MSG_ERROR([libcurl not found]))
-PKG_CHECK_MODULES([expat], [expat], [], AC_MSG_ERROR([libexpat not found]))
 PKG_CHECK_MODULES([libmicrohttpd], [libmicrohttpd], [],
 	[AC_MSG_ERROR([libmicrohttpd not found])])
 
+AC_ARG_ENABLE(expat,
+    AC_HELP_STRING([--enable-expat],
+   [Use expat for parsing XML instead of the crappy internal module.]),
+        useexpat=$enableval, useexpat=no)
+AM_CONDITIONAL([COND_EXPAT], [test "$useexpat" = yes])
+if test X$useexpat = Xyes ; then
+   PKG_CHECK_MODULES([expat], [expat], [], AC_MSG_ERROR([libexpat not found]))
+   AC_DEFINE(USE_EXPAT, 1, [Use expat])
+fi
 
 LIBNPUPNP_LIBS="$curl_LIBS $libmicrohttpd_LIBS $expat_LIBS $LIBS"
 echo "LIBNPUPNP_LIBS[" $LIBNPUPNP_LIBS "]"

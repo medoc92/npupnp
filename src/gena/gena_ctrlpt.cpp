@@ -50,7 +50,14 @@
 #include "genut.h"
 #include "TimerThread.h"
 #include "gena_sids.h"
+
+#ifdef USE_EXPAT
 #include "expatmm.hxx"
+#define XMLPARSERTP inputRefXMLParser
+#else
+#include "picoxml.h"
+#define XMLPARSERTP PicoXMLParser
+#endif
 
 extern TimerThread *gTimerThread;
 
@@ -654,14 +661,14 @@ exit_function:
 	return return_code;
 }
 
-class UPnPPropertysetParser : public inputRefXMLParser {
+class UPnPPropertysetParser : public XMLPARSERTP {
 public:
     UPnPPropertysetParser(
 		// XML to be parsed
 		const std::string& input,
 		// Output data 
 		std::unordered_map<std::string, std::string>& propd)
-        : inputRefXMLParser(input),  propdata(propd) {
+        : XMLPARSERTP(input),  propdata(propd) {
 	}
 
 protected:
