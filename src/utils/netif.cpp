@@ -36,13 +36,24 @@
 #include <algorithm>
 
 #ifndef _WIN32
+
+#include <sys/types.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <net/if.h>
+#include <ifaddrs.h>
+#ifdef __linux__
+#include <netpacket/packet.h>
 #else
+#include <net/if_dl.h>
+#endif
+
+#else /* _WIN32 -> */
+
 #include <winsock2.h>
 #include <iphlpapi.h>
 #include "inet_pton.h"
+
 #endif
 
 
@@ -367,13 +378,6 @@ public:
 
 
 #ifndef _WIN32
-#include <sys/types.h>
-#include <ifaddrs.h>
-#ifdef __linux__
-#include <netpacket/packet.h>
-#else
-#include <net/if_dl.h>
-#endif
 
 Interfaces::Internal::Internal()
 {
@@ -453,12 +457,21 @@ Interfaces::Internal::Internal()
 
 #else /* _WIN32 ->*/
 
+static uint32_t netprefixlentomask(uint8_t pfxlen)
+{
+	uint32_t out{0};
+	pfxlen = std::min(pfxlen, uint8_t(31));
+	for (int i = 0; i < pfxlen; i++) {
+		out |= 1 << (31-i);
+	}
+	return out;
+}
+
 Interfaces::Internal::Internal()
 {
 	PIP_ADAPTER_ADDRESSES adapts{nullptr};
 	PIP_ADAPTER_ADDRESSES adapts_item;
 	PIP_ADAPTER_UNICAST_ADDRESS uni_addr;
-	SOCKADDR *ip_addr;
 	ULONG adapts_sz = 0;
 	ULONG ret;
 
@@ -519,13 +532,15 @@ Interfaces::Internal::Internal()
 						   adapts_item->PhysicalAddressLength);
 		uni_addr = adapts_item->FirstUnicastAddress;
 		while (uni_addr) {
-			ip_addr = uni_addr->Address.lpSockaddr;
+			SOCKADDR *ip_addr = 
+				reinterpret_cast<SOCKADDR*>(&uni_addr->Address.lpSockaddr);
 			switch (ip_addr->sa_family) {
 			case AF_INET:
 			case AF_INET6:
-				ifit->m->addresses.emplace_back((struct sockaddr*)&ip_addr);
-				ifit->m->netmasks.emplace_back(ifa->ifa_netmask);
-			if (ifa->ifa_addr->sa_family == AF_INET6) {
+				ifit->m->addresses.emplace_back(ip_addr);
+				ifit->m->netmasks.emplace_back(
+					netprefixlentomask(uni_addr->OnLinkPrefixLength));
+			if (ip_addr->sa_family == AF_INET6) {
 				ifit->m->setflag(Interface::Flags::HASIPV6);
 			} else {
 				ifit->m->setflag(Interface::Flags::HASIPV4);
