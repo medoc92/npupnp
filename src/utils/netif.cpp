@@ -499,7 +499,7 @@ Interfaces::Internal::Internal()
 		/* We're converting chars using the current code page. It would be nicer
 		   to convert to UTF-8 */
 		char tmpnm[256];
-		wcstombs(tmpIfName, adapts_item->FriendlyName, sizeof(tmpnm));
+               wcstombs(tmpnm, adapts_item->FriendlyName, sizeof(tmpnm));
 		ifit->m->friendlyname = tmpnm;
 		if (!(adapts_item->Flags & IP_ADAPTER_NO_MULTICAST)) {
 			ifit->m->setflag(Interface::Flags::MULTICAST);

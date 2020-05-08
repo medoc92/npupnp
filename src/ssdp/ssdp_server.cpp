@@ -508,7 +508,11 @@ error_handler:
 /* Create the SSDP IPv6 socket to be used by the control point. */
 static int create_ssdp_sock_reqv6(SOCKET *ssdpReqSock)
 {
+#ifdef _WIN32
+       DWORD hops = 1;
+#else
 	int hops = 1;
+#endif
 	int index = apiFirstIPV6Index();
 	SOCKET sock;
 	std::string errorcause;
@@ -528,7 +532,7 @@ static int create_ssdp_sock_reqv6(SOCKET *ssdpReqSock)
 	}
 
 	if (setsockopt(
-			sock, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &hops, sizeof(hops)) < 0) {
+                       sock, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, reinterpret_cast<char *>(&hops), sizeof(hops)) < 0) {
 		errorcause = "setsockopt(IPV6_MULTICAST_HOPS)";
 		goto error_handler;
 	}

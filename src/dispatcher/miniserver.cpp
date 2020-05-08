@@ -492,7 +492,7 @@ static int available_port(int reqport)
 	saddr.sin_family = AF_INET;
 	saddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	for (int i = 0; i < 20; i++) {
-		saddr.sin_port = htons(static_cast<in_port_t>(port));
+               saddr.sin_port = htons(static_cast<uint16_t>(port));
 		if (bind(fd, reinterpret_cast<struct sockaddr*>(&saddr),
 				   sizeof(saddr)) == 0) {
 			ret = port;
@@ -510,7 +510,11 @@ static int available_port(int reqport)
 	}
 
 	if (fd >=0) {
+#ifdef _WIN32
+               closesocket(fd);
+#else
 		close(fd);
+#endif
 	}
 	return ret;
 }
