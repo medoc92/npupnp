@@ -1,4 +1,4 @@
-libnpupnp1 (4.0.0-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+libnpupnp1 (4.0.1-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Support using multiple network interfaces: one, several, all.
   * Support switching IPV6 use at run time.
@@ -7,7 +7,9 @@ libnpupnp1 (4.0.0-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
   * Many style cleanup thanks to clang-tidy and Rosen Penev
   * Proper milliseconds delay computations for sending M-Search
     replies. The previous delay computed in second was often 0.
-
+  * Add small internal XML parser (disabled by default) to allow avoiding
+    expat dependancy on systems where it might be a problem.
+	
  -- Jean-Francois Dockes <jf@dockes.org>  Wed, 06 May 2020 11:20:00 +0100
 
 libnpupnp1 (2.2.1-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
