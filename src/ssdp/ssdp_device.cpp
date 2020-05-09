@@ -165,7 +165,7 @@ static SOCKET createMulticastSocket4(
 {
 	char ttl = 2;
 #ifdef _WIN32
-       BOOL bcast = TRUE;
+	BOOL bcast = TRUE;
 #else
 	int bcast = 1;
 #endif
@@ -184,7 +184,7 @@ static SOCKET createMulticastSocket4(
 	if (setsockopt(sock, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl)) < 0) {
 		goto error;
 	}
-       if(setsockopt(sock, SOL_SOCKET, SO_BROADCAST, reinterpret_cast<char *>(&bcast), sizeof(bcast)) < 0) {
+	if(setsockopt(sock, SOL_SOCKET, SO_BROADCAST, reinterpret_cast<char *>(&bcast), sizeof(bcast)) < 0) {
 		goto error;
 	}
 	if (bind(sock, reinterpret_cast<const struct sockaddr *>(srcaddr),
@@ -194,7 +194,7 @@ static SOCKET createMulticastSocket4(
 	return sock;
 error:
 #ifdef _WIN32
-       closesocket(sock);
+	closesocket(sock);
 #else
 	close(sock);
 #endif
@@ -259,7 +259,7 @@ static SOCKET createMulticastSocket6(int index, std::string& lochost)
 	return sock;
 error:
 #ifdef _WIN32
-       closesocket(sock);
+	closesocket(sock);
 #else
 	close(sock);
 #endif
@@ -354,8 +354,8 @@ struct SSDPPwrState {
 /* Creates a device notify or search reply packet. */
 static void CreateServicePacket(
 	SSDPDevMessageType msg_type, const char *nt, const char *usn,
-	const char *location, int duration, std::string &packet, int AddressFamily,
-	SSDPPwrState& pwr)
+	const std::string& location, int duration, std::string &packet,
+	int AddressFamily, SSDPPwrState& pwr)
 {
 	std::ostringstream str;
 	switch (msg_type) {
@@ -424,7 +424,7 @@ static void CreateServicePacket(
 static int DeviceAdvertisementOrShutdown(
 	SOCKET sock, struct sockaddr *DestAddr,
 	SSDPDevMessageType msgtype, const char *DevType, int RootDev,
-	const char *Udn, const char *Location, int Duration, SSDPPwrState& pwr)
+	const char *Udn, const std::string& Location,int Duration, SSDPPwrState& pwr)
 {
 	char Mil_Usn[LINE_SIZE];
 	std::string msgs[3];
@@ -468,7 +468,7 @@ error_handler:
 
 static int SendReply(
 	SOCKET sock, struct sockaddr *DestAddr, const char *DevType, int RootDev,
-	const char *Udn, const char *Location, int Duration, int ByType,
+	const char *Udn, const std::string& Location, int Duration, int ByType,
 	SSDPPwrState& pwr)
 {
 	int ret_code = UPNP_E_OUTOF_MEMORY;
@@ -519,7 +519,7 @@ error_handler:
 
 static int DeviceReply(
 	SOCKET sock, struct sockaddr *DestAddr, const char *DevType, int RootDev,
-	const char *Udn, const char *Location, int Duration, SSDPPwrState& pwr)
+	const char *Udn, const std::string& Location,int Duration, SSDPPwrState& pwr)
 {
 	std::string szReq[3];
 	char Mil_Nt[LINE_SIZE], Mil_Usn[LINE_SIZE];
@@ -565,8 +565,8 @@ static int DeviceReply(
 
 static int ServiceSend(
 	SOCKET sock, SSDPDevMessageType tp, struct sockaddr *DestAddr,
-	const char *ServType, const char *Udn, const char *Location, int Duration,
-	SSDPPwrState& pwr)
+	const char *ServType, const char *Udn, const std::string& Location,
+	int Duration, SSDPPwrState& pwr)
 {
 	char Mil_Usn[LINE_SIZE];
 	std::string szReq[1];
@@ -585,10 +585,22 @@ static int ServiceSend(
 	return sendPackets(sock, DestAddr, 1, szReq);
 }
 
+static void replaceLochost(std::string& location, const std::string& lochost)
+{
+	std::string::size_type pos = location.find(g_HostForTemplate);
+	if (pos != std::string::npos) {
+		location.replace(pos, g_HostForTemplate.size(), lochost);
+	}
+}
+
+
+// Send SSDP messages for one root device, one destination address,
+// which is the reply host or one of our source addresses. There may
+// be subdevices
 static int AdvertiseAndReplyOneDest(
 	SOCKET sock, SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
 	enum SsdpSearchType SearchType, struct sockaddr *DestAddr, char *DeviceType,
-	char *DeviceUDN, char *ServiceType, int Exp, const char *location)
+	char *DeviceUDN, char *ServiceType, int Exp, const std::string& lochost)
 {
 	int retVal = UPNP_E_SUCCESS;
 	int defaultExp = DEFAULT_MAXAGE;
@@ -603,15 +615,22 @@ static int AdvertiseAndReplyOneDest(
 		HandleUnlock();
 		return UPNP_E_INVALID_HANDLE;
 	}
+
 	defaultExp = SInfo->MaxAge;
 	SSDPPwrState pwr {
 		SInfo->PowerState, SInfo->SleepPeriod,SInfo->RegistrationState};
+	
+	std::string location{SInfo->DescURL};
+	replaceLochost(location, lochost);
+	std::string lowerloc{SInfo->LowerDescURL};
+	replaceLochost(lowerloc, lochost);
 
 	// Store the root and embedded devices in a single vector for convenience
 	alldevices.push_back(&SInfo->devdesc);
 	for (const auto& dev : SInfo->devdesc.embedded) {
 		alldevices.push_back(&dev);
 	}
+
 	/* send advertisements/replies */
 	while (NumCopy == 0 || (isNotify && NumCopy < NUM_SSDP_COPY)) {
 		if (NumCopy != 0)
@@ -667,7 +686,7 @@ static int AdvertiseAndReplyOneDest(
 									   "DeviceType=%s/srchdevType=%s MATCH\n",
 									   devType, DeviceType);
 							SendReply(sock, DestAddr, DeviceType, 0, UDNstr,
-									  SInfo->LowerDescURL, defaultExp, 1, pwr);
+									  lowerloc, defaultExp, 1, pwr);
 						} else if (std::atoi(std::strrchr(DeviceType, ':') + 1)
 								   == std::atoi(&devType[std::strlen(devType) - 1])) {
 							UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
@@ -729,7 +748,7 @@ static int AdvertiseAndReplyOneDest(
 										"ServiceTp=%s/searchServTp=%s MATCH\n",
 										ServiceType, servType);
 									SendReply(sock, DestAddr, ServiceType, 0,
-											  UDNstr, SInfo->LowerDescURL,
+											  UDNstr, lowerloc,
 											  defaultExp, 1, pwr);
 								} else if (
 									std::atoi(std::strrchr(ServiceType, ':') + 1)
@@ -763,11 +782,14 @@ static int AdvertiseAndReplyOneDest(
 		}
 	}
 
-
 	UpnpPrintf(UPNP_ALL, SSDP, __FILE__, __LINE__, "AdvertiseAndReply1 exit\n");
 	HandleUnlock();
 	return retVal;
 }
+
+
+// Process the advertisements or replies for one root device (which
+// may have subdevices).
 
 int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
 					  enum SsdpSearchType SearchType,
@@ -779,16 +801,6 @@ int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
 	std::string lochost;
 	SOCKET sock = -1;
 
-	/* Use a read lock */
-	HandleReadLock();
-	struct Handle_Info *SInfo = nullptr;
-	if (GetHandleInfo(Hnd, &SInfo) != HND_DEVICE) {
-		HandleUnlock();
-		return UPNP_E_INVALID_HANDLE;
-	}
-	std::string loctmpl = SInfo->DescURL;
-	HandleUnlock();
-	
 	if (isNotify) {
 		// Loop on our interfaces and addresses
 		for (const auto& netif : g_netifs) {
@@ -806,15 +818,9 @@ int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
 					goto exitfunc;
 				}
 
-				std::string loc{loctmpl};
-				std::string::size_type locpos = loc.find(g_HostForTemplate);
-				if (locpos != std::string::npos) {
-					loc = loc.replace(locpos, g_HostForTemplate.size(), lochost);
-				}
-				
 				ret = AdvertiseAndReplyOneDest(
 					sock, tp, Hnd, SearchType, destaddr, DeviceType,
-					DeviceUDN, ServiceType, Exp, loc.c_str());
+					DeviceUDN, ServiceType, Exp, lochost);
 				
 				if (ret != UPNP_E_SUCCESS) {
 					UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
@@ -823,7 +829,7 @@ int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
 					goto exitfunc;
 				}
 #ifdef _WIN32
-                               closesocket(sock);
+				closesocket(sock);
 #else
 				close(sock);
 #endif
@@ -834,17 +840,11 @@ int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
 			ssdpMcastAddr(dss, AF_INET);
 			auto addresses = netif.getaddresses();
 			for (const auto& ipaddr : addresses.first) {
-				std::string loc{loctmpl};
 				if (ipaddr.family() == NetIF::IPAddr::Family::IPV4) {
 					const struct sockaddr_storage& fss{ipaddr.getaddr()};
 					sock = createMulticastSocket4(
 						reinterpret_cast<const struct sockaddr_in*>(&fss),
 						lochost);
-					std::string::size_type locpos = loc.find(g_HostForTemplate);
-					if (locpos != std::string::npos) {
-						loc = loc.replace(
-							locpos, g_HostForTemplate.size(), lochost);
-					}
 				} else {
 					continue;
 				}
@@ -853,9 +853,9 @@ int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
 				}
 				ret = AdvertiseAndReplyOneDest(
 					sock, tp, Hnd, SearchType, destaddr, DeviceType,
-					DeviceUDN, ServiceType, Exp, loc.c_str());
+					DeviceUDN, ServiceType, Exp, lochost);
 #ifdef _WIN32
-                               closesocket(sock);
+				closesocket(sock);
 #else
 				close(sock);
 #endif
@@ -871,14 +871,9 @@ int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
 		if (sock < 0) {
 			goto exitfunc;
 		}
-		std::string loc{loctmpl};
-		std::string::size_type locpos = loc.find(g_HostForTemplate);
-		if (locpos != std::string::npos) {
-			loc = loc.replace(locpos, g_HostForTemplate.size(), lochost);
-		}
 		ret = AdvertiseAndReplyOneDest(
 			sock, tp, Hnd, SearchType, repDestAddr, DeviceType,
-			DeviceUDN, ServiceType, Exp, loc.c_str());
+			DeviceUDN, ServiceType, Exp, lochost);
 	}
 
 exitfunc:
