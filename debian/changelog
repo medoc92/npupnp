@@ -1,3 +1,9 @@
+libnpupnp1 (4.0.2-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Fix SSDP location url wrong if service version mismatch
+	
+ -- Jean-Francois Dockes <jf@dockes.org>  Sat, 09 May 2020 09:42:00 +0200
+
 libnpupnp1 (4.0.1-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Support using multiple network interfaces: one, several, all.
