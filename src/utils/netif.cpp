@@ -540,7 +540,7 @@ Interfaces::Internal::Internal()
 		char tmpnm[256];
                wcstombs(tmpnm, adapts_item->FriendlyName, sizeof(tmpnm));
 		ifit->m->friendlyname = tmpnm;
-		if (!(adapts_item->Flags & IP_ADAPTER_NO_MULTICAST)) {
+		if ((adapts_item->Flags & IP_ADAPTER_NO_MULTICAST)) {
 			ifit->m->setflag(Interface::Flags::MULTICAST);
 		}
 		if (adapts_item->OperStatus == IfOperStatusUp) {
@@ -559,7 +559,7 @@ Interfaces::Internal::Internal()
 		uni_addr = adapts_item->FirstUnicastAddress;
 		while (uni_addr) {
 			SOCKADDR *ip_addr = 
-				reinterpret_cast<SOCKADDR*>(&uni_addr->Address.lpSockaddr);
+				reinterpret_cast<SOCKADDR*>(uni_addr->Address.lpSockaddr);
 			switch (ip_addr->sa_family) {
 			case AF_INET:
 			{
@@ -570,8 +570,7 @@ Interfaces::Internal::Internal()
 				struct sockaddr_in sa;
 				memset(&sa, 0, sizeof(sa));
 				sa.sin_addr.s_addr = mask;
-				ifit->m->netmasks.emplace_back(
-					);
+				ifit->m->netmasks.emplace_back((struct sockaddr*)&sa);
 			}
 			break;
 			case AF_INET6:
@@ -591,6 +590,7 @@ Interfaces::Internal::Internal()
 		/* Next adapter. */
 		adapts_item = adapts_item->Next;
 	}
+	interfaces.swap(vifs);
 
 out:
 	free(adapts);
@@ -644,9 +644,10 @@ std::vector<Interface> Interfaces::select(const Filter& filt) const
 	}
 	std::vector<Interface> out;
 	const std::vector<Interface>& ifs = theInterfaces()->m->interfaces;
-	std::copy_if(ifs.begin(), ifs.end(), out.begin(),
-		[=](const NetIF::Interface &entry){return (entry.m->flags & yesflags) == yesflags && (entry.m->flags & noflags) == 0;});
-
+	std::copy_if(ifs.begin(), ifs.end(), std::back_inserter(out),
+		[=](const NetIF::Interface &entry){
+					 return (entry.m->flags & yesflags) == yesflags &&
+						 (entry.m->flags & noflags) == 0;});
 	return out;
 }
 

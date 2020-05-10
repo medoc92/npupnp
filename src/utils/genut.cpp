@@ -39,6 +39,9 @@
 
 using namespace std;
 
+// On windows we use static libs and these functions are provided in
+// libupnpp. If they are defined here too they conflict.
+#ifndef DISABLE_SMALLUT
 void stringtolower(string& io)
 {
 	string::iterator it = io.begin();
@@ -112,68 +115,6 @@ void ltrimstring(string& s, const char *ws)
 	}
 	s.replace(0, pos, string());
 }
-
-size_t upnp_strlcpy(char *dst, const char *src, size_t dsize)
-{
-	if (nullptr == dst || 0 == dsize)
-		return strlen(src) + 1;
-
-	// Copy until either output full or end of src. Final zero not copied
-	size_t cnt = dsize;
-	while (*src && cnt > 0) {
-		*dst++ = *src++;
-		cnt--;
-	}
-
-	if (cnt == 0) {
-		// Stopped because output full. dst now points beyond the
-		// buffer, set the final zero before it, and count how many
-		// more bytes we would need.
-		dst[-1] = 0;
-		while (*src++) {
-			dsize++;
-		}
-	} else {
-		// Stopped because end of input, set the final zero.
-		dst[0] = 0;
-	}
-	return dsize - cnt + 1;
-}
-
-string xmlQuote(const string& in)
-{
-	string out;
-	for (char i : in) {
-		switch (i) {
-		case '"':
-			out += "&quot;";
-			break;
-		case '&':
-			out += "&amp;";
-			break;
-		case '<':
-			out += "&lt;";
-			break;
-		case '>':
-			out += "&gt;";
-			break;
-		case '\'':
-			out += "&apos;";
-			break;
-		default:
-			out += i;
-		}
-	}
-	return out;
-}
-
-int dom_cmp_name(const std::string& domname, const std::string& ref)
-{
-	std::string::size_type colon = domname.find(':');
-	return colon == std::string::npos ?
-		domname.compare(ref) : domname.compare(colon+1, std::string::npos, ref);
-}
-
 template <class T> bool stringToStrings(const std::string& s, T& tokens,
 										const std::string& addseps)
 {
@@ -333,3 +274,66 @@ template string stringsToString<list<string> >(const list<string>&);
 template string stringsToString<vector<string> >(const vector<string>&);
 template string stringsToString<set<string> >(const set<string>&);
 template string stringsToString<unordered_set<string> >(const unordered_set<string>&);
+
+#endif /* DISABLE_SMALLUT */
+
+size_t upnp_strlcpy(char *dst, const char *src, size_t dsize)
+{
+	if (nullptr == dst || 0 == dsize)
+		return strlen(src) + 1;
+
+	// Copy until either output full or end of src. Final zero not copied
+	size_t cnt = dsize;
+	while (*src && cnt > 0) {
+		*dst++ = *src++;
+		cnt--;
+	}
+
+	if (cnt == 0) {
+		// Stopped because output full. dst now points beyond the
+		// buffer, set the final zero before it, and count how many
+		// more bytes we would need.
+		dst[-1] = 0;
+		while (*src++) {
+			dsize++;
+		}
+	} else {
+		// Stopped because end of input, set the final zero.
+		dst[0] = 0;
+	}
+	return dsize - cnt + 1;
+}
+
+string xmlQuote(const string& in)
+{
+	string out;
+	for (char i : in) {
+		switch (i) {
+		case '"':
+			out += "&quot;";
+			break;
+		case '&':
+			out += "&amp;";
+			break;
+		case '<':
+			out += "&lt;";
+			break;
+		case '>':
+			out += "&gt;";
+			break;
+		case '\'':
+			out += "&apos;";
+			break;
+		default:
+			out += i;
+		}
+	}
+	return out;
+}
+
+int dom_cmp_name(const std::string& domname, const std::string& ref)
+{
+	std::string::size_type colon = domname.find(':');
+	return colon == std::string::npos ?
+		domname.compare(ref) : domname.compare(colon+1, std::string::npos, ref);
+}

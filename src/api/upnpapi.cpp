@@ -285,8 +285,11 @@ int UpnpGetIfInfo(const char *IfNames, unsigned int flags)
 		for (auto& netif : g_netifs) {
 			auto addrmasks = netif.getaddresses();
 			std::vector<NetIF::IPAddr> kept;
-			std::copy_if(addrmasks.first.begin(), addrmasks.first.end(), kept.begin(),
-				[](const NetIF::IPAddr &addr){return addr.family() == NetIF::IPAddr::Family::IPV4;});
+			std::copy_if(addrmasks.first.begin(), addrmasks.first.end(),
+						 std::back_inserter(kept),
+						 [](const NetIF::IPAddr &addr){
+							 return addr.family() ==
+								 NetIF::IPAddr::Family::IPV4;});
 			netif.trimto(kept);
 		}
 	}
@@ -425,6 +428,7 @@ static int UpnpInitPreamble()
 
 #ifdef _WIN32
 	if (WinsockInit() != UPNP_E_SUCCESS) {
+		std::cerr << "WinsockInit failed\n";
 		return retVal;
 	}
 #endif
@@ -436,6 +440,7 @@ static int UpnpInitPreamble()
 	/* Initialize debug output. */
 	retVal = UpnpInitLog();
 	if (retVal != UPNP_E_SUCCESS) {
+		std::cerr << "UpnpInitLog failed\n";
 		/* UpnpInitLog does not return a valid UPNP_E_*. */
 		return UPNP_E_INIT_FAILED;
 	}
@@ -455,6 +460,7 @@ static int UpnpInitPreamble()
 	/* Initialize SDK global thread pools. */
 	retVal = UpnpInitThreadPools();
 	if (retVal != UPNP_E_SUCCESS) {
+		std::cerr << "UpnpInitThreadPools failed\n";
 		return retVal;
 	}
 
@@ -473,6 +479,7 @@ static int UpnpInitPreamble()
 	/* Initialize the SDK timer thread. */
 	gTimerThread = new TimerThread(&gSendThreadPool);
 	if (nullptr == gTimerThread) {
+		std::cerr << "Timer Thread init failed\n";
 		UpnpFinish();
 		return UPNP_E_INIT_FAILED;
 	}
