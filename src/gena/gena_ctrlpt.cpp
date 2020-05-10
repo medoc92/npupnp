@@ -50,6 +50,7 @@
 #include "genut.h"
 #include "TimerThread.h"
 #include "gena_sids.h"
+#include "netif.h"
 
 #ifdef USE_EXPAT
 #include "expatmm.hxx"
@@ -267,11 +268,19 @@ static int gena_unsubscribe(
 }
 
 // localaddr is already in inet_ntop-provided dot or ipv6 format
-static std::string myCallbackUrl(int family, const std::string& localaddr)
+static std::string myCallbackUrl(NetIF::IPAddr& netaddr)
 {
 	std::ostringstream oss;
-	oss << "http://" << localaddr << ":" <<
-		(family == AF_INET6 ? LOCAL_PORT_V6 : LOCAL_PORT_V4);
+	oss << "http://";
+	if (netaddr.family() == NetIF::IPAddr::Family::IPV6) {
+		oss << "[";
+	}
+	oss << netaddr.straddr();
+	if (netaddr.family() == NetIF::IPAddr::Family::IPV6) {
+		oss << "]";
+	}
+	oss << ":" << (netaddr.family() == NetIF::IPAddr::Family::IPV6 ?
+				   LOCAL_PORT_V6 : LOCAL_PORT_V4);
 	return oss.str();
 }
 
@@ -292,11 +301,16 @@ struct CurlGuard {
 	}
 };
 
-static int sockopt_callback(
-	void *clientp, curl_socket_t curlfd, curlsocktype purpose)
+static int opensock_cb(void *clientp, curlsocktype purpose,
+					   struct curl_sockaddr *)
 {
 	curl_socket_t openedsocket = *(curl_socket_t *)clientp;
-	dup2(openedsocket, curlfd);
+	return openedsocket;
+}
+
+static int sockopt_cb(
+	void */*clientp*/, curl_socket_t curlfd, curlsocktype purpose)
+{
 	return CURL_SOCKOPT_ALREADY_CONNECTED;
 }
 
@@ -354,51 +368,41 @@ static int gena_subscribe(
 	// use to compute the callback URL. This way, no need to think to
 	// either use the global values or think about addresses,
 	// networks, interfaces, etc. let the kernel work instead :)
-	int family{AF_INET};
-	std::string localaddr;
-	curl_socket_t sock{-1};
 	if (renewal_sid.empty()) {
-		char addrbuf[64];
-		struct sockaddr_storage locaddr;
-		socklen_t lasize = sizeof(locaddr);
-		auto la4 = (struct sockaddr_in *)&locaddr;
-		auto la6 = (struct sockaddr_in6 *)&locaddr;
-		
 		hdls.hconnect = curl_easy_init();
 		curl_easy_setopt(hdls.hconnect, CURLOPT_URL,  urlforcurl.c_str());
 		curl_easy_setopt(hdls.hconnect, CURLOPT_CONNECT_ONLY, 1L);
 		curl_easy_setopt(hdls.hconnect, CURLOPT_ERRORBUFFER, curlerrormessage);
 		CURLcode curlcode = curl_easy_perform(hdls.hconnect);
 		if (curlcode != CURLE_OK) {
-			/* We may want to detail things here, depending on the curl error */
 			UpnpPrintf(UPNP_ERROR, GENA, __FILE__, __LINE__,
 					   "CURL ERROR MESSAGE %s\n", curlerrormessage);
 			return UPNP_E_SOCKET_CONNECT;
 		}
-		curl_easy_getinfo(hdls.hconnect, CURLINFO_ACTIVESOCKET, &sock);
-		getsockname(sock, (struct sockaddr *)&locaddr, &lasize);
-		family = la4->sin_family;
-		inet_ntop(la4->sin_family, la4->sin_family == AF_INET ?
-				  (void*)&la4->sin_addr : (void*)&la6->sin6_addr,
-				  addrbuf, sizeof(addrbuf));
-		localaddr = addrbuf;
 	}
 
 	hdls.htalk = curl_easy_init();
-	if (renewal_sid.empty()) {
-		curl_easy_setopt(hdls.htalk, CURLOPT_SOCKOPTFUNCTION, sockopt_callback);
-		curl_easy_setopt(hdls.htalk, CURLOPT_SOCKOPTDATA, &sock);
-	}
 	curl_easy_setopt(hdls.htalk, CURLOPT_ERRORBUFFER, curlerrormessage);
-	curl_easy_setopt(hdls.htalk, CURLOPT_WRITEFUNCTION,write_callback_null_curl);
+	curl_easy_setopt(hdls.htalk, CURLOPT_WRITEFUNCTION,
+					 write_callback_null_curl);
 	curl_easy_setopt(hdls.htalk, CURLOPT_CUSTOMREQUEST, "SUBSCRIBE");
 	curl_easy_setopt(hdls.htalk, CURLOPT_URL, urlforcurl.c_str());
 	curl_easy_setopt(hdls.htalk, CURLOPT_TIMEOUT, HTTP_DEFAULT_TIMEOUT);
 	curl_easy_setopt(hdls.htalk, CURLOPT_HEADERFUNCTION, header_callback_curl);
 	curl_easy_setopt(hdls.htalk, CURLOPT_HEADERDATA, &http_headers);
 	if (renewal_sid.empty()) {
+		struct sockaddr_storage locaddr;
+		socklen_t lasize = sizeof(locaddr);
+		curl_socket_t curlsock1{INVALID_SOCKET};
+		curl_easy_getinfo(hdls.hconnect, CURLINFO_ACTIVESOCKET, &curlsock1);
+		getsockname(curlsock1, (struct sockaddr *)&locaddr, &lasize);
+		NetIF::IPAddr netaddr((struct sockaddr *)&locaddr);
+		curl_easy_setopt(hdls.htalk, CURLOPT_OPENSOCKETFUNCTION, opensock_cb);
+		curl_easy_setopt(hdls.htalk, CURLOPT_OPENSOCKETDATA, &curlsock1);
+		curl_easy_setopt(hdls.htalk, CURLOPT_SOCKOPTFUNCTION, sockopt_cb);
+		curl_easy_setopt(hdls.htalk, CURLOPT_SOCKOPTDATA, &curlsock1);
 		std::string cbheader{"CALLBACK: <"};
-		cbheader += myCallbackUrl(family,localaddr) + "/>";
+		cbheader += myCallbackUrl(netaddr) + "/>";
 		hdls.hlist = curl_slist_append(hdls.hlist, cbheader.c_str());
 		hdls.hlist = curl_slist_append(hdls.hlist, "NT: upnp:event");
 	} else {

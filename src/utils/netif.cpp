@@ -141,13 +141,32 @@ bool IPAddr::ok() const
 	return m->ok;
 }
 
-void IPAddr::copyToStorage(struct sockaddr_storage *dest) const
+bool IPAddr::copyToStorage(struct sockaddr_storage *dest) const
 {
-	if (m->ok) {
-		memcpy(dest, &m->address, sizeof(struct sockaddr_storage));
-	} else {
+	if (!m->ok) {
 		memset(dest, 0, sizeof(struct sockaddr_storage));
+		return false;
 	}
+	memcpy(dest, &m->address, sizeof(struct sockaddr_storage));
+	return true;
+}
+
+bool IPAddr::copyToAddr(struct sockaddr *dest) const
+{
+	if (!m->ok) {
+		return false;
+	}
+	switch (m->saddr.ss_family) {
+	case AF_INET:
+		memcpy(dest, m->saddr, sizeof(struct sockaddr_in));
+		break;
+	case AF_INET6:
+		memcpy(dest, m->saddr, sizeof(struct sockaddr_in6));
+		break;
+	default:
+		return false;
+	}
+	return true;
 }
 
 const struct sockaddr_storage& IPAddr::getaddr() const

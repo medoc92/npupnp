@@ -68,7 +68,11 @@ public:
 	/** Returns the address family */
 	Family family() const;
 	/** Copies out for use with a system interface */
-	void copyToStorage(struct sockaddr_storage *dest) const;
+	/* Zeroes out up to sizeof(sockaddr_storage) */
+	bool copyToStorage(struct sockaddr_storage *dest) const;
+	/* Copies exactly the needed size */
+	bool copyToAddr(struct sockaddr *dest) const;
+	
 	const struct sockaddr_storage& getaddr() const;
 	
 	/** Convert to textual representation */

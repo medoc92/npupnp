@@ -342,9 +342,9 @@ error_handler:
 	posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 	UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
 			   "%s: %s\n", errorcause.c_str(), errorBuffer);
-	if (*ssdpSock >= 0) {
+	if (*ssdpSock != INVALID_SOCKET) {
 		UpnpCloseSocket(*ssdpSock);
-		*ssdpSock = -1;
+		*ssdpSock = INVALID_SOCKET;
 	}
 	return ret;
 }
@@ -407,7 +407,7 @@ error_handler:
 	posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 	UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
 			   "%s: %s\n", errorcause.c_str(), errorBuffer);
-	if (sock >= 0) {
+	if (sock != INVALID_SOCKET) {
 		UpnpCloseSocket(sock);
 	}
 	return ret;
@@ -472,14 +472,10 @@ static int create_ssdp_sock_v6(bool isulagua, SOCKET *ssdpSock)
 		struct ipv6_mreq ssdpMcastAddr;
 		memset((void *)&ssdpMcastAddr, 0, sizeof(ssdpMcastAddr));
 		ssdpMcastAddr.ipv6mr_interface = 0;
-		if (isulagua) {
-			/* ULAGUA SITE LOCAL */
-			inet_pton(AF_INET6, SSDP_IPV6_SITELOCAL,
-					  &ssdpMcastAddr.ipv6mr_multiaddr);
-		} else {
-			inet_pton(AF_INET6, SSDP_IPV6_LINKLOCAL,
-					  &ssdpMcastAddr.ipv6mr_multiaddr);
-		}
+		NetIF::IPAddr ipa(isulagua? SSDP_IPV6_SITELOCAL : SSDP_IPV6_LINKLOCAL);
+		ipa.copyToAddr(
+			reinterpret_cast<struct sockaddr*>(
+				&ssdpMcastAddr.ipv6mr_multiaddr));
 		ret = setsockopt(*ssdpSock, IPPROTO_IPV6, IPV6_JOIN_GROUP,
 						 reinterpret_cast<char *>(&ssdpMcastAddr),
 						 sizeof(ssdpMcastAddr));
@@ -496,9 +492,9 @@ error_handler:
 	posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 	UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
 			   "%s: %s\n", errorcause.c_str(), errorBuffer);
-	if (*ssdpSock >= 0) {
+	if (*ssdpSock != INVALID_SOCKET) {
 		UpnpCloseSocket(*ssdpSock);
-		*ssdpSock = -1;
+		*ssdpSock = INVALID_SOCKET;
 	}
 	return ret;
 }
@@ -509,7 +505,7 @@ error_handler:
 static int create_ssdp_sock_reqv6(SOCKET *ssdpReqSock)
 {
 #ifdef _WIN32
-       DWORD hops = 1;
+	DWORD hops = 1;
 #else
 	int hops = 1;
 #endif
@@ -518,9 +514,9 @@ static int create_ssdp_sock_reqv6(SOCKET *ssdpReqSock)
 	std::string errorcause;
 	int ret = UPNP_E_SOCKET_ERROR;
 
-	*ssdpReqSock = -1;
+	*ssdpReqSock = INVALID_SOCKET;
 
-	if ((sock = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
+	if ((sock = socket(AF_INET6, SOCK_DGRAM, 0)) == INVALID_SOCKET) {
 		errorcause = "socket()";
 		ret = UPNP_E_OUTOF_SOCKET;
 		goto error_handler;
@@ -532,7 +528,8 @@ static int create_ssdp_sock_reqv6(SOCKET *ssdpReqSock)
 	}
 
 	if (setsockopt(
-                       sock, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, reinterpret_cast<char *>(&hops), sizeof(hops)) < 0) {
+			sock, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
+			reinterpret_cast<char *>(&hops), sizeof(hops)) < 0) {
 		errorcause = "setsockopt(IPV6_MULTICAST_HOPS)";
 		goto error_handler;
 	}
@@ -548,7 +545,7 @@ error_handler:
 	posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 	UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
 			   "%s: %s\n", errorcause.c_str(), errorBuffer);
-	if (sock >= 0) {
+	if (sock != INVALID_SOCKET) {
 		UpnpCloseSocket(sock);
 	}
 	return ret;

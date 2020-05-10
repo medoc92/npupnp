@@ -58,8 +58,11 @@ inline int posix_strerror_r(int err, char *buf, size_t len) {
 
 #ifndef PRIu64
 #define PRIu64 "I64u"
+#endif
+
+#ifndef PRIi64
 #define PRIi64 "I64i"
-#endif /* PRIu64 */
+#endif /* PRIi64 */
 
 #endif /* _WIN32 */
 

@@ -19,12 +19,12 @@ INCLUDEPATH += ../../
 INCLUDEPATH += ../../inc
 INCLUDEPATH += ../../src/inc
 INCLUDEPATH += c:/users/bill/documents/upnp/expat-2.1.0/lib
-INCLUDEPATH += c:/users/bill/documents/upnp/curl-7.43.0/include
+INCLUDEPATH += c:/users/bill/documents/upnp/curl-7.70.0/include
 # Comes from the official libmicrohttpd downloads
 INCLUDEPATH += c:/users/bill/documents/upnp/libmicrohttpd-0.9.65-w32-bin/x86/MinGW/static/mingw32/include
 
 LIBS += c:/users/bill/documents/upnp/expat-2.1.0/.libs/libexpat.a
-LIBS += c:/users/bill/documents/upnp/curl-7.43.0/lib/libcurl.a
+LIBS += c:/users/bill/documents/upnp/curl-7.70.0/lib/libcurl.a
 LIBS += -Lc:/users/bill/documents/upnp/libmicrohttpd-0.9.65-w32-bin/x86/MinGW/static/mingw32/lib/ -llibmicrohttpd
 LIBS += -liphlpapi
 LIBS += -lwldap32

@@ -470,15 +470,15 @@ static int get_miniserver_stopsock(MiniServerSockArray *out)
 static int available_port(int reqport)
 {
 	char errorBuffer[ERROR_BUFFER_LEN];
-	SOCKET fd = socket(AF_INET, SOCK_STREAM, 0);
-	if (fd < 0) {
+	SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
+	if (sock == INVALID_SOCKET) {
 		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 		UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
 				   "miniserver: socket(): %s\n", errorBuffer);
 		return UPNP_E_OUTOF_SOCKET;
 	}
 	int onOff = 1;
-	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR,
+	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
 				   reinterpret_cast<char *>(&onOff), sizeof(onOff)) < 0) {
 		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 		UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
@@ -493,7 +493,7 @@ static int available_port(int reqport)
 	saddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	for (int i = 0; i < 20; i++) {
                saddr.sin_port = htons(static_cast<uint16_t>(port));
-		if (bind(fd, reinterpret_cast<struct sockaddr*>(&saddr),
+		if (bind(sock, reinterpret_cast<struct sockaddr*>(&saddr),
 				   sizeof(saddr)) == 0) {
 			ret = port;
 			break;
@@ -509,12 +509,8 @@ static int available_port(int reqport)
 		break;
 	}
 
-	if (fd >=0) {
-#ifdef _WIN32
-               closesocket(fd);
-#else
-		close(fd);
-#endif
+	if (sock != INVALID_SOCKET) {
+		UpnpCloseSocket(sock);
 	}
 	return ret;
 }

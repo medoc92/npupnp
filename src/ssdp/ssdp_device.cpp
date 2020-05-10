@@ -173,7 +173,7 @@ static SOCKET createMulticastSocket4(
 		ipaddr(reinterpret_cast<const struct sockaddr *>(srcaddr));
 	lochost = ipaddr.straddr();
 	SOCKET sock = socket(AF_INET, SOCK_DGRAM, 0);
-	if (sock < 0) {
+	if (sock == INVALID_SOCKET) {
 		return INVALID_SOCKET;
 	}
 	uint32_t srcAddr = srcaddr->sin_addr.s_addr;
@@ -193,19 +193,15 @@ static SOCKET createMulticastSocket4(
 	}
 	return sock;
 error:
-#ifdef _WIN32
-	closesocket(sock);
-#else
-	close(sock);
-#endif
-	return -1;
+	UpnpCloseSocket(sock);
+	return INVALID_SOCKET;
 }
 
 static SOCKET createReplySocket4(
 	struct sockaddr_in *destaddr, std::string& lochost)
 {
 	SOCKET sock = socket(static_cast<int>(destaddr->sin_family), SOCK_DGRAM, 0);
-	if (sock < 0) {
+	if (sock == INVALID_SOCKET) {
 		return INVALID_SOCKET;
 	}
 	// Determine the proper interface and compute the location string
@@ -231,7 +227,7 @@ static SOCKET createMulticastSocket6(int index, std::string& lochost)
 {
 	int hops = 1;
 	SOCKET sock = socket(AF_INET6, SOCK_DGRAM, 0);
-	if (sock < 0) {
+	if (sock == INVALID_SOCKET) {
 		return INVALID_SOCKET;
 	}
 	if (setsockopt(sock, IPPROTO_IPV6, IPV6_MULTICAST_IF,
@@ -258,11 +254,7 @@ static SOCKET createMulticastSocket6(int index, std::string& lochost)
 	}
 	return sock;
 error:
-#ifdef _WIN32
-	closesocket(sock);
-#else
-	close(sock);
-#endif
+	UpnpCloseSocket(sock);
 	return INVALID_SOCKET;
 }
 
@@ -270,7 +262,7 @@ static SOCKET createReplySocket6(
 	struct sockaddr_in6 *destaddr, std::string& lochost)
 {
 	SOCKET sock = socket(AF_INET6, SOCK_DGRAM, 0);
-	if (sock < 0) {
+	if (sock == INVALID_SOCKET) {
 		return INVALID_SOCKET;
 	}
 	int index = destaddr->sin6_scope_id;
@@ -799,7 +791,7 @@ int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
 	bool isNotify = (tp == MSGTYPE_ADVERTISEMENT || tp == MSGTYPE_SHUTDOWN);
 	int ret = UPNP_E_SUCCESS;
 	std::string lochost;
-	SOCKET sock = -1;
+	SOCKET sock = INVALID_SOCKET;
 
 	if (isNotify) {
 		// Loop on our interfaces and addresses
@@ -814,7 +806,7 @@ int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
 			if (g_option_flags & UPNP_FLAG_IPV6) {
 				ssdpMcastAddr(dss, AF_INET6);
 				sock = createMulticastSocket6(netif.getindex(), lochost);
-				if (sock < 0) {
+				if (sock == INVALID_SOCKET) {
 					goto exitfunc;
 				}
 
@@ -828,12 +820,8 @@ int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
 							   netif.getname().c_str());
 					goto exitfunc;
 				}
-#ifdef _WIN32
-				closesocket(sock);
-#else
-				close(sock);
-#endif
-				sock = -1;
+				UpnpCloseSocket(sock);
+				sock = INVALID_SOCKET;
 			}
 #endif /* UPNP_ENABLE_IPV6 */
 
@@ -848,18 +836,15 @@ int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
 				} else {
 					continue;
 				}
-				if (sock < 0) {
+				if (sock == INVALID_SOCKET) {
 					goto exitfunc;
 				}
 				ret = AdvertiseAndReplyOneDest(
 					sock, tp, Hnd, SearchType, destaddr, DeviceType,
 					DeviceUDN, ServiceType, Exp, lochost);
-#ifdef _WIN32
-				closesocket(sock);
-#else
-				close(sock);
-#endif
-				sock = -1;
+
+				UpnpCloseSocket(sock);
+				sock = INVALID_SOCKET;
 			}
 		}
 	} else {
@@ -868,7 +853,7 @@ int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
 				reinterpret_cast<struct sockaddr_in*>(repDestAddr), lochost) :
 			createReplySocket6(
 				reinterpret_cast<struct sockaddr_in6*>(repDestAddr), lochost);
-		if (sock < 0) {
+		if (sock == INVALID_SOCKET) {
 			goto exitfunc;
 		}
 		ret = AdvertiseAndReplyOneDest(
@@ -884,7 +869,7 @@ exitfunc:
 				   "sendPackets: %s\n", errorBuffer);
 		return UPNP_E_NETWORK_ERROR;
 	}
-	if (sock >= 0) 
+	if (sock != INVALID_SOCKET) 
 		UpnpCloseSocket(sock);
 	return ret;
 }
