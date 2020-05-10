@@ -1155,7 +1155,7 @@ static int GetDescDocumentAndURL(
 		}
 		upnp_strlcpy(descURL, globurl.c_str(), LINE_SIZE);
 		char *descstr;
-		retVal = UpnpDownloadUrlItem(globurl.c_str(), &descstr, 0);
+		retVal = UpnpDownloadUrlItem(globurl.c_str(), &descstr, nullptr);
 		if (retVal != UPNP_E_SUCCESS) {
 			UpnpPrintf(UPNP_ERROR, API, __FILE__, __LINE__,
 					   "UpnpRegisterRootDevice: error downloading doc: %d\n",
