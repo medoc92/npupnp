@@ -286,11 +286,8 @@ int UpnpGetIfInfo(const char *IfNames, unsigned int flags)
 		for (auto& netif : g_netifs) {
 			auto addrmasks = netif.getaddresses();
 			std::vector<NetIF::IPAddr> kept;
-			for (auto& addr: addrmasks.first) {
-				if (addr.family() == NetIF::IPAddr::Family::IPV4) {
-					kept.push_back(addr);
-				}
-			}
+			std::copy_if(addrmasks.first.begin(), addrmasks.first.end(), kept.begin(),
+				[](const NetIF::IPAddr &addr){return addr.family() == NetIF::IPAddr::Family::IPV4;});
 			netif.trimto(kept);
 		}
 	}
