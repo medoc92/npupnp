@@ -118,6 +118,7 @@ ThreadPool::ThreadPool()
 }
 
 ThreadPool::~ThreadPool()
+#if 0
 {
 	// JFD: Doing a proper shutdown does not work at the moment. One
 	// of the threads does not exit. I suspect it's the timer thread
@@ -129,11 +130,12 @@ ThreadPool::~ThreadPool()
 	// because I can't think of a process which would want to shutdown
 	// its UPnP service and do something else further on... Going to
 	// exit anyway. Actually calling _exit() might be the smart thing here :)
-#if 0
 	shutdown();
 	delete m;
-#endif
 }
+#else
+= default;
+#endif
 
 int ThreadPool::start(ThreadPoolAttr *attr)
 {

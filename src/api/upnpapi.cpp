@@ -216,7 +216,7 @@ int UpnpGetIfInfo(const char *IfNames, unsigned int flags)
 	   string, but use it whole as the first vector element */
 	if (!g_use_all_interfaces && IfNames) {
 		if (ifs->findByName(IfNames) != nullptr) {
-			vifnames.push_back(IfNames);
+			vifnames.emplace_back(IfNames);
 		} else {
 			stringToStrings(IfNames, vifnames);
 		}
@@ -285,11 +285,8 @@ int UpnpGetIfInfo(const char *IfNames, unsigned int flags)
 		for (auto& netif : g_netifs) {
 			auto addrmasks = netif.getaddresses();
 			std::vector<NetIF::IPAddr> kept;
-			for (auto& addr: addrmasks.first) {
-				if (addr.family() == NetIF::IPAddr::Family::IPV4) {
-					kept.push_back(addr);
-				}
-			}
+			std::copy_if(addrmasks.first.begin(), addrmasks.first.end(), kept.begin(),
+				[](const NetIF::IPAddr &addr){return addr.family() == NetIF::IPAddr::Family::IPV4;});
 			netif.trimto(kept);
 		}
 	}
@@ -343,9 +340,8 @@ static int getmyipv4(const char *inipv4 = nullptr)
 			UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
 					   "No appropriate network adapter found.\n");
 			return UPNP_E_INVALID_INTERFACE;
-		} else {
-			netifp = &selected[0];
 		}
+		netifp = &selected[0];
 	}
 
 	// If an IP was specified, trim the addresses from the found adapter
@@ -1158,7 +1154,7 @@ static int GetDescDocumentAndURL(
 		}
 		upnp_strlcpy(descURL, globurl.c_str(), LINE_SIZE);
 		char *descstr;
-		retVal = UpnpDownloadUrlItem(globurl.c_str(), &descstr, 0);
+		retVal = UpnpDownloadUrlItem(globurl.c_str(), &descstr, nullptr);
 		if (retVal != UPNP_E_SUCCESS) {
 			UpnpPrintf(UPNP_ERROR, API, __FILE__, __LINE__,
 					   "UpnpRegisterRootDevice: error downloading doc: %d\n",
