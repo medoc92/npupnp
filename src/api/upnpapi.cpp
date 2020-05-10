@@ -344,9 +344,8 @@ static int getmyipv4(const char *inipv4 = nullptr)
 			UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
 					   "No appropriate network adapter found.\n");
 			return UPNP_E_INVALID_INTERFACE;
-		} else {
-			netifp = &selected[0];
 		}
+		netifp = &selected[0];
 	}
 
 	// If an IP was specified, trim the addresses from the found adapter
