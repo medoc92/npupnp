@@ -189,8 +189,8 @@ service_info *FindServiceId(
 	auto it = std::find_if(
 		table->serviceList.begin(), table->serviceList.end(),
 		[serviceId,UDN](const service_info& si)->bool{
-			return !serviceId.compare(si.serviceId) && 
-				!UDN.compare(si.UDN);});
+			return (serviceId == si.serviceId) &&
+				(UDN == si.UDN);});
 	if (it == table->serviceList.end()) {
 		return nullptr;
 	}
