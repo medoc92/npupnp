@@ -34,6 +34,7 @@
 #include <vector>
 #include <iostream>
 #include <algorithm>
+#include <numeric>
 
 #ifndef _WIN32
 
@@ -627,11 +628,9 @@ std::vector<Interface> Interfaces::select(const Filter& filt) const
 	}
 	std::vector<Interface> out;
 	const std::vector<Interface>& ifs = theInterfaces()->m->interfaces;
-	for (const auto& entry : ifs) {
-		if ((entry.m->flags & yesflags) == yesflags
-			&& (entry.m->flags & noflags) == 0)
-			out.push_back(entry);
-	}
+	std::copy_if(ifs.begin(), ifs.end(), out.begin(),
+		[=](const NetIF::Interface &entry){return (entry.m->flags & yesflags) == yesflags && (entry.m->flags & noflags) == 0;});
+
 	return out;
 }
 

@@ -298,7 +298,7 @@ static int receive_from_stopSock(SOCKET ssock, fd_set *set)
 	ssize_t byteReceived;
 	socklen_t len;
 	struct sockaddr_storage ss;
-	struct sockaddr *fromaddr = reinterpret_cast<struct sockaddr *>(&ss);
+	auto fromaddr = reinterpret_cast<struct sockaddr *>(&ss);
 	char requestBuf[100];
 
 	if (FD_ISSET(ssock, set)) {

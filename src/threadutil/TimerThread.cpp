@@ -166,7 +166,7 @@ int TimerThread::schedule(
 	std::unique_lock<std::mutex> lck(m->mutex);
 	int rc = EOUTOFMEM;
 
-	TimerEvent *newEvent = new TimerEvent(func, arg, free_func, priority,
+	auto newEvent = new TimerEvent(func, arg, free_func, priority,
 										  persistence, when, m->lastEventId);
 	if (newEvent == nullptr) {
 		return rc;
