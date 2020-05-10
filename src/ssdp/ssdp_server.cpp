@@ -235,7 +235,7 @@ static void *thread_ssdp_event_handler(void *the_data)
 
 void readFromSSDPSocket(SOCKET socket)
 {
-	ssdp_thread_data *data = 
+	auto data =
 		static_cast<ssdp_thread_data*>(malloc(sizeof(ssdp_thread_data)));
 	if (!data) {
 		std::cerr << "Out of memory in readFromSSDPSocket\n";
@@ -248,7 +248,7 @@ void readFromSSDPSocket(SOCKET socket)
 	}
 	
 	struct sockaddr_storage saddr;
-	struct sockaddr *sap = reinterpret_cast<struct sockaddr *>(&saddr);
+	auto sap = reinterpret_cast<struct sockaddr *>(&saddr);
 	socklen_t socklen = sizeof(saddr);
 	ssize_t cnt = recvfrom(socket, data->packet, BUFSIZE - 1, 0, sap, &socklen);
 	if (cnt > 0) {
