@@ -49,12 +49,18 @@
 #endif
 
 #else /* _WIN32 -> */
+#undef _WIN32_WINNT
+#define _WIN32_WINNT 0x0600
 
 #include <winsock2.h>
 #include <iphlpapi.h>
-#include "inet_pton.h"
+#include <ws2tcpip.h>
 
+#ifndef __MINGW32__
+#include "inet_pton.h"
 #endif
+
+#endif /* _WIN32 */
 
 
 namespace NetIF {
@@ -493,6 +499,7 @@ Interfaces::Internal::Internal()
 	PIP_ADAPTER_UNICAST_ADDRESS uni_addr;
 	ULONG adapts_sz = 0;
 	ULONG ret;
+	std::vector<Interface> vifs;
 
 	/* Get Adapters addresses required size. */
 	ret = GetAdaptersAddresses(
@@ -517,7 +524,6 @@ Interfaces::Internal::Internal()
 		goto out;
 	}
 
-	std::vector<Interface> vifs;
 	adapts_item = adapts;
 	while (nullptr != adapts_item) {
 		auto ifit = find_if(vifs.begin(), vifs.end(),
@@ -555,15 +561,25 @@ Interfaces::Internal::Internal()
 				reinterpret_cast<SOCKADDR*>(&uni_addr->Address.lpSockaddr);
 			switch (ip_addr->sa_family) {
 			case AF_INET:
-			case AF_INET6:
-				ifit->m->addresses.emplace_back(ip_addr);
-				ifit->m->netmasks.emplace_back(
-					netprefixlentomask(uni_addr->OnLinkPrefixLength));
-			if (ip_addr->sa_family == AF_INET6) {
-				ifit->m->setflag(Interface::Flags::HASIPV6);
-			} else {
+			{
 				ifit->m->setflag(Interface::Flags::HASIPV4);
+				ifit->m->addresses.emplace_back(ip_addr);
+				uint32_t mask =
+					netprefixlentomask(uni_addr->OnLinkPrefixLength);
+				struct sockaddr_in sa;
+				memset(&sa, 0, sizeof(sa));
+				sa.sin_addr.s_addr = mask;
+				ifit->m->netmasks.emplace_back(
+					);
 			}
+			break;
+			case AF_INET6:
+				ifit->m->setflag(Interface::Flags::HASIPV6);
+				ifit->m->addresses.emplace_back(ip_addr);
+				// Not for now...
+				ifit->m->netmasks.emplace_back();
+				break;
+
 			default:
 				break;
 			}
