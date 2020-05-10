@@ -803,7 +803,7 @@ int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
 			auto destaddr = reinterpret_cast<struct sockaddr*>(&dss);
 
 #ifdef UPNP_ENABLE_IPV6
-			if (g_option_flags & UPNP_FLAG_IPV6) {
+			if (using_ipv6()) {
 				ssdpMcastAddr(dss, AF_INET6);
 				sock = createMulticastSocket6(netif.getindex(), lochost);
 				if (sock == INVALID_SOCKET) {

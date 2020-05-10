@@ -199,7 +199,6 @@ int apiFirstIPV6Index()
  */
 int UpnpGetIfInfo(const char *IfNames, unsigned int flags)
 {
-	bool ipv6 = (flags & UPNP_FLAG_IPV6) != 0;
 	g_use_all_interfaces = (IfNames && std::string("*") == IfNames);
 		
 	NetIF::Interfaces *ifs = NetIF::Interfaces::theInterfaces();
@@ -237,7 +236,7 @@ int UpnpGetIfInfo(const char *IfNames, unsigned int flags)
 		// No interface specified. Use first appropriate one, or all.
 		std::vector<NetIF::Interface::Flags>
 			needed{NetIF::Interface::Flags::HASIPV4};
-		if (!ipv6) {
+		if (!using_ipv6()) {
 			needed.push_back(NetIF::Interface::Flags::HASIPV6);
 		}
 		NetIF::Interfaces::Filter
@@ -263,7 +262,7 @@ int UpnpGetIfInfo(const char *IfNames, unsigned int flags)
 				v4addr += addr->straddr() + " ";
 			}
 		}
-		if (ipv6 && netif.hasflag(NetIF::Interface::Flags::HASIPV6)) {
+		if (using_ipv6() && netif.hasflag(NetIF::Interface::Flags::HASIPV6)) {
 			const NetIF::IPAddr *addr =
 				netif.firstipv6addr(NetIF::IPAddr::Scope::LINK);
 			if (nullptr != addr) {
@@ -281,7 +280,7 @@ int UpnpGetIfInfo(const char *IfNames, unsigned int flags)
 
 	g_netifs = selected;
 
-	if (!ipv6) {
+	if (using_ipv6()) {
 		// Trim the ipv6 addresses
 		for (auto& netif : g_netifs) {
 			auto addrmasks = netif.getaddresses();

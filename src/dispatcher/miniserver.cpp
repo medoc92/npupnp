@@ -341,11 +341,14 @@ static void *thread_miniserver(void *)
 	maxMiniSock = 0;
 	maxMiniSock = std::max(maxMiniSock, miniSocket->miniServerStopSock);
 	maxMiniSock = std::max(maxMiniSock, miniSocket->ssdpSock4);
-	maxMiniSock = std::max(maxMiniSock, miniSocket->ssdpSock6);
-	maxMiniSock = std::max(maxMiniSock, miniSocket->ssdpSock6UlaGua);
+	if (using_ipv6()) {
+		maxMiniSock = std::max(maxMiniSock, miniSocket->ssdpSock6);
+		maxMiniSock = std::max(maxMiniSock, miniSocket->ssdpSock6UlaGua);
+	}
 #ifdef INCLUDE_CLIENT_APIS
 	maxMiniSock = std::max(maxMiniSock, miniSocket->ssdpReqSock4);
-	maxMiniSock = std::max(maxMiniSock, miniSocket->ssdpReqSock6);
+	if (using_ipv6())
+		maxMiniSock = std::max(maxMiniSock, miniSocket->ssdpReqSock6);
 #endif /* INCLUDE_CLIENT_APIS */
 	++maxMiniSock;
 
@@ -357,11 +360,14 @@ static void *thread_miniserver(void *)
 		FD_SET(miniSocket->miniServerStopSock, &expSet);
 		FD_SET(miniSocket->miniServerStopSock, &rdSet);
 		fdset_if_valid(miniSocket->ssdpSock4, &rdSet);
-		fdset_if_valid(miniSocket->ssdpSock6, &rdSet);
-		fdset_if_valid(miniSocket->ssdpSock6UlaGua, &rdSet);
+		if (using_ipv6()) {
+			fdset_if_valid(miniSocket->ssdpSock6, &rdSet);
+			fdset_if_valid(miniSocket->ssdpSock6UlaGua, &rdSet);
+		}
 #ifdef INCLUDE_CLIENT_APIS
 		fdset_if_valid(miniSocket->ssdpReqSock4, &rdSet);
-		fdset_if_valid(miniSocket->ssdpReqSock6, &rdSet);
+		if (using_ipv6())
+			fdset_if_valid(miniSocket->ssdpReqSock6, &rdSet);
 #endif /* INCLUDE_CLIENT_APIS */
 		/* select() */
 		ret = select(static_cast<int>(maxMiniSock), &rdSet, nullptr, &expSet, nullptr);
@@ -377,11 +383,14 @@ static void *thread_miniserver(void *)
 
 #ifdef INCLUDE_CLIENT_APIS
 		ssdp_read(miniSocket->ssdpReqSock4, &rdSet);
-		ssdp_read(miniSocket->ssdpReqSock6, &rdSet);
+		if (using_ipv6())
+			ssdp_read(miniSocket->ssdpReqSock6, &rdSet);
 #endif /* INCLUDE_CLIENT_APIS */
 		ssdp_read(miniSocket->ssdpSock4, &rdSet);
-		ssdp_read(miniSocket->ssdpSock6, &rdSet);
-		ssdp_read(miniSocket->ssdpSock6UlaGua, &rdSet);
+		if (using_ipv6()) {
+			ssdp_read(miniSocket->ssdpSock6, &rdSet);
+			ssdp_read(miniSocket->ssdpSock6UlaGua, &rdSet);
+		}
 		stopSock = receive_from_stopSock(
 			miniSocket->miniServerStopSock, &rdSet);
 	}
@@ -492,7 +501,7 @@ static int available_port(int reqport)
 	saddr.sin_family = AF_INET;
 	saddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	for (int i = 0; i < 20; i++) {
-               saddr.sin_port = htons(static_cast<uint16_t>(port));
+		saddr.sin_port = htons(static_cast<uint16_t>(port));
 		if (bind(sock, reinterpret_cast<struct sockaddr*>(&saddr),
 				   sizeof(saddr)) == 0) {
 			ret = port;
@@ -576,7 +585,7 @@ int StartMiniServer(uint16_t *listen_port4, uint16_t *listen_port6)
 		MHD_USE_DEBUG;
 
 #ifdef UPNP_ENABLE_IPV6
-	if (g_option_flags & UPNP_FLAG_IPV6) {
+	if (using_ipv6()) {
 		mhdflags |= MHD_USE_IPv6 | MHD_USE_DUAL_STACK;
 	}
 #endif /* UPNP_ENABLE_IPV6 */

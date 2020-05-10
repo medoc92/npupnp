@@ -156,7 +156,7 @@ bool IPAddr::copyToAddr(struct sockaddr *dest) const
 	if (!m->ok) {
 		return false;
 	}
-	switch (m->saddr.ss_family) {
+	switch (m->saddr->sa_family) {
 	case AF_INET:
 		memcpy(dest, m->saddr, sizeof(struct sockaddr_in));
 		break;

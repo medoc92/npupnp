@@ -217,6 +217,10 @@ extern bool g_use_all_interfaces;
 
 extern unsigned int g_option_flags;
 
+inline bool using_ipv6() {
+	return 0 != (g_option_flags & UPNP_FLAG_IPV6);
+}
+
 // Get first usable addresses, for when we don't care
 extern std::string apiFirstIPV4Str();
 extern std::string apiFirstIPV6Str();
