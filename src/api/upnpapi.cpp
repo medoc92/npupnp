@@ -217,7 +217,7 @@ int UpnpGetIfInfo(const char *IfNames, unsigned int flags)
 	   string, but use it whole as the first vector element */
 	if (!g_use_all_interfaces && IfNames) {
 		if (ifs->findByName(IfNames) != nullptr) {
-			vifnames.push_back(IfNames);
+			vifnames.emplace_back(IfNames);
 		} else {
 			stringToStrings(IfNames, vifnames);
 		}
