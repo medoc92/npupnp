@@ -136,9 +136,9 @@ int SoapSendAction(
 	int *errcodep, std::string& errdesc)
 {
 	const static std::string xml_start{
-		"<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n"
-		"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
-		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">\r\n"};
+		R"(<?xml version="1.0" encoding="utf-8"?>)" "\r\n"
+		R"(<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" )"
+		R"(s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">)" "\r\n"};
 	const static std::string xml_header_start{"<s:Header>\r\n"};
 	const static std::string xml_header_end{"</s:Header>\r\n"};
 	const static std::string xml_body_start{"<s:Body>"};
@@ -148,7 +148,7 @@ int SoapSendAction(
 
 	/* Action: name and namespace (servicetype) */
 	std::ostringstream act;
-	act << "<u:" << actionName << " xmlns:u=\"" << serviceType << "\">\n";
+	act << "<u:" << actionName << R"( xmlns:u=")" << serviceType << R"(")>)" "\n";
 	/* Action arguments */
 	for (const auto& arg : actionArgs) {
 		act << "<" << arg.first << ">" << xmlQuote(arg.second) << "</" <<
@@ -172,8 +172,8 @@ int SoapSendAction(
 	}
 	payload += xml_body_start + act.str() + xml_end;
 	
-	std::string soapaction = std::string("SOAPACTION: \"") + serviceType + "#" +
-		actionName + "\"";
+	std::string soapaction = std::string(R"(SOAPACTION: ")") + serviceType + "#" +
+		actionName + R"(")";
 
 	//std::cerr << "SoapSendAction: SOAPACTION [" << soapaction << "]\n";
 	//std::cerr << "SoapSendAction: PAYLOAD [" << payload << "]\n";
@@ -196,7 +196,7 @@ int SoapSendAction(
 		curl_easy_setopt(easy, CURLOPT_POSTFIELDS, payload.c_str()); 
 		struct curl_slist *list = nullptr;
 		list = curl_slist_append(list,
-								 "Content-Type: text/xml; charset=\"utf-8\"");
+								 R"(Content-Type: text/xml; charset="utf-8")");
 		list = curl_slist_append(list, soapaction.c_str());
 		list = curl_slist_append(list, "Accept:");
 		list = curl_slist_append(list, "Expect:");

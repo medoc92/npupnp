@@ -68,10 +68,10 @@
 #define SOAP_INVALID_VAR	404
 #define SOAP_ACTION_FAILED	501
 #define SOAP_MEMORY_OUT		603
-static const char *Soap_Invalid_Action = "Invalid Action";
-static const char *Soap_Action_Failed = "Action Failed";
+static constexpr auto Soap_Invalid_Action = "Invalid Action";
+static constexpr auto Soap_Action_Failed = "Action Failed";
 
-static const char *QUERY_STATE_VAR_URN = "urn:schemas-upnp-org:control-1-0";
+static constexpr auto QUERY_STATE_VAR_URN = "urn:schemas-upnp-org:control-1-0";
 
 struct soap_devserv_t {
 	char dev_udn[NAME_SIZE];
@@ -89,16 +89,16 @@ static void send_error_response(
 	MHDTransaction *mhdt, int error_code, const char *err_msg)
 {
 	const static std::string start_body {
-		"<?xml version=\"1.0\"?>\n"
+		R"(<?xml version="1.0"?>)" "\n"
 		"<s:Envelope "
-			"xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
-			"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">\n"
+			R"(xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" )"
+			R"(s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">)" "\n"
 			"<s:Body>\n"
 			"<s:Fault>\n"
 			"<faultcode>s:Client</faultcode>\n"
 			"<faultstring>UPnPError</faultstring>\n"
 			"<detail>\n"
-			"<UPnPError xmlns=\"urn:schemas-upnp-org:control-1-0\">\n"
+			R"(<UPnPError xmlns="urn:schemas-upnp-org:control-1-0">)" "\n"
 			"<errorCode>"};
 	const static std::string mid_body {
 		"</errorCode>\n"
@@ -128,17 +128,17 @@ static void send_action_response(
 	const std::vector<std::pair<std::string, std::string> >& data)
 {
 	static const std::string start_body{
-		"<?xml version=\"1.0\"?>\n"
-		"<s:Envelope xmlns:s=\"http://schemas.xmlsoap."
-		"org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap."
-		"org/soap/encoding/\"><s:Body>\n"
+		R"(<?xml version="1.0"?>)" "\n"
+		R"(<s:Envelope xmlns:s="http://schemas.xmlsoap.)"
+		R"(org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.)"
+		R"(org/soap/encoding/"><s:Body>)" "\n"
 	};
 	static const std::string end_body = "</s:Body></s:Envelope>";
 
 	std::ostringstream response;
 	response << start_body;
     response << "<u:" << soap_info->action_name << "Response" <<
-		" xmlns:u=\"" << soap_info->service_type << "\">\n";
+		R"( xmlns:u=")" << soap_info->service_type << R"(">)" "\n";
 	for (const auto&  arg : data) {
 		response << "<" << arg.first << ">" <<
 			xmlQuote(arg.second) <<
