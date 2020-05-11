@@ -99,6 +99,8 @@ public:
 	Interface& operator=(const Interface&);
 
 	const std::string& getname() const;
+	const std::string& getfriendlyname() const;
+	
 	/** Return the hardware (ethernet) address as a binary string (can have 
 	 *  embedded null characters). Empty if no hardware address was
 	 *  found for this interface */
@@ -135,7 +137,8 @@ public:
 	/** Return the Interfaces singleton after possibly building it by
 	 *  querying the system */
 	static Interfaces *theInterfaces();
-	/** Find interface by name */
+
+	/** Find interface by name or friendlyname */
 	Interface *findByName(const char*nm) const;
 	Interface *findByName(const std::string& nm) const{
 		return findByName(nm.c_str());

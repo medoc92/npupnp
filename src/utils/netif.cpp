@@ -305,6 +305,11 @@ const std::string& Interface::getname() const
 	return m->name;
 }
 
+const std::string& Interface::getfriendlyname() const
+{
+	return m->friendlyname.empty() ? m->name : m->friendlyname;
+}
+
 const std::pair<const std::vector<IPAddr>&, const std::vector<IPAddr>&>
 Interface::getaddresses() const
 {
