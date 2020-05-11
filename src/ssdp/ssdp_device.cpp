@@ -207,7 +207,7 @@ static SOCKET createReplySocket4(
 	// Determine the proper interface and compute the location string
 	NetIF::IPAddr dipaddr(reinterpret_cast<struct sockaddr*>(destaddr));
 	NetIF::IPAddr hostaddr;
-	const NetIF::Interface *netif =
+	const auto netif =
 		NetIF::Interfaces::interfaceForAddress(dipaddr, g_netifs, hostaddr);
 	if (netif && hostaddr.ok()) {
 		lochost = hostaddr.straddr();
@@ -241,7 +241,7 @@ static SOCKET createMulticastSocket6(int index, std::string& lochost)
 	lochost.clear();
 	for (const auto& netif : g_netifs) {
 		if (netif.getindex() == index) {
-			const NetIF::IPAddr *ipaddr =
+			const auto ipaddr =
 				netif.firstipv6addr(NetIF::IPAddr::Scope::LINK);
 			if (ipaddr) {
 				lochost = strInBrackets(ipaddr->straddr());
@@ -269,7 +269,7 @@ static SOCKET createReplySocket6(
 	lochost.clear();
 	for (const auto& netif : g_netifs) {
 		if (netif.getindex() == index) {
-			const NetIF::IPAddr *ipaddr =
+			const auto ipaddr =
 				netif.firstipv6addr(NetIF::IPAddr::Scope::LINK);
 			if (ipaddr) {
 				lochost = strInBrackets(ipaddr->straddr());

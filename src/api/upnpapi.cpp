@@ -167,7 +167,7 @@ std::string apiFirstIPV4Str()
 {
 	if (g_netifs.empty())
 		return std::string();
-	const NetIF::IPAddr *a = g_netifs.begin()->firstipv4addr();
+	const auto a = g_netifs.begin()->firstipv4addr();
 	if (nullptr == a)
 		return std::string();
 	return a->straddr();
@@ -176,7 +176,7 @@ std::string apiFirstIPV6Str()
 {
 	if (g_netifs.empty())
 		return std::string();
-	const NetIF::IPAddr *a = g_netifs.begin()->firstipv6addr();
+	const auto a = g_netifs.begin()->firstipv6addr();
 	if (nullptr == a)
 		return std::string();
 	return a->straddr();
@@ -257,13 +257,13 @@ int UpnpGetIfInfo(const char *IfNames, unsigned int flags)
 
 	for (const auto& netif: selected) {
 		if (netif.hasflag(NetIF::Interface::Flags::HASIPV4)) {
-			const NetIF::IPAddr *addr = netif.firstipv4addr();
+			const auto addr = netif.firstipv4addr();
 			if (nullptr != addr) {
 				v4addr += addr->straddr() + " ";
 			}
 		}
 		if (using_ipv6() && netif.hasflag(NetIF::Interface::Flags::HASIPV6)) {
-			const NetIF::IPAddr *addr =
+			const auto addr =
 				netif.firstipv6addr(NetIF::IPAddr::Scope::LINK);
 			if (nullptr != addr) {
 				v6addr += addr->straddr() + " ";
@@ -353,7 +353,7 @@ static int getmyipv4(const char *inipv4 = nullptr)
 	}
 
 	// Double-check that we do have an IPV4 addr
-	const NetIF::IPAddr *addr = netifp->firstipv4addr();
+	const auto addr = netifp->firstipv4addr();
 	if (nullptr == addr) {
 		// can't happen, really
 		return UPNP_E_INVALID_INTERFACE;
