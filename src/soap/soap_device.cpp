@@ -481,9 +481,8 @@ void soap_device_callback(MHDTransaction *mhdt)
 	/* invoke action */
 	handle_invoke_action(mhdt, &soap_info, strippedxml, args);
 
-	static const char *ContentTypeXML = "text/xml; charset=\"utf-8\"";
 	if (mhdt->response)
-		MHD_add_response_header(mhdt->response, "Content-Type", ContentTypeXML);
+		MHD_add_response_header(mhdt->response, "Content-Type", R"(text/xml; charset="utf-8")");
 
 error_handler:
 	if (err_code != 0)
