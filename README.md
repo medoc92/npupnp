@@ -16,6 +16,9 @@ branch (around 1.6.25).
 
 Main modifications:
 
+ - Support multiple network interfaces
+ - Support multiple root devices (already in the late pupnp versions).
+ - Vastly cleaned-up code.
  - Use libcurl for HTTP client functions.
  - Use libmicrohttpd for HTTP server functions (GENA SOAP and Webserver).
  - Use C++ STL as needed to eliminate local-grown data structures as
@@ -25,8 +28,11 @@ The changes reduce the library from around 40000 lines of code to around
 20000, replacing difficult to maintain (and sometimes weird) code with well
 supported and maintained libraries.
 
-The C API has been almost fully preserved, except for a few calls which
+The C API has been largely preserved, except for a few calls which
 passed IXML DOM tree objects as parameters, where they have been replaced
 by either XML string documents or C++ STL structures.
+
+At this point the API is C++. It would not be impossible to add a pure C
+API if this was needed.
 
 
