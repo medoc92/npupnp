@@ -1,3 +1,10 @@
+libnpupnp1 (4.0.3-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Fix initialization not working when several ipv4 on one interface
+    (fails on IP_ADD_MEMBERSHIP).
+	
+ -- Jean-Francois Dockes <jf@dockes.org>  Tue, 12 May 2020 17:42:00 +0200
+
 libnpupnp1 (4.0.2-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Fix SSDP location url wrong if service version mismatch

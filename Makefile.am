@@ -123,7 +123,7 @@ endif
 EXTRA_DIST = \
 	libnpupnp.pc.in \
 	README.md \
-	bootstrap \
+	autogen.sh \
 	src/utils/win_dll.cpp
 
 
