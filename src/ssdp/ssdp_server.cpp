@@ -332,6 +332,9 @@ static int create_ssdp_sock_v4(SOCKET *ssdpSock)
 				errorcause = "setsockopt() IP_ADD_MEMBERSHIP";
 				goto error_handler;
 			}
+			// Must only do this once even if there are several IPV4
+			// configured on this interface, else EADDRINUSE
+			break;
 		}
 	}
 
