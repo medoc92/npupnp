@@ -304,7 +304,11 @@ struct CurlGuard {
 static int opensock_cb(void *clientp, curlsocktype purpose,
 					   struct curl_sockaddr *)
 {
+#ifndef _WIN32
+	curl_socket_t openedsocket = dup(*(curl_socket_t *)clientp);
+#else
 	curl_socket_t openedsocket = *(curl_socket_t *)clientp;
+#endif
 	return openedsocket;
 }
 
