@@ -1,3 +1,11 @@
+libnpupnp1 (4.0.4-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Fix intermittent bug at upplay (CP) startup, due to our curl hack
+    causing a double-close, the second one on a descriptor opened by
+    microhttpd inbetween.
+	
+ -- Jean-Francois Dockes <jf@dockes.org>  Wed, 13 May 2020 18:19:00 +0200
+
 libnpupnp1 (4.0.3-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Fix initialization not working when several ipv4 on one interface
