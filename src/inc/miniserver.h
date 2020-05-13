@@ -44,18 +44,13 @@ struct MiniServerSockArray {
 	SOCKET ssdpSock6{INVALID_SOCKET};
 	/*! IPv6 SSDP Socket for incoming advertisments and search requests. */
 	SOCKET ssdpSock6UlaGua{INVALID_SOCKET};
-	/* ! . */
+
 	uint16_t stopPort{0};
-	/* ! . */
 	uint16_t miniServerPort4{0};
-	/* ! . */
 	uint16_t miniServerPort6{0};
 #ifdef INCLUDE_CLIENT_APIS
-	/*! IPv4 SSDP socket for sending search requests and receiving search
-	 * replies */
+	/*! SSDP sockets for sending search requests and receiving search replies */
 	SOCKET ssdpReqSock4{INVALID_SOCKET};
-	/*! IPv6 SSDP socket for sending search requests and receiving search
-	 * replies */
 	SOCKET ssdpReqSock6{INVALID_SOCKET};
 #endif /* INCLUDE_CLIENT_APIS */
 
@@ -74,7 +69,6 @@ private:
 	void maybeClose(SOCKET s) {
 		if (s != INVALID_SOCKET) {
 			UpnpCloseSocket(s);
-			s = INVALID_SOCKET;
 		}
 	}
 };

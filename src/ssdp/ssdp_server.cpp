@@ -316,25 +316,19 @@ static int create_ssdp_sock_v4(SOCKET *ssdpSock)
 	}
 
 	for (const auto& netif : g_netifs) {
+		auto ipaddr = netif.firstipv4addr();
+		if (nullptr == ipaddr)
+			continue;
 		struct ip_mreq ssdpMcastAddr;
 		memset((void *)&ssdpMcastAddr, 0, sizeof(struct ip_mreq));
-		auto addrmask = netif.getaddresses();
-		for (const auto& addr : addrmask.first) {
-			if (addr.family() != NetIF::IPAddr::Family::IPV4)
-				continue;
-			ssdpMcastAddr.imr_interface.s_addr =
-				inet_addr(addr.straddr().c_str());
-			ssdpMcastAddr.imr_multiaddr.s_addr = inet_addr(SSDP_IP);
-			ret = setsockopt(*ssdpSock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-							 reinterpret_cast<char *>(&ssdpMcastAddr),
-							 sizeof(struct ip_mreq));
-			if (ret == -1) {
-				errorcause = "setsockopt() IP_ADD_MEMBERSHIP";
-				goto error_handler;
-			}
-			// Must only do this once even if there are several IPV4
-			// configured on this interface, else EADDRINUSE
-			break;
+		ssdpMcastAddr.imr_interface.s_addr =inet_addr(ipaddr->straddr().c_str());
+		ssdpMcastAddr.imr_multiaddr.s_addr = inet_addr(SSDP_IP);
+		ret = setsockopt(*ssdpSock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+						 reinterpret_cast<char *>(&ssdpMcastAddr),
+						 sizeof(struct ip_mreq));
+		if (ret == -1) {
+			errorcause = "setsockopt() IP_ADD_MEMBERSHIP";
+			goto error_handler;
 		}
 	}
 
@@ -347,7 +341,6 @@ error_handler:
 			   "%s: %s\n", errorcause.c_str(), errorBuffer);
 	if (*ssdpSock != INVALID_SOCKET) {
 		UpnpCloseSocket(*ssdpSock);
-		*ssdpSock = INVALID_SOCKET;
 	}
 	return ret;
 }
@@ -369,9 +362,8 @@ static int sock_make_no_blocking(SOCKET sock)
 static int create_ssdp_sock_reqv4(SOCKET *ssdpReqSock)
 {
 	char ttl = 4;
-	SOCKET sock;
-	std::string errorcause;
 	int ret = UPNP_E_SOCKET_ERROR;
+
 	*ssdpReqSock = -1;
 	
 	std::string sadrv4 = apiFirstIPV4Str();
@@ -380,29 +372,29 @@ static int create_ssdp_sock_reqv4(SOCKET *ssdpReqSock)
 				   "create_ssdp_sock_reqv4: no IPV4??\n");
 		return ret;
 	}
-	uint32_t hostaddrv4 = inet_addr(sadrv4.c_str());
 
-	sock = socket(AF_INET, SOCK_DGRAM, 0);
-	if (sock == INVALID_SOCKET) {
+	uint32_t hostaddrv4 = inet_addr(sadrv4.c_str());
+	std::string errorcause;
+
+	*ssdpReqSock = socket(AF_INET, SOCK_DGRAM, 0);
+	if (*ssdpReqSock == INVALID_SOCKET) {
 		errorcause = "socket()";
 		ret = UPNP_E_OUTOF_SOCKET;
 		goto error_handler;
 	}
 	if (setsockopt(
-			sock, IPPROTO_IP, IP_MULTICAST_IF,
+			*ssdpReqSock, IPPROTO_IP, IP_MULTICAST_IF,
 			reinterpret_cast<char *>(&hostaddrv4), sizeof(hostaddrv4)) < 0) {
 		errorcause = "setsockopt(IP_MULTICAST_IF)";
 		goto error_handler;
 	}
-	if (setsockopt(sock, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl)) < 0) {
+	if (setsockopt(
+			*ssdpReqSock, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl)) < 0) {
 		errorcause = "setsockopt(IP_MULTICAST_TTL)";
 		goto error_handler;
 	}
 
-	/* just do it, regardless if fails or not. */
 	sock_make_no_blocking(*ssdpReqSock);
-
-	*ssdpReqSock = sock;
 	return UPNP_E_SUCCESS;
 
 error_handler:
@@ -410,8 +402,8 @@ error_handler:
 	posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 	UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
 			   "%s: %s\n", errorcause.c_str(), errorBuffer);
-	if (sock != INVALID_SOCKET) {
-		UpnpCloseSocket(sock);
+	if (*ssdpReqSock != INVALID_SOCKET) {
+		UpnpCloseSocket(*ssdpReqSock);
 	}
 	return ret;
 }
@@ -497,7 +489,6 @@ error_handler:
 			   "%s: %s\n", errorcause.c_str(), errorBuffer);
 	if (*ssdpSock != INVALID_SOCKET) {
 		UpnpCloseSocket(*ssdpSock);
-		*ssdpSock = INVALID_SOCKET;
 	}
 	return ret;
 }
@@ -513,34 +504,31 @@ static int create_ssdp_sock_reqv6(SOCKET *ssdpReqSock)
 	int hops = 1;
 #endif
 	int index = apiFirstIPV6Index();
-	SOCKET sock;
 	std::string errorcause;
 	int ret = UPNP_E_SOCKET_ERROR;
 
 	*ssdpReqSock = INVALID_SOCKET;
 
-	if ((sock = socket(AF_INET6, SOCK_DGRAM, 0)) == INVALID_SOCKET) {
+	if ((*ssdpReqSock = socket(AF_INET6, SOCK_DGRAM, 0)) == INVALID_SOCKET) {
 		errorcause = "socket()";
 		ret = UPNP_E_OUTOF_SOCKET;
 		goto error_handler;
 	}
-	if (setsockopt(sock, IPPROTO_IPV6, IPV6_MULTICAST_IF,
+	if (setsockopt(*ssdpReqSock, IPPROTO_IPV6, IPV6_MULTICAST_IF,
 				   reinterpret_cast<char *>(&index), sizeof(index)) < 0) {
 		errorcause = "setsockopt(IPV6_MULTICAST_IF)";
 		goto error_handler;
 	}
 
 	if (setsockopt(
-			sock, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
+			*ssdpReqSock, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
 			reinterpret_cast<char *>(&hops), sizeof(hops)) < 0) {
 		errorcause = "setsockopt(IPV6_MULTICAST_HOPS)";
 		goto error_handler;
 	}
 
-	/* just do it, regardless if fails or not. */
-	sock_make_no_blocking(sock);
+	sock_make_no_blocking(*ssdpReqSock);
 
-	*ssdpReqSock = sock;
 	return UPNP_E_SUCCESS;
 
 error_handler:
@@ -548,8 +536,8 @@ error_handler:
 	posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 	UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
 			   "%s: %s\n", errorcause.c_str(), errorBuffer);
-	if (sock != INVALID_SOCKET) {
-		UpnpCloseSocket(sock);
+	if (*ssdpReqSock != INVALID_SOCKET) {
+		UpnpCloseSocket(*ssdpReqSock);
 	}
 	return ret;
 }
@@ -577,11 +565,10 @@ static void closeSockets(MiniServerSockArray *out, int doclose)
 	maybeCLoseAndInvalidate(&out->ssdpSock6UlaGua, doclose);
 }
 
-int get_ssdp_sockets(MiniServerSockArray * out)
+int get_ssdp_sockets(MiniServerSockArray *out)
 {
 	int retVal = UPNP_E_SOCKET_ERROR;
 
-	closeSockets(out, 0);
 	bool hasIPV4 = !apiFirstIPV4Str().empty();
 #ifdef UPNP_ENABLE_IPV6
 	bool hasIPV6 = !apiFirstIPV6Str().empty();

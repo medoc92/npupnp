@@ -1,18 +1,14 @@
 #ifndef UPNPINET_H
 #define UPNPINET_H
 
-/*!
- * \brief Provides a platform independent way to include TCP/IP types
- *  and functions.
- */
+/* Provide a platform independent way to include TCP/IP types and functions. */
 
 #ifdef _WIN32
+
 #include <stdarg.h>
 #include <winsock2.h>
 #include <iphlpapi.h>
 #include <ws2tcpip.h>
-
-#define UpnpCloseSocket closesocket
 
 #if(_WIN32_WINNT < 0x0600)
 typedef short sa_family_t;
@@ -20,45 +16,45 @@ typedef short sa_family_t;
 typedef ADDRESS_FAMILY sa_family_t;
 #endif
 
+#define UpnpCloseSocket(s) {closesocket(s); s = INVALID_SOCKET;}
 #define UPNP_SOCK_GET_LAST_ERROR() WSAGetLastError()
 
 #else /* ! _WIN32 -> */
-	#include <syslog.h>
-	#ifndef __APPLE__
-		#include <netinet/in_systm.h>
-		#include <netinet/ip.h>
-		#include <netinet/ip_icmp.h>
-	#endif /* __APPLE__ */
-	#include <sys/time.h>
-	#include <sys/param.h>
-	#if defined(__sun)
-		#include <fcntl.h>
-		#include <sys/sockio.h>
-	#elif (defined(BSD) && BSD >= 199306) || defined (__FreeBSD_kernel__)
-		#include <ifaddrs.h>
-		/* Do not move or remove the include below for "sys/socket"!
-		 * Will break FreeBSD builds. */
-		#include <sys/socket.h>
-	#endif
-	#include <arpa/inet.h>  /* for inet_pton() */
-	#include <net/if.h>
-	#include <netinet/in.h>
 
-	/*! This typedef makes the code slightly more WIN32 tolerant.
-	 * On WIN32 systems, SOCKET is unsigned and is not a file
-	 * descriptor. */
-	typedef int SOCKET;
+#define UpnpCloseSocket(s) {close(s); s = -1;}
+#define UPNP_SOCK_GET_LAST_ERROR() errno
+/* SOCKET is typedefd by the system and unsigned on Win32 */
+typedef int SOCKET;
+#define INVALID_SOCKET (-1)
+#define SOCKET_ERROR (-1)
 
-	/*! INVALID_SOCKET is unsigned on win32. */
-	#define INVALID_SOCKET (-1)
+#ifndef __APPLE__
+#include <netinet/in_systm.h>
+#include <netinet/ip.h>
+#include <netinet/ip_icmp.h>
+#endif /* ! __APPLE__ */
 
-	/*! select() returns SOCKET_ERROR on win32. */
-	#define SOCKET_ERROR (-1)
+#include <sys/time.h>
+#include <sys/param.h>
 
-    #define UPNP_SOCK_GET_LAST_ERROR() errno
+#if defined(__sun)
 
-	/*! Alias to close() to make code more WIN32 tolerant. */
-	#define UpnpCloseSocket close
+#include <fcntl.h>
+#include <sys/sockio.h>
+
+#elif (defined(BSD) && BSD >= 199306) || defined (__FreeBSD_kernel__)
+
+#include <ifaddrs.h>
+/* Do not move or remove the include below for "sys/socket"!
+ * Will break FreeBSD builds. */
+#include <sys/socket.h>
+
+#endif
+
+#include <arpa/inet.h>  /* for inet_pton() */
+#include <net/if.h>
+#include <netinet/in.h>
+
 #endif /* _WIN32 */
 
 /* @} Sock */
