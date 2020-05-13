@@ -285,38 +285,17 @@ static std::string myCallbackUrl(NetIF::IPAddr& netaddr)
 }
 
 struct CurlGuard {
-	CURL *hconnect{nullptr};
 	CURL *htalk{nullptr};
 	struct curl_slist *hlist{nullptr};
 	~CurlGuard() {
 		if (htalk) {
 			curl_easy_cleanup(htalk);
 		}
-		if (hconnect) {
-			curl_easy_cleanup(hconnect);
-		}
 		if (hlist) {
 			curl_slist_free_all(hlist);
 		}
 	}
 };
-
-static int opensock_cb(void *clientp, curlsocktype purpose,
-					   struct curl_sockaddr *)
-{
-#ifndef _WIN32
-	curl_socket_t openedsocket = dup(*(curl_socket_t *)clientp);
-#else
-	curl_socket_t openedsocket = *(curl_socket_t *)clientp;
-#endif
-	return openedsocket;
-}
-
-static int sockopt_cb(
-	void */*clientp*/, curl_socket_t curlfd, curlsocktype purpose)
-{
-	return CURL_SOCKOPT_ALREADY_CONNECTED;
-}
 
 /*!
  * \brief Subscribes or renew subscription.
@@ -334,9 +313,7 @@ static int gena_subscribe(
 	/*! [out] SID returned by the subscription or renew msg. */
 	std::string *sid)
 {
-	int return_code;
 	int local_timeout = CP_MINIMUM_SUBSCRIPTION_TIME;
-	uri_type dest_url;
 
 	sid->clear();
 
@@ -354,60 +331,41 @@ static int gena_subscribe(
 	}
 	
 	/* parse url */
-	return_code = http_FixStrUrl(url, &dest_url);
+	uri_type dest_url;
+	int return_code = http_FixStrUrl(url, &dest_url);
 	if (return_code != 0) {
 		return return_code;
 	}
 	std::string urlforcurl = uri_asurlstr(dest_url);
-
+	NetIF::IPAddr destaddr(
+		reinterpret_cast<struct sockaddr*>(&dest_url.hostport.IPaddress));
+	NetIF::IPAddr myaddr;
+	const NetIF::Interface *ifp =
+		NetIF::Interfaces::theInterfaces()->interfaceForAddress(destaddr,myaddr);
+	if (nullptr == ifp) {
+		UpnpPrintf(UPNP_ERROR, GENA, __FILE__, __LINE__,
+				   "Could not find the interface for the destination address\n");
+		return UPNP_E_SOCKET_CONNECT;
+	}
+		
 	CurlGuard hdls;
 	std::map<std::string, std::string> http_headers;
 	char curlerrormessage[CURL_ERROR_SIZE];
 	
-	// If this is not a renewal and we need to send the CALLBACK
-	// header, we do the connection in two phases using two separate
-	// curl handles, the first one set in "connect only" mode, the
-	// second one reusing the socket from the first one. This allows
-	// retrieving the local address of the connected socket which we
-	// use to compute the callback URL. This way, no need to think to
-	// either use the global values or think about addresses,
-	// networks, interfaces, etc. let the kernel work instead :)
-	if (renewal_sid.empty()) {
-		hdls.hconnect = curl_easy_init();
-		curl_easy_setopt(hdls.hconnect, CURLOPT_URL,  urlforcurl.c_str());
-		curl_easy_setopt(hdls.hconnect, CURLOPT_CONNECT_ONLY, 1L);
-		curl_easy_setopt(hdls.hconnect, CURLOPT_ERRORBUFFER, curlerrormessage);
-		CURLcode curlcode = curl_easy_perform(hdls.hconnect);
-		if (curlcode != CURLE_OK) {
-			UpnpPrintf(UPNP_ERROR, GENA, __FILE__, __LINE__,
-					   "CURL ERROR MESSAGE %s\n", curlerrormessage);
-			return UPNP_E_SOCKET_CONNECT;
-		}
-	}
-
 	hdls.htalk = curl_easy_init();
 	curl_easy_setopt(hdls.htalk, CURLOPT_ERRORBUFFER, curlerrormessage);
-	curl_easy_setopt(hdls.htalk, CURLOPT_WRITEFUNCTION,
-					 write_callback_null_curl);
+	curl_easy_setopt(hdls.htalk, CURLOPT_WRITEFUNCTION,write_callback_null_curl);
 	curl_easy_setopt(hdls.htalk, CURLOPT_CUSTOMREQUEST, "SUBSCRIBE");
 	curl_easy_setopt(hdls.htalk, CURLOPT_URL, urlforcurl.c_str());
 	curl_easy_setopt(hdls.htalk, CURLOPT_TIMEOUT, HTTP_DEFAULT_TIMEOUT);
 	curl_easy_setopt(hdls.htalk, CURLOPT_HEADERFUNCTION, header_callback_curl);
 	curl_easy_setopt(hdls.htalk, CURLOPT_HEADERDATA, &http_headers);
 	if (renewal_sid.empty()) {
-		struct sockaddr_storage locaddr;
-		socklen_t lasize = sizeof(locaddr);
-		curl_socket_t curlsock1{INVALID_SOCKET};
-		curl_easy_getinfo(hdls.hconnect, CURLINFO_ACTIVESOCKET, &curlsock1);
-		getsockname(curlsock1, (struct sockaddr *)&locaddr, &lasize);
-		NetIF::IPAddr netaddr((struct sockaddr *)&locaddr);
-		curl_easy_setopt(hdls.htalk, CURLOPT_OPENSOCKETFUNCTION, opensock_cb);
-		curl_easy_setopt(hdls.htalk, CURLOPT_OPENSOCKETDATA, &curlsock1);
-		curl_easy_setopt(hdls.htalk, CURLOPT_SOCKOPTFUNCTION, sockopt_cb);
-		curl_easy_setopt(hdls.htalk, CURLOPT_SOCKOPTDATA, &curlsock1);
 		std::string cbheader{"CALLBACK: <"};
-		cbheader += myCallbackUrl(netaddr) + "/>";
+		cbheader += myCallbackUrl(myaddr) + "/>";
 		hdls.hlist = curl_slist_append(hdls.hlist, cbheader.c_str());
+		UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
+				   "gena_subscribe: callback: %s\n", cbheader.c_str());
 		hdls.hlist = curl_slist_append(hdls.hlist, "NT: upnp:event");
 	} else {
 		hdls.hlist = curl_slist_append(
@@ -635,8 +593,6 @@ int genaRenewSubscription(
 		goto exit_function;
 	}
 
-	/* we just called GetHandleInfo, so we don't check for return value */
-	/*GetHandleInfo(client_handle, &handle_info); */
 	if (return_code != UPNP_E_SUCCESS) {
 		/* network failure (remove client sub) */
 		RemoveClientSubClientSID(handle_info->ClientSubList, in_sid);
