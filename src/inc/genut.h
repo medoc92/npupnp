@@ -28,10 +28,11 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  ******************************************************************************/
-#ifndef _SMALLUT_H_INCLUDED_
-#define _SMALLUT_H_INCLUDED_
+#ifndef _GENUT_H_INCLUDED_
+#define _GENUT_H_INCLUDED_
 
 #include <string.h>
+#include "smallut.h"
 
 extern size_t upnp_strlcpy(char *dst, const char *src, size_t dsize);
 
@@ -72,18 +73,8 @@ inline int posix_strerror_r(int err, char *buf, size_t len) {
 #endif /* _WIN32 */
 
 #ifdef __cplusplus
+
 #include <string>
-
-extern void stringtolower(std::string& io);
-extern std::string stringtolower(const std::string& i);
-extern int stringlowercmp(const std::string& s1,
-                          const std::string& s2);
-/** Remove instances of characters belonging to set (default {space,
-    tab}) at beginning and end of input string */
-extern void trimstring(std::string& s, const char *ws = " \t");
-extern void rtrimstring(std::string& s, const char *ws = " \t");
-extern void ltrimstring(std::string& s, const char *ws = " \t");
-
 inline size_t upnp_strlcpy(char *dst, const std::string& src, size_t dsize) {
 	return upnp_strlcpy(dst, src.c_str(), dsize);
 }
@@ -93,23 +84,6 @@ std::string xmlQuote(const std::string& in);
 /* Compare element names, ignoring namespaces */
 int dom_cmp_name(const std::string& domname, const std::string& ref);
 
-/**
- * Parse input string into list of strings.
- *
- * Token delimiter is " \t\n" except inside dquotes. dquote inside
- * dquotes can be escaped with \ etc...
- * Input is handled a byte at a time, things will work as long as
- * space tab etc. have the ascii values and can't appear as part of a
- * multibyte char. utf-8 ok but so are the iso-8859-x and surely
- * others. addseps do have to be single-bytes
- */
-template <class T> bool stringToStrings(const std::string& s, T& tokens,
-                                        const std::string& addseps = "");
-
-/** stringToStrings inverse operation (does appropriate quoting) */
-template <class T> void stringsToString(const T& tokens, std::string& s);
-template <class T> std::string stringsToString(const T& tokens);
-
 #endif /* __cplusplus */
 
-#endif /* _SMALLUT_H_INCLUDED_ */
+#endif /* _GENUT_H_INCLUDED_ */

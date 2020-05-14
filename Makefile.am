@@ -90,6 +90,7 @@ libnpupnp_la_SOURCES += \
 	src/utils/statcodes.cpp \
 	src/webserver/webserver.cpp \
 	src/utils/md5.cpp \
+	src/utils/smallut.cpp \
 	src/utils/uri.cpp
 
 libnpupnp_la_SOURCES += \
