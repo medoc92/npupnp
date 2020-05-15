@@ -148,7 +148,7 @@ int SoapSendAction(
 
 	/* Action: name and namespace (servicetype) */
 	std::ostringstream act;
-	act << "<u:" << actionName << R"( xmlns:u=")" << serviceType << R"(")>)" "\n";
+	act << "<u:" << actionName << R"( xmlns:u=")" << serviceType << R"(">)" "\n";
 	/* Action arguments */
 	for (const auto& arg : actionArgs) {
 		act << "<" << arg.first << ">" << xmlQuote(arg.second) << "</" <<
