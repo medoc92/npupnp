@@ -82,24 +82,25 @@ struct soap_devserv_t {
 	void *cookie;
 };
 
+static constexpr auto bodyprolog =
+	R"(<?xml version="1.0"?>)" "\n"
+	R"("<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" )"
+	R"(s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">)" "\n"
+	"<s:Body>\n";
+
 /*!
  * \brief Sends SOAP error response.
  */
 static void send_error_response(
 	MHDTransaction *mhdt, int error_code, const char *err_msg)
 {
-	const static std::string start_body {
-		R"(<?xml version="1.0"?>)" "\n"
-		"<s:Envelope "
-			R"(xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" )"
-			R"(s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">)" "\n"
-			"<s:Body>\n"
+	const static std::string start_body = std::string(bodyprolog) +
 			"<s:Fault>\n"
 			"<faultcode>s:Client</faultcode>\n"
 			"<faultstring>UPnPError</faultstring>\n"
 			"<detail>\n"
 			R"(<UPnPError xmlns="urn:schemas-upnp-org:control-1-0">)" "\n"
-			"<errorCode>"};
+			"<errorCode>";
 	const static std::string mid_body {
 		"</errorCode>\n"
 		"<errorDescription>"
@@ -127,12 +128,7 @@ static void send_action_response(
 	MHDTransaction *mhdt, soap_devserv_t *soap_info,
 	const std::vector<std::pair<std::string, std::string> >& data)
 {
-	static const std::string start_body{
-		R"(<?xml version="1.0"?>)" "\n"
-		R"(<s:Envelope xmlns:s="http://schemas.xmlsoap.)"
-		R"(org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.)"
-		R"(org/soap/encoding/"><s:Body>)" "\n"
-	};
+	static const std::string start_body{bodyprolog};
 	static const std::string end_body = "</s:Body></s:Envelope>";
 
 	std::ostringstream response;
