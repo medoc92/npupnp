@@ -50,8 +50,8 @@
 #include "gena_sids.h"
 #include "genut.h"
 
-const static char *XML_PROPERTYSET_HEADER =
-	"<e:propertyset xmlns:e=\"urn:schemas-upnp-org:event-1-0\">\n";
+static constexpr auto XML_PROPERTYSET_HEADER =
+	R"(<e:propertyset xmlns:e="urn:schemas-upnp-org:event-1-0">)" "\n";
 
 /*!
  * \brief Unregisters a device.
@@ -159,7 +159,7 @@ static int genaNotify(const std::string& propertySet, const subscription *sub)
 		list = curl_slist_append(list, "Accept:");
 		list = curl_slist_append(list, "Expect:");
 		list = curl_slist_append(list,
-								 "Content-Type: text/xml; charset=\"utf-8\"");
+								 R"(Content-Type: text/xml; charset="utf-8")");
 		curl_easy_setopt(easy, CURLOPT_HTTPHEADER, list);
 	
 		/* Compute and set string URL. */

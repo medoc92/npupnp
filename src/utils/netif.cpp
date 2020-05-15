@@ -630,7 +630,7 @@ Interfaces *Interfaces::theInterfaces()
 }
 
 std::ostream& Interfaces::print(std::ostream& out) {
-	const std::vector<Interface>& ifs = theInterfaces()->m->interfaces;
+	const auto& ifs = theInterfaces()->m->interfaces;
 	for (const auto& entry : ifs) {
 		entry.print(out);
 	}
@@ -648,7 +648,7 @@ std::vector<Interface> Interfaces::select(const Filter& filt) const
 		noflags |= static_cast<unsigned int>(f);
 	}
 	std::vector<Interface> out;
-	const std::vector<Interface>& ifs = theInterfaces()->m->interfaces;
+	const auto& ifs = theInterfaces()->m->interfaces;
 	std::copy_if(ifs.begin(), ifs.end(), std::back_inserter(out),
 		[=](const NetIF::Interface &entry){
 					 return (entry.m->flags & yesflags) == yesflags &&
@@ -731,7 +731,7 @@ const Interface *Interfaces::interfaceForAddress(
 			}
 			hostaddr = IPAddr();
 			if (netifp) {
-				const IPAddr *ipaddr =netifp->firstipv6addr(IPAddr::Scope::LINK);
+				const auto ipaddr = netifp->firstipv6addr(IPAddr::Scope::LINK);
 				if (ipaddr) {
 					hostaddr = *ipaddr;
 				} 

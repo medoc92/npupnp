@@ -88,7 +88,7 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
 	int maxAge;
 
 	/* check man hdr. */
-	if (!parser.man || strcmp(parser.man, "\"ssdp:discover\"") != 0) {
+	if (!parser.man || strcmp(parser.man, R"("ssdp:discover")") != 0) {
 		/* bad or missing hdr. */
 		UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
 				   "ssdp_handle_device_req: no/bad MAN header\n");
@@ -207,7 +207,7 @@ static SOCKET createReplySocket4(
 	// Determine the proper interface and compute the location string
 	NetIF::IPAddr dipaddr(reinterpret_cast<struct sockaddr*>(destaddr));
 	NetIF::IPAddr hostaddr;
-	const NetIF::Interface *netif =
+	const auto netif =
 		NetIF::Interfaces::interfaceForAddress(dipaddr, g_netifs, hostaddr);
 	if (netif && hostaddr.ok()) {
 		lochost = hostaddr.straddr();
@@ -241,7 +241,7 @@ static SOCKET createMulticastSocket6(int index, std::string& lochost)
 	lochost.clear();
 	for (const auto& netif : g_netifs) {
 		if (netif.getindex() == index) {
-			const NetIF::IPAddr *ipaddr =
+			const auto ipaddr =
 				netif.firstipv6addr(NetIF::IPAddr::Scope::LINK);
 			if (ipaddr) {
 				lochost = strInBrackets(ipaddr->straddr());
@@ -269,7 +269,7 @@ static SOCKET createReplySocket6(
 	lochost.clear();
 	for (const auto& netif : g_netifs) {
 		if (netif.getindex() == index) {
-			const NetIF::IPAddr *ipaddr =
+			const auto ipaddr =
 				netif.firstipv6addr(NetIF::IPAddr::Scope::LINK);
 			if (ipaddr) {
 				lochost = strInBrackets(ipaddr->straddr());
@@ -360,7 +360,7 @@ static void CreateServicePacket(
 			"LOCATION: " << location << "\r\n" <<
 			"SERVER: " << get_sdk_info() << "\r\n" <<
 #ifdef UPNP_HAVE_OPTSSDP
-			"OPT: " << "\"http://schemas.upnp.org/upnp/1/0/\"; ns=01\r\n" <<
+			"OPT: " << R"("http://schemas.upnp.org/upnp/1/0/"; ns=01)" << "\r\n" <<
 			"01-NLS: " << gUpnpSdkNLSuuid << "\r\n" <<
 			"X-User-Agent: " << X_USER_AGENT << "\r\n" <<
 #endif
@@ -388,7 +388,7 @@ static void CreateServicePacket(
 			"LOCATION: " << location << "\r\n" <<
 			"SERVER: " << get_sdk_info() << "\r\n" <<
 #ifdef UPNP_HAVE_OPTSSDP
-			"OPT: " << "\"http://schemas.upnp.org/upnp/1/0/\"; ns=01\r\n" <<
+			"OPT: " << R"("http://schemas.upnp.org/upnp/1/0/"; ns=01)" << "\r\n" <<
 			"01-NLS: " << gUpnpSdkNLSuuid << "\r\n" <<
 			"X-User-Agent: " << X_USER_AGENT << "\r\n" <<
 #endif

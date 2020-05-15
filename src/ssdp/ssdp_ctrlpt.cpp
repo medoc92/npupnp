@@ -270,7 +270,7 @@ static int CreateClientRequestPacket(
 	int AddressFamily, bool sitelocal = false)
 {
 	static const char *command = "M-SEARCH * HTTP/1.1\r\n";
-	static const char *man = "MAN: \"ssdp:discover\"\r\n";
+	static const char *man = R"(MAN: "ssdp:discover")" "\r\n";
 
 	std::ostringstream str;
 
