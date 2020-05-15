@@ -158,8 +158,7 @@ static int genaNotify(const std::string& propertySet, const subscription *sub)
 		
 		list = curl_slist_append(list, "Accept:");
 		list = curl_slist_append(list, "Expect:");
-		list = curl_slist_append(list,
-								 R"(Content-Type: text/xml; charset="utf-8")");
+		list = curl_slist_append(list, R"(Content-Type: text/xml; charset="utf-8")");
 		curl_easy_setopt(easy, CURLOPT_HTTPHEADER, list);
 	
 		/* Compute and set string URL. */
