@@ -123,6 +123,9 @@ get_response_value(
 	*errcodep = 0;
 	UPnPResponseParser mparser(payload, rspname, rspdata, errcodep, errdesc);
 	if (!mparser.Parse()) {
+		UpnpPrintf(UPNP_INFO, SOAP, __FILE__, __LINE__,
+				   "soap:get_response_value: parse failed for [%s]\n",
+				   payload.c_str());
 		return UPNP_E_BAD_RESPONSE;;
 	}
 	return (*errcodep) ? SOAP_ACTION_RESP_ERROR : SOAP_ACTION_RESP;
