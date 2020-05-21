@@ -525,6 +525,8 @@ typedef enum {
 typedef enum {
 	/** Terminate the VARARGs list. */
 	UPNP_OPTION_END = 0,
+        /** Max wait seconds for an IP address to be found, int arg follows */
+        UPNP_OPTION_NETWORK_WAIT,
 } Upnp_InitOption;
 
 /** Used in the device callback API as parameter for 

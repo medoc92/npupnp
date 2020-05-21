@@ -38,6 +38,7 @@
 #include <vector>
 #include <utility>
 #include <mutex>
+#include <thread>
 #include <curl/curl.h>
 
 #include "upnpapi.h"
@@ -113,7 +114,10 @@ std::vector<NetIF::Interface> g_netifs;
 bool g_use_all_interfaces;
 
 /* General option flags */
-unsigned int g_option_flags;
+unsigned int g_optionFlags;
+
+/* Local global options, usually set from the options list of initWithOptions */
+static int o_networkWaitSeconds = 60;
 
 /* Marker to be replaced by an appropriate address in LOCATION URLs */
 const std::string g_HostForTemplate{"@HOST_ADDR_FOR@"};
@@ -507,7 +511,7 @@ static int UpnpInitStartServers(unsigned short DestPort)
 	retVal = StartMiniServer(&LOCAL_PORT_V4, &LOCAL_PORT_V6);
 	if (retVal != UPNP_E_SUCCESS) {
 		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-				   "Miniserver start error");
+				   "Miniserver start error\n");
 		UpnpFinish();
 		return retVal;
 	}
@@ -516,6 +520,8 @@ static int UpnpInitStartServers(unsigned short DestPort)
 #if EXCLUDE_WEB_SERVER == 0
 	retVal = UpnpEnableWebserver(WEB_SERVER_ENABLED);
 	if (retVal != UPNP_E_SUCCESS) {
+		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
+				   "Webserver start error\n");
 		UpnpFinish();
 		return retVal;
 	}
@@ -524,7 +530,36 @@ static int UpnpInitStartServers(unsigned short DestPort)
 	return UPNP_E_SUCCESS;
 }
 
-static int upnpInitCommon(const char *HostIP, const char *ifName,
+static int waitForNetwork(
+	const char *HostIP, const char *ifName, unsigned int flags)
+{
+	int ret = UPNP_E_SUCCESS;
+
+	int loop_sleep = 2;
+	int loops = o_networkWaitSeconds / loop_sleep;
+	for (int i = 0; i < loops; i++) {
+		if (ifName) {
+			/* Retrieve interface information (Addresses, index, etc). */
+			ret = UpnpGetIfInfo(ifName, flags);
+		} else {
+			/* Verify HostIP, if provided, or find it ourselves. */
+			ret = getmyipv4(HostIP);
+		}
+		if (ret == UPNP_E_SUCCESS) {
+			break;
+		} else {
+			if (!NetIF::Interfaces::theInterfaces()->refresh()) {
+				UpnpPrintf(UPNP_ERROR, API, __FILE__, __LINE__,
+						   "UpnpInit: could not read network interface state "
+						   "from system\n");
+			}
+			std::this_thread::sleep_for(std::chrono::seconds(loop_sleep));
+		} 
+	}
+	return ret;
+}
+
+static int upnpInitCommon(const char *hostIP, const char *ifName,
 						  unsigned short DestPort, unsigned int flags)
 {
 	int retVal = UPNP_E_SUCCESS;
@@ -537,41 +572,35 @@ static int upnpInitCommon(const char *HostIP, const char *ifName,
 		goto exit_function;
 	}
 
-	/* Perform initialization preamble. */
+	/* WinsockInit, initlog etc. */
 	retVal = UpnpInitPreamble();
 	if (retVal != UPNP_E_SUCCESS) {
 		goto exit_function;
 	}
 
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-			   "UpnpInit: HostIP=%s, ifName=%s, DestPort=%d.\n", 
-			   HostIP ? HostIP : "",ifName?ifName:"",static_cast<int>(DestPort));
+			   "UpnpInit: hostIP=%s, ifName=%s, DestPort=%d.\n", 
+			   hostIP ? hostIP : "",ifName?ifName:"",static_cast<int>(DestPort));
 
-	if (ifName) {
-		/* Retrieve interface information (Addresses, index, etc). */
-		retVal = UpnpGetIfInfo(ifName, flags);
-		if (retVal != UPNP_E_SUCCESS) {
-			goto exit_function;
-		}
-	} else {
-		/* Verify HostIP, if provided, or find it ourselves. */
-		if (getmyipv4(HostIP) != UPNP_E_SUCCESS){
-			retVal = UPNP_E_INIT_FAILED;
-			goto exit_function;
-		}
+	retVal = waitForNetwork(hostIP, ifName, flags);
+	if (retVal != UPNP_E_SUCCESS) {
+		UpnpPrintf(UPNP_ERROR, API, __FILE__, __LINE__,
+				   "UpnpInit: no usable IP address found after waiting %d S\n",
+				   o_networkWaitSeconds);
+		goto exit_function;
 	}
 	
+	/* Finish initializing the SDK. Webserver start
+	   UpnpEnableWebServer() is part of the API for some reasons and
+	   tests UpnpSdkInit==1 */
 	UpnpSdkInit = 1;
-
-	/* Finish initializing the SDK. */
 	retVal = UpnpInitStartServers(DestPort);
 	if (retVal != UPNP_E_SUCCESS) {
 		UpnpSdkInit = 0;
 		goto exit_function;
 	}
-
 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-			   "UpnPInit output: retVal %d Host Ip: %s Host Port: %d\n",
+			   "Upnpinit: retVal %d Host Ip: %s Host Port: %d\n",
 			   retVal, g_netifs.begin()->firstipv4addr()->straddr().c_str(),
 			   static_cast<int>(LOCAL_PORT_V4));
 
@@ -579,9 +608,9 @@ exit_function:
 	return retVal;
 }
 
-int UpnpInit(const char *HostIP, unsigned short DestPort)
+int UpnpInit(const char *hostIP, unsigned short DestPort)
 {
-	return upnpInitCommon(HostIP, nullptr, DestPort, 0);
+	return upnpInitCommon(hostIP, nullptr, DestPort, 0);
 }
 
 int UpnpInit2(const char *IfName, unsigned short DestPort)
@@ -603,16 +632,27 @@ EXPORT_SPEC int UpnpInitWithOptions(
 	va_list ap;
 	int ret = UPNP_E_SUCCESS;
 
-	g_option_flags = flags;
+	g_optionFlags = flags;
 
 	va_start(ap, flags);
-	int option = (Upnp_InitOption) va_arg(ap, int);
-	if (option != UPNP_OPTION_END) {
-		UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
-				   "UpnPInitWithOptions: bad option %d in list (not END)\n",
-			option);
-		ret = UPNP_E_INVALID_PARAM;
+	for (;;) {
+		int option = (Upnp_InitOption) va_arg(ap, int);
+		if (option == UPNP_OPTION_END) {
+			break;
+		}
+		switch (option) {
+		case UPNP_OPTION_NETWORK_WAIT:
+			o_networkWaitSeconds = va_arg(ap, int);
+			break;
+		default:
+			UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
+					   "UpnPInitWithOptions: bad option %d in list\n", option);
+			ret = UPNP_E_INVALID_PARAM;
+			goto breakloop;
+		}
 	}
+
+breakloop:
 	va_end(ap);
 	if (ret == UPNP_E_SUCCESS) {
 		ret = upnpInitCommon(nullptr, ifnames, port, flags);

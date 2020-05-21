@@ -618,6 +618,12 @@ Interfaces::~Interfaces()
 	delete m;
 }
 
+bool Interfaces::refresh()
+{
+	delete m;
+	m = new Internal();
+	return true;
+}
 
 Interfaces *theInterfacesP;
 

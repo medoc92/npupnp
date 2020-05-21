@@ -138,6 +138,9 @@ public:
 	 *  querying the system */
 	static Interfaces *theInterfaces();
 
+	/** Read state from system again */
+	bool refresh();
+	
 	/** Find interface by name or friendlyname */
 	Interface *findByName(const char*nm) const;
 	Interface *findByName(const std::string& nm) const{

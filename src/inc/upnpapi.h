@@ -215,10 +215,10 @@ extern std::vector<NetIF::Interface> g_netifs;
    "*", no need for the web server to filter accepted connections */
 extern bool g_use_all_interfaces;
 
-extern unsigned int g_option_flags;
+extern unsigned int g_optionFlags;
 
 inline bool using_ipv6() {
-	return 0 != (g_option_flags & UPNP_FLAG_IPV6);
+	return 0 != (g_optionFlags & UPNP_FLAG_IPV6);
 }
 
 // Get first usable addresses, for when we don't care
