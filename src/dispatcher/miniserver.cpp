@@ -203,7 +203,7 @@ static int answer_to_connection(
 	void **con_cls)
 {
 	if (nullptr == *con_cls) {
-		UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+		UpnpPrintf(UPNP_DEBUG, MSERV, __FILE__, __LINE__,
 				   "answer_to_connection1: url [%s] method [%s]"
 				   " version [%s]\n", url, method, version);
 		// First call, allocate and set context, get the headers, etc.

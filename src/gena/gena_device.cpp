@@ -472,7 +472,7 @@ int genaNotifyAllXML(
 	service_info *service = nullptr;
 	struct Handle_Info *handle_info;
 
-	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
+	UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
 			   "genaNotifyAllXML: props: %s\n", propertySet.c_str());
 
 	HandleLock();
