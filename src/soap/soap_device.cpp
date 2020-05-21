@@ -84,7 +84,7 @@ struct soap_devserv_t {
 
 static constexpr auto bodyprolog =
 	R"(<?xml version="1.0"?>)" "\n"
-	R"("<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" )"
+	R"(<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" )"
 	R"(s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">)" "\n"
 	"<s:Body>\n";
 
