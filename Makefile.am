@@ -52,6 +52,7 @@ libnpupnp_la_SOURCES = \
 	src/inc/picoxml.h \
 	src/inc/service_table.h \
 	src/inc/genut.h \
+	src/inc/smallut.h \
 	src/inc/soaplib.h \
 	src/inc/ssdplib.h \
 	src/inc/ssdpparser.h \
@@ -137,9 +138,9 @@ $(pkgconfigexec_DATA): config.status
 
 CLEANFILES = 
 
-# Ensure that the working copy is clean
+# Ensure that the working copy is clean and create tag
 dist-hook:
 	test ! -d $(top_srcdir)/.git || cd $(top_srcdir) && \
-			 git diff-index --quiet HEAD
+			git diff-index --quiet HEAD
 	vers=`echo $(VERSION) | sed -e 's/~/_/g'`;\
-			   git tag -a libnpupnp-v$$vers -m "version $$vers"
+			git tag -a libnpupnp-v$$vers -m "version $$vers"
