@@ -4,7 +4,7 @@ libnpupnp1 (4.0.5-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
     for 60 S.
   * Restore capability to build on debian 8
   
- -- Jean-Francois Dockes <jf@dockes.org>  Wed, 21 May 2020 10:41:00 +0200
+ -- Jean-Francois Dockes <jf@dockes.org>  Thu, 21 May 2020 10:41:00 +0200
 
 libnpupnp1 (4.0.4-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
