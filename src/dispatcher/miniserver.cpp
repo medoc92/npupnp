@@ -73,6 +73,9 @@
 #if MHD_VERSION < 0x00095300
 #define MHD_USE_INTERNAL_POLLING_THREAD MHD_USE_SELECT_INTERNALLY
 #endif
+#if MHD_VERSION < 0x00097000
+#define MHD_Result int
+#endif
 
 /*! . */
 #define APPLICATION_LISTENING_PORT 49152
@@ -125,7 +128,7 @@ static UPNP_INLINE void fdset_if_valid(SOCKET sock, fd_set *set)
 	}
 }
 
-static int headers_cb(void *cls, enum MHD_ValueKind kind, 
+static MHD_Result headers_cb(void *cls, enum MHD_ValueKind kind, 
 					  const char *k, const char *value)
 {
 	auto mhtt = static_cast<MHDTransaction *>(cls);
@@ -143,8 +146,8 @@ static int headers_cb(void *cls, enum MHD_ValueKind kind,
 	return MHD_YES;
 }
 
-static int queryvalues_cb(void *cls, enum MHD_ValueKind kind, 
-						  const char *key, const char *value)
+static MHD_Result queryvalues_cb(void *cls, enum MHD_ValueKind kind, 
+								 const char *key, const char *value)
 {
 	auto mhdt = static_cast<MHDTransaction *>(cls);
 	if (mhdt) {
@@ -179,8 +182,8 @@ void request_completed_cb(
 
 // We listen on INADDR_ANY, but only accept connections from our
 // configured interfaces
-static int filter_connections(
-	void *, const struct sockaddr *addr, socklen_t addrlen)
+static MHD_Result filter_connections(
+	void *, const sockaddr *addr, unsigned int addrlen)
 {
 	if (g_use_all_interfaces) {
 		return MHD_YES;
@@ -196,7 +199,7 @@ static int filter_connections(
 	return MHD_YES;
 }
 
-static int answer_to_connection(
+static MHD_Result answer_to_connection(
 	void *cls, struct MHD_Connection *conn, 
 	const char *url, const char *method, const char *version, 
 	const char *upload_data, size_t *upload_data_size,
@@ -281,7 +284,7 @@ static int answer_to_connection(
 		return MHD_NO;
 	}
 
-	int ret = MHD_queue_response(conn, mhdt->httpstatus, mhdt->response);
+	MHD_Result ret = MHD_queue_response(conn, mhdt->httpstatus, mhdt->response);
 	MHD_destroy_response(mhdt->response);
 	return ret;
 }
@@ -491,7 +494,7 @@ static int available_port(int reqport)
 				   reinterpret_cast<char *>(&onOff), sizeof(onOff)) < 0) {
 		posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
 		UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
-				   "miniserver: socket(): %s\n", errorBuffer);
+				   "miniserver: reuseaddr: %s\n", errorBuffer);
 	}
 
 	int port = std::max(APPLICATION_LISTENING_PORT, reqport);
@@ -504,12 +507,12 @@ static int available_port(int reqport)
 	for (int i = 0; i < 20; i++) {
 		ip->sin_port = htons(static_cast<uint16_t>(port));
 		if (bind(sock, reinterpret_cast<struct sockaddr*>(&saddr),
-				   sizeof(saddr)) == 0) {
+				   sizeof(struct sockaddr_in)) == 0) {
 			ret = port;
 			break;
 		}
 		bool eaddrinuse{false};
-#ifdef _WIN32
+#if defined(_WIN32)
 		int error = WSAGetLastError();
 		eaddrinuse = (error == WSAEADDRINUSE || error == WSAEACCES);
 #else
@@ -549,23 +552,31 @@ int StartMiniServer(uint16_t *listen_port4, uint16_t *listen_port6)
 		break;
 	default:
 		/* miniserver running. */
+		UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
+				   "miniserver: ALREADY RUNNING !\n");
 		return UPNP_E_INTERNAL_ERROR;
 	}
 
 	miniSocket = new MiniServerSockArray;
 	if (nullptr == miniSocket) {
+		UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
+				   "miniserver: OUT OF MEMORY !\n");
 		return UPNP_E_OUTOF_MEMORY;
 	}
 
 	/* Stop socket (To end miniserver processing). */
 	ret_code = get_miniserver_stopsock(miniSocket);
 	if (ret_code != UPNP_E_SUCCESS) {
+		UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
+				   "miniserver: get_miniserver_stopsock() failed\n");
 		goto out;
 	}
 
 	/* SSDP socket for discovery/advertising. */
 	ret_code = get_ssdp_sockets(miniSocket);
 	if (ret_code != UPNP_E_SUCCESS) {
+		UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
+				   "miniserver: get_ssdp_sockets() failed\n");
 		goto out;
 	}
 
@@ -582,14 +593,19 @@ int StartMiniServer(uint16_t *listen_port4, uint16_t *listen_port6)
 	}
 	if (gMServState != static_cast<MiniServerState>(MSERV_RUNNING)) {
 		/* Took it too long to start that thread. */
+		UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
+				   "miniserver: thread_miniserver not starting !\n");
 		ret_code = UPNP_E_INTERNAL_ERROR;
 		goto out;
 	}
 
 #ifdef INTERNAL_WEB_SERVER
 	port = available_port(static_cast<int>(*listen_port4));
-	if (port < 0)
+	if (port < 0) {
+		UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
+				   "miniserver: available_port() failed !\n");
 		return port;
+	}
 	*listen_port4 = port;
 	*listen_port6 = port;
 

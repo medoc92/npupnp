@@ -572,14 +572,16 @@ int get_ssdp_sockets(MiniServerSockArray *out)
 	bool hasIPV4 = !apiFirstIPV4Str().empty();
 #ifdef UPNP_ENABLE_IPV6
 	bool hasIPV6 = !apiFirstIPV6Str().empty();
-	/* Create the IPv6 socket for SSDP REQUESTS */
-	if (hasIPV6) {
-		if ((retVal = create_ssdp_sock_reqv6(&out->ssdpReqSock6))
-			!= UPNP_E_SUCCESS) {
-			goto out;
+	if (using_ipv6()) {
+		/* Create the IPv6 socket for SSDP REQUESTS */
+		if (hasIPV6) {
+			if ((retVal = create_ssdp_sock_reqv6(&out->ssdpReqSock6))
+				!= UPNP_E_SUCCESS) {
+				goto out;
+			}
+			/* For use by ssdp control point. */
+			gSsdpReqSocket6 = out->ssdpReqSock6;
 		}
-		/* For use by ssdp control point. */
-		gSsdpReqSocket6 = out->ssdpReqSock6;
 	}
 #endif /* IPv6 */
 #ifdef INCLUDE_CLIENT_APIS
@@ -602,17 +604,19 @@ int get_ssdp_sockets(MiniServerSockArray *out)
 	}
 
 #ifdef UPNP_ENABLE_IPV6
-	/* Create the IPv6 socket for SSDP */
-	if (hasIPV6) {
-		if ((retVal = create_ssdp_sock_v6(false, &out->ssdpSock6))
-			!= UPNP_E_SUCCESS) {
-			goto out;
+	if (using_ipv6()) {
+		/* Create the IPv6 socket for SSDP */
+		if (hasIPV6) {
+			if ((retVal = create_ssdp_sock_v6(false, &out->ssdpSock6))
+				!= UPNP_E_SUCCESS) {
+				goto out;
+			}
 		}
-	}
-	if (strlen(""/*gIF_IPV6_ULA_GUA*/) > static_cast<size_t>(0)) {
-		if ((retVal = create_ssdp_sock_v6(true, &out->ssdpSock6UlaGua))
-			!= UPNP_E_SUCCESS) {
-			goto out;
+		if (strlen(""/*gIF_IPV6_ULA_GUA*/) > static_cast<size_t>(0)) {
+			if ((retVal = create_ssdp_sock_v6(true, &out->ssdpSock6UlaGua))
+				!= UPNP_E_SUCCESS) {
+				goto out;
+			}
 		}
 	}
 #endif /* UPNP_ENABLE_IPV6 */

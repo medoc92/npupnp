@@ -218,7 +218,11 @@ extern bool g_use_all_interfaces;
 extern unsigned int g_optionFlags;
 
 inline bool using_ipv6() {
+#ifdef __APPLE__
+	return false;
+#else
 	return 0 != (g_optionFlags & UPNP_FLAG_IPV6);
+#endif
 }
 
 // Get first usable addresses, for when we don't care
