@@ -1080,7 +1080,7 @@ secondelt:
 
     // Empty part means today IF other part is period, else means
     // forever (stays at 0)
-    time_t now = time(0);
+    time_t now = time(nullptr);
     struct tm *tmnow = gmtime(&now);
     if ((!hasp1 && !hasd1) && hasp2) {
         d1.y1 = 1900 + tmnow->tm_year;
@@ -1269,7 +1269,7 @@ string localelang()
 {
     const char *lang = getenv("LANG");
 
-    if (lang == 0 || *lang == 0 || !strcmp(lang, "C") ||
+    if (lang == nullptr || *lang == 0 || !strcmp(lang, "C") ||
         !strcmp(lang, "POSIX")) {
         return "en";
     }
