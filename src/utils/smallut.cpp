@@ -207,14 +207,14 @@ bool samecharset(const string& cs1, const string& cs2)
 {
     string mcs1, mcs2;
     // Remove all - and _, turn to lowecase
-    for (unsigned int i = 0; i < cs1.length(); i++) {
-        if (cs1[i] != '_' && cs1[i] != '-') {
-            mcs1 += ::tolower(cs1[i]);
+    for (char i : cs1) {
+        if (i != '_' && i != '-') {
+            mcs1 += ::tolower(i);
         }
     }
-    for (unsigned int i = 0; i < cs2.length(); i++) {
-        if (cs2[i] != '_' && cs2[i] != '-') {
-            mcs2 += ::tolower(cs2[i]);
+    for (char i : cs2) {
+        if (i != '_' && i != '-') {
+            mcs2 += ::tolower(i);
         }
     }
     return mcs1 == mcs2;
@@ -227,8 +227,8 @@ template <class T> bool stringToStrings(const string& s, T& tokens,
     tokens.clear();
     enum states {SPACE, TOKEN, INQUOTE, ESCAPE};
     states state = SPACE;
-    for (unsigned int i = 0; i < s.length(); i++) {
-        switch (s[i]) {
+    for (char i : s) {
+        switch (i) {
         case '"':
             switch (state) {
             case SPACE:
@@ -279,13 +279,13 @@ template <class T> bool stringToStrings(const string& s, T& tokens,
                 continue;
             case INQUOTE:
             case ESCAPE:
-                current += s[i];
+                current += i;
                 continue;
             }
             break;
 
         default:
-            if (!addseps.empty() && addseps.find(s[i]) != string::npos) {
+            if (!addseps.empty() && addseps.find(i) != string::npos) {
                 switch (state) {
                 case ESCAPE:
                     state = INQUOTE;
@@ -293,12 +293,12 @@ template <class T> bool stringToStrings(const string& s, T& tokens,
                 case INQUOTE:
                     break;
                 case SPACE:
-                    tokens.insert(tokens.end(), string(1, s[i]));
+                    tokens.insert(tokens.end(), string(1, i));
                     continue;
                 case TOKEN:
                     tokens.insert(tokens.end(), current);
                     current.erase();
-                    tokens.insert(tokens.end(), string(1, s[i]));
+                    tokens.insert(tokens.end(), string(1, i));
                     state = SPACE;
                     continue;
                 }
@@ -313,7 +313,7 @@ template <class T> bool stringToStrings(const string& s, T& tokens,
                 case INQUOTE:
                     break;
                 }
-            current += s[i];
+            current += i;
         }
     }
     switch (state) {
@@ -572,13 +572,13 @@ string truncate_to_word(const string& input, string::size_type maxlen)
 string escapeHtml(const string& in)
 {
     string out;
-    for (string::size_type pos = 0; pos < in.length(); pos++) {
-        switch(in.at(pos)) {
+    for (char pos : in) {
+        switch(pos) {
         case '<': out += "&lt;"; break;
         case '>': out += "&gt;"; break;
         case '&': out += "&amp;"; break;
         case '"': out += "&quot;"; break;
-        default: out += in.at(pos); break;
+        default: out += pos; break;
         }
     }
     return out;
@@ -588,8 +588,8 @@ string escapeShell(const string& in)
 {
     string out;
     out += "\"";
-    for (string::size_type pos = 0; pos < in.length(); pos++) {
-        switch (in.at(pos)) {
+    for (char pos : in) {
+        switch (pos) {
         case '$':
             out += "\\$";
             break;
@@ -606,7 +606,7 @@ string escapeShell(const string& in)
             out += "\\\\";
             break;
         default:
-            out += in.at(pos);
+            out += pos;
         }
     }
     out += "\"";
@@ -619,8 +619,8 @@ string makeCString(const string& in)
 {
     string out;
     out += "\"";
-    for (string::size_type pos = 0; pos < in.length(); pos++) {
-        switch (in.at(pos)) {
+    for (char pos : in) {
+        switch (pos) {
         case '"':
             out += "\\\"";
             break;
@@ -634,7 +634,7 @@ string makeCString(const string& in)
             out += "\\\\";
             break;
         default:
-            out += in.at(pos);
+            out += pos;
         }
     }
     out += "\"";
