@@ -684,7 +684,7 @@ bool pcSubst(const string& in, string& out, const map<string, string>& subs)
                 out += '%';
                 continue;
             }
-            string key = "";
+            string key;
             if (in[i] == '(') {
                 if (++i == in.size()) {
                     out += string("%(");
