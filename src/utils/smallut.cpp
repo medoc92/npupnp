@@ -733,7 +733,6 @@ void ulltodecstr(uint64_t val, string& buf)
     } while (val);
 
     buf.assign(&rbuf[idx+1]);
-    return;
 }
 
 void lltodecstr(int64_t val, string& buf)
@@ -760,7 +759,6 @@ void lltodecstr(int64_t val, string& buf)
         rbuf[idx--] = '-';
     }
     buf.assign(&rbuf[idx+1]);
-    return;
 }
 
 string lltodecstr(int64_t val)
