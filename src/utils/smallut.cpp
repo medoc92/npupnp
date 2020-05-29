@@ -1423,7 +1423,7 @@ unsigned int stringToFlags(const vector<CharFlags>& flags,
     for (auto& tok: toks) {
         trimstring(tok);
         for (auto& flag : flags) {
-            if (!tok.compare(flag.yesname)) {
+            if (tok == flag.yesname) {
                 /* Note: we don't break: the same name could conceivably
                    set several flags. */
                 out |= flag.value;
