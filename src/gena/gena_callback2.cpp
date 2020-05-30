@@ -43,51 +43,51 @@
 #include "statcodes.h"
 
 /************************************************************************
- * Function : genaCallback									
- *																	
- * Parameters:														
+ * Function : genaCallback                                    
+ *                                                                    
+ * Parameters:                                                        
  *
- * Description:														
- *	This is the callback function called by the miniserver to handle 
- *	incoming GENA requests. 
+ * Description:                                                        
+ *    This is the callback function called by the miniserver to handle 
+ *    incoming GENA requests. 
  *
  * Returns: int
- *	UPNP_E_SUCCESS if successful else appropriate error
+ *    UPNP_E_SUCCESS if successful else appropriate error
  ***************************************************************************/
 void genaCallback(MHDTransaction *mhdt)
 {
-	bool found_function{false};
+    bool found_function{false};
 
-	if (mhdt->method == HTTPMETHOD_SUBSCRIBE) {
+    if (mhdt->method == HTTPMETHOD_SUBSCRIBE) {
 #ifdef INCLUDE_DEVICE_APIS
-		found_function = true;
-		auto it = mhdt->headers.find("nt");
-		if (it == mhdt->headers.end()) {
-			/* renew subscription */
-			gena_process_subscription_renewal_request(mhdt);
-		} else {
-			/* subscribe */
-			gena_process_subscription_request(mhdt);
-		}
-		UpnpPrintf(UPNP_ALL, GENA, __FILE__, __LINE__,
-				   "got subscription request\n");
-	} else if(mhdt->method == HTTPMETHOD_UNSUBSCRIBE) {
-		found_function = true;
-		/* unsubscribe */
-		gena_process_unsubscribe_request(mhdt);
+        found_function = true;
+        auto it = mhdt->headers.find("nt");
+        if (it == mhdt->headers.end()) {
+            /* renew subscription */
+            gena_process_subscription_renewal_request(mhdt);
+        } else {
+            /* subscribe */
+            gena_process_subscription_request(mhdt);
+        }
+        UpnpPrintf(UPNP_ALL, GENA, __FILE__, __LINE__,
+                   "got subscription request\n");
+    } else if(mhdt->method == HTTPMETHOD_UNSUBSCRIBE) {
+        found_function = true;
+        /* unsubscribe */
+        gena_process_unsubscribe_request(mhdt);
 #endif
-	} else if (mhdt->method == HTTPMETHOD_NOTIFY) {
+    } else if (mhdt->method == HTTPMETHOD_NOTIFY) {
 #ifdef INCLUDE_CLIENT_APIS
-		found_function = true;
-		/* notify */
-		gena_process_notification_event(mhdt);
+        found_function = true;
+        /* notify */
+        gena_process_notification_event(mhdt);
 #endif
-	}
+    }
 
-	if (!found_function) {
-		/* handle missing functions of device or ctrl pt */
-		http_SendStatusResponse(mhdt, HTTP_NOT_IMPLEMENTED);
-	}
+    if (!found_function) {
+        /* handle missing functions of device or ctrl pt */
+        http_SendStatusResponse(mhdt, HTTP_NOT_IMPLEMENTED);
+    }
 }
 #endif /* EXCLUDE_GENA */
 

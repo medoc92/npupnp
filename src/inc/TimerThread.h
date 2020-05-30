@@ -50,84 +50,84 @@ struct TimerEvent;
  */
 class TimerThread {
 public:
-	TimerThread(ThreadPool *tp);
-	~TimerThread();
+    TimerThread(ThreadPool *tp);
+    ~TimerThread();
 
-	/*! Timeout Types. */
-	enum TimeoutType {
-		/*! seconds from Jan 1, 1970. */
-		ABS_SEC,
-		/*! seconds from current time. */
-		REL_SEC
-	};
+    /*! Timeout Types. */
+    enum TimeoutType {
+        /*! seconds from Jan 1, 1970. */
+        ABS_SEC,
+        /*! seconds from current time. */
+        REL_SEC
+    };
 
-	enum Duration {
-		SHORT_TERM,
-		PERSISTENT
-	};
-	
-	/*!
-	 * \brief Schedules an event to run at a specified time.
-	 *
-	 * \return 0 on success, nonzero on failure, EOUTOFMEM if not enough memory
-	 *	to schedule job.
-	 */
-	int schedule(
-		/*! [in] . */
-		Duration persistence,
-		/*! [in] either ABS_SEC, or REL_SEC. If REL_SEC, then the event
-		 * will be scheduled at the current time + REL_SEC. */
-		TimeoutType type,
-		/*! [in] time of event. Either in absolute seconds, or relative
-		 * seconds in the future. */
-		time_t time, 
-		/* [out] Id of timer event. (can be null). */
-		int *id,
-		start_routine func,
-		void *arg = nullptr, 
-		ThreadPool::free_routine free_func = nullptr,
-		ThreadPool::ThreadPriority priority = ThreadPool::MED_PRIORITY);
+    enum Duration {
+        SHORT_TERM,
+        PERSISTENT
+    };
+    
+    /*!
+     * \brief Schedules an event to run at a specified time.
+     *
+     * \return 0 on success, nonzero on failure, EOUTOFMEM if not enough memory
+     *    to schedule job.
+     */
+    int schedule(
+        /*! [in] . */
+        Duration persistence,
+        /*! [in] either ABS_SEC, or REL_SEC. If REL_SEC, then the event
+         * will be scheduled at the current time + REL_SEC. */
+        TimeoutType type,
+        /*! [in] time of event. Either in absolute seconds, or relative
+         * seconds in the future. */
+        time_t time, 
+        /* [out] Id of timer event. (can be null). */
+        int *id,
+        start_routine func,
+        void *arg = nullptr, 
+        ThreadPool::free_routine free_func = nullptr,
+        ThreadPool::ThreadPriority priority = ThreadPool::MED_PRIORITY);
 
-	int schedule(Duration persistence, std::chrono::system_clock::time_point when, 
-		/* [out] Id of timer event. (can be null). */
-		int *id,
-		start_routine func,
-		void *arg = nullptr, 
-		ThreadPool::free_routine free_func = nullptr,
-		ThreadPool::ThreadPriority priority = ThreadPool::MED_PRIORITY);
+    int schedule(Duration persistence, std::chrono::system_clock::time_point when, 
+        /* [out] Id of timer event. (can be null). */
+        int *id,
+        start_routine func,
+        void *arg = nullptr, 
+        ThreadPool::free_routine free_func = nullptr,
+        ThreadPool::ThreadPriority priority = ThreadPool::MED_PRIORITY);
 
-	int schedule(Duration persistence, std::chrono::milliseconds delay, 
-		/* [out] Id of timer event. (can be null). */
-		int *id,
-		start_routine func,
-		void *arg = nullptr, 
-		ThreadPool::free_routine free_func = nullptr,
-		ThreadPool::ThreadPriority priority = ThreadPool::MED_PRIORITY);
+    int schedule(Duration persistence, std::chrono::milliseconds delay, 
+        /* [out] Id of timer event. (can be null). */
+        int *id,
+        start_routine func,
+        void *arg = nullptr, 
+        ThreadPool::free_routine free_func = nullptr,
+        ThreadPool::ThreadPriority priority = ThreadPool::MED_PRIORITY);
 
-	/*!
-	 * \brief Removes an event from the timer Q.
-	 *
-	 * Events can only be removed before they have been placed in the
-	 * thread pool. Calls the free_func.
-	 *
-	 * \return 0 on success, -1 on failure.
-	 */
-	int remove(int id);
+    /*!
+     * \brief Removes an event from the timer Q.
+     *
+     * Events can only be removed before they have been placed in the
+     * thread pool. Calls the free_func.
+     *
+     * \return 0 on success, -1 on failure.
+     */
+    int remove(int id);
 
-	/*!
-	 * \brief Shutdown the timer thread.
-	 *
-	 * Events scheduled in the future will NOT be run.
-	 *
-	 * Timer thread should be shutdown BEFORE it's associated thread pool.
-	 *
-	 * \return 0 if succesfull, nonzero otherwise. Always returns 0.
-	 */
-	int shutdown();
+    /*!
+     * \brief Shutdown the timer thread.
+     *
+     * Events scheduled in the future will NOT be run.
+     *
+     * Timer thread should be shutdown BEFORE it's associated thread pool.
+     *
+     * \return 0 if succesfull, nonzero otherwise. Always returns 0.
+     */
+    int shutdown();
 
-	class Internal;
+    class Internal;
 private:
-	Internal *m;
+    Internal *m;
 };
 
 #endif /* TIMER_THREAD_H */

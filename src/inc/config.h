@@ -395,9 +395,9 @@
 #define EXCLUDE_MINISERVER 0
 #define EXCLUDE_WEB_SERVER 0
 #ifdef USE_JNI
-#	define EXCLUDE_JNI 0
+#    define EXCLUDE_JNI 0
 #else
-#	define EXCLUDE_JNI 1
+#    define EXCLUDE_JNI 1
 #endif
 /* @} */
 
@@ -412,7 +412,7 @@
  *
  * @{
  */
-#define DEBUG_TARGET		1   
+#define DEBUG_TARGET        1   
 /* @} */
 
 
@@ -423,15 +423,15 @@
  * see <upnp/inc/upnpdebug.h>
  */
 
-#define DEBUG_ALL		1
-#define DEBUG_SSDP		0
-#define DEBUG_SOAP		0
-#define DEBUG_GENA		0
-#define DEBUG_TPOOL		0
-#define DEBUG_MSERV		0
-#define DEBUG_DOM		0
-#define DEBUG_HTTP		0
-#define DEBUG_API		0
+#define DEBUG_ALL        1
+#define DEBUG_SSDP        0
+#define DEBUG_SOAP        0
+#define DEBUG_GENA        0
+#define DEBUG_TPOOL        0
+#define DEBUG_MSERV        0
+#define DEBUG_DOM        0
+#define DEBUG_HTTP        0
+#define DEBUG_API        0
 
 
 /*
@@ -455,19 +455,19 @@
 
 /* configure --enable-client */
 #if UPNP_HAVE_CLIENT
-#	define INCLUDE_CLIENT_APIS	1
+#    define INCLUDE_CLIENT_APIS    1
 #endif
 
 
 /* configure --enable-device */
 #if UPNP_HAVE_DEVICE
-#	define INCLUDE_DEVICE_APIS	1
+#    define INCLUDE_DEVICE_APIS    1
 #endif
 
 
 /* configure --enable-webserver */
 #if UPNP_HAVE_WEBSERVER
-#	define INTERNAL_WEB_SERVER	1
+#    define INTERNAL_WEB_SERVER    1
 #endif
 
 /* configure --enable-ssdp */
@@ -481,9 +481,9 @@
 /* configure --enable-soap */
 #undef EXCLUDE_SOAP
 #if UPNP_HAVE_SOAP
-#	define EXCLUDE_SOAP 0
+#    define EXCLUDE_SOAP 0
 #else
-#	define EXCLUDE_SOAP 1
+#    define EXCLUDE_SOAP 1
 #endif
 
 /* configure --enable-gena */
@@ -497,29 +497,29 @@
 #undef  EXCLUDE_WEB_SERVER
 #undef  EXCLUDE_MINISERVER
 #ifdef  INTERNAL_WEB_SERVER
-#	define EXCLUDE_WEB_SERVER 0
-#	define EXCLUDE_MINISERVER 0
+#    define EXCLUDE_WEB_SERVER 0
+#    define EXCLUDE_MINISERVER 0
 #else
-#	define EXCLUDE_WEB_SERVER 1
-#	define EXCLUDE_MINISERVER 1
+#    define EXCLUDE_WEB_SERVER 1
+#    define EXCLUDE_MINISERVER 1
 #endif
 
 
 #if EXCLUDE_SSDP == 1 && EXCLUDE_GENA == 1 && EXCLUDE_SOAP == 1 && EXCLUDE_WEB_SERVER == 1
-#	undef  EXCLUDE_MINISERVER
-#	define EXCLUDE_MINISERVER 1
-#	if INTERNAL_WEB_SERVER
-#		error "conflicting settings: use configure --disable-webserver"
-#	endif
+#    undef  EXCLUDE_MINISERVER
+#    define EXCLUDE_MINISERVER 1
+#    if INTERNAL_WEB_SERVER
+#        error "conflicting settings: use configure --disable-webserver"
+#    endif
 #endif
 
 
 #if EXCLUDE_SSDP == 0 || EXCLUDE_GENA == 0 || EXCLUDE_SOAP == 0 || EXCLUDE_WEB_SERVER == 0
-#	undef  EXCLUDE_MINISERVER
-#	define EXCLUDE_MINISERVER 0
-#	if EXCLUDE_WEB_SERVER == 0 && !defined INTERNAL_WEB_SERVER
-#		error "conflicting settings : use configure --enable-webserver"
-#	endif
+#    undef  EXCLUDE_MINISERVER
+#    define EXCLUDE_MINISERVER 0
+#    if EXCLUDE_WEB_SERVER == 0 && !defined INTERNAL_WEB_SERVER
+#        error "conflicting settings : use configure --enable-webserver"
+#    endif
 #endif
 
 

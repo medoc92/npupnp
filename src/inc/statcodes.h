@@ -92,17 +92,17 @@
 #define HTTP_E_FILE_READ        -5
 
 /************************************************************************
-* Function: http_get_code_text											
-*																		
-* Parameters:															
-*	int statusCode ; Status code based on which the status table and 
-*					status message is returned 							
-*																		
-* Description: Return the right status message based on the passed in	
-*	int statusCode input parameter										
-*																		
-* Returns:																
-*	 const char* ptr - pointer to the status message string				
+* Function: http_get_code_text                                            
+*                                                                        
+* Parameters:                                                            
+*    int statusCode ; Status code based on which the status table and 
+*                    status message is returned                             
+*                                                                        
+* Description: Return the right status message based on the passed in    
+*    int statusCode input parameter                                        
+*                                                                        
+* Returns:                                                                
+*     const char* ptr - pointer to the status message string                
 ************************************************************************/
 const char* http_get_code_text( int statusCode );
 

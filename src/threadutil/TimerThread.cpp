@@ -47,217 +47,217 @@ using namespace std::chrono;
  * shutdown actually, but this is never used anyway).
  */
 struct TimerEvent {
-	TimerEvent(
-		start_routine f, void *a, ThreadPool::free_routine fr, 
-		ThreadPool::ThreadPriority prio,
-		TimerThread::Duration p, system_clock::time_point et, int _id)
-		: func(f), arg(a), free_func(fr), priority(prio), persistent(p),
-		  eventTime(et), id(_id) {}
-	
-	start_routine func;
-	void *arg;
-	ThreadPool::free_routine free_func;
-	ThreadPool::ThreadPriority priority;
-	/*! [in] Long term or short term job. */
-	TimerThread::Duration persistent;
-	/*! [in] Absolute time for event in seconds since Jan 1, 1970. */
-	system_clock::time_point eventTime;
-	int id;
+    TimerEvent(
+        start_routine f, void *a, ThreadPool::free_routine fr, 
+        ThreadPool::ThreadPriority prio,
+        TimerThread::Duration p, system_clock::time_point et, int _id)
+        : func(f), arg(a), free_func(fr), priority(prio), persistent(p),
+          eventTime(et), id(_id) {}
+    
+    start_routine func;
+    void *arg;
+    ThreadPool::free_routine free_func;
+    ThreadPool::ThreadPriority priority;
+    /*! [in] Long term or short term job. */
+    TimerThread::Duration persistent;
+    /*! [in] Absolute time for event in seconds since Jan 1, 1970. */
+    system_clock::time_point eventTime;
+    int id;
 };
 
 class TimerThread::Internal {
 public:
-	explicit Internal(ThreadPool *tp);
-	
-	std::mutex mutex;
-	std::condition_variable condition;
-	int lastEventId{0};
-	std::list<TimerEvent*> eventQ;
-	int inshutdown{0};
-	ThreadPool *tp{nullptr};
+    explicit Internal(ThreadPool *tp);
+    
+    std::mutex mutex;
+    std::condition_variable condition;
+    int lastEventId{0};
+    std::list<TimerEvent*> eventQ;
+    int inshutdown{0};
+    ThreadPool *tp{nullptr};
 };
 
 /*!
  * \brief Implements timer thread.
  *
  * Waits for next event to occur and schedules associated job into threadpool.
- *	arg is cast to (TimerThread *).
+ *    arg is cast to (TimerThread *).
  */
 void *thread_timer(void *arg)
 {
-	auto timer = static_cast<TimerThread::Internal *>(arg);
-	TimerEvent *nextEvent = nullptr;
-	system_clock::time_point nextEventTime = system_clock::now();
+    auto timer = static_cast<TimerThread::Internal *>(arg);
+    TimerEvent *nextEvent = nullptr;
+    system_clock::time_point nextEventTime = system_clock::now();
 
-	assert(timer != nullptr);
+    assert(timer != nullptr);
 
-	std::unique_lock<std::mutex> lck(timer->mutex);
+    std::unique_lock<std::mutex> lck(timer->mutex);
 
-	while (true) {
-		/* mutex should always be locked at top of loop */
-		/* Check for shutdown. */
-		if (timer->inshutdown) {
-			timer->inshutdown = 0;
-			timer->condition.notify_all();
-			return nullptr;
-		}
-		nextEvent = nullptr;
-		/* Get the next event if possible. */
-		if (!timer->eventQ.empty()) {
-			nextEvent = timer->eventQ.front();
-			nextEventTime = nextEvent->eventTime;
-		}
-		system_clock::time_point currentTime = system_clock::now();
-		/* If time has elapsed, schedule job. */
-		if (nextEvent && currentTime >= nextEventTime) {
-			int ret = 0;
-			if (nextEvent->persistent) {
-				ret = timer->tp->addPersistent(
-					nextEvent->func, nextEvent->arg, nextEvent->free_func,
-					nextEvent->priority);
-			} else {
-				ret = timer->tp->addJob(
-					nextEvent->func, nextEvent->arg, nextEvent->free_func,
-					nextEvent->priority);
-			}
-			if (ret != 0 && nullptr != nextEvent->free_func) {
-				nextEvent->free_func(nextEvent->arg);
-			}
-			timer->eventQ.pop_front();
-			delete nextEvent;
-			continue;
-		}
-		if (nextEvent) {
-			timer->condition.wait_until(lck, nextEvent->eventTime);
-		} else {
-			timer->condition.wait(lck);
-		}
-	}
+    while (true) {
+        /* mutex should always be locked at top of loop */
+        /* Check for shutdown. */
+        if (timer->inshutdown) {
+            timer->inshutdown = 0;
+            timer->condition.notify_all();
+            return nullptr;
+        }
+        nextEvent = nullptr;
+        /* Get the next event if possible. */
+        if (!timer->eventQ.empty()) {
+            nextEvent = timer->eventQ.front();
+            nextEventTime = nextEvent->eventTime;
+        }
+        system_clock::time_point currentTime = system_clock::now();
+        /* If time has elapsed, schedule job. */
+        if (nextEvent && currentTime >= nextEventTime) {
+            int ret = 0;
+            if (nextEvent->persistent) {
+                ret = timer->tp->addPersistent(
+                    nextEvent->func, nextEvent->arg, nextEvent->free_func,
+                    nextEvent->priority);
+            } else {
+                ret = timer->tp->addJob(
+                    nextEvent->func, nextEvent->arg, nextEvent->free_func,
+                    nextEvent->priority);
+            }
+            if (ret != 0 && nullptr != nextEvent->free_func) {
+                nextEvent->free_func(nextEvent->arg);
+            }
+            timer->eventQ.pop_front();
+            delete nextEvent;
+            continue;
+        }
+        if (nextEvent) {
+            timer->condition.wait_until(lck, nextEvent->eventTime);
+        } else {
+            timer->condition.wait(lck);
+        }
+    }
 }
 
 
 TimerThread::Internal::Internal(ThreadPool *tp)
 {
-	std::unique_lock<std::mutex> lck(mutex);
-	this->tp = tp;
-	tp->addPersistent(thread_timer, this, nullptr, ThreadPool::HIGH_PRIORITY);
+    std::unique_lock<std::mutex> lck(mutex);
+    this->tp = tp;
+    tp->addPersistent(thread_timer, this, nullptr, ThreadPool::HIGH_PRIORITY);
 }
 
 TimerThread::TimerThread(ThreadPool *tp)
 {
-	assert( tp != nullptr );
-	if (tp == nullptr ) {
-		return;
-	}
-	m = new Internal(tp);
+    assert( tp != nullptr );
+    if (tp == nullptr ) {
+        return;
+    }
+    m = new Internal(tp);
 }
 
 TimerThread::~TimerThread()
 {
-	delete m;
+    delete m;
 }
 
 int TimerThread::schedule(
-	Duration persistence, std::chrono::system_clock::time_point when, int *id,
-	start_routine func, void *arg, ThreadPool::free_routine free_func, 
-	ThreadPool::ThreadPriority priority
-	)
+    Duration persistence, std::chrono::system_clock::time_point when, int *id,
+    start_routine func, void *arg, ThreadPool::free_routine free_func, 
+    ThreadPool::ThreadPriority priority
+    )
 {
-	std::unique_lock<std::mutex> lck(m->mutex);
-	int rc = EOUTOFMEM;
+    std::unique_lock<std::mutex> lck(m->mutex);
+    int rc = EOUTOFMEM;
 
-	auto newEvent = new TimerEvent(func, arg, free_func, priority,
-										  persistence, when, m->lastEventId);
-	if (newEvent == nullptr) {
-		return rc;
-	}
-	if (id) {
-		*id = m->lastEventId;
-	}
-	/* add job to Q. Q is ordered by eventTime with the head of the Q being
-	 * the next event. */
-	rc = 0;
-	int found = 0;
-	for (auto it = m->eventQ.begin(); it != m->eventQ.end(); it++) {
-		if ((*it)->eventTime >= when) {
-			m->eventQ.insert(it, newEvent);
-			found = 1;
-			break;
-		}
-	}
-	/* add to the end of Q. */
-	if (!found) {
-		m->eventQ.push_back(newEvent);
-	}
-	/* signal change in Q. */
-	m->condition.notify_all();
-	m->lastEventId++;
+    auto newEvent = new TimerEvent(func, arg, free_func, priority,
+                                          persistence, when, m->lastEventId);
+    if (newEvent == nullptr) {
+        return rc;
+    }
+    if (id) {
+        *id = m->lastEventId;
+    }
+    /* add job to Q. Q is ordered by eventTime with the head of the Q being
+     * the next event. */
+    rc = 0;
+    int found = 0;
+    for (auto it = m->eventQ.begin(); it != m->eventQ.end(); it++) {
+        if ((*it)->eventTime >= when) {
+            m->eventQ.insert(it, newEvent);
+            found = 1;
+            break;
+        }
+    }
+    /* add to the end of Q. */
+    if (!found) {
+        m->eventQ.push_back(newEvent);
+    }
+    /* signal change in Q. */
+    m->condition.notify_all();
+    m->lastEventId++;
 
-	return rc;
+    return rc;
 }
 
 int TimerThread::schedule(
-	Duration persistence, std::chrono::milliseconds delay, int *id,
-	start_routine func, void *arg, ThreadPool::free_routine free_func, 
-	ThreadPool::ThreadPriority priority
-	)
+    Duration persistence, std::chrono::milliseconds delay, int *id,
+    start_routine func, void *arg, ThreadPool::free_routine free_func, 
+    ThreadPool::ThreadPriority priority
+    )
 {
-	system_clock::time_point when;
-	when = system_clock::now() + delay;
-	return TimerThread::schedule(persistence, when, id, func,
-								 arg, free_func, priority);
+    system_clock::time_point when;
+    when = system_clock::now() + delay;
+    return TimerThread::schedule(persistence, when, id, func,
+                                 arg, free_func, priority);
 }
 
 int TimerThread::schedule(
-	Duration persistence, TimeoutType type, time_t time, int *id,
-	start_routine func, void *arg, ThreadPool::free_routine free_func, 
-	ThreadPool::ThreadPriority priority
-	)
+    Duration persistence, TimeoutType type, time_t time, int *id,
+    start_routine func, void *arg, ThreadPool::free_routine free_func, 
+    ThreadPool::ThreadPriority priority
+    )
 {
-	system_clock::time_point when;
-	if (type == TimerThread::ABS_SEC) {
-		when = system_clock::from_time_t(time);
-	} else {
-		when = system_clock::now() + std::chrono::seconds(time);
-	}
-	return TimerThread::schedule(persistence, when, id, func,
-								 arg, free_func, priority);
+    system_clock::time_point when;
+    if (type == TimerThread::ABS_SEC) {
+        when = system_clock::from_time_t(time);
+    } else {
+        when = system_clock::now() + std::chrono::seconds(time);
+    }
+    return TimerThread::schedule(persistence, when, id, func,
+                                 arg, free_func, priority);
 }
 
 int TimerThread::remove(int id)
 {
-	int rc = -1;
-	std::unique_lock<std::mutex> lck(m->mutex);
+    int rc = -1;
+    std::unique_lock<std::mutex> lck(m->mutex);
 
-	for (auto it = m->eventQ.begin(); it != m->eventQ.end(); it++) {
-		TimerEvent *temp = *it;
-		if (temp->id == id) {
-			m->eventQ.erase(it);
-			delete temp;
-			rc = 0;
-			break;
-		}
-	}
-	return rc;
+    for (auto it = m->eventQ.begin(); it != m->eventQ.end(); it++) {
+        TimerEvent *temp = *it;
+        if (temp->id == id) {
+            m->eventQ.erase(it);
+            delete temp;
+            rc = 0;
+            break;
+        }
+    }
+    return rc;
 }
 
 int TimerThread::shutdown()
 {
-	std::unique_lock<std::mutex> lck(m->mutex);
+    std::unique_lock<std::mutex> lck(m->mutex);
 
-	m->inshutdown = 1;
+    m->inshutdown = 1;
 
-	/* Delete nodes in Q. Call registered free function on argument. */
-	for (auto & it : m->eventQ) {
-		delete it;
-	}
-	m->eventQ.clear();
+    /* Delete nodes in Q. Call registered free function on argument. */
+    for (auto & it : m->eventQ) {
+        delete it;
+    }
+    m->eventQ.clear();
 
-	m->condition.notify_all();
+    m->condition.notify_all();
 
-	while (m->inshutdown) {
-		/* wait for timer thread to shutdown. */
-		m->condition.wait(lck);
-	}
-	return 0;
+    while (m->inshutdown) {
+        /* wait for timer thread to shutdown. */
+        m->condition.wait(lck);
+    }
+    return 0;
 }

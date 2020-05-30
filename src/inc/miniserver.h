@@ -36,41 +36,41 @@
 #include "UpnpInet.h"
 
 struct MiniServerSockArray {
-	/*! Socket for stopping miniserver */
-	SOCKET miniServerStopSock{INVALID_SOCKET};
-	/*! IPv4 SSDP Socket for incoming advertisments and search requests. */
-	SOCKET ssdpSock4{INVALID_SOCKET};
-	/*! IPv6 SSDP Socket for incoming advertisments and search requests. */
-	SOCKET ssdpSock6{INVALID_SOCKET};
-	/*! IPv6 SSDP Socket for incoming advertisments and search requests. */
-	SOCKET ssdpSock6UlaGua{INVALID_SOCKET};
+    /*! Socket for stopping miniserver */
+    SOCKET miniServerStopSock{INVALID_SOCKET};
+    /*! IPv4 SSDP Socket for incoming advertisments and search requests. */
+    SOCKET ssdpSock4{INVALID_SOCKET};
+    /*! IPv6 SSDP Socket for incoming advertisments and search requests. */
+    SOCKET ssdpSock6{INVALID_SOCKET};
+    /*! IPv6 SSDP Socket for incoming advertisments and search requests. */
+    SOCKET ssdpSock6UlaGua{INVALID_SOCKET};
 
-	uint16_t stopPort{0};
-	uint16_t miniServerPort4{0};
-	uint16_t miniServerPort6{0};
+    uint16_t stopPort{0};
+    uint16_t miniServerPort4{0};
+    uint16_t miniServerPort6{0};
 #ifdef INCLUDE_CLIENT_APIS
-	/*! SSDP sockets for sending search requests and receiving search replies */
-	SOCKET ssdpReqSock4{INVALID_SOCKET};
-	SOCKET ssdpReqSock6{INVALID_SOCKET};
+    /*! SSDP sockets for sending search requests and receiving search replies */
+    SOCKET ssdpReqSock4{INVALID_SOCKET};
+    SOCKET ssdpReqSock6{INVALID_SOCKET};
 #endif /* INCLUDE_CLIENT_APIS */
 
-	~MiniServerSockArray() {
-		maybeClose(miniServerStopSock);
-		maybeClose(ssdpSock4);
-		maybeClose(ssdpSock6);
-		maybeClose(ssdpSock6UlaGua);
+    ~MiniServerSockArray() {
+        maybeClose(miniServerStopSock);
+        maybeClose(ssdpSock4);
+        maybeClose(ssdpSock6);
+        maybeClose(ssdpSock6UlaGua);
 #ifdef INCLUDE_CLIENT_APIS
-		maybeClose(ssdpReqSock4);
-		maybeClose(ssdpReqSock6);
+        maybeClose(ssdpReqSock4);
+        maybeClose(ssdpReqSock6);
 #endif /* INCLUDE_CLIENT_APIS */
-	}
-	
+    }
+    
 private:
-	void maybeClose(SOCKET s) {
-		if (s != INVALID_SOCKET) {
-			UpnpCloseSocket(s);
-		}
-	}
+    void maybeClose(SOCKET s) {
+        if (s != INVALID_SOCKET) {
+            UpnpCloseSocket(s);
+        }
+    }
 };
 
 struct MHDTransaction;
@@ -80,26 +80,26 @@ typedef void (*MiniServerCallback) (MHDTransaction*);
  * \brief Set HTTP Get Callback.
  */
 void SetHTTPGetCallback(
-	/*! [in] HTTP Callback to be invoked . */
-	MiniServerCallback callback);
+    /*! [in] HTTP Callback to be invoked . */
+    MiniServerCallback callback);
 
 /*!
  * \brief Set SOAP Callback.
  */
 #ifdef INCLUDE_DEVICE_APIS
 void SetSoapCallback(
-	/*! [in] SOAP Callback to be invoked . */
-	MiniServerCallback callback);
+    /*! [in] SOAP Callback to be invoked . */
+    MiniServerCallback callback);
 #else /* INCLUDE_DEVICE_APIS */
-	static UPNP_INLINE void SetSoapCallback(MiniServerCallback callback) {}
+    static UPNP_INLINE void SetSoapCallback(MiniServerCallback callback) {}
 #endif /* INCLUDE_DEVICE_APIS */
 
 /*!
  * \brief Set GENA Callback.
  */
 void SetGenaCallback(
-	/*! [in] GENA Callback to be invoked. */
-	MiniServerCallback callback);
+    /*! [in] GENA Callback to be invoked. */
+    MiniServerCallback callback);
 
 /*!
  * \brief Initialize the sockets functionality for the Miniserver.
@@ -113,16 +113,16 @@ void SetGenaCallback(
  * allowed delay aborts the attempt to launch the MiniServer.
  *
  * \return
- *	\li On success: UPNP_E_SUCCESS.
- *	\li On error: UPNP_E_XXX.
+ *    \li On success: UPNP_E_SUCCESS.
+ *    \li On error: UPNP_E_XXX.
  */
 int StartMiniServer(
-	/*! [in,out] Port on which the server listens for incoming IPv4
-	 * connections. */
-	uint16_t *listen_port4,
-	/*! [in,out] Port on which the server listens for incoming IPv6
-	 * connections. */
-	uint16_t *listen_port6);
+    /*! [in,out] Port on which the server listens for incoming IPv4
+     * connections. */
+    uint16_t *listen_port4,
+    /*! [in,out] Port on which the server listens for incoming IPv6
+     * connections. */
+    uint16_t *listen_port6);
 
 /*!
  * \brief Stop and Shutdown the MiniServer and free socket resources.

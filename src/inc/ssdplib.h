@@ -53,24 +53,24 @@
 
 /*! can be overwritten by configure CFLAGS argument. */
 #ifndef X_USER_AGENT
-	/*! @name X_USER_AGENT
-	 *  The {\tt X_USER_AGENT} constant specifies the value of the X-User-Agent:
-	 *  HTTP header. The value "redsonic" is needed for the DSM-320. See
-	 *  https://sourceforge.net/forum/message.php?msg_id=3166856 for more
-	 * information
-	 */
-	#define X_USER_AGENT "redsonic"
+/*! @name X_USER_AGENT
+ *  The {\tt X_USER_AGENT} constant specifies the value of the X-User-Agent:
+ *  HTTP header. The value "redsonic" is needed for the DSM-320. See
+ *  https://sourceforge.net/forum/message.php?msg_id=3166856 for more
+ * information
+ */
+#define X_USER_AGENT "redsonic"
 #endif
 
 /*! Enumeration to define all different types of ssdp searches */
 typedef enum SsdpSearchType {
-	/*! Unknown search command. */
-	SSDP_SERROR = -1,
-	SSDP_ALL,
-	SSDP_ROOTDEVICE,
-	SSDP_DEVICEUDN,
-	SSDP_DEVICETYPE,
-	SSDP_SERVICE
+    /*! Unknown search command. */
+    SSDP_SERROR = -1,
+    SSDP_ALL,
+    SSDP_ROOTDEVICE,
+    SSDP_DEVICEUDN,
+    SSDP_DEVICETYPE,
+    SSDP_SERVICE
 } SType;
 
 // Struct used to remember what searches a client CP has outstanding.
@@ -78,35 +78,35 @@ typedef enum SsdpSearchType {
 // each incoming search response packet to what is on the list and
 // call the client back if there is a match.
 struct SsdpSearchArg {
-	SsdpSearchArg(char *st, void *ck, SsdpSearchType rt)
-		: requestType(rt), searchTarget(st), cookie(ck) {
-	}
-	// TimerThread timeout event used to find the search entry when
-	// the timeout fires.
-	int timeoutEventId{-1};
-	// The request type and search target are matched against incoming
-	// search responses to determine if we need to call back.
-	enum SsdpSearchType requestType;
-	std::string searchTarget;
-	// Client cookie for the callback
-	void *cookie;
+    SsdpSearchArg(char *st, void *ck, SsdpSearchType rt)
+        : requestType(rt), searchTarget(st), cookie(ck) {
+    }
+    // TimerThread timeout event used to find the search entry when
+    // the timeout fires.
+    int timeoutEventId{-1};
+    // The request type and search target are matched against incoming
+    // search responses to determine if we need to call back.
+    enum SsdpSearchType requestType;
+    std::string searchTarget;
+    // Client cookie for the callback
+    void *cookie;
 };
 
 /* Storage for the data extracted from a received M-SEARCH Search
    Target (ST) or NOTIFY Notification Type (NT) header. */
 struct SsdpEntity {
-	enum SsdpSearchType RequestType;
-	char UDN[LINE_SIZE];
-	char DeviceType[LINE_SIZE];
-	char ServiceType[LINE_SIZE];
+    enum SsdpSearchType RequestType;
+    char UDN[LINE_SIZE];
+    char DeviceType[LINE_SIZE];
+    char ServiceType[LINE_SIZE];
 #if 0
-	void dump(std::ostream& ostr) {
-		ostr <<	" RequestType " << RequestType << 
-			" Mx " << Mx << " UDN " << UDN << 
-			" DeviceType " << DeviceType << " ServiceType " << ServiceType << 
-			" Location " << Location << " HostAddr " << HostAddr << 
-			" Os " << Os << " Ext " << Ext << " Date " << Date << "\n";
-	}
+    void dump(std::ostream& ostr) {
+        ostr <<    " RequestType " << RequestType << 
+            " Mx " << Mx << " UDN " << UDN << 
+            " DeviceType " << DeviceType << " ServiceType " << ServiceType << 
+            " Location " << Location << " HostAddr " << HostAddr << 
+            " Os " << Os << " Ext " << Ext << " Date " << Date << "\n";
+    }
 #endif
 };
 
@@ -128,21 +128,21 @@ enum SSDPDevMessageType {MSGTYPE_SHUTDOWN, MSGTYPE_ADVERTISEMENT, MSGTYPE_REPLY}
  * \return UPNP_E_SUCCESS if successful else appropriate error.
  */
 int AdvertiseAndReply(
-	SSDPDevMessageType tp,
-	/* [in] Device handle. */
-	UpnpDevice_Handle Hnd, 
-	/* [in] Search type for sending replies. Ignored for NOTIFY */
-	enum SsdpSearchType SearchType, 
-	/* [in] Search response address. Null and ignored for NOTIFY */
-	struct sockaddr *DestAddr,
-	/* [in] Search device type. Null and ignored for NOTIFY. */
-	char *DeviceType, 
-	/* [in] Device UDN. Null and ignored for NOTIFY. */
-	char *DeviceUDN, 
-	/* [in] Service type. Null and ignored for NOTIFY. */
-	char *ServiceType,
-	/* [in] Advertisement max-age or search response random delay base. */
-	int Exp);
+    SSDPDevMessageType tp,
+    /* [in] Device handle. */
+    UpnpDevice_Handle Hnd, 
+    /* [in] Search type for sending replies. Ignored for NOTIFY */
+    enum SsdpSearchType SearchType, 
+    /* [in] Search response address. Null and ignored for NOTIFY */
+    struct sockaddr *DestAddr,
+    /* [in] Search device type. Null and ignored for NOTIFY. */
+    char *DeviceType, 
+    /* [in] Device UDN. Null and ignored for NOTIFY. */
+    char *DeviceUDN, 
+    /* [in] Service type. Null and ignored for NOTIFY. */
+    char *ServiceType,
+    /* [in] Advertisement max-age or search response random delay base. */
+    int Exp);
 
 /*!
  * \brief Fills the fields of the event structure like DeviceType, Device UDN
@@ -151,11 +151,11 @@ int AdvertiseAndReply(
  * \return  0 if successful else -1.
  */
 int unique_service_name(
-	/* [in] Service Name string. */
-	const char *cmd,
-	/* [out] The SSDP event structure partially filled by all the
-	 * function. */
-	SsdpEntity *Evt);
+    /* [in] Service Name string. */
+    const char *cmd,
+    /* [out] The SSDP event structure partially filled by all the
+     * function. */
+    SsdpEntity *Evt);
 
 /*!
  * \brief This function figures out the type of the SSDP search in the in the
@@ -165,8 +165,8 @@ int unique_service_name(
  * else returns SSDP_ERROR
  */
 enum SsdpSearchType ssdp_request_type1(
-	/* [in] command came in the ssdp request. */
-	const char *cmd);
+    /* [in] command came in the ssdp request. */
+    const char *cmd);
 
 /*!
  * Interpret the NT or ST notification/Search type field in the parsed SSDP 
@@ -175,17 +175,17 @@ enum SsdpSearchType ssdp_request_type1(
  * \return 0 on success; -1 on error.
  */
 int ssdp_request_type(
-	/* [in] command came in the ssdp request. */
-	const char *cmd,
-	/* [out] The event structure partially filled by this function. */
-	SsdpEntity *Evt);
+    /* [in] command came in the ssdp request. */
+    const char *cmd,
+    /* [out] The event structure partially filled by this function. */
+    SsdpEntity *Evt);
 
 /*!
  * \brief This function reads the data from the ssdp socket.
  */
 void readFromSSDPSocket(
-	/* [in] SSDP socket. */
-	SOCKET socket);
+    /* [in] SSDP socket. */
+    SOCKET socket);
 
 /*!
  * \brief Creates the IPv4 and IPv6 ssdp sockets required by the
@@ -194,8 +194,8 @@ void readFromSSDPSocket(
  * \return UPNP_E_SUCCESS if successful else returns appropriate error.
  */
 int get_ssdp_sockets(
-	/* [out] Array of SSDP sockets. */
-	MiniServerSockArray *out);
+    /* [out] Array of SSDP sockets. */
+    MiniServerSockArray *out);
 
 
 /*!
@@ -210,14 +210,14 @@ int get_ssdp_sockets(
  * and bye byes.
  */
 void ssdp_handle_ctrlpt_msg(
-	/* [in] SSDP message from the device. */
-	SSDPPacketParser& parser,
-	/* [in] Address of the device. */
-	struct sockaddr_storage *dest_addr,
-	/* [in] Cookie stored by the control point application. This cookie will
-	 * be returned to the control point in the callback.
-	 * Only in search reply. */
-	void *cookie);
+    /* [in] SSDP message from the device. */
+    SSDPPacketParser& parser,
+    /* [in] Address of the device. */
+    struct sockaddr_storage *dest_addr,
+    /* [in] Cookie stored by the control point application. This cookie will
+     * be returned to the control point in the callback.
+     * Only in search reply. */
+    void *cookie);
 
 /*!
  * \brief Creates and send the search request for a specific URL.
@@ -237,13 +237,13 @@ void ssdp_handle_ctrlpt_msg(
  * \return 1 if successful else appropriate error.
  */
 int SearchByTarget(
-	/* [in] Number of seconds to wait, to collect all the responses. */
-	int Mx,
-	/* [in] Search target. */
-	char *St,
-	/* [in] Cookie provided by control point application. This cokie will
-	 * be returned to application in the callback. */
-	void *Cookie);
+    /* [in] Number of seconds to wait, to collect all the responses. */
+    int Mx,
+    /* [in] Search target. */
+    char *St,
+    /* [in] Cookie provided by control point application. This cokie will
+     * be returned to application in the callback. */
+    void *Cookie);
 
 /* @} SSDP Control Point Functions */
 
@@ -255,15 +255,15 @@ int SearchByTarget(
 #ifdef INCLUDE_DEVICE_APIS
 
 void ssdp_handle_device_request(
-	/* [in] . */
-	SSDPPacketParser& parser,
-	/* [in] . */
-	struct sockaddr_storage *dest_addr);
+    /* [in] . */
+    SSDPPacketParser& parser,
+    /* [in] . */
+    struct sockaddr_storage *dest_addr);
 
 #else /* INCLUDE_DEVICE_APIS */
 
 static UPNP_INLINE void ssdp_handle_device_request(
-	SSDPPacketParser&, struct sockaddr_storage *) {}
+    SSDPPacketParser&, struct sockaddr_storage *) {}
 
 #endif /* INCLUDE_DEVICE_APIS */
 

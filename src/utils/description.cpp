@@ -33,9 +33,9 @@ protected:
         // deviceList. Support both as it is unlikely that anybody
         // would use both for different purposes
         if (find_if(m_path.begin(), m_path.end(),
-					[] (const StackEl& el) {
-						return !stringlowercmp("devicelist", el.name);})
-			== m_path.end()) {
+                    [] (const StackEl& el) {
+                        return !stringlowercmp("devicelist", el.name);})
+            == m_path.end()) {
             dev = &m_device;
             ismain = true;
         } else {

@@ -53,47 +53,47 @@
 
 struct Notification;
 struct subscription {
-	Upnp_SID sid; /* char[44] in upnp.h */
-	int ToSendEventKey{0};
-	time_t expireTime{0};
-	int active{0};
-	std::vector<uri_type> DeliveryURLs;
-	/* List of queued events for this subscription. Only one event job
-	   at a time goes into the thread pool. The first element in the
-	   list is a copy of the active job. Others are activated on job
-	   completion. */
-	std::list<Notification*> outgoing;
+    Upnp_SID sid; /* char[44] in upnp.h */
+    int ToSendEventKey{0};
+    time_t expireTime{0};
+    int active{0};
+    std::vector<uri_type> DeliveryURLs;
+    /* List of queued events for this subscription. Only one event job
+       at a time goes into the thread pool. The first element in the
+       list is a copy of the active job. Others are activated on job
+       completion. */
+    std::list<Notification*> outgoing;
 
-	subscription() {};
-	~subscription();
-	subscription& operator=(const subscription&) = delete;
-	subscription(const subscription& rhs)  = delete;
+    subscription() {};
+    ~subscription();
+    subscription& operator=(const subscription&) = delete;
+    subscription(const subscription& rhs)  = delete;
 };
 
 extern void freeSubscriptionQueuedEvents(subscription *sub);
 
 struct service_info {
-	std::string	serviceType;
-	std::string	serviceId;
-	std::string	SCPDURL ;
-	std::string controlURL;
-	std::string	eventURL;
-	std::string	UDN;
-	int		active{0};
-	int		TotalSubscriptions{0};
-	std::list<subscription>	subscriptionList;
+    std::string    serviceType;
+    std::string    serviceId;
+    std::string    SCPDURL ;
+    std::string controlURL;
+    std::string    eventURL;
+    std::string    UDN;
+    int        active{0};
+    int        TotalSubscriptions{0};
+    std::list<subscription>    subscriptionList;
 
-	service_info() {}
-	service_info& operator=(const service_info&) = delete;
-	service_info(const service_info& rhs)  = delete;
+    service_info() {}
+    service_info& operator=(const service_info&) = delete;
+    service_info(const service_info& rhs)  = delete;
 };
 
 struct service_table {
-	std::list<service_info> serviceList;
+    std::list<service_info> serviceList;
 
-	service_table() {}
-	service_table& operator=(const service_table&) = delete;
-	service_table(const service_table& rhs)  = delete;
+    service_table() {}
+    service_table& operator=(const service_table&) = delete;
+    service_table(const service_table& rhs)  = delete;
 };
 
 /* Functions for Subscriptions */
@@ -104,20 +104,20 @@ struct service_table {
  * \return UPNP_E_SUCCESS on success.
  */
 int copy_subscription(
-	/*! [in] Source subscription. */
-	subscription *in,
-	/*! [in] Destination subscription. */
-	subscription *out);
+    /*! [in] Source subscription. */
+    subscription *in,
+    /*! [in] Destination subscription. */
+    subscription *out);
 
 /*
  * \brief Remove the subscription represented by the const Upnp_SID sid parameter
  * from the service table and update the service table.
  */
 void RemoveSubscriptionSID(
-	/*! [in] Subscription ID. */
-	Upnp_SID sid,
-	/*! [in] Service object providing the list of subscriptions. */
-	service_info *service);
+    /*! [in] Subscription ID. */
+    Upnp_SID sid,
+    /*! [in] Service object providing the list of subscriptions. */
+    service_info *service);
 
 /*!
  * \brief Return the subscription from the service table that matches
@@ -126,10 +126,10 @@ void RemoveSubscriptionSID(
  * \return Pointer to the matching subscription node.
  */
 subscription *GetSubscriptionSID(
-	/*! [in] Subscription ID. */
-	const Upnp_SID sid,
-	/*! [in] Service object providing the list of subscriptions. */
-	service_info *service); 
+    /*! [in] Subscription ID. */
+    const Upnp_SID sid,
+    /*! [in] Service object providing the list of subscriptions. */
+    service_info *service); 
 
 /*!
  * \brief Gets pointer to the first subscription node in the service table.
@@ -137,8 +137,8 @@ subscription *GetSubscriptionSID(
  * \return Pointer to the first subscription node.
  */
 std::list<subscription>::iterator GetFirstSubscription(
-	/*! [in] Service object providing the list of subscriptions. */
-	service_info *service);
+    /*! [in] Service object providing the list of subscriptions. */
+    service_info *service);
 
 /*!
  * \brief Get current and valid subscription from the service table.
@@ -147,8 +147,8 @@ std::list<subscription>::iterator GetFirstSubscription(
  */
 
 std::list<subscription>::iterator GetNextSubscription(
-	service_info *service, std::list<subscription>::iterator current,
-	bool getfirst = false);
+    service_info *service, std::list<subscription>::iterator current,
+    bool getfirst = false);
 
 /*!
  * \brief Traverses through the service table and returns a pointer to the
@@ -157,14 +157,14 @@ std::list<subscription>::iterator GetNextSubscription(
  * \return Pointer to the matching service_info node.
  */
 service_info *FindServiceId(
-	/*! [in] Service table. */
-	service_table *table, 
-	/*! [in] String representing the service id to be found among those
-	 * in the table. */
-	const std::string& serviceId,
-	/*! [in] String representing the UDN to be found among those in the
-	 * table. */
-	const std::string& UDN);
+    /*! [in] Service table. */
+    service_table *table, 
+    /*! [in] String representing the service id to be found among those
+     * in the table. */
+    const std::string& serviceId,
+    /*! [in] String representing the UDN to be found among those in the
+     * table. */
+    const std::string& UDN);
 
 /*!
  * \brief Traverses the service table and finds the node whose event URL Path
@@ -174,10 +174,10 @@ service_info *FindServiceId(
  * URL matches a known event URL.
  */
 service_info *FindServiceEventURLPath(
-	/*! [in] Service table. */
-	service_table *table,
-	/*! [in] Event URL path used to find a service from the table. */
-	const std::string& eventURLPath);
+    /*! [in] Service table. */
+    service_table *table,
+    /*! [in] Event URL path used to find a service from the table. */
+    const std::string& eventURLPath);
 
 /*!
  * \brief Traverses the service table and finds the node whose control URL Path
@@ -187,10 +187,10 @@ service_info *FindServiceEventURLPath(
  * URL Path matches a known value.
  */
 service_info * FindServiceControlURLPath(
-	/*! [in] Service table. */
-	service_table *table,
-	/*! [in] Control URL path used to find a service from the table. */
-	const std::string& controlURLPath);
+    /*! [in] Service table. */
+    service_table *table,
+    /*! [in] Control URL path used to find a service from the table. */
+    const std::string& controlURLPath);
 
 /*!
  * \brief For debugging purposes prints information from the service passed
@@ -198,22 +198,22 @@ service_info * FindServiceControlURLPath(
  */
 #ifdef DEBUG
 void printService(
-	/*! [in] Service whose information is to be printed. */
-	service_info *service,
-	/*! [in] Debug level specified to the print function. */
-	Upnp_LogLevel level,
-	/*! [in] Debug module specified to the print function. */
-	Dbg_Module module);
+    /*! [in] Service whose information is to be printed. */
+    service_info *service,
+    /*! [in] Debug level specified to the print function. */
+    Upnp_LogLevel level,
+    /*! [in] Debug module specified to the print function. */
+    Dbg_Module module);
 #else
 static UPNP_INLINE void printService(
-	service_info *service,
-	Upnp_LogLevel level,
-	Dbg_Module module)
+    service_info *service,
+    Upnp_LogLevel level,
+    Dbg_Module module)
 {
-	return;
-	service = service;
-	level = level;
-	module = module;
+    return;
+    service = service;
+    level = level;
+    module = module;
 }
 #endif
 
@@ -223,22 +223,22 @@ static UPNP_INLINE void printService(
  */
 #ifdef DEBUG
 void printServiceList(
-	/*! [in] Service whose information is to be printed. */
-	service_info *service,
-	/*! [in] Debug level specified to the print function. */
-	Upnp_LogLevel level,
-	/*! [in] Debug module specified to the print function. */
-	Dbg_Module module);
+    /*! [in] Service whose information is to be printed. */
+    service_info *service,
+    /*! [in] Debug level specified to the print function. */
+    Upnp_LogLevel level,
+    /*! [in] Debug module specified to the print function. */
+    Dbg_Module module);
 #else
 static UPNP_INLINE void printServiceList(
-	service_info *service,
-	Upnp_LogLevel level,
-	Dbg_Module module)
+    service_info *service,
+    Upnp_LogLevel level,
+    Dbg_Module module)
 {
-	return;
-	service = service;
-	level = level;
-	module = module;
+    return;
+    service = service;
+    level = level;
+    module = module;
 }
 #endif
 
@@ -248,22 +248,22 @@ static UPNP_INLINE void printServiceList(
  */
 #ifdef DEBUG
 void printServiceTable(
-	/*! [in] Service table to be printed. */
-	service_table *table,
-	/*! [in] Debug level specified to the print function. */
-	Upnp_LogLevel level,
-	/*! [in] Debug module specified to the print function. */
-	Dbg_Module module);
+    /*! [in] Service table to be printed. */
+    service_table *table,
+    /*! [in] Debug level specified to the print function. */
+    Upnp_LogLevel level,
+    /*! [in] Debug module specified to the print function. */
+    Dbg_Module module);
 #else
 static UPNP_INLINE void printServiceTable(
-	service_table *table,
-	Upnp_LogLevel level,
-	Dbg_Module module)
+    service_table *table,
+    Upnp_LogLevel level,
+    Dbg_Module module)
 {
-	return;
-	table = table;
-	level = level;
-	module = module;
+    return;
+    table = table;
+    level = level;
+    module = module;
 }
 #endif
 
@@ -272,8 +272,8 @@ static UPNP_INLINE void printServiceTable(
  * within the structure).
  */
 void freeServiceTable(
-	/*! [in] Service table whose internal memory needs to be freed. */
-	service_table *table);
+    /*! [in] Service table whose internal memory needs to be freed. */
+    service_table *table);
 
 /*!
  * \brief Retrieve service from the table.
@@ -281,9 +281,9 @@ void freeServiceTable(
  * \return An integer
  */
 int initServiceTable(
-	const UPnPDeviceDesc& devdesc,
-	/*! [in] Output parameter which will contain the service list and URL. */
-	service_table *out);
+    const UPnPDeviceDesc& devdesc,
+    /*! [in] Output parameter which will contain the service list and URL. */
+    service_table *out);
 
 #endif /* INCLUDE_DEVICE_APIS */
 

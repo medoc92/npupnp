@@ -16,9 +16,9 @@
 /*! Structure to contain Discovery response. */
 typedef struct resultData
 {
-	struct Upnp_Discovery param;
-	void *cookie;
-	Upnp_FunPtr ctrlpt_callback;
+    struct Upnp_Discovery param;
+    void *cookie;
+    Upnp_FunPtr ctrlpt_callback;
 } ResultData;
 
 /* @} SSDPlib */

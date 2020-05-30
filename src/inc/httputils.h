@@ -41,21 +41,21 @@
 struct uri_type;
 
 /*! timeout in secs. */
-#define HTTP_DEFAULT_TIMEOUT	30
+#define HTTP_DEFAULT_TIMEOUT    30
 
 /* method in a HTTP request. */
 typedef enum {
-	HTTPMETHOD_POST, 
-	HTTPMETHOD_MPOST, 
-	HTTPMETHOD_SUBSCRIBE, 
-	HTTPMETHOD_UNSUBSCRIBE, 
-	HTTPMETHOD_NOTIFY, 
-	HTTPMETHOD_GET,
-	HTTPMETHOD_HEAD, 
-	HTTPMETHOD_MSEARCH, 
-	HTTPMETHOD_UNKNOWN,
-	SOAPMETHOD_POST,
-	HTTPMETHOD_SIMPLEGET
+    HTTPMETHOD_POST, 
+    HTTPMETHOD_MPOST, 
+    HTTPMETHOD_SUBSCRIBE, 
+    HTTPMETHOD_UNSUBSCRIBE, 
+    HTTPMETHOD_NOTIFY, 
+    HTTPMETHOD_GET,
+    HTTPMETHOD_HEAD, 
+    HTTPMETHOD_MSEARCH, 
+    HTTPMETHOD_UNKNOWN,
+    SOAPMETHOD_POST,
+    HTTPMETHOD_SIMPLEGET
 } http_method_t;
 
 /* Translate method name to numeric. Methname must be uppercase */
@@ -70,79 +70,79 @@ std::string query_encode(const std::string& qs);
 /* Context for a microhttpd request/response */
 struct MHDTransaction {
 public:
-	struct MHD_Connection *conn{nullptr};
-	struct sockaddr_storage *client_address;
-	std::string url;
-	http_method_t method;
-	std::string version;
-	std::map<std::string, std::string> headers;
-	std::map<std::string, std::string> queryvalues;
-	std::string postdata;
-	/* Set by callback */
-	struct MHD_Response *response{nullptr};
-	int httpstatus;
+    struct MHD_Connection *conn{nullptr};
+    struct sockaddr_storage *client_address;
+    std::string url;
+    http_method_t method;
+    std::string version;
+    std::map<std::string, std::string> headers;
+    std::map<std::string, std::string> queryvalues;
+    std::string postdata;
+    /* Set by callback */
+    struct MHD_Response *response{nullptr};
+    int httpstatus;
 
-	~MHDTransaction() {
-	}
-	void copyClientAddress(struct sockaddr_storage *dest) const;
-	// Returns false if header not found, else copies it
-	bool copyHeader(const std::string& name, std::string& value);
+    ~MHDTransaction() {
+    }
+    void copyClientAddress(struct sockaddr_storage *dest) const;
+    // Returns false if header not found, else copies it
+    bool copyHeader(const std::string& name, std::string& value);
 };
 
 /* different types of HTTP headers */
-#define HDR_UNKNOWN			-1
-#define HDR_CACHE_CONTROL		1
-#define HDR_CALLBACK			2
-#define HDR_CONTENT_LENGTH		3
-#define HDR_CONTENT_TYPE		4
-#define HDR_DATE			5
-#define HDR_EXT				6
-#define HDR_HOST			7
-/*define HDR_IF_MODIFIED_SINCE		8 */
-/*define HDR_IF_UNMODIFIED_SINCE	9 */
-/*define HDR_LAST_MODIFIED		10 */
-#define HDR_LOCATION			11
-#define HDR_MAN				12
-#define HDR_MX				13
-#define HDR_NT				14
-#define HDR_NTS				15
-#define HDR_SERVER			16
-#define HDR_SEQ				17
-#define HDR_SID				18
-#define HDR_SOAPACTION			19
-#define HDR_ST				20
-#define HDR_TIMEOUT			21
-#define HDR_TRANSFER_ENCODING		22
-#define HDR_USN				23
-#define HDR_USER_AGENT			24
+#define HDR_UNKNOWN            -1
+#define HDR_CACHE_CONTROL        1
+#define HDR_CALLBACK            2
+#define HDR_CONTENT_LENGTH        3
+#define HDR_CONTENT_TYPE        4
+#define HDR_DATE            5
+#define HDR_EXT                6
+#define HDR_HOST            7
+/*define HDR_IF_MODIFIED_SINCE        8 */
+/*define HDR_IF_UNMODIFIED_SINCE    9 */
+/*define HDR_LAST_MODIFIED        10 */
+#define HDR_LOCATION            11
+#define HDR_MAN                12
+#define HDR_MX                13
+#define HDR_NT                14
+#define HDR_NTS                15
+#define HDR_SERVER            16
+#define HDR_SEQ                17
+#define HDR_SID                18
+#define HDR_SOAPACTION            19
+#define HDR_ST                20
+#define HDR_TIMEOUT            21
+#define HDR_TRANSFER_ENCODING        22
+#define HDR_USN                23
+#define HDR_USER_AGENT            24
 
 /* Adding new header difinition */
-#define HDR_ACCEPT			25
-#define HDR_ACCEPT_ENCODING		26
-#define HDR_ACCEPT_CHARSET		27
-#define HDR_ACCEPT_LANGUAGE		28
-#define HDR_ACCEPT_RANGE		29
-#define HDR_CONTENT_ENCODING		30
-#define HDR_CONTENT_LANGUAGE		31
-#define HDR_CONTENT_LOCATION		32
-#define HDR_CONTENT_RANGE		33
-#define HDR_IF_RANGE			34
-#define HDR_RANGE			35
-#define HDR_TE				36
+#define HDR_ACCEPT            25
+#define HDR_ACCEPT_ENCODING        26
+#define HDR_ACCEPT_CHARSET        27
+#define HDR_ACCEPT_LANGUAGE        28
+#define HDR_ACCEPT_RANGE        29
+#define HDR_CONTENT_ENCODING        30
+#define HDR_CONTENT_LANGUAGE        31
+#define HDR_CONTENT_LOCATION        32
+#define HDR_CONTENT_RANGE        33
+#define HDR_IF_RANGE            34
+#define HDR_RANGE            35
+#define HDR_TE                36
 
 
 /*!
  * \brief Parse and validate URL.
  *
  * \return
- * 	\li \c UPNP_E_INVALID_URL
- * 	\li \c UPNP_E_SUCCESS
+ *     \li \c UPNP_E_INVALID_URL
+ *     \li \c UPNP_E_SUCCESS
  */
 int http_FixStrUrl(const std::string& url, uri_type *fixed_url);
 
 /* Download and store in memory the document designated by the input url */
 int http_Download(const char *url, int timeout_secs, char** document,
-				  size_t *doc_length, char* content_type);
+                  size_t *doc_length, char* content_type);
 
 /** CURL: callback function to accumulate curl response headers in a map<s:s> */
 extern size_t header_callback_curl(char *buf, size_t size, size_t nitems, void *s);
@@ -162,7 +162,7 @@ bool has_xml_content_type(MHDTransaction *);
 
 /* Check for TIMEOUT header and return value (used both with curl and mhd) */
 bool timeout_header_value(std::map<std::string,std::string>& headers,
-						  int *time_out);
+                          int *time_out);
 
 /* Produce HTTP date string */
 extern std::string make_date_string(time_t thetime);

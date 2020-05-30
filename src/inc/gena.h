@@ -91,23 +91,23 @@ extern std::mutex GlobalClientSubscribeMutex;
  * \brief Locks the subscription.
  */
 #define SubscribeLock() \
-	UpnpPrintf(UPNP_ALL, GENA, __FILE__, __LINE__,"Trying Subscribe Lock\n"); \
-	GlobalClientSubscribeMutex.lock();									\
-	UpnpPrintf(UPNP_ALL, GENA, __FILE__, __LINE__, "Subscribe Lock\n");
+    UpnpPrintf(UPNP_ALL, GENA, __FILE__, __LINE__,"Trying Subscribe Lock\n"); \
+    GlobalClientSubscribeMutex.lock();                                    \
+    UpnpPrintf(UPNP_ALL, GENA, __FILE__, __LINE__, "Subscribe Lock\n");
 
 
 /*!
  * \brief Unlocks the subscription.
  */
 #define SubscribeUnlock() \
-	UpnpPrintf(UPNP_ALL, GENA, __FILE__,__LINE__,"Trying Subscribe UnLock\n"); \
-	GlobalClientSubscribeMutex.unlock();								\
-	UpnpPrintf(UPNP_ALL, GENA, __FILE__, __LINE__, "Subscribe UnLock\n");
+    UpnpPrintf(UPNP_ALL, GENA, __FILE__,__LINE__,"Trying Subscribe UnLock\n"); \
+    GlobalClientSubscribeMutex.unlock();                                \
+    UpnpPrintf(UPNP_ALL, GENA, __FILE__, __LINE__, "Subscribe UnLock\n");
 
 
 /*!
  * \brief This is the callback function called by the miniserver to handle
- *	incoming GENA requests.
+ *    incoming GENA requests.
  */
 extern void genaCallback(MHDTransaction *);
  
@@ -119,21 +119,21 @@ extern void genaCallback(MHDTransaction *);
  * Subscription to the clients subscription list, if service responds with OK.
  *
  * \return UPNP_E_SUCCESS if service response is OK, otherwise returns the 
- *	appropriate error code
+ *    appropriate error code
  */
 #ifdef INCLUDE_CLIENT_APIS
 extern int genaSubscribe(
-	/*! [in] The client handle. */
-	UpnpClient_Handle client_handle,
-	/*! [in] Of the form: "http://134.134.156.80:4000/RedBulb/Event */
-	const std::string& PublisherURL,
-	/*! [in,out] requested Duration:
-	 * \li if -1, then "infinite".
-	 * \li in the OUT case: actual Duration granted by Service,
-	 * 	-1 for infinite. */
-	int *TimeOut,
-	/*! [out] sid of subscription, memory passed in by caller. */
-	std::string *out_sid);
+    /*! [in] The client handle. */
+    UpnpClient_Handle client_handle,
+    /*! [in] Of the form: "http://134.134.156.80:4000/RedBulb/Event */
+    const std::string& PublisherURL,
+    /*! [in,out] requested Duration:
+     * \li if -1, then "infinite".
+     * \li in the OUT case: actual Duration granted by Service,
+     *     -1 for infinite. */
+    int *TimeOut,
+    /*! [out] sid of subscription, memory passed in by caller. */
+    std::string *out_sid);
 #endif /* INCLUDE_CLIENT_APIS */
 
 
@@ -145,30 +145,30 @@ extern int genaSubscribe(
  * the subscription.
  *
  * \return UPNP_E_SUCCESS if service response is OK, otherwise returns the
- * 	appropriate error code.
+ *     appropriate error code.
  */
 #ifdef INCLUDE_CLIENT_APIS
 extern int genaUnSubscribe(
-	/*! [in] UPnP client handle. */
-	UpnpClient_Handle client_handle,
-	/*! [in] The subscription ID. */
-	const std::string& in_sid);
+    /*! [in] UPnP client handle. */
+    UpnpClient_Handle client_handle,
+    /*! [in] The subscription ID. */
+    const std::string& in_sid);
 #endif /* INCLUDE_CLIENT_APIS */
 
 
 /*!
  * \brief Unsubcribes all the outstanding subscriptions and cleans the
- * 	subscription list.
+ *     subscription list.
  *
  * This function is called when control point unregisters.
  *
  * \returns UPNP_E_SUCCESS if successful, otherwise returns the appropriate
- * 	error code.
+ *     error code.
  */
 #ifdef INCLUDE_CLIENT_APIS
 extern int genaUnregisterClient(
-	/*! [in] Handle containing all the control point related information. */
-	UpnpClient_Handle client_handle);
+    /*! [in] Handle containing all the control point related information. */
+    UpnpClient_Handle client_handle);
 #endif /* INCLUDE_CLIENT_APIS */
 
 
@@ -184,8 +184,8 @@ extern int genaUnregisterClient(
  */
 #ifdef INCLUDE_DEVICE_APIS
 extern int genaUnregisterDevice(
- 	/*! [in] Handle of the root device */
-	UpnpDevice_Handle device_handle);
+     /*! [in] Handle of the root device */
+    UpnpDevice_Handle device_handle);
 #endif /* INCLUDE_CLIENT_APIS */
 
 
@@ -197,17 +197,17 @@ extern int genaUnregisterDevice(
  * the response.
  *
  * \return UPNP_E_SUCCESS if service response is OK, otherwise the
- * 	appropriate error code.
+ *     appropriate error code.
  */
 #ifdef INCLUDE_CLIENT_APIS
 extern int genaRenewSubscription(
-	/*! [in] Client handle. */
-	UpnpClient_Handle client_handle,
-	/*! [in] Subscription ID. */
-	const std::string& in_sid,
-	/*! [in,out] requested Duration, if -1, then "infinite". In the OUT case:
-	 * actual Duration granted by Service, -1 for infinite. */
-	int *TimeOut);
+    /*! [in] Client handle. */
+    UpnpClient_Handle client_handle,
+    /*! [in] Subscription ID. */
+    const std::string& in_sid,
+    /*! [in,out] requested Duration, if -1, then "infinite". In the OUT case:
+     * actual Duration granted by Service, -1 for infinite. */
+    int *TimeOut);
 #endif /* INCLUDE_CLIENT_APIS */
 
 
@@ -217,30 +217,30 @@ extern int genaRenewSubscription(
  * \return int
  *
  * \note This function is similar to the genaNotifyAllExt. The only difference
- *	is it takes event variable array instead of xml document.
+ *    is it takes event variable array instead of xml document.
  */
 #ifdef INCLUDE_DEVICE_APIS
 extern int genaNotifyAll(
-	/*! [in] Device handle. */
-	UpnpDevice_Handle device_handle,
-	/*! [in] Device udn. */
-	char *UDN,
-	/*! [in] Service ID. */
-	char *servId,
-	/*! [in] Array of varible names. */
-	char **VarNames,
-	/*! [in] Array of variable values. */
-	char **VarValues,
-	/*! [in] Number of variables. */
-	int var_count);
+    /*! [in] Device handle. */
+    UpnpDevice_Handle device_handle,
+    /*! [in] Device udn. */
+    char *UDN,
+    /*! [in] Service ID. */
+    char *servId,
+    /*! [in] Array of varible names. */
+    char **VarNames,
+    /*! [in] Array of variable values. */
+    char **VarValues,
+    /*! [in] Number of variables. */
+    int var_count);
 extern int genaNotifyAllXML(
-	/*! [in] Device handle. */
-	UpnpDevice_Handle device_handle,
-	/*! [in] Device udn. */
-	char *UDN,
-	/*! [in] Service ID. */
-	char *servId,
-	const std::string& propertySet);
+    /*! [in] Device handle. */
+    UpnpDevice_Handle device_handle,
+    /*! [in] Device udn. */
+    char *UDN,
+    /*! [in] Service ID. */
+    char *servId,
+    const std::string& propertySet);
 
 
 /*!
@@ -249,34 +249,34 @@ extern int genaNotifyAllXML(
  * \return GENA_E_SUCCESS if successful, otherwise the appropriate error code.
  * 
  * \note  No other event will be sent to this control point before the 
- *	intial state table dump.
+ *    intial state table dump.
  */
 extern int genaInitNotifyXML(
-	/*! [in] Device handle. */
-	UpnpDevice_Handle device_handle,
-	/*! [in] Device udn. */
-	char *UDN,
-	/*! [in] Service ID. */
-	char *servId,
-	const std::string& propertyset,
-	/*! [in] Subscription ID. */
-	const Upnp_SID sid);
+    /*! [in] Device handle. */
+    UpnpDevice_Handle device_handle,
+    /*! [in] Device udn. */
+    char *UDN,
+    /*! [in] Service ID. */
+    char *servId,
+    const std::string& propertyset,
+    /*! [in] Subscription ID. */
+    const Upnp_SID sid);
 
 extern int genaInitNotifyVars(
-	/*! [in] Device handle. */
-	UpnpDevice_Handle device_handle,
-	/*! [in] Device udn. */
-	char *UDN,
-	/*! [in] Service ID. */
-	char *servId,
-	/*! [in] Array of variable names. */
-	char **VarNames,
-	/*! [in] Array of variable values. */
-	char **VarValues,
-	/*! [in] Array size. */
-	int var_count,
-	/*! [in] Subscription ID. */
-	const Upnp_SID sid);
+    /*! [in] Device handle. */
+    UpnpDevice_Handle device_handle,
+    /*! [in] Device udn. */
+    char *UDN,
+    /*! [in] Service ID. */
+    char *servId,
+    /*! [in] Array of variable names. */
+    char **VarNames,
+    /*! [in] Array of variable values. */
+    char **VarValues,
+    /*! [in] Array size. */
+    int var_count,
+    /*! [in] Subscription ID. */
+    const Upnp_SID sid);
 
 #endif /* INCLUDE_DEVICE_APIS */
 

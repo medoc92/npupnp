@@ -33,42 +33,42 @@
 #define FREE_LIST_H
 
 #include <vector>
-	
+    
 template <class T> class FreeList {
 public:
-	FreeList(int maxlen)
-		: maxFreeListLength(maxlen) {}
-	~FreeList() {
-		for (auto& entry : lst) {
-			delete entry;
-		}
-	}
-	void clear() {
-		for (auto& elt : lst) {
-			delete elt;
-		}
-		lst.clear();
-	}
-	T *flalloc() {
-		if (lst.empty()) {
-			return new T;
-		} else {
-			auto elt = lst.back();
-			lst.pop_back();
-			return elt;
-		}
-	}
-	void flfree(T *elt) {
-		if ((int)lst.size() >= maxFreeListLength) {
-			delete elt;
-		} else {
-			lst.push_back(elt);
-		}
-	}
-	
+    FreeList(int maxlen)
+        : maxFreeListLength(maxlen) {}
+    ~FreeList() {
+        for (auto& entry : lst) {
+            delete entry;
+        }
+    }
+    void clear() {
+        for (auto& elt : lst) {
+            delete elt;
+        }
+        lst.clear();
+    }
+    T *flalloc() {
+        if (lst.empty()) {
+            return new T;
+        } else {
+            auto elt = lst.back();
+            lst.pop_back();
+            return elt;
+        }
+    }
+    void flfree(T *elt) {
+        if ((int)lst.size() >= maxFreeListLength) {
+            delete elt;
+        } else {
+            lst.push_back(elt);
+        }
+    }
+    
 private:
- 	int maxFreeListLength;
-	std::vector<T*> lst;
+     int maxFreeListLength;
+    std::vector<T*> lst;
 };
 
 #endif /* FREE_LIST_H */

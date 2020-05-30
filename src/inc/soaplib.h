@@ -45,15 +45,15 @@ struct MHDTransaction;
 void soap_device_callback(MHDTransaction*);
 
 int SoapSendAction(
-	const std::string& xml_header_str,
-	const std::string& actionURL,
-	const std::string& serviceType,
-	const std::string& actionName,
-	const std::vector<std::pair<std::string, std::string>>& actionArgs,
-	std::vector<std::pair<std::string, std::string>>& respdata,
-	int *errcodep,
-	std::string&  errdesc
-	);
+    const std::string& xml_header_str,
+    const std::string& actionURL,
+    const std::string& serviceType,
+    const std::string& actionName,
+    const std::vector<std::pair<std::string, std::string>>& actionArgs,
+    std::vector<std::pair<std::string, std::string>>& respdata,
+    int *errcodep,
+    std::string&  errdesc
+    );
 
 #endif /* SOAPLIB_H */
 

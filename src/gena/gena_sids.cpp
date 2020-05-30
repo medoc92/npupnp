@@ -51,56 +51,56 @@ static std::mutex uuid_mutex;
 // address, if possible, random number else.
 std::string gena_sid_uuid()
 {
-	std::lock_guard<std::mutex> mylock(uuid_mutex);
+    std::lock_guard<std::mutex> mylock(uuid_mutex);
 
     auto now = std::chrono::high_resolution_clock::now();
-	int64_t tp = now.time_since_epoch().count();
+    int64_t tp = now.time_since_epoch().count();
 
-	static int counter;
-	counter++;
+    static int counter;
+    counter++;
 
-	static std::string hwaddr;
-	if (hwaddr.empty()) {
-		NetIF::Interfaces *ifs = NetIF::Interfaces::theInterfaces();
-		NetIF::Interfaces::Filter
-			filt{.needs={NetIF::Interface::Flags::HASHWADDR,
-						 NetIF::Interface::Flags::HASIPV4},
-				 .rejects={NetIF::Interface::Flags::LOOPBACK}
-		};
-		auto selected = ifs->select(filt);
-		for (const auto& entry : selected) {
-			hwaddr = entry.gethexhwaddr();
-			if (!hwaddr.empty()) {
-				break;
-			}
-		}
-		if (hwaddr.empty()) {
-			srand(static_cast<unsigned int>(tp & 0xffffffff));
-			int randval = rand();
-			char buf[40];
-			snprintf(buf, 40, "%d", randval);
-			hwaddr = buf;
-		}
-	}
+    static std::string hwaddr;
+    if (hwaddr.empty()) {
+        NetIF::Interfaces *ifs = NetIF::Interfaces::theInterfaces();
+        NetIF::Interfaces::Filter
+            filt{.needs={NetIF::Interface::Flags::HASHWADDR,
+                         NetIF::Interface::Flags::HASIPV4},
+                 .rejects={NetIF::Interface::Flags::LOOPBACK}
+        };
+        auto selected = ifs->select(filt);
+        for (const auto& entry : selected) {
+            hwaddr = entry.gethexhwaddr();
+            if (!hwaddr.empty()) {
+                break;
+            }
+        }
+        if (hwaddr.empty()) {
+            srand(static_cast<unsigned int>(tp & 0xffffffff));
+            int randval = rand();
+            char buf[40];
+            snprintf(buf, 40, "%d", randval);
+            hwaddr = buf;
+        }
+    }
 
-	std::ostringstream str;
-	str << tp << getpid() << counter << hwaddr;
+    std::ostringstream str;
+    str << tp << getpid() << counter << hwaddr;
 
-	MD5_CTX c;
-	unsigned char hash[16];
-	MD5Init(&c);
-	MD5Update(&c, (unsigned char *)str.str().c_str(), str.str().size());
-	MD5Final(hash, &c);
+    MD5_CTX c;
+    unsigned char hash[16];
+    MD5Init(&c);
+    MD5Update(&c, (unsigned char *)str.str().c_str(), str.str().size());
+    MD5Final(hash, &c);
 
-	std::string out;
+    std::string out;
     out.reserve(37);
     static const char hex[]="0123456789abcdef";
     for (int i = 0; i < 16; i++) {
-		out.append(1, hex[hash[i] >> 4]);
-		out.append(1, hex[hash[i] & 0x0f]);
-		if (i==3 || i == 5 || i == 7 || i == 9) {
-			out.append("-");
-		}
+        out.append(1, hex[hash[i] >> 4]);
+        out.append(1, hex[hash[i] & 0x0f]);
+        if (i==3 || i == 5 || i == 7 || i == 9) {
+            out.append("-");
+        }
     }
     return out;
 }

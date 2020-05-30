@@ -40,41 +40,41 @@
 #include <algorithm>
 
 void RemoveClientSubClientSID(std::list<ClientSubscription>& lst,
-							  const std::string& sid)
+                              const std::string& sid)
 {
-	for (auto it = lst.begin(); it != lst.end();) {
-		if (it->SID == sid) {
-			it = lst.erase(it);
-		} else {
-			it++;
-		}
-	}
+    for (auto it = lst.begin(); it != lst.end();) {
+        if (it->SID == sid) {
+            it = lst.erase(it);
+        } else {
+            it++;
+        }
+    }
 }
 
 ClientSubscription *GetClientSubClientSID(
-	std::list<ClientSubscription>& lst, const std::string& sid)
+    std::list<ClientSubscription>& lst, const std::string& sid)
 {
-	if (lst.empty()) {
-		return nullptr;
-	}
-	auto i = std::find_if(lst.begin(), lst.end(),
-						  [&](const ClientSubscription &entry) {
-							  return entry.SID == sid;});
-	return i == lst.end() ? nullptr : &(*i);
+    if (lst.empty()) {
+        return nullptr;
+    }
+    auto i = std::find_if(lst.begin(), lst.end(),
+                          [&](const ClientSubscription &entry) {
+                              return entry.SID == sid;});
+    return i == lst.end() ? nullptr : &(*i);
 }
 
 #include <iostream>
 
 ClientSubscription *GetClientSubActualSID(
-	std::list<ClientSubscription>& lst, const std::string& sid)
+    std::list<ClientSubscription>& lst, const std::string& sid)
 {
-	if (lst.empty()) {
-		return nullptr;
-	}
-	auto i = std::find_if(lst.begin(), lst.end(),
-						  [&](const ClientSubscription &entry) {
-							  return entry.actualSID == sid;});
-	return i == lst.end() ? nullptr : &(*i);
+    if (lst.empty()) {
+        return nullptr;
+    }
+    auto i = std::find_if(lst.begin(), lst.end(),
+                          [&](const ClientSubscription &entry) {
+                              return entry.actualSID == sid;});
+    return i == lst.end() ? nullptr : &(*i);
 }
 
 #endif /* EXCLUDE_GENA */

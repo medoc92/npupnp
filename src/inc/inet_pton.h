@@ -23,7 +23,7 @@
  * \brief convert a network format address to presentation format.
  *
  * \return
- *	pointer to presentation format address (`dst'), or NULL (see errno).
+ *    pointer to presentation format address (`dst'), or NULL (see errno).
  */
 extern const char *inet_ntop(int af, const void *src, char *dst, socklen_t size);
 
@@ -32,9 +32,9 @@ extern const char *inet_ntop(int af, const void *src, char *dst, socklen_t size)
  * to network format (which is usually some kind of binary format).
  *
  * \return
- *	\li 1 if the address was valid for the specified address family
- *	\li 0 if the address wasn't valid (`dst' is untouched in this case)
- *	\li -1 if some other error occurred (`dst' is untouched in this case, too)
+ *    \li 1 if the address was valid for the specified address family
+ *    \li 0 if the address wasn't valid (`dst' is untouched in this case)
+ *    \li -1 if some other error occurred (`dst' is untouched in this case, too)
  */
 extern int inet_pton(int af, const char *src, void *dst);
 

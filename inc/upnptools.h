@@ -49,7 +49,7 @@
  */
 
 
-#include "upnpconfig.h"	/* for UPNP_HAVE_TOOLS */
+#include "upnpconfig.h"    /* for UPNP_HAVE_TOOLS */
 
 /* Function declarations only if tools compiled into the library */
 #if UPNP_HAVE_TOOLS
@@ -65,11 +65,11 @@ extern "C" {
  * display. The memory returned from this function should NOT be freed.
  *
  * \return An ASCII text string representation of the error message associated
- * 	with the error code or the string "Unknown error code"
+ *     with the error code or the string "Unknown error code"
  */
 EXPORT_SPEC const char *UpnpGetErrorMessage(
-	/*! [in] The SDK error code to convert. */
-	int rc);
+    /*! [in] The SDK error code to convert. */
+    int rc);
 
 
 /*!
@@ -79,20 +79,20 @@ EXPORT_SPEC const char *UpnpGetErrorMessage(
  * be large enough to hold the \b BaseURL and \b RelURL combined.
  *
  * \return An integer representing one of the following:
- *	\li <tt>UPNP_E_SUCCESS</tt>: The operation completed successfully.
- *	\li <tt>UPNP_E_INVALID_PARAM</tt>: \b RelURL is <tt>NULL</tt>.
- *	\li <tt>UPNP_E_INVALID_URL</tt>: The \b BaseURL / \b RelURL 
+ *    \li <tt>UPNP_E_SUCCESS</tt>: The operation completed successfully.
+ *    \li <tt>UPNP_E_INVALID_PARAM</tt>: \b RelURL is <tt>NULL</tt>.
+ *    \li <tt>UPNP_E_INVALID_URL</tt>: The \b BaseURL / \b RelURL 
  *              combination does not form a valid URL.
- *	\li <tt>UPNP_E_OUTOF_MEMORY</tt>: Insufficient resources exist to 
+ *    \li <tt>UPNP_E_OUTOF_MEMORY</tt>: Insufficient resources exist to 
  *              complete this operation.
  */
 EXPORT_SPEC int UpnpResolveURL(
-	/*! [in] The base URL to combine. */
-	const char *BaseURL,
-	/*! [in] The relative URL to \b BaseURL. */
-	const char *RelURL,
-	/*! [out] A pointer to a buffer to store the absolute URL. */
-	char *AbsURL);
+    /*! [in] The base URL to combine. */
+    const char *BaseURL,
+    /*! [in] The relative URL to \b BaseURL. */
+    const char *RelURL,
+    /*! [out] A pointer to a buffer to store the absolute URL. */
+    char *AbsURL);
 
 
 /*!
@@ -102,21 +102,21 @@ EXPORT_SPEC int UpnpResolveURL(
  * later.
  *
  * \return An integer representing one of the following:
- *	\li <tt>UPNP_E_SUCCESS</tt>: The operation completed successfully.
- *	\li <tt>UPNP_E_INVALID_PARAM</tt>: \b RelURL is <tt>NULL</tt>.
- *	\li <tt>UPNP_E_INVALID_URL</tt>: The \b BaseURL / \b RelURL 
+ *    \li <tt>UPNP_E_SUCCESS</tt>: The operation completed successfully.
+ *    \li <tt>UPNP_E_INVALID_PARAM</tt>: \b RelURL is <tt>NULL</tt>.
+ *    \li <tt>UPNP_E_INVALID_URL</tt>: The \b BaseURL / \b RelURL 
  *              combination does not form a valid URL.
- *	\li <tt>UPNP_E_OUTOF_MEMORY</tt>: Insufficient resources exist to 
+ *    \li <tt>UPNP_E_OUTOF_MEMORY</tt>: Insufficient resources exist to 
  *              complete this operation.
  */
 EXPORT_SPEC int UpnpResolveURL2(
-	/*! [in] The base URL to combine. */
-	const char *BaseURL,
-	/*! [in] The relative URL to \b BaseURL. */
-	const char *RelURL,
-	/*! [out] A pointer to a pointer to a buffer to store the
-	 * absolute URL. Must be freed later by the caller. */
-	char **AbsURL);
+    /*! [in] The base URL to combine. */
+    const char *BaseURL,
+    /*! [in] The relative URL to \b BaseURL. */
+    const char *RelURL,
+    /*! [out] A pointer to a pointer to a buffer to store the
+     * absolute URL. Must be freed later by the caller. */
+    char **AbsURL);
 
 #ifdef __cplusplus
 }

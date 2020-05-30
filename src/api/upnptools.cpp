@@ -53,10 +53,10 @@
  * error code.
  */
 struct ErrorString {
-	/*! Error code. */
-	int rc;
-	/*! Error description. */
-	const char *rcError;
+    /*! Error code. */
+    int rc;
+    /*! Error description. */
+    const char *rcError;
 };
 
 
@@ -64,94 +64,94 @@ struct ErrorString {
  * \brief Array of error structures.
  */
 struct ErrorString ErrorMessages[] = {
-	{UPNP_E_SUCCESS, "UPNP_E_SUCCESS"},
-	{UPNP_E_INVALID_HANDLE, "UPNP_E_INVALID_HANDLE"},
-	{UPNP_E_INVALID_PARAM, "UPNP_E_INVALID_PARAM"},
-	{UPNP_E_OUTOF_HANDLE, "UPNP_E_OUTOF_HANDLE"},
-	{UPNP_E_OUTOF_CONTEXT, "UPNP_E_OUTOF_CONTEXT"},
-	{UPNP_E_OUTOF_MEMORY, "UPNP_E_OUTOF_MEMORY"},
-	{UPNP_E_INIT, "UPNP_E_INIT"},
-	{UPNP_E_BUFFER_TOO_SMALL, "UPNP_E_BUFFER_TOO_SMALL"},
-	{UPNP_E_INVALID_DESC, "UPNP_E_INVALID_DESC"},
-	{UPNP_E_INVALID_URL, "UPNP_E_INVALID_URL"},
-	{UPNP_E_INVALID_SID, "UPNP_E_INVALID_SID"},
-	{UPNP_E_INVALID_DEVICE, "UPNP_E_INVALID_DEVICE"},
-	{UPNP_E_INVALID_SERVICE, "UPNP_E_INVALID_SERVICE"},
-	{UPNP_E_BAD_RESPONSE, "UPNP_E_BAD_RESPONSE"},
-	{UPNP_E_BAD_REQUEST, "UPNP_E_BAD_REQUEST"},
-	{UPNP_E_INVALID_ACTION, "UPNP_E_INVALID_ACTION"},
-	{UPNP_E_FINISH, "UPNP_E_FINISH"},
-	{UPNP_E_INIT_FAILED, "UPNP_E_INIT_FAILED"},
-	{UPNP_E_URL_TOO_BIG, "UPNP_E_URL_TOO_BIG"},
-	{UPNP_E_BAD_HTTPMSG, "UPNP_E_BAD_HTTPMSG"},
-	{UPNP_E_ALREADY_REGISTERED, "UPNP_E_ALREADY_REGISTERED"},
-	{UPNP_E_INVALID_INTERFACE, "UPNP_E_INVALID_INTERFACE"},
-	{UPNP_E_NETWORK_ERROR, "UPNP_E_NETWORK_ERROR"},
-	{UPNP_E_SOCKET_WRITE, "UPNP_E_SOCKET_WRITE"},
-	{UPNP_E_SOCKET_READ, "UPNP_E_SOCKET_READ"},
-	{UPNP_E_SOCKET_BIND, "UPNP_E_SOCKET_BIND"},
-	{UPNP_E_SOCKET_CONNECT, "UPNP_E_SOCKET_CONNECT"},
-	{UPNP_E_OUTOF_SOCKET, "UPNP_E_OUTOF_SOCKET"},
-	{UPNP_E_LISTEN, "UPNP_E_LISTEN"},
-	{UPNP_E_TIMEDOUT, "UPNP_E_TIMEDOUT"},
-	{UPNP_E_SOCKET_ERROR, "UPNP_E_SOCKET_ERROR"},
-	{UPNP_E_FILE_WRITE_ERROR, "UPNP_E_FILE_WRITE_ERROR"},
-	{UPNP_E_CANCELED, "UPNP_E_CANCELED"},
-	{UPNP_E_EVENT_PROTOCOL, "UPNP_E_EVENT_PROTOCOL"},
-	{UPNP_E_SUBSCRIBE_UNACCEPTED, "UPNP_E_SUBSCRIBE_UNACCEPTED"},
-	{UPNP_E_UNSUBSCRIBE_UNACCEPTED, "UPNP_E_UNSUBSCRIBE_UNACCEPTED"},
-	{UPNP_E_NOTIFY_UNACCEPTED, "UPNP_E_NOTIFY_UNACCEPTED"},
-	{UPNP_E_INVALID_ARGUMENT, "UPNP_E_INVALID_ARGUMENT"},
-	{UPNP_E_FILE_NOT_FOUND, "UPNP_E_FILE_NOT_FOUND"},
-	{UPNP_E_FILE_READ_ERROR, "UPNP_E_FILE_READ_ERROR"},
-	{UPNP_E_EXT_NOT_XML, "UPNP_E_EXT_NOT_XML"},
-	{UPNP_E_NO_WEB_SERVER, "UPNP_E_NO_WEB_SERVER"},
-	{UPNP_E_OUTOF_BOUNDS, "UPNP_E_OUTOF_BOUNDS"},
-	{UPNP_E_NOT_FOUND, "UPNP_E_NOT_FOUND"},
-	{UPNP_E_INTERNAL_ERROR, "UPNP_E_INTERNAL_ERROR"},
+    {UPNP_E_SUCCESS, "UPNP_E_SUCCESS"},
+    {UPNP_E_INVALID_HANDLE, "UPNP_E_INVALID_HANDLE"},
+    {UPNP_E_INVALID_PARAM, "UPNP_E_INVALID_PARAM"},
+    {UPNP_E_OUTOF_HANDLE, "UPNP_E_OUTOF_HANDLE"},
+    {UPNP_E_OUTOF_CONTEXT, "UPNP_E_OUTOF_CONTEXT"},
+    {UPNP_E_OUTOF_MEMORY, "UPNP_E_OUTOF_MEMORY"},
+    {UPNP_E_INIT, "UPNP_E_INIT"},
+    {UPNP_E_BUFFER_TOO_SMALL, "UPNP_E_BUFFER_TOO_SMALL"},
+    {UPNP_E_INVALID_DESC, "UPNP_E_INVALID_DESC"},
+    {UPNP_E_INVALID_URL, "UPNP_E_INVALID_URL"},
+    {UPNP_E_INVALID_SID, "UPNP_E_INVALID_SID"},
+    {UPNP_E_INVALID_DEVICE, "UPNP_E_INVALID_DEVICE"},
+    {UPNP_E_INVALID_SERVICE, "UPNP_E_INVALID_SERVICE"},
+    {UPNP_E_BAD_RESPONSE, "UPNP_E_BAD_RESPONSE"},
+    {UPNP_E_BAD_REQUEST, "UPNP_E_BAD_REQUEST"},
+    {UPNP_E_INVALID_ACTION, "UPNP_E_INVALID_ACTION"},
+    {UPNP_E_FINISH, "UPNP_E_FINISH"},
+    {UPNP_E_INIT_FAILED, "UPNP_E_INIT_FAILED"},
+    {UPNP_E_URL_TOO_BIG, "UPNP_E_URL_TOO_BIG"},
+    {UPNP_E_BAD_HTTPMSG, "UPNP_E_BAD_HTTPMSG"},
+    {UPNP_E_ALREADY_REGISTERED, "UPNP_E_ALREADY_REGISTERED"},
+    {UPNP_E_INVALID_INTERFACE, "UPNP_E_INVALID_INTERFACE"},
+    {UPNP_E_NETWORK_ERROR, "UPNP_E_NETWORK_ERROR"},
+    {UPNP_E_SOCKET_WRITE, "UPNP_E_SOCKET_WRITE"},
+    {UPNP_E_SOCKET_READ, "UPNP_E_SOCKET_READ"},
+    {UPNP_E_SOCKET_BIND, "UPNP_E_SOCKET_BIND"},
+    {UPNP_E_SOCKET_CONNECT, "UPNP_E_SOCKET_CONNECT"},
+    {UPNP_E_OUTOF_SOCKET, "UPNP_E_OUTOF_SOCKET"},
+    {UPNP_E_LISTEN, "UPNP_E_LISTEN"},
+    {UPNP_E_TIMEDOUT, "UPNP_E_TIMEDOUT"},
+    {UPNP_E_SOCKET_ERROR, "UPNP_E_SOCKET_ERROR"},
+    {UPNP_E_FILE_WRITE_ERROR, "UPNP_E_FILE_WRITE_ERROR"},
+    {UPNP_E_CANCELED, "UPNP_E_CANCELED"},
+    {UPNP_E_EVENT_PROTOCOL, "UPNP_E_EVENT_PROTOCOL"},
+    {UPNP_E_SUBSCRIBE_UNACCEPTED, "UPNP_E_SUBSCRIBE_UNACCEPTED"},
+    {UPNP_E_UNSUBSCRIBE_UNACCEPTED, "UPNP_E_UNSUBSCRIBE_UNACCEPTED"},
+    {UPNP_E_NOTIFY_UNACCEPTED, "UPNP_E_NOTIFY_UNACCEPTED"},
+    {UPNP_E_INVALID_ARGUMENT, "UPNP_E_INVALID_ARGUMENT"},
+    {UPNP_E_FILE_NOT_FOUND, "UPNP_E_FILE_NOT_FOUND"},
+    {UPNP_E_FILE_READ_ERROR, "UPNP_E_FILE_READ_ERROR"},
+    {UPNP_E_EXT_NOT_XML, "UPNP_E_EXT_NOT_XML"},
+    {UPNP_E_NO_WEB_SERVER, "UPNP_E_NO_WEB_SERVER"},
+    {UPNP_E_OUTOF_BOUNDS, "UPNP_E_OUTOF_BOUNDS"},
+    {UPNP_E_NOT_FOUND, "UPNP_E_NOT_FOUND"},
+    {UPNP_E_INTERNAL_ERROR, "UPNP_E_INTERNAL_ERROR"},
 };
 
 const char *UpnpGetErrorMessage(int rc)
 {
-	size_t i;
+    size_t i;
 
-	for (i = 0; i < sizeof (ErrorMessages) / sizeof (ErrorMessages[0]); ++i) {
-		if (rc == ErrorMessages[i].rc) {
-			return ErrorMessages[i].rcError;
-		}
-	}
+    for (i = 0; i < sizeof (ErrorMessages) / sizeof (ErrorMessages[0]); ++i) {
+        if (rc == ErrorMessages[i].rc) {
+            return ErrorMessages[i].rcError;
+        }
+    }
 
-	return "Unknown error code";
+    return "Unknown error code";
 }
 
 int UpnpResolveURL(const char *BaseURL, const char *RelURL, char *AbsURL)
 {
-	if (!RelURL) {
-		return UPNP_E_INVALID_PARAM;
-	}
-	std::string tempRel = resolve_rel_url(BaseURL, RelURL);
-	if (tempRel.empty()) {
-		return UPNP_E_INVALID_URL;
-	}
-	strcpy(AbsURL, tempRel.c_str());
-	return UPNP_E_SUCCESS;
+    if (!RelURL) {
+        return UPNP_E_INVALID_PARAM;
+    }
+    std::string tempRel = resolve_rel_url(BaseURL, RelURL);
+    if (tempRel.empty()) {
+        return UPNP_E_INVALID_URL;
+    }
+    strcpy(AbsURL, tempRel.c_str());
+    return UPNP_E_SUCCESS;
 }
 
 
 int UpnpResolveURL2(const char *BaseURL, const char *RelURL, char **AbsURL)
 {
-	int ret = UPNP_E_SUCCESS;
+    int ret = UPNP_E_SUCCESS;
 
-	if (!RelURL) {
-		return UPNP_E_INVALID_PARAM;
-	}
-	std::string temp = resolve_rel_url(const_cast<char *>(BaseURL), const_cast<char *>(RelURL));
-	if (!temp.empty()) {
-		*AbsURL = strdup(temp.c_str());
-	} else {
-		ret = UPNP_E_INVALID_URL;
-	}
-	return ret;
+    if (!RelURL) {
+        return UPNP_E_INVALID_PARAM;
+    }
+    std::string temp = resolve_rel_url(const_cast<char *>(BaseURL), const_cast<char *>(RelURL));
+    if (!temp.empty()) {
+        *AbsURL = strdup(temp.c_str());
+    } else {
+        ret = UPNP_E_INVALID_URL;
+    }
+    return ret;
 }
 
 #endif /* EXCLUDE_DOM == 0 */

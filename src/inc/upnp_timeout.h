@@ -43,18 +43,18 @@
  * The upnp_timeout structure definition.
  */
 struct upnp_timeout {
-	int handle{-1};
-	int eventId{0};
-	void *Event{nullptr};
-	~upnp_timeout() {
-		if (Event)
-			free(Event);
-	}
+    int handle{-1};
+    int eventId{0};
+    void *Event{nullptr};
+    ~upnp_timeout() {
+        if (Event)
+            free(Event);
+    }
 };
 
 
 inline void free_upnp_timeout(upnp_timeout *event) {
-	delete event;
+    delete event;
 }
 
 

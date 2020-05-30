@@ -41,17 +41,17 @@ extern size_t upnp_strlcpy(char *dst, const char *src, size_t dsize);
 
 #if !defined(_WIN32)
 inline char *_check_strerror_r(int, char *errbuf) {
-	return errbuf;
+    return errbuf;
 }
 inline char *_check_strerror_r(char *cp, char *) {
-	return cp;
+    return cp;
 }
 inline int posix_strerror_r(int err, char *buf, size_t len) {
-	char *cp = _check_strerror_r(strerror_r(err, buf, len), buf);
-	if (cp != buf) {
-		upnp_strlcpy(buf, cp, len);
-	}
-	return 0;
+    char *cp = _check_strerror_r(strerror_r(err, buf, len), buf);
+    if (cp != buf) {
+        upnp_strlcpy(buf, cp, len);
+    }
+    return 0;
 }
 #else /* -> _WIN32 */
 
@@ -76,7 +76,7 @@ inline int posix_strerror_r(int err, char *buf, size_t len) {
 
 #include <string>
 inline size_t upnp_strlcpy(char *dst, const std::string& src, size_t dsize) {
-	return upnp_strlcpy(dst, src.c_str(), dsize);
+    return upnp_strlcpy(dst, src.c_str(), dsize);
 }
 
 std::string xmlQuote(const std::string& in);

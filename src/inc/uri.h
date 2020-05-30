@@ -52,58 +52,58 @@
  * pointing to the full string representation.
  */
 struct hostport_type {
-	hostport_type() {
-		memset(&IPaddress, 0, sizeof(sockaddr_storage));
-	}
-	/*! Full host port. */
-	std::string text;
-	/* Network Byte Order */
-	struct sockaddr_storage IPaddress;
+    hostport_type() {
+        memset(&IPaddress, 0, sizeof(sockaddr_storage));
+    }
+    /*! Full host port. */
+    std::string text;
+    /* Network Byte Order */
+    struct sockaddr_storage IPaddress;
 };
 
 enum uriType  {
-	URITP_ABSOLUTE,
-	URITP_RELATIVE
+    URITP_ABSOLUTE,
+    URITP_RELATIVE
 };
 
 enum pathType {
-	ABS_PATH,
-	REL_PATH,
-	OPAQUE_PART
+    ABS_PATH,
+    REL_PATH,
+    OPAQUE_PART
 };
 
 /*!
  * \brief Represents a URI used in parse_uri and elsewhere
  */
 struct uri_type {
-	enum uriType type;
-	std::string scheme;
-	enum pathType path_type;
-	std::string path;
-	std::string query;
-	std::string fragment;
-	hostport_type hostport;
+    enum uriType type;
+    std::string scheme;
+    enum pathType path_type;
+    std::string path;
+    std::string query;
+    std::string fragment;
+    hostport_type hostport;
 };
 
 inline std::string uri_asurlstr(const uri_type& u)
 {
-	std::string surl(u.scheme);
-	if (!u.scheme.empty()) {
-		surl += ":";
-	}
-	if (!u.hostport.text.empty()) {
-		surl += "//";
-		surl += u.hostport.text;
-	}
-	if (u.path.empty())
-		surl += "/";
-	else 
-		surl += u.path;
-	if (!u.query.empty()) {
-		surl += "?";
-		surl += u.query;
-	}
-	return surl;
+    std::string surl(u.scheme);
+    if (!u.scheme.empty()) {
+        surl += ":";
+    }
+    if (!u.hostport.text.empty()) {
+        surl += "//";
+        surl += u.hostport.text;
+    }
+    if (u.path.empty())
+        surl += "/";
+    else 
+        surl += u.path;
+    if (!u.query.empty()) {
+        surl += "?";
+        surl += u.query;
+    }
+    return surl;
 }
 
 /*!

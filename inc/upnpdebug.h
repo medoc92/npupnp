@@ -68,30 +68,30 @@ extern "C" {
  *    \li \c UPNP_ALL [4]
  */
 typedef enum Upnp_Module {
-	SSDP,
-	SOAP,
-	GENA,
-	TPOOL,
-	MSERV,
-	DOM,
-	API,
-	HTTP
+    SSDP,
+    SOAP,
+    GENA,
+    TPOOL,
+    MSERV,
+    DOM,
+    API,
+    HTTP
 } Dbg_Module;
 
 /*@{*/
 typedef enum Upnp_LogLevel_e {
-	UPNP_CRITICAL,
-	UPNP_ERROR,
-	UPNP_INFO,
-	UPNP_DEBUG,
-	UPNP_ALL
+    UPNP_CRITICAL,
+    UPNP_ERROR,
+    UPNP_INFO,
+    UPNP_DEBUG,
+    UPNP_ALL
 } Upnp_LogLevel;
 /*@}*/
 
 /*!
  * Default log level : see \c Upnp_LogLevel
  */
-#define UPNP_DEFAULT_LOG_LEVEL	UPNP_ALL
+#define UPNP_DEFAULT_LOG_LEVEL    UPNP_ALL
 
 /*!
  * \brief Initialize the log files.
@@ -103,7 +103,7 @@ int UpnpInitLog(void);
 #else
 static UPNP_INLINE int UpnpInitLog(void)
 {
-	return UPNP_E_SUCCESS;
+    return UPNP_E_SUCCESS;
 }
 #endif
 /*!
@@ -111,13 +111,13 @@ static UPNP_INLINE int UpnpInitLog(void)
  */
 #ifdef DEBUG
 void UpnpSetLogLevel(
-	/*! [in] Log level. */
-	Upnp_LogLevel log_level);
+    /*! [in] Log level. */
+    Upnp_LogLevel log_level);
 #else
 static UPNP_INLINE void UpnpSetLogLevel(Upnp_LogLevel log_level)
 {
-	(void)log_level;
-	return;
+    (void)log_level;
+    return;
 }
 #endif
 
@@ -139,17 +139,17 @@ static UPNP_INLINE void UpnpCloseLog(void)
  */
 #ifdef DEBUG
 void UpnpSetLogFileNames(
-	/*! [in] Name of the log file. */
-	const char *fileName,
-	/*! [in] Ignored. */
-	const char *Ignored);
+    /*! [in] Name of the log file. */
+    const char *fileName,
+    /*! [in] Ignored. */
+    const char *Ignored);
 #else
 static UPNP_INLINE void UpnpSetLogFileNames(const char *ErrFileName,
-	const char *ignored)
+    const char *ignored)
 {
-	(void)ErrFileName;
-	(void)ignored;
-	return;
+    (void)ErrFileName;
+    (void)ignored;
+    return;
 }
 #endif
 
@@ -158,21 +158,21 @@ static UPNP_INLINE void UpnpSetLogFileNames(const char *ErrFileName,
  * descriptor corresponding to the debug level
  *
  * \return NULL if the module is turn off for debug otherwise returns the
- *	right FILE pointer.
+ *    right FILE pointer.
  */
 #ifdef DEBUG
 FILE *UpnpGetDebugFile(
-	/*! [in] The level of the debug logging. It will decide whether debug
-	 * statement will go to standard output, or any of the log files. */
-	Upnp_LogLevel level,
-	/*! [in] debug will go in the name of this module. */
-	Dbg_Module module);
+    /*! [in] The level of the debug logging. It will decide whether debug
+     * statement will go to standard output, or any of the log files. */
+    Upnp_LogLevel level,
+    /*! [in] debug will go in the name of this module. */
+    Dbg_Module module);
 #else
 static UPNP_INLINE FILE *UpnpGetDebugFile(Upnp_LogLevel level, Dbg_Module module)
 {
-	(void)level;
-	(void)module;
-	return NULL;
+    (void)level;
+    (void)module;
+    return NULL;
 }
 #endif
 
@@ -182,35 +182,35 @@ static UPNP_INLINE FILE *UpnpGetDebugFile(Upnp_LogLevel level, Dbg_Module module
  */
 #ifdef DEBUG
 void UpnpPrintf(
-	/*! [in] The level of the debug logging. It will decide whether debug
-	 * statement will go to standard output, or any of the log files. */
-	Upnp_LogLevel DLevel,
-	/*! [in] debug will go in the name of this module. */
-	Dbg_Module Module,
-	/*! [in] Name of the file from where debug statement is coming. */
-	const char *DbgFileName,
-	/*! [in] Line number of the file from where debug statement is coming. */
-	int DbgLineNo,
-	/*! [in] Printf like format specification. */
-	const char *FmtStr,
-	/*! [in] Printf like Variable number of arguments that will go in the
-	 * debug statement. */
-	...)
+    /*! [in] The level of the debug logging. It will decide whether debug
+     * statement will go to standard output, or any of the log files. */
+    Upnp_LogLevel DLevel,
+    /*! [in] debug will go in the name of this module. */
+    Dbg_Module Module,
+    /*! [in] Name of the file from where debug statement is coming. */
+    const char *DbgFileName,
+    /*! [in] Line number of the file from where debug statement is coming. */
+    int DbgLineNo,
+    /*! [in] Printf like format specification. */
+    const char *FmtStr,
+    /*! [in] Printf like Variable number of arguments that will go in the
+     * debug statement. */
+    ...)
 #if (__GNUC__ >= 3)
-	/* This enables printf like format checking by the compiler. */
-	__attribute__ ((format(__printf__, 5, 6)))
+    /* This enables printf like format checking by the compiler. */
+    __attribute__ ((format(__printf__, 5, 6)))
 #endif
-	;
+    ;
 #else /* DEBUG */
 static UPNP_INLINE void UpnpPrintf(Upnp_LogLevel DLevel, Dbg_Module Module,
-	const char *DbgFileName, int DbgLineNo, const char *FmtStr, ...)
+    const char *DbgFileName, int DbgLineNo, const char *FmtStr, ...)
 {
-	(void)DLevel;
-	(void)Module;
-	(void)DbgFileName;
-	(void)DbgLineNo;
-	(void)FmtStr;
-	return;
+    (void)DLevel;
+    (void)Module;
+    (void)DbgFileName;
+    (void)DbgLineNo;
+    (void)FmtStr;
+    return;
 }
 #endif /* DEBUG */
 

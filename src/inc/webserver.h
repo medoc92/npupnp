@@ -39,8 +39,8 @@
 
 
 typedef enum {
-	WEB_SERVER_DISABLED,
-	WEB_SERVER_ENABLED
+    WEB_SERVER_DISABLED,
+    WEB_SERVER_ENABLED
 } WebServerState;
 
 extern WebServerState bWebServerState;
@@ -74,16 +74,16 @@ void web_server_destroy(void);
  * \return Integer.
  */
 int web_server_set_root_dir(
-	/*! [in] String having the root directory for the document. */
-	const char* root_dir);
+    /*! [in] String having the root directory for the document. */
+    const char* root_dir);
 
 /* Add a locally served path */
 int web_server_set_localdoc(
-	const std::string& path, const std::string& data, time_t last_modified);
+    const std::string& path, const std::string& data, time_t last_modified);
 int web_server_unset_localdoc(const std::string& path);
 
 int web_server_add_virtual_dir(
-	const char *dirname, const void *cookie, const void **oldcookie);
+    const char *dirname, const void *cookie, const void **oldcookie);
 int web_server_remove_virtual_dir(const char *dirname);
 void web_server_clear_virtual_dirs();
 

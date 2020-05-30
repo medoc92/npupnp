@@ -33,40 +33,40 @@
 // Simple parser for an SSDP request or response packet.
 class SSDPPacketParser {
 public:
-	// We take ownership of the argument, will modify and free it.
-	SSDPPacketParser(char *packet) : m_packet(packet) {}
+    // We take ownership of the argument, will modify and free it.
+    SSDPPacketParser(char *packet) : m_packet(packet) {}
 
-	~SSDPPacketParser() {
-		free(m_packet);
-	}
+    ~SSDPPacketParser() {
+        free(m_packet);
+    }
 
-	bool parse();
-	static void trimright(char *cp, size_t len);
-	void dump(std::ostream& os) const;
+    bool parse();
+    static void trimright(char *cp, size_t len);
+    void dump(std::ostream& os) const;
 
-	// Results. After parsing, the set fields point into the original buffer.
-	bool isresponse{false};
-	char *cache_control{nullptr};
-	char *date{nullptr};
-	bool  ext{false};
-	char *host{nullptr};
-	char *location{nullptr};
-	char *man{nullptr};
-	char *method{nullptr};
-	char *mx{nullptr};
-	char *nt{nullptr};
-	char *nts{nullptr};
-	char *protocol{nullptr};
-	char *server{nullptr};
-	char *st{nullptr};
-	char *status{nullptr};
-	char *url{nullptr};
-	char *user_agent{nullptr};
-	char *usn{nullptr};
-	char *version{nullptr};
-	
+    // Results. After parsing, the set fields point into the original buffer.
+    bool isresponse{false};
+    char *cache_control{nullptr};
+    char *date{nullptr};
+    bool  ext{false};
+    char *host{nullptr};
+    char *location{nullptr};
+    char *man{nullptr};
+    char *method{nullptr};
+    char *mx{nullptr};
+    char *nt{nullptr};
+    char *nts{nullptr};
+    char *protocol{nullptr};
+    char *server{nullptr};
+    char *st{nullptr};
+    char *status{nullptr};
+    char *url{nullptr};
+    char *user_agent{nullptr};
+    char *usn{nullptr};
+    char *version{nullptr};
+    
 private:
-	char *m_packet;
+    char *m_packet;
 };
 
 #endif /* _SSDPARSE_H_ */

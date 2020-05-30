@@ -61,321 +61,321 @@
 
 static const std::string bogus_soap_post{"SMPOST"};
 static const std::map<std::string, int> Http_Method_Table {
-	{"GET", HTTPMETHOD_GET},
-	{"HEAD", HTTPMETHOD_HEAD},
-	{"M-POST", HTTPMETHOD_MPOST},
-	{"M-SEARCH", HTTPMETHOD_MSEARCH},
-	{"NOTIFY", HTTPMETHOD_NOTIFY},
-	{"POST", HTTPMETHOD_POST},
-	{"SUBSCRIBE", HTTPMETHOD_SUBSCRIBE},
-	{"UNSUBSCRIBE", HTTPMETHOD_UNSUBSCRIBE},
-	{bogus_soap_post, SOAPMETHOD_POST},
+    {"GET", HTTPMETHOD_GET},
+    {"HEAD", HTTPMETHOD_HEAD},
+    {"M-POST", HTTPMETHOD_MPOST},
+    {"M-SEARCH", HTTPMETHOD_MSEARCH},
+    {"NOTIFY", HTTPMETHOD_NOTIFY},
+    {"POST", HTTPMETHOD_POST},
+    {"SUBSCRIBE", HTTPMETHOD_SUBSCRIBE},
+    {"UNSUBSCRIBE", HTTPMETHOD_UNSUBSCRIBE},
+    {bogus_soap_post, SOAPMETHOD_POST},
 };
 
 static const std::map<std::string, int> Http_Header_Names {
-	{"accept", HDR_ACCEPT},
-	{"accept-charset", HDR_ACCEPT_CHARSET},
-	{"accept-encoding", HDR_ACCEPT_ENCODING},
-	{"accept-language", HDR_ACCEPT_LANGUAGE},
-	{"accept-ranges", HDR_ACCEPT_RANGE},
-	{"cache-control", HDR_CACHE_CONTROL},
-	{"callback", HDR_CALLBACK},
-	{"content-encoding", HDR_CONTENT_ENCODING},
-	{"content-language", HDR_CONTENT_LANGUAGE},
-	{"content-length", HDR_CONTENT_LENGTH},
-	{"content-location", HDR_CONTENT_LOCATION},
-	{"content-range", HDR_CONTENT_RANGE},
-	{"content-type", HDR_CONTENT_TYPE},
-	{"date", HDR_DATE},
-	{"ext", HDR_EXT},
-	{"host", HDR_HOST},
-	{"if-range", HDR_IF_RANGE},
-	{"location", HDR_LOCATION},
-	{"man", HDR_MAN},
-	{"mx", HDR_MX},
-	{"nt", HDR_NT},
-	{"nts", HDR_NTS},
-	{"range", HDR_RANGE},
-	{"seq", HDR_SEQ},
-	{"server", HDR_SERVER},
-	{"sid", HDR_SID},
-	{"soapaction", HDR_SOAPACTION},
-	{"st", HDR_ST},
-	{"te", HDR_TE},
-	{"timeout", HDR_TIMEOUT},
-	{"transfer-encoding", HDR_TRANSFER_ENCODING},
-	{"user-agent", HDR_USER_AGENT},
-	{"usn", HDR_USN},
+    {"accept", HDR_ACCEPT},
+    {"accept-charset", HDR_ACCEPT_CHARSET},
+    {"accept-encoding", HDR_ACCEPT_ENCODING},
+    {"accept-language", HDR_ACCEPT_LANGUAGE},
+    {"accept-ranges", HDR_ACCEPT_RANGE},
+    {"cache-control", HDR_CACHE_CONTROL},
+    {"callback", HDR_CALLBACK},
+    {"content-encoding", HDR_CONTENT_ENCODING},
+    {"content-language", HDR_CONTENT_LANGUAGE},
+    {"content-length", HDR_CONTENT_LENGTH},
+    {"content-location", HDR_CONTENT_LOCATION},
+    {"content-range", HDR_CONTENT_RANGE},
+    {"content-type", HDR_CONTENT_TYPE},
+    {"date", HDR_DATE},
+    {"ext", HDR_EXT},
+    {"host", HDR_HOST},
+    {"if-range", HDR_IF_RANGE},
+    {"location", HDR_LOCATION},
+    {"man", HDR_MAN},
+    {"mx", HDR_MX},
+    {"nt", HDR_NT},
+    {"nts", HDR_NTS},
+    {"range", HDR_RANGE},
+    {"seq", HDR_SEQ},
+    {"server", HDR_SERVER},
+    {"sid", HDR_SID},
+    {"soapaction", HDR_SOAPACTION},
+    {"st", HDR_ST},
+    {"te", HDR_TE},
+    {"timeout", HDR_TIMEOUT},
+    {"transfer-encoding", HDR_TRANSFER_ENCODING},
+    {"user-agent", HDR_USER_AGENT},
+    {"usn", HDR_USN},
 };
 
 void MHDTransaction::copyClientAddress(struct sockaddr_storage *dest) const
 {
-	if (nullptr == dest)
-		return;
-	if (nullptr == client_address) {
-		memset(dest, 0, sizeof(struct sockaddr_storage));
-		return;
-	}
-	if (client_address->ss_family == AF_INET) {
-		memcpy(dest, client_address, sizeof(struct sockaddr_in));
-	} else {
-		memcpy(dest, client_address, sizeof(struct sockaddr_in6));
-	}		
+    if (nullptr == dest)
+        return;
+    if (nullptr == client_address) {
+        memset(dest, 0, sizeof(struct sockaddr_storage));
+        return;
+    }
+    if (client_address->ss_family == AF_INET) {
+        memcpy(dest, client_address, sizeof(struct sockaddr_in));
+    } else {
+        memcpy(dest, client_address, sizeof(struct sockaddr_in6));
+    }        
 }
 
 bool MHDTransaction::copyHeader(const std::string& name,
-								std::string& value)
+                                std::string& value)
 {
-	auto it = headers.find(stringtolower(name));
-	if (it == headers.end()) {
-		return false;
-	}
-	value = it->second;
-	return true;
+    auto it = headers.find(stringtolower(name));
+    if (it == headers.end()) {
+        return false;
+    }
+    value = it->second;
+    return true;
 }
 
 http_method_t httpmethod_str2enum(const char *methname)
 {
-	const auto it = Http_Method_Table.find(methname);
-	if (it == Http_Method_Table.end()) {
-		return HTTPMETHOD_UNKNOWN;
-	}
+    const auto it = Http_Method_Table.find(methname);
+    if (it == Http_Method_Table.end()) {
+        return HTTPMETHOD_UNKNOWN;
+    }
 
-	return static_cast<http_method_t>(it->second);
+    return static_cast<http_method_t>(it->second);
 }
 
 int httpheader_str2int(const std::string& headername)
 {
-	auto it = Http_Header_Names.find(headername);
-	if (it == Http_Header_Names.end())
-		return -1;
-	return it->second;
+    auto it = Http_Header_Names.find(headername);
+    if (it == Http_Header_Names.end())
+        return -1;
+    return it->second;
 }
 
 int http_FixStrUrl(const std::string& surl, uri_type *fixed_url)
 {
-	uri_type url;
+    uri_type url;
 
-	if (parse_uri(surl, &url) != UPNP_E_SUCCESS) {
-		return UPNP_E_INVALID_URL;
-	}
+    if (parse_uri(surl, &url) != UPNP_E_SUCCESS) {
+        return UPNP_E_INVALID_URL;
+    }
 
-	*fixed_url = url;
-	if (stringlowercmp("http", fixed_url->scheme) ||
-		fixed_url->hostport.text.empty()) {
-		return UPNP_E_INVALID_URL;
-	}
+    *fixed_url = url;
+    if (stringlowercmp("http", fixed_url->scheme) ||
+        fixed_url->hostport.text.empty()) {
+        return UPNP_E_INVALID_URL;
+    }
 
-	/* set pathquery to "/" if it is empty */
-	if (fixed_url->path.empty()) {
-		fixed_url->path = "/";
-	}
+    /* set pathquery to "/" if it is empty */
+    if (fixed_url->path.empty()) {
+        fixed_url->path = "/";
+    }
 
-	return UPNP_E_SUCCESS;
+    return UPNP_E_SUCCESS;
 }
 
 /************************************************************************
  * Function: http_Download
  *
  * Parameters:
- *	IN const char* url_str;	String as a URL
- *	IN int timeout_secs;	time out value
- *	OUT char** document;	buffer to store the document extracted
- *				from the donloaded message.
- *	OUT int* doc_length;	length of the extracted document
- *	OUT char* content_type;	Type of content
+ *    IN const char* url_str;    String as a URL
+ *    IN int timeout_secs;    time out value
+ *    OUT char** document;    buffer to store the document extracted
+ *                from the donloaded message.
+ *    OUT int* doc_length;    length of the extracted document
+ *    OUT char* content_type;    Type of content
  *
  * Description:
- *	Download the document message and extract the document 
- *	from the message.
+ *    Download the document message and extract the document 
+ *    from the message.
  *
  * Return: int
- *	UPNP_E_SUCCESS
- *	UPNP_E_INVALID_URL
+ *    UPNP_E_SUCCESS
+ *    UPNP_E_INVALID_URL
  ************************************************************************/
 int http_Download(const char *surl, int timeout_secs,
-				  char **document, size_t *doc_length, char *content_type)
+                  char **document, size_t *doc_length, char *content_type)
 {
-	uri_type url;
-	UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__, "http_Download: %s\n", surl);
-	int ret_code = http_FixStrUrl(surl, &url);
-	if (ret_code != UPNP_E_SUCCESS)
-		return ret_code;
+    uri_type url;
+    UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__, "http_Download: %s\n", surl);
+    int ret_code = http_FixStrUrl(surl, &url);
+    if (ret_code != UPNP_E_SUCCESS)
+        return ret_code;
 
-	std::map<std::string, std::string> http_headers;
-	std::string data;
+    std::map<std::string, std::string> http_headers;
+    std::string data;
 
-	CURL *easy = curl_easy_init();
-	char curlerrormessage[CURL_ERROR_SIZE];
-	curl_easy_setopt(easy, CURLOPT_ERRORBUFFER, curlerrormessage);
-	curl_easy_setopt(easy, CURLOPT_URL, uri_asurlstr(url).c_str());
-	curl_easy_setopt(easy, CURLOPT_TIMEOUT, timeout_secs);
-	curl_easy_setopt(easy, CURLOPT_HEADERFUNCTION, header_callback_curl);
-	curl_easy_setopt(easy, CURLOPT_HEADERDATA, &http_headers);
-	curl_easy_setopt(easy, CURLOPT_WRITEFUNCTION, write_callback_str_curl);
-	curl_easy_setopt(easy, CURLOPT_WRITEDATA, &data);
+    CURL *easy = curl_easy_init();
+    char curlerrormessage[CURL_ERROR_SIZE];
+    curl_easy_setopt(easy, CURLOPT_ERRORBUFFER, curlerrormessage);
+    curl_easy_setopt(easy, CURLOPT_URL, uri_asurlstr(url).c_str());
+    curl_easy_setopt(easy, CURLOPT_TIMEOUT, timeout_secs);
+    curl_easy_setopt(easy, CURLOPT_HEADERFUNCTION, header_callback_curl);
+    curl_easy_setopt(easy, CURLOPT_HEADERDATA, &http_headers);
+    curl_easy_setopt(easy, CURLOPT_WRITEFUNCTION, write_callback_str_curl);
+    curl_easy_setopt(easy, CURLOPT_WRITEDATA, &data);
 
-	struct curl_slist *list = nullptr;
-	list = curl_slist_append(
-		list, (std::string("USER-AGENT: ") + get_sdk_info()).c_str());
-	list = curl_slist_append(list, "Connection: close");
-	curl_easy_setopt(easy, CURLOPT_HTTPHEADER, list);
+    struct curl_slist *list = nullptr;
+    list = curl_slist_append(
+        list, (std::string("USER-AGENT: ") + get_sdk_info()).c_str());
+    list = curl_slist_append(list, "Connection: close");
+    curl_easy_setopt(easy, CURLOPT_HTTPHEADER, list);
 
-	CURLcode code = curl_easy_perform(easy);
+    CURLcode code = curl_easy_perform(easy);
 
-	if (code != CURLE_OK) {
-		curl_easy_cleanup(easy);
-		curl_slist_free_all(list);
-		/* We may want to detail things here, depending on the curl error */
-		UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
-				   "http_Download: curl failed with: %s\n", curlerrormessage);
-		return UPNP_E_SOCKET_CONNECT;
-	}
-	long http_status;
-	curl_easy_getinfo (easy, CURLINFO_RESPONSE_CODE, &http_status);
-	UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__, "Response. Status %ld\n",
-			   http_status);
+    if (code != CURLE_OK) {
+        curl_easy_cleanup(easy);
+        curl_slist_free_all(list);
+        /* We may want to detail things here, depending on the curl error */
+        UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
+                   "http_Download: curl failed with: %s\n", curlerrormessage);
+        return UPNP_E_SOCKET_CONNECT;
+    }
+    long http_status;
+    curl_easy_getinfo (easy, CURLINFO_RESPONSE_CODE, &http_status);
+    UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__, "Response. Status %ld\n",
+               http_status);
 
-	curl_easy_cleanup(easy);
-	curl_slist_free_all(list);
-	
-	/* optional content-type */
-	if (content_type) {
-		auto it = http_headers.find("content-type");
-		if (it == http_headers.end()) {
-			*content_type = '\0';	/* no content-type */
-		} else {
-			upnp_strlcpy(content_type, it->second, LINE_SIZE);
-		}
-	}
+    curl_easy_cleanup(easy);
+    curl_slist_free_all(list);
+    
+    /* optional content-type */
+    if (content_type) {
+        auto it = http_headers.find("content-type");
+        if (it == http_headers.end()) {
+            *content_type = '\0';    /* no content-type */
+        } else {
+            upnp_strlcpy(content_type, it->second, LINE_SIZE);
+        }
+    }
 
-	auto it = http_headers.find("content-length");
-	if (it != http_headers.end()) {
-		uint64_t sizefromheaders = atoll(it->second.c_str());
-		if (sizefromheaders != data.size()) {
-			UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
-					   "Response content-length %" PRIu64
-					   " differs from data size %"
-					   PRIu64 "\n", sizefromheaders, static_cast<uint64_t>(data.size()));
-		}
-	}
+    auto it = http_headers.find("content-length");
+    if (it != http_headers.end()) {
+        uint64_t sizefromheaders = atoll(it->second.c_str());
+        if (sizefromheaders != data.size()) {
+            UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
+                       "Response content-length %" PRIu64
+                       " differs from data size %"
+                       PRIu64 "\n", sizefromheaders, static_cast<uint64_t>(data.size()));
+        }
+    }
 
-	*document = nullptr;
-	if (http_status == HTTP_OK) {
-		/* extract doc from msg */
-		if (!data.empty()) {
-			*document = nullptr;
-			*document = static_cast<char *>(malloc(data.size() + 1));
-			if (*document == nullptr) {
-				return UPNP_E_OUTOF_MEMORY;
-			}
-			memcpy(*document, data.c_str(), data.size());
-			(*document)[data.size()] = 0;
-		}
-		return 0;
-	}
+    *document = nullptr;
+    if (http_status == HTTP_OK) {
+        /* extract doc from msg */
+        if (!data.empty()) {
+            *document = nullptr;
+            *document = static_cast<char *>(malloc(data.size() + 1));
+            if (*document == nullptr) {
+                return UPNP_E_OUTOF_MEMORY;
+            }
+            memcpy(*document, data.c_str(), data.size());
+            (*document)[data.size()] = 0;
+        }
+        return 0;
+    }
 
-	return http_status;
+    return http_status;
 }
 
 /************************************************************************
  * Function: http_SendStatusResponse
  *
  * Parameters:
- *	IN int http_status_code;	error code returned while making 
- *					or sending the response message
- *	IN int request_major_version;	request major version
- *	IN int request_minor_version;	request minor version
+ *    IN int http_status_code;    error code returned while making 
+ *                    or sending the response message
+ *    IN int request_major_version;    request major version
+ *    IN int request_minor_version;    request minor version
  *
  * Description:
- *	Generate a response message for the status query and send the
- *	status response.
+ *    Generate a response message for the status query and send the
+ *    status response.
  *
  * Return: int
- *	0 -- success
- *	UPNP_E_OUTOF_MEMORY
- *	UPNP_E_SOCKET_WRITE
- *	UPNP_E_TIMEDOUT
+ *    0 -- success
+ *    UPNP_E_OUTOF_MEMORY
+ *    UPNP_E_SOCKET_WRITE
+ *    UPNP_E_TIMEDOUT
  ************************************************************************/
 int http_SendStatusResponse(MHDTransaction *mhdt, int status_code)
 {
-	std::ostringstream body;
-	body <<	"<html><body><h1>" << status_code << " " << 
-		http_get_code_text(status_code) << "</h1></body></html>";
-	mhdt->response = MHD_create_response_from_buffer(
-		body.str().size(), const_cast<char*>(body.str().c_str()), MHD_RESPMEM_MUST_COPY);
-	MHD_add_response_header(mhdt->response, "Content-Type", "text/html");
-	mhdt->httpstatus = status_code;
-	return UPNP_E_SUCCESS;
+    std::ostringstream body;
+    body <<    "<html><body><h1>" << status_code << " " << 
+        http_get_code_text(status_code) << "</h1></body></html>";
+    mhdt->response = MHD_create_response_from_buffer(
+        body.str().size(), const_cast<char*>(body.str().c_str()), MHD_RESPMEM_MUST_COPY);
+    MHD_add_response_header(mhdt->response, "Content-Type", "text/html");
+    mhdt->httpstatus = status_code;
+    return UPNP_E_SUCCESS;
 }
 
 
 static std::regex textxml_re(
-	"text[ \t]*/[ \t]*xml([ \t]*;.*)?",
-	std::regex_constants::extended | std::regex_constants::icase);
+    "text[ \t]*/[ \t]*xml([ \t]*;.*)?",
+    std::regex_constants::extended | std::regex_constants::icase);
 
 bool has_xml_content_type(MHDTransaction *mhdt)
 {
-	auto it = mhdt->headers.find("content-type");
-	if (it == mhdt->headers.end()) {
-		UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
-				   "has_xml_content: no content type header\n");
-		return false;
-	}
-	bool ret = regex_match(it->second, textxml_re);
-	if (!ret) {
-		UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__, "has_xml_content: "
-				   "no match for [%s]\n", it->second.c_str());
-	}
-	return ret;
+    auto it = mhdt->headers.find("content-type");
+    if (it == mhdt->headers.end()) {
+        UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
+                   "has_xml_content: no content type header\n");
+        return false;
+    }
+    bool ret = regex_match(it->second, textxml_re);
+    if (!ret) {
+        UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__, "has_xml_content: "
+                   "no match for [%s]\n", it->second.c_str());
+    }
+    return ret;
 }
 
 bool timeout_header_value(std::map<std::string, std::string>& headers,
-						  int *time_out)
+                          int *time_out)
 {
-	auto ittimo = headers.find("timeout");
-	if (ittimo == headers.end()) {
-		UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
-				   "timeout_header_value: no timeout header\n");
-		return false;
-	}
-	stringtolower(ittimo->second);
-	if (ittimo->second == "second-infinite") {
-		*time_out = -1;
-		return true;
-	}
-	char cbuf[2];
-	if (sscanf(ittimo->second.c_str(),"second-%d%1c",time_out,cbuf) != 1) {
-		UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__, "timeout_header_value: "
-				   "bad header value [%s]\n", ittimo->second.c_str());
-		return false;
-	}
-	return true;
+    auto ittimo = headers.find("timeout");
+    if (ittimo == headers.end()) {
+        UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
+                   "timeout_header_value: no timeout header\n");
+        return false;
+    }
+    stringtolower(ittimo->second);
+    if (ittimo->second == "second-infinite") {
+        *time_out = -1;
+        return true;
+    }
+    char cbuf[2];
+    if (sscanf(ittimo->second.c_str(),"second-%d%1c",time_out,cbuf) != 1) {
+        UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__, "timeout_header_value: "
+                   "bad header value [%s]\n", ittimo->second.c_str());
+        return false;
+    }
+    return true;
 }
 
 /************************************************************************
  * Function: get_sdk_info
  *
  * Parameters:
- *	OUT char *info;	buffer to store the operating system information
- *	IN size_t infoSize; size of buffer
+ *    OUT char *info;    buffer to store the operating system information
+ *    IN size_t infoSize; size of buffer
  *
  * Description:
- *	Returns the server information for the operating system
+ *    Returns the server information for the operating system
  *
  * Return:
- *	UPNP_INLINE void
+ *    UPNP_INLINE void
  ************************************************************************/
 
 #ifdef _WIN32
 struct tm *http_gmtime_r(const time_t *clock, struct tm *result)
 {
-	if (clock == NULL || *clock < 0 || result == NULL)
-		return NULL;
+    if (clock == NULL || *clock < 0 || result == NULL)
+        return NULL;
 
-	/* gmtime in VC runtime is thread safe. */
-	*result = *gmtime(clock);
-	return result;
+    /* gmtime in VC runtime is thread safe. */
+    *result = *gmtime(clock);
+    return result;
 }
 
 #else /* !_WIN32 ->*/
@@ -387,64 +387,64 @@ struct tm *http_gmtime_r(const time_t *clock, struct tm *result)
 
 std::string get_sdk_info()
 {
-	std::ostringstream ostr;
+    std::ostringstream ostr;
 #ifdef UPNP_ENABLE_UNSPECIFIED_SERVER
-	ostr << "Unspecified, UPnP/1.0, Unspecified"
+    ostr << "Unspecified, UPnP/1.0, Unspecified"
 #else /* UPNP_ENABLE_UNSPECIFIED_SERVER */
 #ifdef _WIN32
-	OSVERSIONINFO versioninfo;
-	versioninfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+    OSVERSIONINFO versioninfo;
+    versioninfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
 
-	if (GetVersionEx(&versioninfo) != 0)
-		ostr << versioninfo.dwMajorVersion << "." << versioninfo.dwMinorVersion<<
-			"." << versioninfo.dwBuildNumber << " " << versioninfo.dwPlatformId
-			<< "/" << versioninfo.szCSDVersion <<
-			", UPnP/1.0, Portable SDK for UPnP devices/" PACKAGE_VERSION;
+    if (GetVersionEx(&versioninfo) != 0)
+        ostr << versioninfo.dwMajorVersion << "." << versioninfo.dwMinorVersion<<
+            "." << versioninfo.dwBuildNumber << " " << versioninfo.dwPlatformId
+            << "/" << versioninfo.szCSDVersion <<
+            ", UPnP/1.0, Portable SDK for UPnP devices/" PACKAGE_VERSION;
 #else
-	struct utsname sys_info;
+    struct utsname sys_info;
 
-	if (uname(&sys_info) != -1)
-		ostr << sys_info.sysname << "/" << sys_info.release << 
-			", UPnP/1.0, Portable SDK for UPnP devices/" PACKAGE_VERSION;
+    if (uname(&sys_info) != -1)
+        ostr << sys_info.sysname << "/" << sys_info.release << 
+            ", UPnP/1.0, Portable SDK for UPnP devices/" PACKAGE_VERSION;
 #endif
 #endif /* UPNP_ENABLE_UNSPECIFIED_SERVER */
-	return ostr.str();
+    return ostr.str();
 }
 
 std::string make_date_string(time_t thetime)
 {
-	const char *weekday_str = "Sun\0Mon\0Tue\0Wed\0Thu\0Fri\0Sat";
-	const char *month_str = "Jan\0Feb\0Mar\0Apr\0May\0Jun\0"
-	    "Jul\0Aug\0Sep\0Oct\0Nov\0Dec";
+    const char *weekday_str = "Sun\0Mon\0Tue\0Wed\0Thu\0Fri\0Sat";
+    const char *month_str = "Jan\0Feb\0Mar\0Apr\0May\0Jun\0"
+        "Jul\0Aug\0Sep\0Oct\0Nov\0Dec";
 
-	time_t curr_time = thetime ? thetime : time(nullptr);
-	struct tm date_storage;
-	struct tm *date = http_gmtime_r(&curr_time, &date_storage);
-	if (date == nullptr)
-		return std::string();
-	char tempbuf[200];
-	snprintf(tempbuf, sizeof(tempbuf),
-			 "%s, %02d %s %d %02d:%02d:%02d GMT",
-			 &weekday_str[date->tm_wday * 4],
-			 date->tm_mday, &month_str[date->tm_mon * 4],
-			 date->tm_year + 1900, date->tm_hour,
-			 date->tm_min, date->tm_sec);
-	return tempbuf;
+    time_t curr_time = thetime ? thetime : time(nullptr);
+    struct tm date_storage;
+    struct tm *date = http_gmtime_r(&curr_time, &date_storage);
+    if (date == nullptr)
+        return std::string();
+    char tempbuf[200];
+    snprintf(tempbuf, sizeof(tempbuf),
+             "%s, %02d %s %d %02d:%02d:%02d GMT",
+             &weekday_str[date->tm_wday * 4],
+             date->tm_mday, &month_str[date->tm_mon * 4],
+             date->tm_year + 1900, date->tm_hour,
+             date->tm_min, date->tm_sec);
+    return tempbuf;
 }
 
 std::string query_encode(const std::string& qs)
 {
-	std::string out;
+    std::string out;
     const char *cp = qs.c_str();
     for (std::string::size_type i = 0; i < qs.size(); i++) {
         unsigned int c;
         const char *h = "0123456789ABCDEF";
         c = cp[i];
         if ((c >= 'A' && c <= 'Z') ||
-			(c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
-			c == '*' || c == '-' || c== '.' || c == '_') {
+            (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
+            c == '*' || c == '-' || c== '.' || c == '_') {
             out += char(c);
-		} else {
+        } else {
             out += '%';
             out += h[(c >> 4) & 0xf];
             out += h[c & 0xf];
@@ -455,38 +455,38 @@ std::string query_encode(const std::string& qs)
 
 size_t header_callback_curl(char *buffer, size_t size, size_t nitems, void *s)
 {
-	size_t bufsize = size * nitems;
-	auto headers = static_cast<std::map<std::string, std::string>*>(s);
-	const char *colon = std::strchr(buffer, ':');
-	if (nullptr != colon) {
-		size_t colpos = colon - buffer;
-		std::string nm = std::string(buffer, colpos);
-		std::string value = std::string(colon + 1, bufsize - colpos -1);
-		if (!nm.empty()) {
-			trimstring(nm, " \t");
-			stringtolower(nm);
-			trimstring(value, " \t\r\n");
-			UpnpPrintf(UPNP_ALL, HTTP, __FILE__, __LINE__,
-					   "CURL header: [%s] -> [%s]\n", nm.c_str(), value.c_str());
-			(*headers)[nm] = value;
-		}
-	}
-	return bufsize;
+    size_t bufsize = size * nitems;
+    auto headers = static_cast<std::map<std::string, std::string>*>(s);
+    const char *colon = std::strchr(buffer, ':');
+    if (nullptr != colon) {
+        size_t colpos = colon - buffer;
+        std::string nm = std::string(buffer, colpos);
+        std::string value = std::string(colon + 1, bufsize - colpos -1);
+        if (!nm.empty()) {
+            trimstring(nm, " \t");
+            stringtolower(nm);
+            trimstring(value, " \t\r\n");
+            UpnpPrintf(UPNP_ALL, HTTP, __FILE__, __LINE__,
+                       "CURL header: [%s] -> [%s]\n", nm.c_str(), value.c_str());
+            (*headers)[nm] = value;
+        }
+    }
+    return bufsize;
 }
 
 size_t write_callback_null_curl(char *buffer, size_t size, size_t nitems, void *)
 {
 #if 0
-	fprintf(stderr, "DATA: [");
-	fwrite(buffer, size, nitems, stderr);
-	fprintf(stderr, "]\n");
-	fflush(stderr);
+    fprintf(stderr, "DATA: [");
+    fwrite(buffer, size, nitems, stderr);
+    fprintf(stderr, "]\n");
+    fflush(stderr);
 #endif
-	return size*nitems;
+    return size*nitems;
 }
 
 size_t write_callback_str_curl(char *buf, size_t sz, size_t nits, void *s)
 {
-	(static_cast<std::string*>(s))->append(buf, sz * nits);
-	return sz * nits;
+    (static_cast<std::string*>(s))->append(buf, sz * nits);
+    return sz * nits;
 }

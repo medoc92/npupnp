@@ -41,7 +41,7 @@
 
 #include "service_table.h"
 #include "upnp.h"
-#include "VirtualDir.h"		/* for struct VirtualDirCallbacks */
+#include "VirtualDir.h"        /* for struct VirtualDirCallbacks */
 #include "TimerThread.h"
 #include "upnpdescription.h"
 #include "client_table.h"
@@ -65,7 +65,7 @@ extern int g_UpnpSdkEQMaxLen;
 extern int g_UpnpSdkEQMaxAge;
 
 /* 30-second timeout */
-#define UPNP_TIMEOUT	30
+#define UPNP_TIMEOUT    30
 
 typedef enum {HND_INVALID=-1,HND_CLIENT,HND_DEVICE} Upnp_Handle_Type;
 
@@ -74,50 +74,50 @@ struct SsdpSearchArg;
 /* Data to be stored in handle table for */
 struct Handle_Info
 {
-	Handle_Info() {}
-	/*! . */
-	Upnp_Handle_Type HType{Upnp_Handle_Type(0)};
-	/*! Callback function pointer. */
-	Upnp_FunPtr  Callback{nullptr};
-	/*! . */
-	char *Cookie{nullptr};
-	/*! 0 = not installed; otherwise installed. */
-	int   aliasInstalled;
+    Handle_Info() {}
+    /*! . */
+    Upnp_Handle_Type HType{Upnp_Handle_Type(0)};
+    /*! Callback function pointer. */
+    Upnp_FunPtr  Callback{nullptr};
+    /*! . */
+    char *Cookie{nullptr};
+    /*! 0 = not installed; otherwise installed. */
+    int   aliasInstalled;
 
-	/* Device Only */
+    /* Device Only */
 #ifdef INCLUDE_DEVICE_APIS
-	/*! URL for the use of SSDP. */
-	char  DescURL[LINE_SIZE];
-	/*! URL for the use of SSDP when answering to legacy CPs (CP searching
-	 * for a v1 when the device is v2). */
-	char  LowerDescURL[LINE_SIZE];
-	/* Advertisement timeout */
-	int MaxAge{0};
-	/* Power State as defined by UPnP Low Power. */
-	int PowerState{0};
-	/* Sleep Period as defined by UPnP Low Power. */
-	int SleepPeriod{0};
-	/* Registration State as defined by UPnP Low Power. */
-	int RegistrationState{0};
-	/*! Parsed Device Description document. */
-	UPnPDeviceDesc devdesc;
-	/*! Table holding subscriptions and URL information. */
-	service_table ServiceTable;
-	/*! . */
-	int MaxSubscriptions{0};
-	/*! . */
-	int MaxSubscriptionTimeOut{0};
+    /*! URL for the use of SSDP. */
+    char  DescURL[LINE_SIZE];
+    /*! URL for the use of SSDP when answering to legacy CPs (CP searching
+     * for a v1 when the device is v2). */
+    char  LowerDescURL[LINE_SIZE];
+    /* Advertisement timeout */
+    int MaxAge{0};
+    /* Power State as defined by UPnP Low Power. */
+    int PowerState{0};
+    /* Sleep Period as defined by UPnP Low Power. */
+    int SleepPeriod{0};
+    /* Registration State as defined by UPnP Low Power. */
+    int RegistrationState{0};
+    /*! Parsed Device Description document. */
+    UPnPDeviceDesc devdesc;
+    /*! Table holding subscriptions and URL information. */
+    service_table ServiceTable;
+    /*! . */
+    int MaxSubscriptions{0};
+    /*! . */
+    int MaxSubscriptionTimeOut{0};
 #endif
 
-	/* Client only */
+    /* Client only */
 #ifdef INCLUDE_CLIENT_APIS
-	/*! Client subscription list. */
-	std::list<ClientSubscription> ClientSubList;
-	/*! Active SSDP searches. */
-	std::list<SsdpSearchArg*> SsdpSearchList;
+    /*! Client subscription list. */
+    std::list<ClientSubscription> ClientSubList;
+    /*! Active SSDP searches. */
+    std::list<SsdpSearchArg*> SsdpSearchList;
 #endif
 
-	// Forbid copy construction and assignment
+    // Forbid copy construction and assignment
     Handle_Info(const Handle_Info& rhs) = delete;
     Handle_Info& operator=(const Handle_Info& rhs) = delete;
 };
@@ -130,10 +130,10 @@ extern std::mutex GlobalHndRWLock;
  * \return HND_DEVICE, UPNP_E_INVALID_HANDLE
  */
 Upnp_Handle_Type GetHandleInfo(
-	/*! handle pointer (key for the client handle structure). */
-	int Hnd,
-	/*! handle structure passed by this function. */
-	struct Handle_Info **HndInfo); 
+    /*! handle pointer (key for the client handle structure). */
+    int Hnd,
+    /*! handle structure passed by this function. */
+    struct Handle_Info **HndInfo); 
 
 
 #define HandleLock() HandleWriteLock()
@@ -141,19 +141,19 @@ Upnp_Handle_Type GetHandleInfo(
 
 #ifdef DEBUG_LOCKS
 #define HandleWriteLock()  \
-	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Trying a write lock\n"); \
-	GlobalHndRWLock.lock();												\
-	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Write lock acquired\n");
+    UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Trying a write lock\n"); \
+    GlobalHndRWLock.lock();                                                \
+    UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Write lock acquired\n");
 
 #define HandleReadLock()  \
-	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Trying a read lock\n"); \
-	GlobalHndRWLock.lock();												\
-	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Read lock acquired\n");
+    UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Trying a read lock\n"); \
+    GlobalHndRWLock.lock();                                                \
+    UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Read lock acquired\n");
 
 #define HandleUnlock() \
-	UpnpPrintf(UPNP_INFO, API,__FILE__, __LINE__, "Trying Unlock\n"); \
-	GlobalHndRWLock.unlock();											\
-	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Unlocked rwlock\n");
+    UpnpPrintf(UPNP_INFO, API,__FILE__, __LINE__, "Trying Unlock\n"); \
+    GlobalHndRWLock.unlock();                                            \
+    UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Unlocked rwlock\n");
 #else /* !DEBUG_LOCKS-> */
 #define HandleWriteLock()  GlobalHndRWLock.lock()
 #define HandleReadLock()   GlobalHndRWLock.lock()
@@ -168,10 +168,10 @@ Upnp_Handle_Type GetHandleInfo(
  * \return HND_CLIENT, HND_INVALID
  */
 Upnp_Handle_Type GetClientHandleInfo(
-	/*! [in] client handle pointer (key for the client handle structure). */
-	int *client_handle_out, 
-	/*! [out] Client handle structure passed by this function. */
-	struct Handle_Info **HndInfo);
+    /*! [in] client handle pointer (key for the client handle structure). */
+    int *client_handle_out, 
+    /*! [out] Client handle structure passed by this function. */
+    struct Handle_Info **HndInfo);
 
 /*!
  * \brief Retrieves the device handle and information of the first
@@ -182,30 +182,30 @@ Upnp_Handle_Type GetClientHandleInfo(
  * \return HND_DEVICE or HND_INVALID
  */
 Upnp_Handle_Type GetDeviceHandleInfo(
-	/*! [in] place to start the search (i.e. last value returned). */
-	UpnpDevice_Handle start, 
-	/*! [out] Device handle pointer. */
-	int *device_handle_out, 
-	/*! [out] Device handle structure passed by this function. */
-	struct Handle_Info **HndInfo);
+    /*! [in] place to start the search (i.e. last value returned). */
+    UpnpDevice_Handle start, 
+    /*! [out] Device handle pointer. */
+    int *device_handle_out, 
+    /*! [out] Device handle structure passed by this function. */
+    struct Handle_Info **HndInfo);
 
 /*!
  * \brief Retrieves the device handle and information of the first device of
- * 	the address family specified, with a service having a controlURL or
- * 	eventSubURL matching the path.
+ *     the address family specified, with a service having a controlURL or
+ *     eventSubURL matching the path.
  *
  * \return HND_DEVICE or HND_INVALID
  */
 Upnp_Handle_Type GetDeviceHandleInfoForPath(
-	/*! The Uri path. */
-	const std::string& path, 
-	/*! [out] Device handle pointer. */
-	int *devhdl, 
-	/*! [out] Device handle structure passed by this function. */
-	struct Handle_Info **HndInfo,
-	/*! [out] Service info for found path. */
-	service_info **serv_info
-	);
+    /*! The Uri path. */
+    const std::string& path, 
+    /*! [out] Device handle pointer. */
+    int *devhdl, 
+    /*! [out] Device handle structure passed by this function. */
+    struct Handle_Info **HndInfo,
+    /*! [out] Service info for found path. */
+    service_info **serv_info
+    );
 
 extern unsigned short LOCAL_PORT_V4;
 extern unsigned short LOCAL_PORT_V6;
@@ -219,9 +219,9 @@ extern unsigned int g_optionFlags;
 
 inline bool using_ipv6() {
 #ifdef __APPLE__
-	return false;
+    return false;
 #else
-	return 0 != (g_optionFlags & UPNP_FLAG_IPV6);
+    return 0 != (g_optionFlags & UPNP_FLAG_IPV6);
 #endif
 }
 
