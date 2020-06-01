@@ -769,7 +769,7 @@ const Interface *Interfaces::interfaceForAddress(
     }
     
     if (addr.family() == IPAddr::Family::IPV6)    {
-        struct sockaddr_in6 *peeraddr =
+        auto peeraddr =
             reinterpret_cast<struct sockaddr_in6*>(&peerbuf);
         if (IN6_IS_ADDR_V4MAPPED(&peeraddr->sin6_addr)) {
             uint32_t addr4;

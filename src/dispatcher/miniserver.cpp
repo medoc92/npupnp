@@ -502,7 +502,7 @@ static int available_port(int reqport)
     int ret = UPNP_E_SOCKET_BIND;
     struct sockaddr_storage saddr;
     memset(&saddr, 0, sizeof(saddr));
-    struct sockaddr_in *ip = reinterpret_cast<struct sockaddr_in*>(&saddr);
+    auto ip = reinterpret_cast<struct sockaddr_in*>(&saddr);
     ip->sin_family = AF_INET;
     ip->sin_addr.s_addr = htonl(INADDR_ANY);
     for (int i = 0; i < 20; i++) {

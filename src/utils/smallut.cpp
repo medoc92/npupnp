@@ -341,7 +341,7 @@ template bool stringToStrings<std::unordered_set<string> >
 
 template <class T> void stringsToString(const T& tokens, string& s)
 {
-    for (typename T::const_iterator it = tokens.begin();
+    for (auto it = tokens.begin();
          it != tokens.end(); it++) {
         bool hasblanks = false;
         if (it->find_first_of(" \t\n") != string::npos) {
@@ -386,7 +386,7 @@ template <class T> void stringsToCSV(const T& tokens, string& s,
                                      char sep)
 {
     s.erase();
-    for (typename T::const_iterator it = tokens.begin();
+    for (auto it = tokens.begin();
          it != tokens.end(); it++) {
         bool needquotes = false;
         if (it->empty() ||
