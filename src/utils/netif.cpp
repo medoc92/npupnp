@@ -367,7 +367,7 @@ bool Interface::trimto(const std::vector<IPAddr>& keep)
             mit++;
         }
     }
-    return m->addresses.empty() ? false : true;
+    return !m->addresses.empty();
 }
 
 const IPAddr *Interface::firstipv4addr() const

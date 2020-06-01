@@ -197,10 +197,7 @@ int stringuppercmp(const string& s1, const string& s2)
 
 bool beginswith(const std::string& big, const std::string& small)
 {
-    if (big.compare(0, small.size(), small)) {
-        return false;
-    }
-    return true;
+    return big.compare(0, small.size(), small) == 0;
 }
 
 // Compare charset names, removing the more common spelling variations
@@ -479,12 +476,9 @@ bool stringToBool(const string& s)
     }
     if (isdigit(s[0])) {
         int val = atoi(s.c_str());
-        return val ? true : false;
+        return val != 0;
     }
-    if (s.find_first_of("yYtT") == 0) {
-        return true;
-    }
-    return false;
+    return s.find_first_of("yYtT") == 0;
 }
 
 void trimstring(string& s, const char *ws)
@@ -1315,13 +1309,11 @@ string SimpleRegexp::getMatch(const string&, int i) const
 class SimpleRegexp::Internal {
 public:
     Internal(const string& exp, int flags, int nm) : nmatch(nm) {
-        if (regcomp(&expr, exp.c_str(), REG_EXTENDED |
-                    ((flags&SRE_ICASE) ? REG_ICASE : 0) |
-                    ((flags&SRE_NOSUB) ? REG_NOSUB : 0)) == 0) {
-            ok = true;
-        } else {
-            ok = false;
-        }
+        ok = regcomp(&expr, exp.c_str(), REG_EXTENDED |
+
+                         ((flags & SRE_ICASE) ? REG_ICASE : 0) |
+
+                         ((flags & SRE_NOSUB) ? REG_NOSUB : 0)) == 0;
         matches.resize(nmatch+1);
     }
     ~Internal() {
@@ -1337,11 +1329,7 @@ bool SimpleRegexp::simpleMatch(const string& val) const
 {
     if (!ok())
         return false;
-    if (regexec(&m->expr, val.c_str(), m->nmatch+1, &m->matches[0], 0) == 0) {
-        return true;
-    } else {
-        return false;
-    }
+    return regexec(&m->expr, val.c_str(), m->nmatch + 1, &m->matches[0], 0) == 0;
 }
 
 string SimpleRegexp::getMatch(const string& val, int i) const
