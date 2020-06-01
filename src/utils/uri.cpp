@@ -39,6 +39,7 @@
 #include "config.h"
 
 #include <iostream>
+#include <numeric>
 
 #ifdef __FreeBSD__
 #include <osreldate.h>
@@ -305,18 +306,16 @@ std::string remove_dots(const std::string& in)
             if (vpath.empty()) {
                 // This is an error: trying to go behind /
                 return std::string();
-            }                 vpath.pop_back();
-
-           
+            }
+            vpath.pop_back();
         } else {
             vpath.push_back(elt);
         }
         pos = epos;
     }
-    std::string out = isabs ? "/" : "";
-    for (const auto& elt : vpath) {
-        out += elt + "/";
-    }
+    std::string out = std::accumulate(vpath.begin(), vpath.end(), isabs ? std::string("/") : "",
+        [](const std::string& o, const std::string& elt){ return o + elt + "/"; });
+
     // Pop the last / if the original path did not end with /
     if (!endslash && out.size() > 1 && out.back() == '/')
         out.pop_back();

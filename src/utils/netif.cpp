@@ -701,16 +701,15 @@ std::ostream& Interfaces::print(std::ostream& out) {
 
 std::vector<Interface> Interfaces::select(const Filter& filt) const
 {
-    unsigned int yesflags{0};
-    for (auto f : filt.needs) {
-        yesflags |= static_cast<unsigned int>(f);
-    }
-    unsigned int noflags{0};
-    for (auto f : filt.rejects) {
-        noflags |= static_cast<unsigned int>(f);
-    }
+    uint32_t yesflags = std::accumulate(filt.needs.begin(), filt.needs.end(), 0,
+        [](uint32_t yes, const NetIF::Interface::Flags &f){ return yes | static_cast<unsigned int>(f); });
+
+    uint32_t noflags = std::accumulate(filt.rejects.begin(), filt.rejects.end(), 0,
+        [](uint32_t no, const NetIF::Interface::Flags &f){ return no | static_cast<unsigned int>(f); });
+
     LOGDEB("Interfaces::select: yesflags " << std::hex << yesflags <<
            " noflags " << noflags << std::dec << "\n");
+
     std::vector<Interface> out;
     const auto& ifs = theInterfaces()->m->interfaces;
     std::copy_if(ifs.begin(), ifs.end(), std::back_inserter(out),

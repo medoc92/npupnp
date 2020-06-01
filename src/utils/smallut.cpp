@@ -46,6 +46,7 @@
 #include <string>
 #include <iostream>
 #include <list>
+#include <numeric>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -1422,13 +1423,8 @@ unsigned int stringToFlags(const vector<CharFlags>& flags,
     stringToTokens(input, toks, sep);
     for (auto& tok: toks) {
         trimstring(tok);
-        for (auto& flag : flags) {
-            if (tok == flag.yesname) {
-                /* Note: we don't break: the same name could conceivably
-                   set several flags. */
-                out |= flag.value;
-            }
-        }
+        out += std::accumulate(flags.begin(), flags.end(), out,
+            [&](int o, CharFlags flag){ return tok == flag.yesname ? o | flag.value : o; });
     }
     return out;
 }
