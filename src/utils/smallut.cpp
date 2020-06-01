@@ -15,9 +15,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  *   02110-1301 USA
  */
-#include <stdio.h>
-#include <stdlib.h>
-#include <inttypes.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cinttypes>
 
 #ifdef _WIN32
 // needed for localtime_r under mingw?
@@ -27,11 +27,11 @@
 #endif /* _MSC_VER */
 #endif /* _WIN32 */
 
-#include <time.h>
-#include <ctype.h>
-#include <errno.h>
-#include <string.h>
-#include <math.h>
+#include <ctime>
+#include <cctype>
+#include <cerrno>
+#include <cstring>
+#include <cmath>
 
 // Older compilers don't support stdc++ regex, but Windows does not
 // have the Linux one. Have a simple class to solve the simple cases.
