@@ -404,17 +404,17 @@ std::ostream& Interface::print(std::ostream& out) const
     out << m->name << ": <";
     std::vector<std::string> flgs;
     if (m->flags & static_cast<unsigned int>(Flags::HASIPV4))
-        flgs.push_back("HASIPV4");
+        flgs.emplace_back("HASIPV4");
     if (m->flags & static_cast<unsigned int>(Flags::HASIPV6))
-        flgs.push_back("HASIPV6");
+        flgs.emplace_back("HASIPV6");
     if (m->flags & static_cast<unsigned int>(Flags::LOOPBACK))
-        flgs.push_back("LOOPBACK");
+        flgs.emplace_back("LOOPBACK");
     if (m->flags & static_cast<unsigned int>(Flags::UP))
-        flgs.push_back("UP");
+        flgs.emplace_back("UP");
     if (m->flags & static_cast<unsigned int>(Flags::MULTICAST))
-        flgs.push_back("MULTICAST");
+        flgs.emplace_back("MULTICAST");
     if (m->flags & static_cast<unsigned int>(Flags::HASHWADDR))
-        flgs.push_back("HASHWADDR");
+        flgs.emplace_back("HASHWADDR");
     auto it = flgs.begin();
     if (it != flgs.end())
         out << *it++;

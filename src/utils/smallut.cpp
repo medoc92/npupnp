@@ -437,7 +437,7 @@ void stringToTokens(const string& str, vector<string>& tokens,
         } else if (pos == startPos) {
             // Dont' push empty tokens after first
             if (tokens.empty()) {
-                tokens.push_back(string());
+                tokens.emplace_back();
             }
             startPos = ++pos;
         } else {
@@ -464,7 +464,7 @@ void stringSplitString(const string& str, vector<string>& tokens,
             break;
         } else if (pos == startPos) {
             // Initial or consecutive separators
-            tokens.push_back(string());
+            tokens.emplace_back();
         } else {
             tokens.push_back(str.substr(startPos, pos - startPos));
         }
