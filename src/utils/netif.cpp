@@ -434,7 +434,7 @@ std::ostream& Interface::print(std::ostream& out) const
 class Interfaces::Internal {
 public:
     Internal();
-    ~Internal();
+    ~Internal() = default;
     std::vector<Interface> interfaces;
 };
 
@@ -652,11 +652,6 @@ out:
 }
 
 #endif /* _WIN32 */
-
-Interfaces::Internal::~Internal()
-{
-}
-
 
 Interfaces::Interfaces()
 {
