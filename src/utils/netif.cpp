@@ -126,14 +126,14 @@ IPAddr::IPAddr(const char *caddr)
                 &reinterpret_cast<struct sockaddr_in6*>(m->saddr)->sin6_addr)
             == 1) {
             m->saddr->sa_family = AF_INET6;
-            m->ok = 1;
+            m->ok = true;
         }
     } else {
         if (inet_pton(AF_INET, caddr,
                       &reinterpret_cast<struct sockaddr_in*>(m->saddr)->sin_addr)
             == 1) {
             m->saddr->sa_family = AF_INET;
-            m->ok = 1;
+            m->ok = true;
         }
     }
 }
