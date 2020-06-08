@@ -284,7 +284,7 @@ int UpnpGetIfInfo(const char *IfNames, unsigned int flags)
 
     g_netifs = selected;
 
-    if (using_ipv6()) {
+    if (!using_ipv6()) {
         // Trim the ipv6 addresses
         for (auto& netif : g_netifs) {
             auto addrmasks = netif.getaddresses();
@@ -615,11 +615,13 @@ int UpnpInit(const char *hostIP, unsigned short DestPort)
 
 int UpnpInit2(const char *IfName, unsigned short DestPort)
 {
+    g_optionFlags = UPNP_FLAG_IPV6;
     return upnpInitCommon(nullptr, IfName, DestPort, 0);
 }
 
 int UpnpInit2(const std::vector<std::string>& ifnames, unsigned short port)
 {
+    g_optionFlags = UPNP_FLAG_IPV6;
     // A bit wasteful, but really simpler. Just build an interfaces
     // list string and continue with this.
     std::string names = stringsToString(ifnames);
@@ -786,7 +788,7 @@ unsigned short UpnpGetServerPort6()
 const char *UpnpGetServerIpAddress()
 {
     if (UpnpSdkInit != 1)
-        return nullptr;
+        return "";
     static std::string addr;
     if (addr.empty()) {
         addr = apiFirstIPV4Str();
@@ -796,8 +798,9 @@ const char *UpnpGetServerIpAddress()
 
 const char *UpnpGetServerIp6Address()
 {
-    if (UpnpSdkInit != 1 || nullptr == g_netifs.begin()->firstipv6addr())
-        return nullptr;
+    if (UpnpSdkInit != 1 || !using_ipv6()) {
+        return "";
+    }
     static std::string addr;
     if (addr.empty()) {
         addr = apiFirstIPV6Str();
