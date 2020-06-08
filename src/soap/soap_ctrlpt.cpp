@@ -204,7 +204,17 @@ int SoapSendAction(
         list = curl_slist_append(list, "Accept:");
         list = curl_slist_append(list, "Expect:");
         curl_easy_setopt(easy, CURLOPT_HTTPHEADER, list);
-        curl_easy_setopt(easy, CURLOPT_URL, uri_asurlstr(url).c_str());
+        std::string surl = uri_asurlstr(url);
+        curl_easy_setopt(easy, CURLOPT_URL, surl.c_str());
+        // If this is an ipv6 url (which we check rather cavalierly),
+        // this may be a link-local address, and it needs an interface
+        // index (scope_id). This is a temporary hack to work with a
+        // single ipv6 interface until we do the right thing which
+        // would be to store and transport the appropriate scope for
+        // every endpoint
+        if (using_ipv6() && surl.find('[') != std::string::npos) {
+            curl_easy_setopt(easy, CURLOPT_ADDRESS_SCOPE, apiFirstIPV6Index());
+        }
 
         CURLcode code = curl_easy_perform(easy);
         if (code == CURLE_OK) {

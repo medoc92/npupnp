@@ -58,6 +58,7 @@
 #include "upnpdebug.h"
 #include "uri.h"
 #include "genut.h"
+#include "upnpapi.h"
 
 static const std::string bogus_soap_post{"SMPOST"};
 static const std::map<std::string, int> Http_Method_Table {
@@ -193,12 +194,12 @@ int http_FixStrUrl(const std::string& surl, uri_type *fixed_url)
  *    UPNP_E_SUCCESS
  *    UPNP_E_INVALID_URL
  ************************************************************************/
-int http_Download(const char *surl, int timeout_secs,
+int http_Download(const char *_surl, int timeout_secs,
                   char **document, size_t *doc_length, char *content_type)
 {
     uri_type url;
-    UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__, "http_Download: %s\n", surl);
-    int ret_code = http_FixStrUrl(surl, &url);
+    UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__, "http_Download: %s\n",_surl);
+    int ret_code = http_FixStrUrl(_surl, &url);
     if (ret_code != UPNP_E_SUCCESS)
         return ret_code;
 
@@ -208,7 +209,17 @@ int http_Download(const char *surl, int timeout_secs,
     CURL *easy = curl_easy_init();
     char curlerrormessage[CURL_ERROR_SIZE];
     curl_easy_setopt(easy, CURLOPT_ERRORBUFFER, curlerrormessage);
-    curl_easy_setopt(easy, CURLOPT_URL, uri_asurlstr(url).c_str());
+    std::string surl = uri_asurlstr(url);
+    curl_easy_setopt(easy, CURLOPT_URL, surl.c_str());
+    // If this is an ipv6 url (which we check rather cavalierly),
+    // this may be a link-local address, and it needs an interface
+    // index (scope_id). This is a temporary hack to work with a
+    // single ipv6 interface until we do the right thing which
+    // would be to store and transport the appropriate scope for
+    // every endpoint
+    if (using_ipv6() && surl.find('[') != std::string::npos) {
+        curl_easy_setopt(easy, CURLOPT_ADDRESS_SCOPE, apiFirstIPV6Index());
+    }
     curl_easy_setopt(easy, CURLOPT_TIMEOUT, timeout_secs);
     curl_easy_setopt(easy, CURLOPT_HEADERFUNCTION, header_callback_curl);
     curl_easy_setopt(easy, CURLOPT_HEADERDATA, &http_headers);
