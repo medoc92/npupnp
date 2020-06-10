@@ -1,3 +1,10 @@
+libnpupnp1 (4.0.6-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Fix IPV6 operation. Works on Linux, on a single interface.
+  * Mac port.
+  
+ -- Jean-Francois Dockes <jf@dockes.org>  Wed, 10 Jun 2020 18:14:00 +0200
+
 libnpupnp1 (4.0.5-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Add wait for network loop at start up. Default is test net every 2 S
