@@ -29,10 +29,6 @@
  *
  ******************************************************************************/
 
-/*!
- * \file
- */
-
 #include "config.h"
 
 #include "upnp.h"
@@ -41,19 +37,17 @@
 #include <mutex>
 #include <thread>
 #include <sstream>
-
+#include <iostream>
 #include <cerrno>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
-#ifdef DEBUG
-
-/*! Mutex to synchronize all the log file operations in the debug mode */
+/* Mutex to synchronize all the log file operations in the debug mode */
 static std::mutex GlobalDebugMutex;
 
-/*! Global log level */
+/* Global log level */
 static Upnp_LogLevel g_log_level = UPNP_DEFAULT_LOG_LEVEL;
 
 /* Output file pointer */
@@ -63,17 +57,26 @@ static int is_stderr;
 /* Set if the user called setlogfilename() or setloglevel() */
 static int setlogwascalled;
 /* Name of the output file. We keep a copy */
-static char *fileName;
+static std::string fileName;
 
-/* This is called from UpnpInit(). So the user must call setLogFileName() 
- * before. This can be called again, for example to rotate the log
- * file, and we try to avoid multiple calls to the mutex init, with a
- * risk of race, probably not a problem, and not worth fixing. */
+/* This can be called multiple times, for example to rotate the log file.*/
 int UpnpInitLog(void)
 {
-    /* If the user did not ask for logging do nothing */
-    if (setlogwascalled == 0 && !getenv("NPUPNP_FORCELOG")) {
-        return UPNP_E_SUCCESS;
+    if (setlogwascalled == 0) {
+        const char* envlevel = getenv("NPUPNP_LOGLEVEL");
+        const char* envfn = getenv("NPUPNP_LOGFILENAME");
+        /* Maybe a call from UpnpInit(). If the user did not ask for
+           logging do nothing, else init from environment or filename
+           and level from the api calls */
+        if (nullptr == envlevel && nullptr == envfn) {
+            return UPNP_E_SUCCESS;
+        }
+        if (envlevel) {
+            g_log_level = (Upnp_LogLevel)atoi(envlevel);
+        }
+        if (envfn) {
+            fileName = envfn;
+        }
     }
     if (fp) {
         if (is_stderr == 0) {
@@ -82,10 +85,10 @@ int UpnpInitLog(void)
         }
     }
     is_stderr = 0;
-    if (fileName) {
-        if ((fp = fopen(fileName, "a")) == nullptr) {
-            fprintf(stderr, "Failed to open fileName (%s): %s\n",
-                    fileName, strerror(errno));
+    if (!fileName.empty()) {
+        if ((fp = fopen(fileName.c_str(), "a")) == nullptr) {
+            std::cerr << "UpnpDebug: failed to open [" << fileName << "] : " <<
+                strerror(errno) << "\n";
         }
     }
     if (fp == nullptr) {
@@ -119,20 +122,15 @@ void UpnpSetLogFileNames(const char *newFileName, const char *ignored)
 {
     (void)ignored;
 
-    if (fileName) {
-        free(fileName);
-        fileName = nullptr;
-    }
+    fileName.clear();
     if (newFileName && *newFileName) {
-        fileName = strdup(newFileName);
+        fileName = newFileName;
     }
     setlogwascalled = 1;
 }
 
 static int DebugAtThisLevel(Upnp_LogLevel DLevel, Dbg_Module Module)
 {
-    (void)Module;
-
     return (DLevel <= g_log_level) &&
         (DEBUG_ALL ||
          (Module == SSDP && DEBUG_SSDP) ||
@@ -151,21 +149,9 @@ static void UpnpDisplayFileAndLine(
     time_t now = time(nullptr);
     struct tm *timeinfo;
     const char *smod;
-#if 0
-    char *slev;
-    /* Code kept around in case, but I think it's actually more convenient
-       to display a numeric level */
-    switch (DLevel) {
-    case UPNP_CRITICAL: slev="CRI";break;
-    case UPNP_ERROR: slev="ERR";break;
-    case UPNP_INFO: slev="INF";break;
-    case UPNP_ALL: slev="ALL";break;
-    default: slev="UNK";break;
-    }
-#else
+
     char slev[25];
     snprintf(slev, 25, "%d", DLevel);
-#endif
         
     switch(Module) {
     case SSDP: smod="SSDP";break;
@@ -218,11 +204,7 @@ void UpnpPrintf(
 FILE *UpnpGetDebugFile(Upnp_LogLevel DLevel, Dbg_Module Module)
 {
     if (!DebugAtThisLevel(DLevel, Module)) {
-        return    nullptr;
+        return nullptr;
     }
-
     return fp;
 }
-
-
-#endif /* DEBUG */
