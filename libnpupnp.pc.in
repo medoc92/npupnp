@@ -7,4 +7,5 @@ Name: libnpupnp
 Description: Another SDK for UPnP Devices
 Version: @VERSION@
 Libs: -L${libdir} -lnpupnp
+Libs.private: @LIBNPUPNP_LIBS@
 Cflags: -I${includedir}/npupnp
