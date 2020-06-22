@@ -190,6 +190,22 @@ IPAddr::Family IPAddr::family() const
     }
 }
 
+IPAddr::Scope IPAddr::scopetype() const
+{
+    if (!m->ok)
+        return Scope::Invalid;
+    if (family() != Family::IPV6)
+        return Scope::Invalid;
+    if (IN6_IS_ADDR_LINKLOCAL(
+            &((struct sockaddr_in6 *)(m->saddr))->sin6_addr)) {
+        return Scope::LINK;
+    } else if (IN6_IS_ADDR_SITELOCAL(
+        &((struct sockaddr_in6 *)(m->saddr))->sin6_addr)) {
+        return Scope::SITE;
+    }
+    return Scope::GLOBAL;
+}
+
 std::string IPAddr::straddr() const
 {
     if (!ok())

@@ -606,12 +606,33 @@ static int respond_ok(MHDTransaction *mhdt, int time_out, subscription *sub)
  *
  * \return The number of URLs parsed.
  */
-static int create_url_list(const std::string& ulist, std::vector<uri_type> *out)
+static int create_url_list(
+    MHDTransaction *mhdt, const std::string& ulist, std::vector<uri_type> *out)
 {
     out->clear();
+
+    // Get information for the client address
+    NetIF::IPAddr claddr(
+        reinterpret_cast<struct sockaddr*>(mhdt->client_address));
+    if (!claddr.ok()) {
+        UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
+                   "create_url_list: can't determine client addr\n");
+        return UPNP_E_INVALID_INTERFACE;
+    }        
+    UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
+               "create_url_list: client address: %s\n",claddr.straddr().c_str());
+    NetIF::IPAddr hostaddr;
+    const auto clnetif = NetIF::Interfaces::interfaceForAddress(
+        claddr, g_netifs, hostaddr);
+    if (nullptr == clnetif) {
+        UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
+                   "create_url_list: no interface for client address %s\n",
+                   claddr.straddr().c_str());
+        return UPNP_E_INVALID_INTERFACE;
+    }
+
     std::string::size_type openpos = 0;
     std::string::size_type closepos = 0;
-
     for (;;) {
         if ((openpos = ulist.find('<', closepos)) == std::string::npos) {
             break;
@@ -620,14 +641,62 @@ static int create_url_list(const std::string& ulist, std::vector<uri_type> *out)
             break;
         }
         uri_type temp;
-        if (closepos - 1 > openpos && 
-            parse_uri(ulist.substr(openpos+1, closepos-openpos-1), &temp)
-            == UPNP_E_SUCCESS &&
-            !temp.hostport.text.empty()) {
-            out->push_back(temp);
+        if (closepos - 1 <= openpos) {
+            UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
+                       "create_url_list: malformed list %s\n", ulist.c_str());
+            out->clear();
+            return UPNP_E_INVALID_URL;
         }
+        std::string surl = ulist.substr(openpos+1, closepos-openpos-1);
+        if (parse_uri(surl, &temp) != UPNP_E_SUCCESS ||
+            temp.hostport.text.empty()) {
+            UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
+                       "create_url_list: bad url in list %s\n", surl.c_str());
+            out->clear();
+            return UPNP_E_INVALID_URL;
+        }
+        // Check that the specified callback address is on the same
+        // network segment as the client address (Callstranger (CVE-2020-12695))
+
+        NetIF::IPAddr subsaddr(
+            reinterpret_cast<struct sockaddr*>(&temp.hostport.IPaddress));
+        if (!subsaddr.ok()) {
+            UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
+                       "create_url_list: bad addr %s\n", surl.c_str());
+            out->clear();
+            return UPNP_E_INVALID_URL;
+        }
+        NetIF::IPAddr hostaddr1;
+        // For IPV6, we check that the address is link-local. We only
+        // use a globally set network interface anyway, the client has
+        // no way to send us elsewhere. For IPV4, we let NetIF find
+        // the right interface (checking the address against the
+        // IP/netmask for each network interface). If this succeeds,
+        // and it's the same interface, we're ok
+        if (subsaddr.family() == NetIF::IPAddr::Family::IPV6) {
+            if (subsaddr.scopetype() != NetIF::IPAddr::Scope::LINK) {
+                UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
+                           "create_url_list: not link-local: %s\n",surl.c_str());
+                out->clear();
+                return UPNP_E_INVALID_URL;
+            }
+        } else {
+            const auto subsnetif = NetIF::Interfaces::interfaceForAddress(
+                subsaddr, g_netifs, hostaddr1);
+            if (subsnetif != clnetif) {
+                UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
+                           "create_url_list: diff. segment: client %s sub %s\n",
+                           claddr.straddr().c_str(), surl.c_str());
+                out->clear();
+                return UPNP_E_INVALID_URL;
+            }
+        }
+        
+        UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
+                   "create_url_list: cb url ok:  %s\n",surl.c_str());
+        out->push_back(temp);
     }
-    return static_cast<int>(out->size());
+    return UPNP_E_SUCCESS;
 }
 
 void gena_process_subscription_request(MHDTransaction *mhdt)
@@ -685,9 +754,8 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
     }
 
     UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
-        "Subscription Request: Number of Subscriptions already %d\n "
-        "Max Subscriptions allowed: %d\n",
-        service->TotalSubscriptions, handle_info->MaxSubscriptions);
+               "Subscription Request: current subscriptions count %d max %d\n",
+               service->TotalSubscriptions, handle_info->MaxSubscriptions);
 
     /* too many subscriptions */
     if (handle_info->MaxSubscriptions != -1 &&
@@ -696,6 +764,24 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
         HandleUnlock();
         return;
     }
+
+    std::vector<uri_type> tmpUrls;
+    /* check for valid callbacks */
+    {
+        auto itcb = mhdt->headers.find("callback");
+        if (itcb == mhdt->headers.end()) {
+            http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
+            HandleUnlock();
+            return;
+        }
+        return_code = create_url_list(mhdt, itcb->second, &tmpUrls);
+        if (return_code != UPNP_E_SUCCESS) {
+            http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
+            HandleUnlock();
+            return;
+        }
+    }
+
     /* generate new subscription */
     sub = service->subscriptionList.emplace(service->subscriptionList.end());
     if (sub == service->subscriptionList.end()) {
@@ -704,30 +790,7 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
         return;
     }
 
-    /* check for valid callbacks */
-    {
-        auto itcb = mhdt->headers.find("callback");
-        if (itcb == mhdt->headers.end()) {
-            http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
-            service->subscriptionList.pop_back();
-            HandleUnlock();
-            return;
-        }
-        return_code = create_url_list(itcb->second, &sub->DeliveryURLs);
-        if (return_code == 0) {
-            http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
-            service->subscriptionList.pop_back();
-            HandleUnlock();
-            return;
-        }
-        if (return_code == UPNP_E_OUTOF_MEMORY) {
-            http_SendStatusResponse(mhdt, HTTP_INTERNAL_SERVER_ERROR);
-            service->subscriptionList.pop_back();
-            HandleUnlock();
-            return;
-        }
-    }
-
+    sub->DeliveryURLs = tmpUrls;
     /* set the timeout */
     if (!timeout_header_value(mhdt->headers, &time_out)) {
         time_out = GENA_DEFAULT_TIMEOUT;
@@ -822,10 +885,9 @@ void gena_process_subscription_renewal_request(MHDTransaction *mhdt)
     }
 
     UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
-               "Renew request: Number of subscriptions already: %d\n "
-               "Max Subscriptions allowed:%d\n",
-               service->TotalSubscriptions,
-               handle_info->MaxSubscriptions );
+               "Renew Request: current subscriptions count %d max %d\n",
+               service->TotalSubscriptions, handle_info->MaxSubscriptions);
+
     /* too many subscriptions */
     if(handle_info->MaxSubscriptions != -1 &&
        service->TotalSubscriptions > handle_info->MaxSubscriptions ) {

@@ -49,7 +49,7 @@ namespace NetIF {
 class IPAddr {
 public:
     enum class Family {Invalid = -1, IPV4 = AF_INET, IPV6 = AF_INET6};
-    enum class Scope {Invalid = -1, LINK, GLOBAL};
+    enum class Scope {Invalid = -1, LINK, SITE, GLOBAL};
     IPAddr();
     /** Build from textual representation (e.g. 192.168.4.4) */
     explicit IPAddr(const char *);
@@ -67,6 +67,8 @@ public:
     bool ok() const;
     /** Returns the address family */
     Family family() const;
+    /** Returns the scope type of IPV6 address */
+    Scope scopetype() const;
     /** Copies out for use with a system interface */
     /* Zeroes out up to sizeof(sockaddr_storage) */
     bool copyToStorage(struct sockaddr_storage *dest) const;
