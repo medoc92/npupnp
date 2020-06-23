@@ -183,7 +183,7 @@ void request_completed_cb(
 // We listen on INADDR_ANY, but only accept connections from our
 // configured interfaces
 static MHD_Result filter_connections(
-    void *, const sockaddr *addr, unsigned int addrlen)
+    void *, const sockaddr *addr, socklen_t addrlen)
 {
     if (g_use_all_interfaces) {
         return MHD_YES;
