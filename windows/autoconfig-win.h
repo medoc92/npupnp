@@ -1,6 +1,16 @@
 /* autoconfig.h.  Generated from autoconfig.h.in by configure.  */
 /* autoconfig.h.in.  Generated from configure.ac by autoheader.  */
 
+/* Windows version, hand-edited */
+
+#if !defined(_WIN32_WINNT) || _WIN32_WINNT < 0x0600
+#undef _WIN32_WINNT
+#define _WIN32_WINNT 0x0600
+#include <ws2tcpip.h>
+#define HAVE_INET_PTON 1
+#define HAVE_INET_NTOP 1
+#endif
+
 /* Define if building universal (internal helper macro) */
 /* #undef AC_APPLE_UNIVERSAL_BUILD */
 
@@ -21,6 +31,9 @@
 
 /* Define to 1 if you have the `getifaddrs' function. */
 #define HAVE_GETIFADDRS 1
+
+/* Define to 1 if you have the `inet_pton' function. */
+#define HAVE_INET_PTON 1
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
@@ -86,16 +99,16 @@
 /* #undef NDEBUG */
 
 /* see upnpconfig.h */
-#define NPUPNP_VERSION_MAJOR 2
+#define NPUPNP_VERSION_MAJOR 4
 
 /* see upnpconfig.h */
-#define NPUPNP_VERSION_MINOR 1
+#define NPUPNP_VERSION_MINOR 0
 
 /* see upnpconfig.h */
-#define NPUPNP_VERSION_PATCH 0
+#define NPUPNP_VERSION_PATCH 7
 
 /* see upnpconfig.h */
-#define NPUPNP_VERSION_STRING "2.1.0"
+#define NPUPNP_VERSION_STRING "4.0.7"
 
 /* Name of package */
 #define PACKAGE "libnpupnp"
@@ -107,7 +120,7 @@
 #define PACKAGE_NAME "libnpupnp"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "libnpupnp 2.1.0"
+#define PACKAGE_STRING "libnpupnp 4.0.7"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "libnpupnp"
@@ -116,13 +129,10 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "2.1.0"
+#define PACKAGE_VERSION "4.0.7"
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
-
-/* see upnpconfig.h */
-#define UPNP_ENABLE_BLOCKING_TCP_CONNECTIONS 1
 
 /* see upnpconfig.h */
 #define UPNP_ENABLE_IPV6 1
@@ -158,10 +168,13 @@
 #define UPNP_HAVE_WEBSERVER 1
 
 /* see upnpconfig.h */
-/* #undef UPNP_MINISERVER_REUSEADDR */
+#define UPNP_MINISERVER_REUSEADDR 1
+
+/* Use expat */
+#define USE_EXPAT 1
 
 /* Version number of package */
-#define VERSION "2.1.0"
+#define VERSION "4.0.7"
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */
