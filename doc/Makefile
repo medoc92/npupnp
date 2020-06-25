@@ -6,9 +6,10 @@
 
 HTML = $(patsubst %.txt,%.html,$(wildcard *.txt))
 
-all: $(HTML) Dox
+DOXINDEX = refdoc/html/index.html
+all: $(HTML) $(DOXINDEX)
 
-Dox:
+$(DOXINDEX) : ../inc/upnp.h
 	doxygen Doxyfile
 
 clean:

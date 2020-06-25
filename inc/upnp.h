@@ -351,23 +351,12 @@ enum UpnpOpenFileMode
     UPNP_WRITE
 };
 
-/*!
- * \brief Returned when a control point application registers with
- * \b UpnpRegisterClient.
- *
- * Client handles can only be used with functions that operate with a client
- * handle.
- */
+/** Client (Control Point) registration handle. Returned by @ref 
+ *  UpnpRegisterClient, and first parameter to further API calls. */
 typedef int  UpnpClient_Handle;
 
-/*!
- * \brief Returned when a device application registers with
- * \b UpnpRegisterRootDevice, \b UpnpRegisterRootDevice2,
- * \b UpnpRegisterRootDevice3 or \b UpnpRegisterRootDevice4.
- *
- * Device handles can only be used with functions that operate with a device
- * handle.
- */
+/** Device registration handle. Returned by @ref UpnpRegisterRootDevice and 
+ * its variants, and first paramter to further API calls */
 typedef int  UpnpDevice_Handle;
 
 /**
@@ -465,22 +454,12 @@ typedef enum Upnp_EventType {
 
 
 
-/*!
- * \brief Holds the subscription identifier for a subscription between a
- * client and a device.
- *
- * The SID is a string representation of a globally unique id (GUID) and should
- * not be modified.
- */
+/** @brief Holds a service subscription unique identifier. */
 typedef char Upnp_SID[44];
 
-/*!
- * \brief Specifies the type of description in \b UpnpRegisterRootDevice2.
- *
- * These values control how \b UpnpRegisterRootDevice2 interprets the
- * \b description parameter.
- */
-enum Upnp_DescType_e { 
+/** @brief Specifies the type of description passed to 
+ * @ref UpnpRegisterRootDevice2. */
+typedef enum Upnp_DescType { 
     /*! The description is the URL to the description document. */
     UPNPREG_URL_DESC, 
     
@@ -491,18 +470,16 @@ enum Upnp_DescType_e {
     /*! The description is a pointer to a character array containing 
       the XML description document. */
     UPNPREG_BUF_DESC 
-};
+} Upnp_DescType;
 
-typedef enum Upnp_DescType_e Upnp_DescType;
-
-/* Option values for the UpnpInitWithOptions() flags argument */
+/** Option values for the @ref UpnpInitWithOptions flags argument */
 typedef enum {
     UPNP_FLAG_NONE = 0,
     /** Enable IPV6 operation (the default is IPV4 only) */
     UPNP_FLAG_IPV6 = 1,
 } Upnp_InitFlag;
 
-/* Values for the UpnpInitWithOptions() vararg options list */
+/** Values for the @ref UpnpInitWithOptions vararg options list */
 typedef enum {
     /** Terminate the VARARGs list. */
     UPNP_OPTION_END = 0,
@@ -510,45 +487,47 @@ typedef enum {
     UPNP_OPTION_NETWORK_WAIT,
 } Upnp_InitOption;
 
-/** Used in the device callback API as parameter for 
-    UPNP_CONTROL_ACTION_REQUEST */
+/** Used in the device callback API as parameter for
+    UPNP_CONTROL_ACTION_REQUEST. This holds the action type and data
+    sent by the Control Point and, after processing, the data returned
+    by the device */
 struct Upnp_Action_Request {
-    /** The result of the operation. */
+    /** @brief [output] The result of the operation. */
     int ErrCode;
 
-    /** The socket number of the connection to the requestor. */
-    int Socket;
+    /* Old comment said socket number ?? Not set, kept for ABI */
+    int unused1;
 
-    /** The error string in case of error. */
+    /** @brief [output] The error string in case of error. */
     char ErrStr[LINE_SIZE];
 
-    /** The Action Name. */
+    /** @brief [input] The Action Name. */
     char ActionName[NAME_SIZE];
 
-    /** The unique device ID. */
+    /** @brief [input] The unique device ID. */
     char DevUDN[NAME_SIZE];
 
-    /** The service ID. */
+    /** @brief [input] The service ID. */
     char ServiceID[NAME_SIZE];
 
-    /** [input] The action arguments */
+    /** @brief [input] The action arguments */
     std::vector<std::pair<std::string, std::string> > args;
 
-    /** [output] The action results. */
+    /** @brief [output] The action results. */
     std::vector<std::pair<std::string, std::string> > resdata;
 
-    /** IP address of the control point requesting this action. */
+    /** @brief [input] IP address of the control point requesting this action. */
     struct sockaddr_storage CtrlPtIPAddr;
 
-    /** Client user-agent string */
+    /** @brief [input] Client user-agent string */
     std::string Os;
 
-    /** The XML request document in case the callback has something
+    /** @brief [input] The XML request document in case the callback has something
         else to get from there. This is always set in addition to the
         args vector */
     std::string xmlAction;
 
-    /** Alternative data return: return an XML document instead of
+    /** @brief [output] Alternative data return: return an XML document instead of
         using the resdata vector. If this is not empty on callback
         return, it is used instead of resdata. This is to ease the
         transition from the ixml-based interface */
@@ -595,7 +574,7 @@ typedef struct Upnp_Event UpnpEvent;
 /** Returned in a {\b UPNP_DISCOVERY_RESULT} callback. */
 struct Upnp_Discovery
 {
-    /** The result code of the {\b UpnpSearchAsync} call. */
+    /** The result code of the @ref UpnpSearchAsync call. */
     int  ErrCode;                  
                      
     /** The expiration time of the advertisement. */
@@ -673,7 +652,7 @@ typedef struct Upnp_Event_Subscribe UpnpEventSubscribe;
 #define UpnpEventSubscribe_get_PublisherUrl_cstr(x) ((x)->PublisherUrl)
 #define UpnpEventSubscribe_get_TimeOut(x) ((x)->TimeOut)
   
-/** \ref UPNP_EVENT_SUBSCRIPTION_REQUEST callback data. */
+/** \ref UPNP_EVENT_SUBSCRIPTION_REQUEST device callback data. */
 struct Upnp_Subscription_Request
 {
     /** The identifier for the service being subscribed to. */
@@ -772,7 +751,7 @@ typedef int (*Upnp_FunPtr)(
     Upnp_EventType EventType, const void *Event, void *Cookie);
 
 
-/** \name Initialization and Registration 
+/** \name Initialization, common to client and device interfaces.
  * @{ 
  */
 
@@ -812,7 +791,7 @@ typedef int (*Upnp_FunPtr)(
  */
 EXPORT_SPEC int UpnpInit(
     /*! The host local IPv4 address to use, in dotted string format,
-     * or \c NULL to use the first IPv4 adapter's IP address. */
+     * or empty or \c NULL to use the first IPv4 adapter's IP address. */
     const char *HostIP,
     /*! Local Port to listen for incoming connections
      * \c 0 will pick the first free port at or above the configured default 
@@ -820,8 +799,8 @@ EXPORT_SPEC int UpnpInit(
      */
     unsigned short DestPort);
 
-/*!
- * \brief Initializes the Linux SDK
+/** 
+ * \brief Initializes the library, passing the interface spec as a single string
  *
  * This function must be called before any other API function can be called, 
  * except for a possible initialisation of the log output file and level.
@@ -837,7 +816,15 @@ EXPORT_SPEC int UpnpInit(
  *
  * This call is synchronous.
  *
- * \return An integer representing one of the following:
+ * @param ifName The interface name(s) to use by the UPnP SDK operations, as a
+ * space-separated list. Use double quotes or backslashes escapes
+ * if there are space characters inside the interface name. Use a
+ * single "*" character to use all available interfaces.
+ * \c NULL or empty to use the first suitable interface.
+ * @param DestPort local port to listen on for incoming connections.
+ * \c 0 will pick the first free port at or above the configured default.
+ *
+ * @return An integer representing one of the following:
  *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
  *     \li \c UPNP_E_OUTOF_MEMORY: Insufficient resources exist 
  *             to initialize the SDK.
@@ -852,28 +839,46 @@ EXPORT_SPEC int UpnpInit(
  *             have a valid IPv4 or IPv6 addresss configured.
  */
 EXPORT_SPEC int UpnpInit2( 
-    /*! The interface name(s) to use by the UPnP SDK operations, as a
-     * space-separated list. Use double quotes or backslashes escapes
-     * if there are space characters inside the interface name. Use a
-     * single "*" character to use all available interfaces.
-     * \c NULL to use the first suitable interface. */
-    const char *IfName,
-    /*!  Local Port to listen for incoming connections.
-     * \c 0 will pick the first free port at or above the configured default
-     */
-    unsigned short DestPort);
+    const char *IfName, unsigned short DestPort);
 
+/** 
+ * \brief Initializes the library, passing the interface spec as a vector.
+ *
+ * This function must be called before any other API function can be called, 
+ * except for a possible initialisation of the log output file and level.
+ * It should be called only once. Subsequent calls to this API return a
+ * \c UPNP_E_INIT error code.
+ *
+ * Optionally, the application can specify an one or several interface names.
+ * If the interface is unspecified, the SDK will use the first suitable one.
+ *
+ * The application can also specify a port number. The default is 49152.
+ * the SDK will pick the first available port at or above
+ * the default or specified value.
+ *
+ * This call is synchronous.
+ *
+ * @param ifnames The interface name(s) as a as a vector of 
+ * strings, to avoid any quoting headaches.
+ * @param DestPort local port to listen on for incoming connections.
+ * \c 0 will pick the first free port at or above the configured default.
+ *
+ * @return An integer representing one of the following:
+ *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
+ *     \li \c UPNP_E_OUTOF_MEMORY: Insufficient resources exist 
+ *             to initialize the SDK.
+ *     \li \c UPNP_E_INIT: The SDK is already initialized. 
+ *     \li \c UPNP_E_INIT_FAILED: The SDK initialization 
+ *             failed for an unknown reason.
+ *     \li \c UPNP_E_SOCKET_BIND: An error occurred binding a socket.
+ *     \li \c UPNP_E_LISTEN: An error occurred listening to a socket.
+ *     \li \c UPNP_E_OUTOF_SOCKET: An error ocurred creating a socket.
+ *     \li \c UPNP_E_INTERNAL_ERROR: An internal error ocurred.
+ *     \li \c UPNP_E_INVALID_INTERFACE: IfName is invalid or does not
+ *             have a valid IPv4 or IPv6 addresss configured.
+ */
 EXPORT_SPEC int UpnpInit2( 
-    /*! The interface name(s) to use by the UPnP SDK operations, as a
-     * space-separated list. Use double quotes or backslashes escapes
-     * if there are space characters inside the interface name. Use a
-     * single "*" character to use all available interfaces.
-     * \c empty to use the first suitable interface. */
-    const std::vector<std::string>& ifnames,
-    /*!  Local Port to listen for incoming connections.
-     * \c 0 will pick the first free port at or above the configured default
-     */
-    unsigned short DestPort);
+    const std::vector<std::string>& ifnames, unsigned short DestPort);
 
 EXPORT_SPEC int UpnpInitWithOptions( 
     /*! The interface name(s) to use by the UPnP SDK operations, as a
@@ -895,7 +900,7 @@ EXPORT_SPEC int UpnpInitWithOptions(
 
 
 /*!
- * \brief Terminates the Linux SDK for UPnP Devices.
+ * \brief Terminate and clean up the library.
  *
  * \li Checks for pending jobs and threads
  * \li Unregisters either the client or device 
@@ -924,10 +929,11 @@ EXPORT_SPEC int UpnpFinish(void);
  * \return
  *     \li On success: The port on which an internal server is listening for IPv4 UPnP
  *        related requests.
- *    \li On error: 0 is returned if \b UpnpInit has not succeeded.
+ *    \li On error: 0 is returned if @ref UpnpInit has not succeeded.
  */
 EXPORT_SPEC unsigned short UpnpGetServerPort(void);
 
+#ifdef UPNP_ENABLE_IPV6
 /*!
  * \brief Returns the internal server IPv6 UPnP listening port.
  *
@@ -935,18 +941,16 @@ EXPORT_SPEC unsigned short UpnpGetServerPort(void);
  * used to retrieve the actual port allocated to the SDK.
  *
  * \return
- *     \li On success: The port on which an internal server is listening for IPv6 UPnP
- *        related requests.
- *    \li On error: 0 is returned if \b UpnpInit has not succeeded.
+ *     \li On success: The IPV6 listening port.
+ *    \li On error: 0 is returned if @ref UpnpInit has not succeeded.
  */
-#ifdef UPNP_ENABLE_IPV6
 EXPORT_SPEC unsigned short UpnpGetServerPort6(void);
 #endif
 
 /*!
  * \brief Returns the local IPv4 listening ip address.
  *
- * If \c NULL is used as the IPv4 address in \b UpnpInit, then this function can
+ * If \c NULL is used as the IPv4 address in @ref UpnpInit, then this function can
  * be used to retrieve the actual interface address on which device is running.
  *
  * \return
@@ -956,21 +960,53 @@ EXPORT_SPEC unsigned short UpnpGetServerPort6(void);
  */
 EXPORT_SPEC const char *UpnpGetServerIpAddress(void);
 
+#ifdef UPNP_ENABLE_IPV6
 /*!
- * \brief Returns the local IPv6 listening ip address.
+ * \brief Returns the link-local IPv6 listening address.
  *
- * If \c NULL is used as the IPv6 address in \b UpnpInit, then this function can
- * be used to retrieve the actual interface address on which device is running.
+ * If \c NULL is used as the IPv6 address in @ref UpnpInit, then this
+ * function can be used to retrieve the actual interface address on
+ * which device is running.
  *
- * \return
+ * @return
  *     \li On success: The IPv6 address on which an internal server is
  *         listening for UPnP related requests.
  *     \li On error: \c NULL is returned if \b UpnpInit has not succeeded.
  */
-#ifdef UPNP_ENABLE_IPV6
 EXPORT_SPEC const char *UpnpGetServerIp6Address(void);
+
+/*!
+ * \brief Site-local or global address. Unsupported at the moment.
+ */
 EXPORT_SPEC const char *UpnpGetServerUlaGuaIp6Address(void);
 #endif
+
+/*!
+ * \brief Sets the maximum content-length that the SDK will process on an
+ * incoming SOAP requests or responses.
+ *
+ * This API allows devices that have memory constraints to exhibit consistent
+ * behaviour if the size of the incoming SOAP message exceeds the memory that
+ * device can allocate.
+ *
+ * If set to 0 then checking will be disabled.
+ *
+ * The default maximum content-length is \c DEFAULT_SOAP_CONTENT_LENGTH 
+ * = 16K bytes.
+ *  
+ * \return An integer representing one of the following:
+ *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
+ */
+EXPORT_SPEC int UpnpSetMaxContentLength(
+    /*! [in] The maximum permissible content length for incoming SOAP actions,
+     * in bytes. */
+    size_t contentLength);
+
+/** @} Initialization, common to client and device interfaces. */
+
+/** \name Initialization and termination, device interface.
+ * @{ 
+ */
 
 /*!
  * \brief Registers a device application with the UPnP Library.
@@ -1160,11 +1196,9 @@ EXPORT_SPEC int UpnpRegisterRootDevice4(
     const char *LowerDescUrl);
 
 /*!
- * \brief Unregisters a root device registered with \b UpnpRegisterRootDevice,
- * \b UpnpRegisterRootDevice2, \b UpnpRegisterRootDevice3 or
- * \b UpnpRegisterRootDevice4.
+ * \brief Unregisters a root device.
  *
- * After this call, the \b UpnpDevice_Handle is no longer valid. For all
+ * After this call, the @ref UpnpDevice_Handle is no longer valid. For all
  * advertisements that have not yet expired, the SDK sends a device unavailable
  * message automatically.
  *
@@ -1180,9 +1214,7 @@ EXPORT_SPEC int UpnpUnRegisterRootDevice(
     UpnpDevice_Handle Hnd);
 
 /*!
- * \brief Unregisters a root device registered with \b UpnpRegisterRootDevice,
- * \b UpnpRegisterRootDevice2, \b UpnpRegisterRootDevice3 or
- * \b UpnpRegisterRootDevice4.
+ * \brief Unregisters a root device.
  *
  * After this call, the \b UpnpDevice_Handle is no longer valid. For all
  * advertisements that have not yet expired, the SDK sends a device unavailable
@@ -1207,6 +1239,12 @@ EXPORT_SPEC int UpnpUnRegisterRootDeviceLowPower(
     int SleepPeriod,
     /*! RegistrationState as defined by UPnP Low Power. */
     int RegistrationState);
+
+/** @} Initialization and termination, device interface. */
+
+/** \name Initialization and termination, client interface.
+ * @{ 
+ */
 
 /*!
  * \brief Registers a control point application with the UPnP Library.
@@ -1254,28 +1292,7 @@ EXPORT_SPEC int UpnpUnRegisterClient(
     /*! [in] The handle of the control point instance to unregister. */
     UpnpClient_Handle Hnd);
 
-/*!
- * \brief Sets the maximum content-length that the SDK will process on an
- * incoming SOAP requests or responses.
- *
- * This API allows devices that have memory constraints to exhibit consistent
- * behaviour if the size of the incoming SOAP message exceeds the memory that
- * device can allocate.
- *
- * If set to 0 then checking will be disabled.
- *
- * The default maximum content-length is \c DEFAULT_SOAP_CONTENT_LENGTH 
- * = 16K bytes.
- *  
- * \return An integer representing one of the following:
- *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
- */
-EXPORT_SPEC int UpnpSetMaxContentLength(
-    /*! [in] The maximum permissible content length for incoming SOAP actions,
-     * in bytes. */
-    size_t contentLength);
-
-/** @} Initialization and Registration */
+/** @} Initialization and termination, client interface. */
 
 
 /******************************************************************************
@@ -1283,7 +1300,7 @@ EXPORT_SPEC int UpnpSetMaxContentLength(
  *                        D I S C O V E R Y                                   *
  *                                                                            *
  ******************************************************************************/
-/** \name Discovery 
+/** \name Client interface: Discovery 
  * @{ 
  */
 
@@ -1322,7 +1339,7 @@ EXPORT_SPEC int UpnpSearchAsync(
      * specification. */
     const char *Target,
     /*! The user data to pass when the callback function is invoked. */
-    const void *Cookie_const); 
+    const void *cookie); 
 
 /*!
  * \brief Sends out the discovery announcements for all devices and services
@@ -1394,7 +1411,7 @@ EXPORT_SPEC int UpnpSendAdvertisementLowPower(
  *                            C O N T R O L                                   *
  *                                                                            *
  ******************************************************************************/
-/** \name Control 
+/** \name Client interface: Control 
  * @{ 
  */
 
@@ -1455,7 +1472,7 @@ EXPORT_SPEC int UpnpSendAction(
  *                                                                            *
  ******************************************************************************/
 
-/** \name Eventing 
+/** \name Device interface: Eventing 
  * @{ 
  */
 
@@ -1558,43 +1575,6 @@ EXPORT_SPEC int UpnpNotifyXML(
     const std::string& propset);
 
 /*!
- * \brief Renews a subscription that is about to expire.
- *
- * This function is synchronous.
- *
- * \return An integer representing one of the following:
- *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
- *     \li \c UPNP_E_INVALID_HANDLE: The handle is not a valid control 
- *             point handle.
- *     \li \c UPNP_E_INVALID_PARAM: \b Timeout is not a valid pointer.
- *     \li \c UPNP_E_INVALID_SID: The SID being passed to this function 
- *             is not a valid subscription ID.
- *     \li \c UPNP_E_NETWORK_ERROR: A network error occured. 
- *     \li \c UPNP_E_SOCKET_WRITE: An error or timeout occurred writing 
- *             to a socket.
- *     \li \c UPNP_E_SOCKET_READ: An error or timeout occurred reading 
- *             from a socket.
- *     \li \c UPNP_E_SOCKET_BIND: An error occurred binding a socket.  
- *     \li \c UPNP_E_SOCKET_CONNECT: An error occurred connecting to 
- *             \b PublisherUrl.
- *     \li \c UPNP_E_OUTOF_SOCKET: An error occurred creating a socket.
- *     \li \c UPNP_E_BAD_RESPONSE: An error occurred in response from 
- *             the publisher.
- *     \li \c UPNP_E_SUBSCRIBE_UNACCEPTED: The publisher refused 
- *             the subscription renew.
- *     \li \c UPNP_E_OUTOF_MEMORY: Insufficient resources exist to 
- *             complete this operation.
- */
-EXPORT_SPEC int UpnpRenewSubscription(
-    /*! [in] The handle of the control point that is renewing the subscription. */
-    UpnpClient_Handle Hnd,
-    /*! [in,out] Pointer to a variable containing the requested subscription time.
-     * Upon return, it contains the actual renewal time. */
-    int *TimeOut,
-    /*! [in] The ID for the subscription to renew. */
-    const Upnp_SID SubsId);
-
-/*!
  * \brief Sets the maximum number of subscriptions accepted per service.
  *
  * The default value accepts as many as system resources allow. If the number
@@ -1614,26 +1594,11 @@ EXPORT_SPEC int UpnpSetMaxSubscriptions(
     /*! The maximum number of subscriptions to be allowed per service. */
     int MaxSubscriptions);
 
-/*!
- * \brief Sets the maximum time-out accepted for a subscription request or
- * renewal.
- *
- * The default value accepts the time-out set by the control point.
- * If a control point requests a subscription time-out less than or equal to
- * the maximum, the SDK grants the value requested by the control point. If the
- * time-out is greater, the SDK returns the maximum value.
- *
- * \return An integer representing one of the following:
- *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
- *     \li \c UPNP_E_INVALID_HANDLE: The handle is not a valid device 
- *             handle.
+/** @} Device interface: Eventing */
+
+/** \name  Client interface: Eventing 
+ * @{ 
  */
-EXPORT_SPEC int UpnpSetMaxSubscriptionTimeOut(  
-    /*! The handle of the device for which the maximum subscription
-     * time-out is being set. */
-    UpnpDevice_Handle Hnd,
-    /*! The maximum subscription time-out to be accepted. */
-    int MaxSubscriptionTimeOut);
 
 /*!
  * \brief Registers a control point to receive event notifications from another
@@ -1677,6 +1642,43 @@ EXPORT_SPEC int UpnpSubscribe(
     Upnp_SID SubsId);
 
 /*!
+ * \brief Renews a subscription that is about to expire.
+ *
+ * This function is synchronous.
+ *
+ * \return An integer representing one of the following:
+ *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
+ *     \li \c UPNP_E_INVALID_HANDLE: The handle is not a valid control 
+ *             point handle.
+ *     \li \c UPNP_E_INVALID_PARAM: \b Timeout is not a valid pointer.
+ *     \li \c UPNP_E_INVALID_SID: The SID being passed to this function 
+ *             is not a valid subscription ID.
+ *     \li \c UPNP_E_NETWORK_ERROR: A network error occured. 
+ *     \li \c UPNP_E_SOCKET_WRITE: An error or timeout occurred writing 
+ *             to a socket.
+ *     \li \c UPNP_E_SOCKET_READ: An error or timeout occurred reading 
+ *             from a socket.
+ *     \li \c UPNP_E_SOCKET_BIND: An error occurred binding a socket.  
+ *     \li \c UPNP_E_SOCKET_CONNECT: An error occurred connecting to 
+ *             \b PublisherUrl.
+ *     \li \c UPNP_E_OUTOF_SOCKET: An error occurred creating a socket.
+ *     \li \c UPNP_E_BAD_RESPONSE: An error occurred in response from 
+ *             the publisher.
+ *     \li \c UPNP_E_SUBSCRIBE_UNACCEPTED: The publisher refused 
+ *             the subscription renew.
+ *     \li \c UPNP_E_OUTOF_MEMORY: Insufficient resources exist to 
+ *             complete this operation.
+ */
+EXPORT_SPEC int UpnpRenewSubscription(
+    /*! [in] The handle of the control point that is renewing the subscription. */
+    UpnpClient_Handle Hnd,
+    /*! [in,out] Pointer to a variable containing the requested subscription time.
+     * Upon return, it contains the actual renewal time. */
+    int *TimeOut,
+    /*! [in] The ID for the subscription to renew. */
+    const Upnp_SID SubsId);
+
+/*!
  * \brief Removes the subscription of a control point from a service previously
  * subscribed to using \b UpnpSubscribe or \b UpnpSubscribeAsync.
  *
@@ -1711,18 +1713,36 @@ EXPORT_SPEC int UpnpUnSubscribe(
     /*! [in] The ID returned when the control point subscribed to the service. */
     const Upnp_SID SubsId);
 
-/** @} Eventing */
+/*!
+ * \brief Sets the maximum time-out accepted for a subscription request or
+ * renewal.
+ *
+ * The default value accepts the time-out set by the control point.
+ * If a control point requests a subscription time-out less than or equal to
+ * the maximum, the SDK grants the value requested by the control point. If the
+ * time-out is greater, the SDK returns the maximum value.
+ *
+ * \return An integer representing one of the following:
+ *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
+ *     \li \c UPNP_E_INVALID_HANDLE: The handle is not a valid device 
+ *             handle.
+ */
+EXPORT_SPEC int UpnpSetMaxSubscriptionTimeOut(  
+    /*! The handle of the device for which the maximum subscription
+     * time-out is being set. */
+    UpnpDevice_Handle Hnd,
+    /*! The maximum subscription time-out to be accepted. */
+    int MaxSubscriptionTimeOut);
 
 
 
-/******************************************************************************
- *                                                                            *
- *                        C L I E N T - A P I                                 *
- *                                                                            *
- ******************************************************************************/
+/** @} Client interface: Eventing */
+
+
+
 
 /**
- * \name Control Point HTTP API
+ * \name Client interface: HTTP helper functions
  * @{
  */
 
@@ -1775,7 +1795,7 @@ EXPORT_SPEC int UpnpDownloadUrlItem(
     /*! [out] HTTP header value content type if present. */
     std::string& ct);
 
-/*! @} Control Point HTTP API */
+/*! @} Client interface: HTTP helper functions */
 
 
 /******************************************************************************
@@ -1783,7 +1803,8 @@ EXPORT_SPEC int UpnpDownloadUrlItem(
  *                    W E B  S E R V E R  A P I                               *
  *                                                                            *
  ******************************************************************************/
-/** \name Web Server API
+
+/** \name Device interface: Web Server API
  * @{
  */
 
