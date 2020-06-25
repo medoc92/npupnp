@@ -6,7 +6,10 @@
 
 HTML = $(patsubst %.txt,%.html,$(wildcard *.txt))
 
-all: $(HTML)
+all: $(HTML) Dox
+
+Dox:
+	doxygen Doxyfile
 
 clean:
 	rm -f $(HTML)

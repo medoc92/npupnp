@@ -34,6 +34,9 @@
  *
  ******************************************************************************/
 
+/** @file upnp.h
+ * @brief main libnpupnp API definitions */
+
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -43,8 +46,11 @@
 #include "UpnpInet.h"
 #include "UpnpGlobal.h"
 
+/** Array size for some fixed sized character arrays in API structures */
 #define LINE_SIZE  (size_t)180
+/** Array size for some fixed sized character arrays in API structures */
 #define NAME_SIZE  (size_t)256
+/** Value indicating a non-limited specification in some calls (e.g. timeout) */
 #define UPNP_INFINITE        -1
 
 
@@ -106,9 +112,9 @@
 #define UPNP_E_BUFFER_TOO_SMALL        -106
 
 /*!
- * \brief The description document passed to \b UpnpRegisterRootDevice,
- * \b UpnpRegisterRootDevice2 \b UpnpRegisterRootDevice3 or
- * \b UpnpRegisterRootDevice4 is invalid.
+ * \brief The description document passed to \ref UpnpRegisterRootDevice,
+ * \ref UpnpRegisterRootDevice2 \ref UpnpRegisterRootDevice3 or
+ * \ref UpnpRegisterRootDevice4 is invalid.
  */
 #define UPNP_E_INVALID_DESC        -107
 
@@ -125,18 +131,12 @@
 
 #define UPNP_E_INVALID_DEVICE        -110
 
-/*!
- * \brief The device ID/service ID pair does not refer to a valid service.
- *
- * Returned only by \b UpnpNotify, \b UpnpNotifyExt, \b UpnpAcceptSubscription,
- * and \b UpnpAcceptSubscriptionExt.
- */
+/*! \brief The device ID/service ID pair does not refer to a valid service */
 #define UPNP_E_INVALID_SERVICE        -111
 
 /*!
- * \brief The response received from the remote side of a connection is not correct
- * for the protocol.
- *
+ * \brief The response received from the remote side of a connection is 
+ * not correct for the protocol.
  * This applies to the GENA, SOAP, and HTTP protocols.
  */
 #define UPNP_E_BAD_RESPONSE        -113
@@ -145,30 +145,27 @@
 
 /*!
  * \brief The SOAP action message is invalid.
- *
  * This can be because the DOM document passed to the function was malformed or
  * the action message is not correct for the given action.
  */
 #define UPNP_E_INVALID_ACTION        -115
 
 /*!
- * \brief \b UpnpInit has not been called, or \b UpnpFinish has already been called.
- *
- * None of the API functions operate until \b UpnpInit successfully completes.
+ * \brief \ref UpnpInit has not been called, or \ref UpnpFinish has 
+ * already been called.
+ * None of the API functions operate until \ref UpnpInit successfully completes.
  */
 #define UPNP_E_FINISH            -116
 
 /*!
- * \brief \b UpnpInit cannot complete.  
- *
+ * \brief \ref UpnpInit cannot complete.  
  * The typical reason is failure to allocate sufficient resources.
  */
 #define UPNP_E_INIT_FAILED        -117
 
 /*!
  * \brief The URL passed into a function is too long.
- *
- * The SDK limits URLs to 180 characters in length.  
+ * The SDK limits URLs to @ref LINE_SIZE characters in length.  
  */
 #define UPNP_E_URL_TOO_BIG        -118
 
@@ -345,21 +342,8 @@
  */
 #define UPNP_E_INTERNAL_ERROR        -911
 
-/* SOAP-related error codes */
-#define UPNP_SOAP_E_INVALID_ACTION    401
-#define UPNP_SOAP_E_INVALID_ARGS    402
-#define UPNP_SOAP_E_OUT_OF_SYNC        403
-#define UPNP_SOAP_E_INVALID_VAR        404
-#define UPNP_SOAP_E_ACTION_FAILED    501
-
 /* @} ErrorCodes */
 
-
-/*!
- * \name Constants and Types
- *
- * @{
- */
 
 enum UpnpOpenFileMode
 {
@@ -386,14 +370,11 @@ typedef int  UpnpClient_Handle;
  */
 typedef int  UpnpDevice_Handle;
 
-/*!
- * \brief The reason code for an event callback.
- *
- * The \b Event parameter will be different depending on the reason for the
- * callback. The descriptions for each event type describe the contents of the
- * \b Event parameter.
+/**
+ * This value defines the reason for an event callback, and the kind
+ * of data structure which the \b Event parameter points to.
  */
-enum Upnp_EventType_e {
+typedef enum Upnp_EventType {
     /*
      * Control callbacks
      */
@@ -480,9 +461,9 @@ enum Upnp_EventType_e {
      * The \b Event parameter is a \b UpnpEventSubscribe
      * structure. The subscription is no longer valid. */
     UPNP_EVENT_SUBSCRIPTION_EXPIRED
-};
+} Upnp_EventType;
 
-typedef enum Upnp_EventType_e Upnp_EventType;
+
 
 /*!
  * \brief Holds the subscription identifier for a subscription between a
@@ -591,8 +572,7 @@ typedef struct Upnp_Action_Request UpnpActionRequest;
 #define UpnpActionRequest_get_CtrlPtIPAddr(x) (&((x)->CtrlPtIPAddr));
 #define UpnpActionRequest_get_Os_cstr(x) ((x)->Os.c_str())
 
-/** Returned along with a {\bf UPNP_EVENT_RECEIVED} callback.  */
-
+/** \ref UPNP_EVENT_RECEIVED callback data.  */
 struct Upnp_Event
 {
     /** The subscription ID for this subscription. */
@@ -612,10 +592,10 @@ typedef struct Upnp_Event UpnpEvent;
 #define UpnpEvent_get_EventKey(x) ((x)->EventKey)
 #define UpnpEvent_get_ChangedVariables(x) ((x)->ChangedVariables)
 
-/** Returned in a {\bf UPNP_DISCOVERY_RESULT} callback. */
+/** Returned in a {\b UPNP_DISCOVERY_RESULT} callback. */
 struct Upnp_Discovery
 {
-    /** The result code of the {\bf UpnpSearchAsync} call. */
+    /** The result code of the {\b UpnpSearchAsync} call. */
     int  ErrCode;                  
                      
     /** The expiration time of the advertisement. */
@@ -664,14 +644,13 @@ typedef struct Upnp_Discovery UpnpDiscovery;
 #define UpnpDiscovery_get_Os_cstr(x) ((x)->Os)
 #define UpnpDiscovery_get_DestAddr(x) (&((x)->DestAddr))
     
-/** Returned along with a {\bf UPNP_EVENT_SUBSCRIBE_COMPLETE} or {\bf
- * UPNP_EVENT_UNSUBSCRIBE_COMPLETE} callback.  */
-
+/** Returned along with a \ref UPNP_EVENT_SUBSCRIBE_COMPLETE or \ref
+ * UPNP_EVENT_UNSUBSCRIBE_COMPLETE callback.  */
 struct Upnp_Event_Subscribe {
 
     /** The SID for this subscription.  For subscriptions, this only
-     *  contains a valid SID if the {\bf Upnp_EventSubscribe.result} field
-     *  contains a {\tt UPNP_E_SUCCESS} result code.  For unsubscriptions,
+     *  contains a valid SID if the \b ErrCode field
+     *  contains a \ref UPNP_E_SUCCESS result code.  For unsubscriptions,
      *  this contains the SID from which the subscription is being
      *  unsubscribed.  */
 
@@ -685,7 +664,6 @@ struct Upnp_Event_Subscribe {
 
     /** The actual subscription time (for subscriptions only). */
     int TimeOut;              
-                              
 };
 
 /* compat code for libupnp-1.8 */
@@ -695,15 +673,13 @@ typedef struct Upnp_Event_Subscribe UpnpEventSubscribe;
 #define UpnpEventSubscribe_get_PublisherUrl_cstr(x) ((x)->PublisherUrl)
 #define UpnpEventSubscribe_get_TimeOut(x) ((x)->TimeOut)
   
-/** Returned along with a {\bf UPNP_EVENT_SUBSCRIPTION_REQUEST}
- *  callback.  */
-
+/** \ref UPNP_EVENT_SUBSCRIPTION_REQUEST callback data. */
 struct Upnp_Subscription_Request
 {
     /** The identifier for the service being subscribed to. */
     const char *ServiceId; 
 
-    /** Universal device name. */
+    /** Unique Device Name. */
     const char *UDN;       
 
     /** The assigned subscription ID for this subscription. */
@@ -716,6 +692,7 @@ typedef struct Upnp_Subscription_Request UpnpSubscriptionRequest;
 #define UpnpSubscriptionRequest_get_UDN_cstr(x) ((x)->UDN)
 #define UpnpSubscriptionRequest_get_SID_cstr(x) ((x)->Sid)
 
+/** Information return structure for the GetInfo virtual directory callback */
 struct File_Info
 {
     /** The length of the file. A length less than 0 indicates the size 
@@ -727,7 +704,7 @@ struct File_Info
      *  The time system is always local (not GMT). */
     time_t last_modified{0};
 
-    /** If the file is a directory, {\bf is_directory} contains
+    /** If the file is a directory, contains
      * a non-zero value. For a regular file, it should be 0. */
     int is_directory{0};
 
@@ -771,44 +748,32 @@ typedef struct File_Info UpnpFileInfo;
 #define UpnpFileInfo_get_Os_cstr(x) ((x)->Os.c_str())
     
 /*!
- *  All callback functions share the same prototype, documented below.
- *  Note that any memory passed to the callback function
- *  is valid only during the callback and should be copied if it
- *  needs to persist.  This callback function needs to be thread
- *  safe.  The context of the callback is always on a valid thread 
- *  context and standard synchronization methods can be used.  Note, 
- *  however, because of this the callback cannot call SDK functions
- *  unless explicitly noted.
+ * Function prototype for all event callback functions. 
+ * This is set when registering a device (\ref UpnpRegisterRootDevice) or 
+ * client (\ref UpnpRegisterClient).
+ * Any memory referenced by the call is valid only for its duration
+ * and should be copied if it needs to persist.  
+ * This callback function needs to be thread safe.  
+ * The context of the callback is always on a valid thread
+ * context and standard synchronization methods can be used.  Note, 
+ * however, because of this the callback cannot call SDK functions
+ * unless explicitly noted.
  *
- *  \verbatim
- int CallbackFxn(Upnp_EventType EventType, void *Event, void *Cookie);
- \endverbatim 
+ * @param EventType type of the event that triggered the callback.
+ * @param Event pointer to an event type-dependant structure storing
+ *  the relevant event information.
+ * @param Cookie the user data set when the callback was registered.
  *
- *  where \b EventType is the event that triggered the callback, 
- *  \b Event is a structure that denotes event-specific information for that
- *  event, and \b Cookie is the user data passed when the callback was
- *  registered.
+ * See \ref Upnp_EventType for more information on the callback values and
+ * the associated \b Event parameter.  
  *
- *  See \b Upnp_EventType for more information on the callback values and
- *  the associated \b Event parameter.  
- *
- *  The return value of the callback is currently ignored. It may be used
- *  in the future to communicate results back to the SDK.
  */
 typedef int (*Upnp_FunPtr)(
-    /*! [in] .*/
-    Upnp_EventType EventType,
-    /*! [in] .*/
-    const void *Event,
-    /*! [in] .*/
-    void *Cookie);
+    Upnp_EventType EventType, const void *Event, void *Cookie);
 
-/* @} Constants and Types */
 
-/*!
- * \name Initialization and Registration
- *
- * @{
+/** \name Initialization and Registration 
+ * @{ 
  */
 
 /*!
@@ -1305,26 +1270,21 @@ EXPORT_SPEC int UpnpUnRegisterClient(
  * \return An integer representing one of the following:
  *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
  */
-#define UpnpSetContentLength UpnpSetMaxContentLength
 EXPORT_SPEC int UpnpSetMaxContentLength(
     /*! [in] The maximum permissible content length for incoming SOAP actions,
      * in bytes. */
     size_t contentLength);
 
-/* @} Initialization and Registration */
+/** @} Initialization and Registration */
+
 
 /******************************************************************************
- ******************************************************************************
  *                                                                            *
  *                        D I S C O V E R Y                                   *
  *                                                                            *
- ******************************************************************************
  ******************************************************************************/
-
-/*!
- * \name Discovery
- *
- * @{
+/** \name Discovery 
+ * @{ 
  */
 
 /*!
@@ -1423,7 +1383,7 @@ EXPORT_SPEC int UpnpSendAdvertisementLowPower(
     /*! RegistrationState as defined by UPnP Low Power. */
     int RegistrationState);
 
-/* @} Discovery */
+/** @} Discovery */
 
 
 
@@ -1434,6 +1394,9 @@ EXPORT_SPEC int UpnpSendAdvertisementLowPower(
  *                            C O N T R O L                                   *
  *                                                                            *
  ******************************************************************************/
+/** \name Control 
+ * @{ 
+ */
 
 /*!
  * \brief Sends a message to change a state variable in a service.
@@ -1459,16 +1422,17 @@ EXPORT_SPEC int UpnpSendAdvertisementLowPower(
  *             complete this operation.
  *
  *  @param Hnd client handle
- *     @param headerString SOAP header. This may be empty if no header
- *     header is not required. <soapns:Header>[xxx]</soapns:Header>
- *  @param actionURL the service action url from the device description document.
+ *  @param headerString SOAP header. This may be empty if no header
+ *     header is not required. e.g. <soapns:Header>xxx</soapns:Header>
+ *  @param actionURL the service action url from the device description 
+ *    document.
  *  @param serviceType the service type from the device description document
  *  @param actionName the action to perform (from the service description)
- *  @param actionArgs the action name/value argument pairs, in order.
- *  @param[output] responseData the return values
- *  @param[output] errorCodep pointer to an integer to store the UPNP error code
+ *  @param actionParams the action name/value argument pairs, in order.
+ *  @param[out] responseData the return values
+ *  @param[out] errorCodep pointer to an integer to store the UPNP error code
  *   if we got an error response document
- *  @param[output] errorDescr A place to store an error description (if we got 
+ *  @param[out] errorDescr A place to store an error description (if we got 
  *     an error response document).
  */
 EXPORT_SPEC int UpnpSendAction(
@@ -1478,24 +1442,21 @@ EXPORT_SPEC int UpnpSendAction(
     const std::string& serviceType,
     const std::string& actionName,
     const std::vector<std::pair<std::string, std::string>>& actionParams,
-    std::vector<std::pair<std::string, std::string>>& responsedata,
-    int *errcodep,
-    std::string&  errdesc
+    std::vector<std::pair<std::string, std::string>>& responseData,
+    int *errorCodep,
+    std::string&  errorDescr
     );
 
+/** @} Control */
 
 /******************************************************************************
- ******************************************************************************
  *                                                                            *
  *                        E V E N T I N G                                     *
  *                                                                            *
- ******************************************************************************
  ******************************************************************************/
 
-/*!
- * \name Eventing
- *
- * @{
+/** \name Eventing 
+ * @{ 
  */
 
 /*!
@@ -1750,20 +1711,18 @@ EXPORT_SPEC int UpnpUnSubscribe(
     /*! [in] The ID returned when the control point subscribed to the service. */
     const Upnp_SID SubsId);
 
-/*! @} Eventing */
+/** @} Eventing */
+
 
 
 /******************************************************************************
- ******************************************************************************
  *                                                                            *
  *                        C L I E N T - A P I                                 *
  *                                                                            *
- ******************************************************************************
  ******************************************************************************/
 
-/*!
+/**
  * \name Control Point HTTP API
- *
  * @{
  */
 
@@ -1811,25 +1770,20 @@ EXPORT_SPEC int UpnpDownloadUrlItem(
 EXPORT_SPEC int UpnpDownloadUrlItem(
     /*! [in] URL of an item to download. */
     const std::string& url,
-    /*! [out] Buffer to store the downloaded item. Caller must free */
+    /*! [out] Buffer to store the downloaded item. */
     std::string& data,
-    /*! [out] HTTP header value content type if present. It should be at least
-     * \c LINE_SIZE bytes in size. */
+    /*! [out] HTTP header value content type if present. */
     std::string& ct);
 
 /*! @} Control Point HTTP API */
 
+
 /******************************************************************************
- ******************************************************************************
  *                                                                            *
  *                    W E B  S E R V E R  A P I                               *
  *                                                                            *
- ******************************************************************************
  ******************************************************************************/
-
-/*!
- * \name Web Server API
- * 
+/** \name Web Server API
  * @{
  */
 
@@ -1853,14 +1807,11 @@ EXPORT_SPEC int UpnpSetWebServerRootDir(
     /*! [in] Path of the root directory of the web server. */
     const char *rootDir);
 
-/*!
- * \brief The type of handle returned by the web server for open requests.
- */
+/** Handle returned by the @ref VDCallback_Open virtual directory function. */
 typedef void *UpnpWebFileHandle;
 
-/*!
- * \brief Get-info callback function prototype.
- */
+/** Virtual directory function prototype for the callback to get file 
+ *  information. */
 typedef int (*VDCallback_GetInfo)(
     /*! [in] The name of the file to query. */
     const char *filename,
@@ -1980,9 +1931,7 @@ typedef int (*VDCallback_Seek) (
  */
 EXPORT_SPEC int UpnpVirtualDir_set_SeekCallback(VDCallback_Seek callback);
 
-/*!
- * \brief Close callback function prototype.
- */
+/** Virtual directory close callback function prototype. */
 typedef int (*VDCallback_Close)(
     /*! [in] The handle of the file to close. */
     UpnpWebFileHandle fileHnd,
@@ -2000,18 +1949,25 @@ typedef int (*VDCallback_Close)(
  */
 EXPORT_SPEC int UpnpVirtualDir_set_CloseCallback(VDCallback_Close callback);
 
-/*!
- * \brief The {\bf UpnpVirtualDirCallbacks} structure contains the pointers to
- *  file-related callback functions a device application can register to
- *  virtualize URLs.
+/**
+ * Contains the pointers to
+ * file-related callback functions a device application can register to
+ * virtualize URLs. It allows setting all callbacks with a single
+ * @ref UpnpSetVirtualDirCallbacks call instead of using individual calls.
  */
 struct UpnpVirtualDirCallbacks
 {
+    /** @brief @ref VDCallback_GetInfo callback */
     VDCallback_GetInfo get_info;
+    /** @brief @ref VDCallback_Open callback */
     VDCallback_Open open;
+    /** @brief @ref VDCallback_Read callback */
     VDCallback_Read read;
+    /** @brief @ref VDCallback_Write callback */
     VDCallback_Write write;
+    /** @brief @ref VDCallback_Seek callback */
     VDCallback_Seek seek;
+    /** @brief @ref VDCallback_Close callback */
     VDCallback_Close close;
 };
 
@@ -2055,13 +2011,17 @@ EXPORT_SPEC int UpnpSetVirtualDirCallbacks(
  *
  * \note This function is not available when the web server is not
  *     compiled into the UPnP Library.
- *
+ * @param dirName The name of the new directory mapping to add.
+ * @param cookie a value which will be set in callbacks related to this 
+ *   directory.
+ * @param [out] oldcookie If not null and the virtual directory
+ *  previously existed, returns the old cookie value.
+ * 
  * \return An integer representing one of the following:
  *       \li \c UPNP_E_SUCCESS: The operation completed successfully.
  *       \li \c UPNP_E_INVALID_ARGUMENT: \b dirName is not valid.
  */
 EXPORT_SPEC int UpnpAddVirtualDir(
-    /*! [in] The name of the new directory mapping to add. */
     const char *dirName, const void *cookie, const void **oldcookie);
 
 /*!

@@ -13,6 +13,7 @@ config.log
 config.status
 configure
 doc/*.html
+doc/refdoc
 inc/stamp-h2
 inc/upnpconfig.h
 libnpupnp.pc
