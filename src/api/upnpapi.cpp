@@ -201,7 +201,7 @@ int apiFirstIPV6Index()
  *
  * We'll retrieve the following information from the interface:
  */
-int UpnpGetIfInfo(const char *IfNames, unsigned int flags)
+static int getIfInfo(const char *IfNames, unsigned int flags)
 {
     g_use_all_interfaces = (IfNames && std::string("*") == IfNames);
         
@@ -530,6 +530,7 @@ static int UpnpInitStartServers(unsigned short DestPort)
     return UPNP_E_SUCCESS;
 }
 
+/* Only use HostIP if ifName is nullptr (meaning a call from UpnpInit()) */
 static int waitForNetwork(
     const char *HostIP, const char *ifName, unsigned int flags)
 {
@@ -540,7 +541,7 @@ static int waitForNetwork(
     for (int i = 0; i < loops; i++) {
         if (ifName) {
             /* Retrieve interface information (Addresses, index, etc). */
-            ret = UpnpGetIfInfo(ifName, flags);
+            ret = getIfInfo(ifName, flags);
         } else {
             /* Verify HostIP, if provided, or find it ourselves. */
             ret = getmyipv4(HostIP);
@@ -559,6 +560,8 @@ static int waitForNetwork(
     return ret;
 }
 
+/* If ifName is nullptr this is a call from UpnpInit(). UpnpInit2() calls us with
+ * a non-null, possibly empty string */
 static int upnpInitCommon(const char *hostIP, const char *ifName,
                           unsigned short DestPort, unsigned int flags)
 {
@@ -616,7 +619,7 @@ int UpnpInit(const char *hostIP, unsigned short DestPort)
 int UpnpInit2(const char *IfName, unsigned short DestPort)
 {
     g_optionFlags = UPNP_FLAG_IPV6;
-    return upnpInitCommon(nullptr, IfName, DestPort, 0);
+    return upnpInitCommon(nullptr, IfName?IfName:"", DestPort, 0);
 }
 
 int UpnpInit2(const std::vector<std::string>& ifnames, unsigned short port)
