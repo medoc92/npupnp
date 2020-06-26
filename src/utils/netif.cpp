@@ -345,10 +345,8 @@ const std::string& Interface::getfriendlyname() const
 }
 
 const std::pair<const std::vector<IPAddr>&, const std::vector<IPAddr>&>
-Interface::getaddresses() const
-{
-    return std::pair<const std::vector<IPAddr>&, const std::vector<IPAddr>&>
-        (m->addresses, m->netmasks);
+Interface::getaddresses() const {
+    return {m->addresses, m->netmasks};
 }
 
 bool Interface::trimto(const std::vector<IPAddr>& keep)
