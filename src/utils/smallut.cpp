@@ -685,7 +685,7 @@ bool pcSubst(const string& in, string& out, const map<string, string>& subs)
                     out += string("%(");
                     break;
                 }
-                string::size_type j = in.find_first_of(")", i);
+                string::size_type j = in.find_first_of(')', i);
                 if (j == string::npos) {
                     // ??concatenate remaining part and stop
                     out += in.substr(i - 2);
@@ -802,9 +802,9 @@ string breakIntoLines(const string& in, unsigned int ll,
     while (query.length() > 0) {
         string ss = query.substr(0, ll);
         if (ss.length() == ll) {
-            string::size_type pos = ss.find_last_of(" ");
+            string::size_type pos = ss.find_last_of(' ');
             if (pos == string::npos) {
-                pos = query.find_first_of(" ");
+                pos = query.find_first_of(' ');
                 if (pos != string::npos) {
                     ss = query.substr(0, pos + 1);
                 } else {
@@ -1267,7 +1267,7 @@ string localelang()
         return "en";
     }
     string locale(lang);
-    string::size_type under = locale.find_first_of("_");
+    string::size_type under = locale.find_first_of('_');
     if (under == string::npos) {
         return locale;
     }
