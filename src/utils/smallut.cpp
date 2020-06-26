@@ -15,6 +15,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  *   02110-1301 USA
  */
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cinttypes>
@@ -203,18 +204,8 @@ bool beginswith(const std::string& big, const std::string& small)
 // Compare charset names, removing the more common spelling variations
 bool samecharset(const string& cs1, const string& cs2)
 {
-    string mcs1, mcs2;
-    // Remove all - and _, turn to lowecase
-    for (char i : cs1) {
-        if (i != '_' && i != '-') {
-            mcs1 += ::tolower(i);
-        }
-    }
-    for (char i : cs2) {
-        if (i != '_' && i != '-') {
-            mcs2 += ::tolower(i);
-        }
-    }
+    auto mcs1 = std::accumulate(cs1.begin(), cs1.end(), "", [](const char* m, char i) { return (i != '_' && i != '-') ? m + ::tolower(i) : m; });
+    auto mcs2 = std::accumulate(cs2.begin(), cs2.end(), "", [](const char* m, char i) { return (i != '_' && i != '-') ? m + ::tolower(i) : m; });
     return mcs1 == mcs2;
 }
 
