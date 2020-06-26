@@ -595,7 +595,7 @@ static int upnpInitCommon(const char *hostIP, const char *ifName,
     
     /* Finish initializing the SDK. Webserver start
        UpnpEnableWebServer() is part of the API for some reasons and
-       tests UpnpSdkInit==1 */
+       tests UpnpSdkInit==1, so this must be set before the call */
     UpnpSdkInit = 1;
     retVal = UpnpInitStartServers(DestPort);
     if (retVal != UPNP_E_SUCCESS) {
@@ -868,14 +868,13 @@ static int checkLockHandle(Upnp_Handle_Type tp, int Hnd,
 
 #ifdef INCLUDE_DEVICE_APIS
 static int GetDescDocumentAndURL(
-    Upnp_DescType descriptionType, char *description, int config_baseURL,
+    Upnp_DescType descriptionType, char *description,
     int AddressFamily, UPnPDeviceDesc& desc, char descURL[LINE_SIZE]);
 
 int UpnpRegisterRootDeviceAllForms(
     Upnp_DescType descriptionType,
     const char *description_const,
     size_t,      /* buflen, ignored */
-    int config_baseURL,
     Upnp_FunPtr Fun,
     const void *Cookie,
     UpnpDevice_Handle *Hnd,
@@ -916,12 +915,8 @@ int UpnpRegisterRootDeviceAllForms(
     }
     HandleTable[*Hnd] = HInfo;
 
-    /* prevent accidental removal of a non-existent alias */
-    HInfo->aliasInstalled = 0;
-
     retVal = GetDescDocumentAndURL(
-        descriptionType, description, config_baseURL, AF_INET, 
-        HInfo->devdesc, HInfo->DescURL);
+        descriptionType, description, AF_INET, HInfo->devdesc, HInfo->DescURL);
     if (retVal != UPNP_E_SUCCESS) {
         FreeHandle(*Hnd);
         goto exit_function;
@@ -935,7 +930,6 @@ int UpnpRegisterRootDeviceAllForms(
                      sizeof(HInfo->LowerDescURL));
     UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
                "Root Device URL for legacy CPs: %s\n", HInfo->LowerDescURL);
-    HInfo->aliasInstalled = config_baseURL != 0;
     HInfo->HType = HND_DEVICE;
     HInfo->Callback = Fun;
     HInfo->Cookie = (char *)Cookie;
@@ -974,17 +968,16 @@ int UpnpRegisterRootDevice(
     UpnpDevice_Handle *Hnd)
 {
     return UpnpRegisterRootDeviceAllForms(
-        UPNPREG_URL_DESC, DescUrl, 0, 0, Fun, Cookie, Hnd, nullptr);
+        UPNPREG_URL_DESC, DescUrl, 0, Fun, Cookie, Hnd, nullptr);
 }
 
 int UpnpRegisterRootDevice2(
     Upnp_DescType descriptionType, const char *description_const,
-    size_t,    int config_baseURL,    Upnp_FunPtr Fun, const void *Cookie,
+    size_t, int ignored, Upnp_FunPtr Fun, const void *Cookie,
     UpnpDevice_Handle *Hnd)
 {
     return UpnpRegisterRootDeviceAllForms(
-        descriptionType, description_const, 0, config_baseURL, Fun,
-        Cookie,    Hnd, nullptr);
+        descriptionType, description_const, 0, Fun, Cookie, Hnd, nullptr);
 }
 
 int UpnpRegisterRootDevice4(
@@ -992,7 +985,7 @@ int UpnpRegisterRootDevice4(
     UpnpDevice_Handle *Hnd, int /*AddressFamily*/, const char *LowerDescUrl)
 {
     return UpnpRegisterRootDeviceAllForms(
-        UPNPREG_URL_DESC, DescUrl, 0, 0, Fun, Cookie, Hnd, LowerDescUrl);
+        UPNPREG_URL_DESC, DescUrl, 0, Fun, Cookie, Hnd, LowerDescUrl);
 }
 
 int UpnpUnRegisterRootDevice(UpnpDevice_Handle Hnd)
@@ -1185,7 +1178,6 @@ static std::string descurl(int family, const std::string& nm)
 static int GetDescDocumentAndURL(
     Upnp_DescType descriptionType,
     char *description,
-    int config_baseURL,
     int AddressFamily,
     UPnPDeviceDesc& desc,
     char descURL[LINE_SIZE])
@@ -1286,15 +1278,13 @@ static int GetDescDocumentAndURL(
 static int GetDescDocumentAndURL(
     Upnp_DescType descriptionType,
     char *description,
-    int config_baseURL,
     int AddressFamily,
     UPnPDeviceDesc& desc,
     char descURL[LINE_SIZE])
 {
     int retVal = 0;
 
-    if (descriptionType != (enum Upnp_DescType_e)UPNPREG_URL_DESC ||
-        config_baseURL) {
+    if (descriptionType != (enum Upnp_DescType_e)UPNPREG_URL_DESC) {
         return UPNP_E_NO_WEB_SERVER;
     }
 
@@ -1997,7 +1987,7 @@ int UpnpEnableWebserver(int enable)
 {
     int retVal = UPNP_E_SUCCESS;
 
-    if(UpnpSdkInit != 1) {
+    if (UpnpSdkInit != 1) {
         return UPNP_E_FINISH;
     }
 
@@ -2138,50 +2128,13 @@ int UpnpVirtualDir_set_CloseCallback(VDCallback_Close callback)
     return ret;
 }
 
-int UpnpSetContentLength(UpnpClient_Handle Hnd, size_t contentLength)
-{
-    int errCode = UPNP_E_SUCCESS;
-    struct Handle_Info *HInfo = nullptr;
-
-    do {
-        if (UpnpSdkInit != 1) {
-            errCode = UPNP_E_FINISH;
-            break;
-        }
-
-        HandleLock();
-
-        switch (GetHandleInfo(Hnd, &HInfo)) {
-        case HND_DEVICE:
-            break;
-        default:
-            HandleUnlock();
-            return UPNP_E_INVALID_HANDLE;
-        }
-        if (contentLength > MAX_SOAP_CONTENT_LENGTH) {
-            errCode = UPNP_E_OUTOF_BOUNDS;
-            break;
-        }
-        g_maxContentLength = contentLength;
-    } while (false);
-
-    HandleUnlock();
-    return errCode;
-}
-
 int UpnpSetMaxContentLength(size_t contentLength)
 {
-    int errCode = UPNP_E_SUCCESS;
-
-    do {
-        if (UpnpSdkInit != 1) {
-            errCode = UPNP_E_FINISH;
-            break;
-        }
-        g_maxContentLength = contentLength;
-    } while(false);
-
-    return errCode;
+    if (UpnpSdkInit != 1) {
+        return  UPNP_E_FINISH;
+    }
+    g_maxContentLength = contentLength;
+    return UPNP_E_SUCCESS;
 }
 
 int UpnpSetEventQueueLimits(int maxLen, int maxAge)
