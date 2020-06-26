@@ -498,7 +498,7 @@ Interfaces::Internal::Internal()
         case AF_PACKET:
         {
             auto sll = reinterpret_cast<struct sockaddr_ll*>(ifa->ifa_addr);
-            ifit->m->sethwaddr((const char*)sll->sll_addr, sll->sll_halen);
+            ifit->m->sethwaddr(reinterpret_cast<const char*>(sll->sll_addr), sll->sll_halen);
         }
         break;
 #else

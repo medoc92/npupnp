@@ -468,7 +468,7 @@ static int create_ssdp_sock_v6(bool isulagua, SOCKET *ssdpSock)
         memset((void *)&ssdpMcastAddr, 0, sizeof(ssdpMcastAddr));
         NetIF::IPAddr ipa(isulagua? SSDP_IPV6_SITELOCAL : SSDP_IPV6_LINKLOCAL);
         struct sockaddr_in6 sa6;
-        ipa.copyToAddr((struct sockaddr*)&sa6);
+        ipa.copyToAddr(reinterpret_cast<struct sockaddr*>(&sa6));
         memcpy(&ssdpMcastAddr.ipv6mr_multiaddr, &sa6.sin6_addr,
                 sizeof(ssdpMcastAddr.ipv6mr_multiaddr));
         ret = setsockopt(*ssdpSock, IPPROTO_IPV6, IPV6_JOIN_GROUP,

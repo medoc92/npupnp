@@ -647,7 +647,7 @@ EXPORT_SPEC int UpnpInitWithOptions(
 
     va_start(ap, flags);
     for (;;) {
-        int option = (Upnp_InitOption) va_arg(ap, int);
+        int option = static_cast<Upnp_InitOption>(va_arg(ap, int));
         if (option == UPNP_OPTION_END) {
             break;
         }
