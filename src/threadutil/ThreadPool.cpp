@@ -747,27 +747,6 @@ int ThreadPool::Internal::shutdown()
     return 0;
 }
 
-void ThreadPoolPrintStats(ThreadPoolStats *stats)
-{
-    if (!stats)
-        return;
-    /* some OSses time_t length may depending on platform, promote it to long for safety */
-    printf("ThreadPoolStats at Time: %ld\n", static_cast<long>(time(nullptr)));
-    printf("High Jobs pending: %d\n", stats->currentJobsHQ);
-    printf("Med Jobs Pending: %d\n", stats->currentJobsMQ);
-    printf("Low Jobs Pending: %d\n", stats->currentJobsLQ);
-    printf("Average Wait in High Priority Q in milliseconds: %f\n", stats->avgWaitHQ);
-    printf("Average Wait in Med Priority Q in milliseconds: %f\n", stats->avgWaitMQ);
-    printf("Averate Wait in Low Priority Q in milliseconds: %f\n", stats->avgWaitLQ);
-    printf("Max Threads Active: %d\n", stats->maxThreads);
-    printf("Current Worker Threads: %d\n", stats->workerThreads);
-    printf("Current Persistent Threads: %d\n", stats->persistentThreads);
-    printf("Current Idle Threads: %d\n", stats->idleThreads);
-    printf("Total Threads : %d\n", stats->totalThreads);
-    printf("Total Time spent Working in seconds: %f\n", stats->totalWorkTime);
-    printf("Total Time spent Idle in seconds : %f\n", stats->totalIdleTime);
-}
-
 int ThreadPool::getStats(ThreadPoolStats *stats)
 {
     if (nullptr == stats)
