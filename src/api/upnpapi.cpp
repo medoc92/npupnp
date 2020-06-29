@@ -203,8 +203,11 @@ int apiFirstIPV6Index()
  */
 static int getIfInfo(const char *IfNames, unsigned int flags)
 {
+    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+               "getIfInfo: IfNames: [%s]\n", (IfNames?IfNames:"null"));
+    
     g_use_all_interfaces = (IfNames && std::string("*") == IfNames);
-        
+    bool ifnamespecified = IfNames && *IfNames;
     NetIF::Interfaces *ifs = NetIF::Interfaces::theInterfaces();
     NetIF::Interface *netifp{nullptr};
     std::vector<NetIF::Interface> selected;
@@ -218,14 +221,13 @@ static int getIfInfo(const char *IfNames, unsigned int flags)
        non-multi-interface-aware app (on Windows where adapter
        names can contain space chars), and we don't split the
        string, but use it whole as the first vector element */
-    if (!g_use_all_interfaces && IfNames) {
+    if (!g_use_all_interfaces && ifnamespecified) {
         if (ifs->findByName(IfNames) != nullptr) {
             vifnames.emplace_back(IfNames);
         } else {
             stringToStrings(IfNames, vifnames);
         }
     }
-
     if (!vifnames.empty()) {
         for (const auto& name : vifnames) {
             netifp = ifs->findByName(name);
@@ -240,7 +242,7 @@ static int getIfInfo(const char *IfNames, unsigned int flags)
         // No interface specified. Use first appropriate one, or all.
         std::vector<NetIF::Interface::Flags>
             needed{NetIF::Interface::Flags::HASIPV4};
-        if (!using_ipv6()) {
+        if (using_ipv6()) {
             needed.push_back(NetIF::Interface::Flags::HASIPV6);
         }
         NetIF::Interfaces::Filter
