@@ -33,6 +33,9 @@
 #ifndef UPNP_DEBUG_H
 #define UPNP_DEBUG_H
 
+/** @file upnpdebug.h
+ * @brief libnpupnp message log definitions */
+
 #include "upnpconfig.h"
 
 #include <stdio.h>
@@ -41,113 +44,92 @@
 extern "C" {
 #endif
 
-/*! \name Other debugging features
- *
- * The UPnP SDK contains other features to aid in debugging.
- */
-
-/*! \name Upnp_LogLevel
- *  The user has the option to select 4 different types of debugging levels,
- *  see \c UpnpSetLogLevel. 
- *  The critical level will show only those messages 
- *  which can halt the normal processing of the library, like memory 
- *  allocation errors. The remaining three levels are just for debugging 
- *  purposes. Error will show recoverable errors.
- *  Info Level displays the other important operational information 
- *  regarding the working of the library. If the user selects All, 
- *  then the library displays all the debugging information that it has.
- *    \li \c UPNP_CRITICAL [0]
- *    \li \c UPNP_ERROR [1]
- *    \li \c UPNP_INFO [2]
- *    \li \c UPNP_DEBUG [3]
- *    \li \c UPNP_ALL [4]
- */
+/** Describe the code area generating the message */
 typedef enum Upnp_Module {
+    /** SSDP (discovery) client and server. */
     SSDP,
+    /** SOAP (actions) client and server. */
     SOAP,
+    /** GENA (events) client and server */
     GENA,
+    /** Thread pool */
     TPOOL,
+    /** Network dispatcher */
     MSERV,
     DOM,
+    /** Interface. */
     API,
+    /** WEB server. */
     HTTP
 } Dbg_Module;
 
-typedef enum Upnp_LogLevel_e {
+/** @brief Log verbosity level, from UPNP_CRITICAL to UPNP_ALL, in
+ * increasing order of verbosity.
+ */
+typedef enum Upnp_LogLevel {
+    /** Fatal error, the library is probably not functional any more. */
     UPNP_CRITICAL,
+    /** Regular operational, usually local error. */
     UPNP_ERROR,
+    /** Interesting information, error caused by the remote. */
     UPNP_INFO,
+    /** Debugging traces. */
     UPNP_DEBUG,
+    /** Very verbose debugging traces. */
     UPNP_ALL
 } Upnp_LogLevel;
 
-/*!
- * Default log level : see \c Upnp_LogLevel
- */
+/** Default log level */
 #define UPNP_DEFAULT_LOG_LEVEL  UPNP_ERROR
 
-/*!
- * \brief Initialize the log files.
+/** @brief Initialize the log output. Can be called before @ref UpnpInit2.
  *
- * \return -1 if fails or UPNP_E_SUCCESS if succeeds.
+ * @return -1 for failure or UPNP_E_SUCCESS for success.
  */
 extern int UpnpInitLog(void);
 
-/*!
- * \brief Set the log level (see \c Upnp_LogLevel).
- */
+/** @brief Set the log verbosity level. */
 extern void UpnpSetLogLevel(
-    /*! [in] Log level. */
+    /** [in] Log level. */
     Upnp_LogLevel log_level);
 
-/*!
- * \brief Closes the log files.
- */
+/** @brief Closes the log output, if appropriate. */
 extern void UpnpCloseLog(void);
 
-/*!
- * \brief Set the name for the log file. There used to be 2 separate files. The
- * second parameter has been kept for compatibility but is ignored.
- * Use a NULL or empty file name for logging to stderr. 
- */
+/** @brief Set the name for the log file. You will then need to call
+ * @ref UpnpInitLog to close the old file if needed, and open the new one. */
 extern void UpnpSetLogFileNames(
-    /*! [in] Name of the log file. */
+    /** [in] Name of the log file. NULL or empty to use stderr. */
     const char *fileName,
-    /*! [in] Ignored. */
+    /** Ignored, used to be a second file. */
     const char *Ignored);
 
-/*!
- * \brief Check if the module is turned on for debug and returns the file
- * descriptor corresponding to the debug level
+/**
+ * @brief Use the level/module to determine if a message should be emitted.
  *
- * \return NULL if the module is turn off for debug otherwise returns the
- *    right FILE pointer.
+ * @return NULL if the log is not active for this module / level, else
+ *  the output file pointer.
  */
 extern FILE *UpnpGetDebugFile(
-    /*! [in] The level of the debug logging. It will decide whether debug
+    /** [in] The level of the debug logging. It will decide whether debug
      * statement will go to standard output, or any of the log files. */
     Upnp_LogLevel level,
-    /*! [in] debug will go in the name of this module. */
+    /** [in] debug will go in the name of this module. */
     Dbg_Module module);
 
-/*!
- * \brief Prints the debug statement either on the standard output or log file
- * along with the information from where this debug statement is coming.
- */
+/** @brief Prints the debug statement to the current output */
 extern void UpnpPrintf(
-    /*! [in] The level of the debug logging. It will decide whether debug
-     * statement will go to standard output, or any of the log files. */
+    /** [in] Message level, to be compared to the current verbosity. */
     Upnp_LogLevel DLevel,
-    /*! [in] debug will go in the name of this module. */
+    /** [in] Emitting code area. */
     Dbg_Module Module,
-    /*! [in] Name of the file from where debug statement is coming. */
+    /** [in] Source file name (usually __FILE__). */
     const char *DbgFileName,
-    /*! [in] Line number of the file from where debug statement is coming. */
+    /** [in] Source line number (usually __LINE__). */
     int DbgLineNo,
-    /*! [in] Printf like format specification. */
+    /** [in] Printf-like format specification. */
     const char *FmtStr,
-    /*! [in] Printf like Variable number of arguments that will go in the
-     * debug statement. */
+    /** [in] Printf-like arguments. */
     ...)
 #if (__GNUC__ >= 3)
 /* This enables printf like format checking by the compiler. */
