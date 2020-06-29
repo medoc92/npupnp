@@ -92,7 +92,7 @@ private:
 class Interface {
 public:
     enum class Flags {NONE = 0, HASIPV4 = 1, HASIPV6 = 2, LOOPBACK=4,
-                      UP=8, MULTICAST=16, HASHWADDR=32};
+                      UP=8, MULTICAST=0x10, HASHWADDR=0x20};
     Interface();
     Interface(const char *nm);
     Interface(const std::string &nm);

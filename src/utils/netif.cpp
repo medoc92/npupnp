@@ -63,6 +63,12 @@
 
 #endif /* _WIN32 */
 
+//#define NETIF_DEBUG
+#ifdef NETIF_DEBUG
+#define LOGDEB(X) std::cerr << X << std::flush
+#else
+#define LOGDEB(X)
+#endif
 
 namespace NetIF {
 
@@ -641,6 +647,12 @@ Interfaces *Interfaces::theInterfaces()
 {
     if (nullptr == theInterfacesP) {
         theInterfacesP = new Interfaces();
+#ifdef NETIF_DEBUG
+        if (theInterfacesP) {
+            std::cerr << "NetIF::Interfaces::theInterfaces(): interfaces:\n";
+            theInterfacesP->print(std::cerr);
+        }
+#endif
     }
     return theInterfacesP;
 }
@@ -649,6 +661,7 @@ std::ostream& Interfaces::print(std::ostream& out) {
     const auto& ifs = theInterfaces()->m->interfaces;
     for (const auto& entry : ifs) {
         entry.print(out);
+        out << "\n";
     }
     return out;
 }
@@ -663,12 +676,21 @@ std::vector<Interface> Interfaces::select(const Filter& filt) const
     for (auto f : filt.rejects) {
         noflags |= static_cast<unsigned int>(f);
     }
+    LOGDEB("Interfaces::select: yesflags " << std::hex << yesflags <<
+           " noflags " << noflags << std::dec << "\n");
     std::vector<Interface> out;
     const auto& ifs = theInterfaces()->m->interfaces;
     std::copy_if(ifs.begin(), ifs.end(), std::back_inserter(out),
         [=](const NetIF::Interface &entry){
                      return (entry.m->flags & yesflags) == yesflags &&
                          (entry.m->flags & noflags) == 0;});
+#ifdef NETIF_DEBUG
+    LOGDEB("Interfaces::select: selected:\n");
+    for (const auto& entry : out) {
+        entry.print(std::cerr);
+    }
+    LOGDEB("Interfaces::select: selected: end list\n");
+#endif
     return out;
 }
 
