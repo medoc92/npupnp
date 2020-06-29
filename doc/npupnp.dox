@@ -1,0 +1,47 @@
+/** @mainpage
+
+
+# Introduction
+
+libpnupnp is a C++ reimplementation of the venerable *libupnp*, a.k.a.
+*Portable UPnP* library. Most of the API is unchanged, except where *libupnp*
+exposed its internal XML *ixml* library DOM objects.
+
+libnupnp implements a low level interface to the UPnP protocol. It has a
+separate set of functions for client and device implementations, with a few
+common functions, mostly for initialization and termination.
+
+It is possible, but uncommon, to use both the client and device interfaces
+in the same instance.
+
+
+This document presents the programming interface in three sections:
+
+- Common functions (initialization and termination mostly).
+- Client interface.
+- Device interface.
+
+# Common functions.
+
+## Setting up the message log.
+
+The library has an internal error/debug messages system with settable
+verbosity and output destination.
+
+By default, only error messages will be logged, to stderr.
+
+You can use the functions in @ref upnpdebug.h to configure logging. This
+can be done before or after the main initialisation of the library, but is
+best done before, to ensure that the initialisation messages behave as
+desired.
+
+Example:
+
+    UpnpInitSetLogFilenames("/tmp/my-log-filename.txt");
+    UpnpSetLogLevel(UPNP_INFO);
+    UpnpInitLog();
+
+    UpnpInit2(...
+    
+
+*/
