@@ -201,7 +201,7 @@ int apiFirstIPV6Index()
  *
  * We'll retrieve the following information from the interface:
  */
-static int getIfInfo(const char *IfNames, unsigned int flags)
+static int getIfInfo(const char *IfNames)
 {
     UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
                "getIfInfo: IfNames: [%s]\n", (IfNames?IfNames:"null"));
@@ -534,19 +534,20 @@ static int UpnpInitStartServers(unsigned short DestPort)
 
 /* Only use HostIP if ifName is nullptr (meaning a call from UpnpInit()) */
 static int waitForNetwork(
-    const char *HostIP, const char *ifName, unsigned int flags)
+    const char *HostIP, const char *ifName)
 {
-    int ret = UPNP_E_SUCCESS;
+    int ret = UPNP_E_INVALID_INTERFACE;
 
     int loop_sleep = 2;
     int loops = o_networkWaitSeconds / loop_sleep;
+    loops = std::max(1, loops);
     for (int i = 0; i < loops; i++) {
-        if (ifName) {
-            /* Retrieve interface information (Addresses, index, etc). */
-            ret = getIfInfo(ifName, flags);
-        } else {
+        if (HostIP && *HostIP) {
             /* Verify HostIP, if provided, or find it ourselves. */
             ret = getmyipv4(HostIP);
+        } else {
+            /* Retrieve interface information (Addresses, index, etc). */
+            ret = getIfInfo(ifName);
         }
         if (ret == UPNP_E_SUCCESS) {
             break;
@@ -565,7 +566,7 @@ static int waitForNetwork(
 /* If ifName is nullptr this is a call from UpnpInit(). UpnpInit2() calls us with
  * a non-null, possibly empty string */
 static int upnpInitCommon(const char *hostIP, const char *ifName,
-                          unsigned short DestPort, unsigned int flags)
+                          unsigned short DestPort)
 {
     int retVal = UPNP_E_SUCCESS;
 
@@ -582,12 +583,11 @@ static int upnpInitCommon(const char *hostIP, const char *ifName,
     if (retVal != UPNP_E_SUCCESS) {
         goto exit_function;
     }
-
     UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
                "UpnpInit: hostIP=%s, ifName=%s, DestPort=%d.\n", 
                hostIP ? hostIP : "",ifName?ifName:"",static_cast<int>(DestPort));
 
-    retVal = waitForNetwork(hostIP, ifName, flags);
+    retVal = waitForNetwork(hostIP, ifName);
     if (retVal != UPNP_E_SUCCESS) {
         UpnpPrintf(UPNP_ERROR, API, __FILE__, __LINE__,
                    "UpnpInit: no usable IP address found after waiting %d S\n",
@@ -615,22 +615,21 @@ exit_function:
 
 int UpnpInit(const char *hostIP, unsigned short DestPort)
 {
-    return upnpInitCommon(hostIP, nullptr, DestPort, 0);
+    return upnpInitCommon(hostIP, nullptr, DestPort);
 }
 
 int UpnpInit2(const char *IfName, unsigned short DestPort)
 {
-    g_optionFlags = UPNP_FLAG_IPV6;
-    return upnpInitCommon(nullptr, IfName?IfName:"", DestPort, 0);
+    return UpnpInitWithOptions(IfName, DestPort,
+                               UPNP_FLAG_IPV6, UPNP_OPTION_END);
 }
 
 int UpnpInit2(const std::vector<std::string>& ifnames, unsigned short port)
 {
-    g_optionFlags = UPNP_FLAG_IPV6;
     // A bit wasteful, but really simpler. Just build an interfaces
     // list string and continue with this.
     std::string names = stringsToString(ifnames);
-    return upnpInitCommon(nullptr, names.c_str(), port, 0);
+    return UpnpInit2(names.c_str(), port);
 }
 
 EXPORT_SPEC int UpnpInitWithOptions(
@@ -662,7 +661,7 @@ EXPORT_SPEC int UpnpInitWithOptions(
 breakloop:
     va_end(ap);
     if (ret == UPNP_E_SUCCESS) {
-        ret = upnpInitCommon(nullptr, ifnames, port, flags);
+        ret = upnpInitCommon(nullptr, ifnames, port);
     }
     return ret;
 }
@@ -686,7 +685,7 @@ void PrintThreadPoolStats(
 {
     ThreadPoolStats stats;
     tp->getStats(&stats);
-    UpnpPrintf(UPNP_INFO, API, DbgFileName, DbgLineNo,
+    UpnpPrintf(UPNP_DEBUG, API, DbgFileName, DbgLineNo,
                "%s\n"
                "High Jobs pending: %d\n"
                "Med Jobs Pending: %d\n"
