@@ -563,7 +563,7 @@ Interfaces::Internal::Internal()
         char tmpnm[256];
                wcstombs(tmpnm, adapts_item->FriendlyName, sizeof(tmpnm));
         ifit->m->friendlyname = tmpnm;
-        if ((adapts_item->Flags & IP_ADAPTER_NO_MULTICAST)) {
+        if (!(adapts_item->Flags & IP_ADAPTER_NO_MULTICAST)) {
             ifit->m->setflag(Interface::Flags::MULTICAST);
         }
         if (adapts_item->OperStatus == IfOperStatusUp) {
