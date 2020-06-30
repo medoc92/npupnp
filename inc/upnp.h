@@ -1199,8 +1199,8 @@ EXPORT_SPEC int UpnpRegisterClient(
  * @brief Unregisters a control point application, unsubscribing all active
  * subscriptions.
  *
- * This function unregisters a client registered with UpnpRegisterclient or
- * UpnpRegisterclient2. After this call, the \b UpnpClient_Handle is no longer
+ * This function unregisters a client registered with @ref UpnpRegisterclient.
+ * After this call, the \b UpnpClient_Handle is no longer
  * valid. The UPnP Library generates no more callbacks after this function
  * returns.
  *
@@ -1567,7 +1567,9 @@ EXPORT_SPEC int UpnpSubscribe(
 /**
  * @brief Renews a subscription that is about to expire.
  *
- * This function is synchronous.
+ * This function is synchronous, and the client does not really need
+ * to call it as subscription renewals are automatically performed
+ * internally by the library.
  *
  * @return An integer representing one of the following:
  *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
