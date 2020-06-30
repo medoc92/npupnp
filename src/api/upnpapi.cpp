@@ -242,6 +242,7 @@ static int getIfInfo(const char *IfNames)
         // No interface specified. Use first appropriate one, or all.
         std::vector<NetIF::Interface::Flags>
             needed{NetIF::Interface::Flags::HASIPV4};
+        needed.push_back(NetIF::Interface::Flags::MULTICAST);
         if (using_ipv6()) {
             needed.push_back(NetIF::Interface::Flags::HASIPV6);
         }
@@ -1171,11 +1172,7 @@ static std::string descurl(int family, const std::string& nm)
 }
     
 /* We do not support an URLBase set inside the description document.
-   This was advised against in upnp 1.0 and forbidden in 1.1.  Also,
-   we always server the description document internally, even if it's
-   supplied as an URL: needed in future multi-if for adjusting the
-   host according to what interface we are speaking on.
- */
+   This was advised against in upnp 1.0 and forbidden in 1.1. */
 static int GetDescDocumentAndURL(
     Upnp_DescType descriptionType,
     char *description,
@@ -1237,7 +1234,7 @@ static int GetDescDocumentAndURL(
     {
         char *descstr{nullptr};
         retVal = readFile(description, &descstr, &modtime);
-        if (retVal == UPNP_E_SUCCESS) {
+        if (retVal != UPNP_E_SUCCESS) {
             return retVal;
         }
         descdata = descstr;
@@ -1253,6 +1250,11 @@ static int GetDescDocumentAndURL(
         descdata = description;
     }
     break;
+    default:
+        UpnpPrintf(UPNP_ERROR, API, __FILE__, __LINE__,
+                   "UpnpRegisterRootDevice: bad desc type %d\n",
+                   int(descriptionType));
+        return UPNP_E_INVALID_DESC;
     }
 
     if (!localurl.empty()) {
@@ -1260,7 +1262,7 @@ static int GetDescDocumentAndURL(
                    "UpnpRegisterRootDevice: local url: %s\n", localurl.c_str());
         upnp_strlcpy(descURL, localurl.c_str(), LINE_SIZE);
         desc = UPnPDeviceDesc(localurl, descdata);
-        if (desc.ok) {
+        if (desc.ok && !simplename.empty()) {
             web_server_set_localdoc(std::string("/") + simplename,
                                     descdata, modtime);
         }
