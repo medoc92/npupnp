@@ -34,18 +34,10 @@
 #define UPNP_TOOLS_H
 
 
-/*!
- * \file
+/** @file upnptools.h
  *
- * \defgroup UPnPTools Optional Tool API
- *
- * \brief Additional, optional utility API that can be helpful in writing
- * applications.
- *
- * This additional API can be compiled out in order to save code size in the
- * library. Refer to the file README for details.
- *
- * @{
+ * @brief UPnPTools Optional Tool API: dditional, optional utility API
+ * that can be helpful in writing applications.
  */
 
 
@@ -60,25 +52,24 @@ extern "C" {
 #endif
 
 
-/*!
- * \brief Converts an SDK error code into a string error message suitable for
- * display. The memory returned from this function should NOT be freed.
+/**
+ * @brief Converts an SDK error code into a text explanation.
  *
- * \return An ASCII text string representation of the error message associated
+ * @return An ASCII text string representation of the error message associated
  *     with the error code or the string "Unknown error code"
  */
 EXPORT_SPEC const char *UpnpGetErrorMessage(
-    /*! [in] The SDK error code to convert. */
+    /** [in] The SDK error code to convert. */
     int rc);
 
 
-/*!
- * \brief Combines a base URL and a relative URL into a single absolute URL.
+/**
+ * @brief Combines a base URL and a relative URL into a single absolute URL.
  *
  * The memory for \b AbsURL needs to be allocated by the caller and must
  * be large enough to hold the \b BaseURL and \b RelURL combined.
  *
- * \return An integer representing one of the following:
+ * @return An integer representing one of the following:
  *    \li <tt>UPNP_E_SUCCESS</tt>: The operation completed successfully.
  *    \li <tt>UPNP_E_INVALID_PARAM</tt>: \b RelURL is <tt>NULL</tt>.
  *    \li <tt>UPNP_E_INVALID_URL</tt>: The \b BaseURL / \b RelURL 
@@ -87,21 +78,21 @@ EXPORT_SPEC const char *UpnpGetErrorMessage(
  *              complete this operation.
  */
 EXPORT_SPEC int UpnpResolveURL(
-    /*! [in] The base URL to combine. */
+    /** [in] The base URL to combine. */
     const char *BaseURL,
-    /*! [in] The relative URL to \b BaseURL. */
+    /** [in] The relative URL to \b BaseURL. */
     const char *RelURL,
-    /*! [out] A pointer to a buffer to store the absolute URL. */
+    /** [out] A pointer to a buffer to store the absolute URL. */
     char *AbsURL);
 
 
-/*!
- * \brief Combines a base URL and a relative URL into a single absolute URL.
+/**
+ * @brief Combines a base URL and a relative URL into a single absolute URL.
  *
  * The memory for \b AbsURL becomes owned by the caller and should be freed
  * later.
  *
- * \return An integer representing one of the following:
+ * @return An integer representing one of the following:
  *    \li <tt>UPNP_E_SUCCESS</tt>: The operation completed successfully.
  *    \li <tt>UPNP_E_INVALID_PARAM</tt>: \b RelURL is <tt>NULL</tt>.
  *    \li <tt>UPNP_E_INVALID_URL</tt>: The \b BaseURL / \b RelURL 
@@ -110,11 +101,11 @@ EXPORT_SPEC int UpnpResolveURL(
  *              complete this operation.
  */
 EXPORT_SPEC int UpnpResolveURL2(
-    /*! [in] The base URL to combine. */
+    /** [in] The base URL to combine. */
     const char *BaseURL,
-    /*! [in] The relative URL to \b BaseURL. */
+    /** [in] The relative URL to \b BaseURL. */
     const char *RelURL,
-    /*! [out] A pointer to a pointer to a buffer to store the
+    /** [out] A pointer to a pointer to a buffer to store the
      * absolute URL. Must be freed later by the caller. */
     char **AbsURL);
 
@@ -123,7 +114,7 @@ EXPORT_SPEC int UpnpResolveURL2(
 #endif
 
 
-/*! @} */
+/** @} */
 
 
 #endif /* UPNP_HAVE_TOOLS */

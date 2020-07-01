@@ -1,5 +1,6 @@
 /** @mainpage
 
+[TOC]
 
 # Introduction
 
@@ -7,23 +8,35 @@ libpnupnp is a C++ reimplementation of the venerable *libupnp*, a.k.a.
 *Portable UPnP* library. Most of the API is unchanged, except where *libupnp*
 exposed its internal XML *ixml* library DOM objects.
 
+One principal objective of the evolution was to make the transition as easy
+as possible for a program currently using libupnp. The structure of the C
+API is conserved.
+
+Beyond issues of reliability and maintability, the main evolution in the
+new library is the support for multiple network interfaces.
+
 libnupnp implements a low level interface to the UPnP protocol. It has a
 separate set of functions for client and device implementations, with a few
 common functions, mostly for initialization and termination.
 
-It is possible, but uncommon, to use both the client and device interfaces
-in the same instance.
+This document is a high level overview, with references to the detailed
+documentation. It largely supposes that you have a working knowledge of
+UPnP concepts, and you will probably also need to read parts of the UPnP
+architecture standard.
 
-
-This document presents the programming interface in three sections:
+We present the programming interface in three sections:
 
 - Common functions (initialization and termination mostly).
 - Client interface.
 - Device interface.
 
-# Common functions.
+It is possible, but uncommon, to use both the client and device interfaces
+in the same instance.
 
-## Setting up the message log.
+
+# Common functions
+
+## Configuring the message log
 
 The library has an internal error/debug messages system with settable
 verbosity and output destination.
@@ -37,11 +50,423 @@ desired.
 
 Example:
 
-    UpnpInitSetLogFilenames("/tmp/my-log-filename.txt");
-    UpnpSetLogLevel(UPNP_INFO);
-    UpnpInitLog();
-
-    UpnpInit2(...
+    #include <upnp/upnp.h>
+    #include <upnp/upnpdebug.h>
     
+    int main(int argc, char **argv)
+    {
+        UpnpSetLogFileNames("/tmp/mylogfilename.txt", "");
+        UpnpSetLogLevel(UPNP_INFO);
+        UpnpInitLog();
+    
+        UpnpPrintf(UPNP_INFO, DOM, __FILE__, __LINE__, "my log message\n");
+        
+        int success = UpnpInit2("", ...
+    
+
+## Common library initialisation
+
+The library initialization mostly consists in selecting one or several
+network interfaces and addresses, and starting a listener on them.
+
+It should be noted that both client and device instanciations (which are
+identical at this point) start a network listener on the UPnP
+multicast UDP address and port, and on a TCP port specific to the library
+(49152 for the first instance by default).
+
+The listener is used for UPnP discovery operations on both sides, for event
+reception on the client side, and for SOAP action request reception on the
+device side, and the operation of both sides is largely symmetric. In other
+words, UPnP clients also run a network server.
+
+For historical and compatibility reasons there are several possible ways to
+initialize the library:
+
+- @ref UpnpInit() is deprecated, and works only for IPV4.
+- @ref UpnpInit2() can handle multiple interfaces and will enable IPV6
+  operation (except if disabled at compile time). This is mostly kept for
+  compatibility with the old libupnp. Calling  _UpnpInit2(ifname, port)_
+  is exactly equivalent to calling
+  _UpnpInitWithOptions(ifname, port, UPNP_FLAG_IPV6, UPNP_OPTION_END)_.
+- @ref UpnpInitWithOptions() is the new npupnp way and has a more adaptable
+  interface.
+
+For the two last functions, the network adapter name can be specified as
+follows:
+
+- Empty (nullptr or empty string): the library will choose the first non
+  loopback adapter (and having an IPV6 address if the flag is set).
+- "*": the library will use all possible network adapters.
+- Space-separated adapter names: the library will try to use the specified
+  adapter. Under Windows, the name can be either the friendly or the system
+  adapter name. If an adapter name contains space characters, you will need
+  to quote it with double quotes.
+
+
+Example:
+
+
+    #include <upnp/upnp.h>
+    #include <upnp/upnpdebug.h>
+    #include <upnp/upnptools.h>
+    
+    #include <iostream>
+    
+    int main(int argc, char **argv)
+    {
+        if (argc != 2) {
+            std::cerr << "Usage: npupnp_init <ifname>\n";
+            return 1;
+        }
+        const char *ifname = argv[1];
+    
+        UpnpSetLogFileNames("", "");
+        UpnpSetLogLevel(UPNP_INFO);
+        UpnpInitLog();
+    
+        int port = 0;
+        unsigned int flags = UPNP_FLAG_IPV6;
+    
+        int success = UpnpInitWithOptions(
+            ifname, port, flags, UPNP_OPTION_NETWORK_WAIT, 5, UPNP_OPTION_END);
+    
+        if (success != UPNP_E_SUCCESS) {
+            std::cerr << "init failed: " << success << " " <<
+                UpnpGetErrorMessage(success) << "\n";
+            return 1;
+        }
+    
+        std::cout << "IPV4 address: " << UpnpGetServerIpAddress() << "\n";
+        std::cout << "IPV6 address: " << UpnpGetServerIp6Address() << "\n";
+        std::cout << "Port: " << UpnpGetServerPort() << "\n";
+    
+        UpnpFinish();
+        return 0;
+    }
+    
+
+
+# Client side operation
+
+## Client: registration
+
+A client (Control Point) program just needs to register its callback
+function to the library, and will immediately begin to receive network
+events (broadcast discovery messages):
+
+    int success = UpnpRegisterClient(mycallback, (void *)mycontext, &myhandle);
+
+This register the @ref Upnp_FunPtr _mycallback_ function to receive
+events. The _mycontext_ cookie will be passed with each call. The return
+value @ref UpnpClient_Handle _myhandle_ can be used to reference
+the session (e.g. to stop it with @ref UpnpUnRegisterClient).
+
+
+## Client: discovery
+
+A client could passively wait for network events to reveal the presence of
+UPnP devices on the network, but this might be rather slow, so you will
+normally want to trigger an UPnP search. This is done with the
+@ref UpnpSearchAsync function.
+
+    int status = UpnpSearchAsync(hnd, windowsecs, "upnp:rootdevice", &mycontext);
+
+The first parameter is the client handle obtained with @ref
+UpnpRegisterClient.
+
+The second one is an indication to the network devices
+of the maximum period of time within with they should respond (they will
+use a random delay within the window to avoid collisions between answers).
+
+The third parameter is the UPnP SSDP search type. Check the UPnP standard
+for possible values.
+
+The last parameter is the value which will be passed to the callback
+function.
+
+The same function is used for all callbacks from the library. Only the
+calls relative to the search (e.g. @ref UPNP_DISCOVERY_SEARCH_RESULT) will
+use the search context value. Calls relative, for example, to spontaneous
+advertisements (e.g. @ref UPNP_DISCOVERY_ADVERTISEMENT_ALIVE) will use the
+generic client context.
+
+When the search window is expired, the last call relative to the search
+will be of type @ref UPNP_DISCOVERY_SEARCH_TIMEOUT, with a NULL event
+parameter.
+
+The important value inside the Upnp_Discovery structure received by the
+callback function is the _Location_ field, which contains the URL of the
+description document for the device. You can download this document with
+the @ref UpnpDownloadUrlItem helper function.
+
+    std::string data;
+    std::string content_type;
+    success = UpnpDownloadUrlItem(url, data, content_type);
+
+Once downloaded, the XML description document will need to be parsed to
+access the list of services and other information elements.
+
+The following example uses the XML device description parser which comes
+with libnpupnp. This was not available in libupnp, so this sample is a bit
+farther from libupnp compatibility.
+
+Note that, for a trivial program like the following, we could just pass
+nullptr for the context cookie addresses, which are not used.
+
+The discovery results will usually be filtered by desired service
+availability, for presenting a choice to the user, or against a supplied
+device name.
+
+
+    #include <unistd.h>
+    #include <set>
+    #include <mutex>
+    #include <condition_variable>
+    
+    #include <libupnpp/control/description.hxx>
+    
+    #include <upnp/upnp.h>
+    #include <upnp/upnpdebug.h>
+    #include <upnp/upnptools.h>
+    
+    #include <iostream>
+    
+    static int clctxt;
+    
+    std::set<std::string> locations;
+    std::mutex locations_mutex;
+    std::condition_variable locations_cv;
+    static bool searchdone;
+    
+    static int mycallback(Upnp_EventType etyp, const void *evt, void *ctxt)
+    {
+        UpnpDiscovery *dsp = (UpnpDiscovery*)evt;
+        switch (etyp) {
+        case UPNP_DISCOVERY_ADVERTISEMENT_ALIVE:
+            goto dldesc;
+        case UPNP_DISCOVERY_ADVERTISEMENT_BYEBYE:
+            break;
+        case UPNP_DISCOVERY_SEARCH_RESULT:
+            goto dldesc;
+        case UPNP_DISCOVERY_SEARCH_TIMEOUT:
+        {
+            std::unique_lock<std::mutex> loclock;
+            searchdone = true;
+            locations_cv.notify_all();
+        }
+        break;
+        default:
+            std::cerr << "Received surprising event type " << etyp << "\n";
+            break;
+        }        
+        return 0;
+    
+    dldesc:
+        std::unique_lock<std::mutex> loclock;
+        locations.insert(dsp->Location);
+        locations_cv.notify_all();
+        return 0;
+    }
+    
+    int main(int argc, char **argv)
+    {
+        UpnpSetLogFileNames("", "");
+        UpnpSetLogLevel(UPNP_ERROR);
+        UpnpInitLog();
+    
+        int success = UpnpInitWithOptions("*", 0, UPNP_FLAG_IPV6, UPNP_OPTION_END);
+        if (success != UPNP_E_SUCCESS) {
+            std::cerr << "init failed: " << success << " " <<
+                UpnpGetErrorMessage(success) << "\n";
+            return 1;
+        }
+    
+        UpnpClient_Handle chdl;
+        success = UpnpRegisterClient(mycallback, &clctxt, &chdl);
+        if (success != UPNP_E_SUCCESS) {
+            std::cerr << "register client failed: " << success << " " <<
+                UpnpGetErrorMessage(success) << "\n";
+            return 1;
+        }
+    
+        int searchctxt;
+        success = UpnpSearchAsync(chdl, 3, "upnp:rootdevice", &searchctxt);
+    
+        std::unique_lock<std::mutex> locklocs(locations_mutex);
+        for (;;) {
+            locations_cv.wait(locklocs);
+            if (searchdone) {
+                break;
+            }
+            for (auto it = locations.begin(); it != locations.end();) {
+                std::string data;
+                std::string ct;
+                int success = UpnpDownloadUrlItem(*it, data, ct);
+                if (success != UPNP_E_SUCCESS) {
+                    std::cerr << "UpnpDownloadUrlItem failed: " << success << " " <<
+                        UpnpGetErrorMessage(success) << "\n";
+                    continue;
+                }
+    
+                UPnPClient::UPnPDeviceDesc desc(*it, data);
+                if (!desc.ok) {
+                    std::cout << "Description parse failed for " << *it << "\n";
+                } else {
+                    std::cout << "Got " << data.size() <<
+                        " bytes of description data. " << " friendly name: " <<
+                        desc.friendlyName << "\n";
+                }
+                it = locations.erase(it);
+            }
+        }
+    
+        UpnpFinish();
+        return 0;
+    }
+
+
+
+## Client: control
+
+Among the interesting fields in the description document which was parsed
+above are the controlURL ones, which define for each service the endpoint
+for action messages.
+
+Once this is determined, and if you know the actions and parameters
+supported by the service, you can use the @ref UpnpSendAction call to
+request that the device does something for you:
+
+    status = UpnpSendAction(handle, headerString, actionURL, serviceType,
+        actionName, actionParams, responseData, errorCodep, errorDescr);
+
+Refer to the @ref UpnpSendAction reference documentation for details on the
+parameters, we will just add a few remarks here.
+
+_headerString_ is a value for the SOAP header, and is generally not needed
+and empty.
+
+_actionURL_ is the field named _controlURL_ in the XML description document
+and its libupnpp parsed version.
+
+_serviceType_ also comes from the parsed description.
+
+_actionParams_ and _responseData_ are the call arguments and return data as
+C++ vectors of name/value pairs. The arguments should be as defined by the
+service. For dynamic interface programs, this can be determined by
+downloading and parsing the service description document, the URL of which
+is found in the device description. However, for known services, you will
+usually just hard-code the argument list.
+
+
+
+## Client: events
+
+A client can opt to be informed of the state changes in a service by
+subscribing to its events, using the @ref UpnpSubscribe function.
+
+    int status = UpnpSubscribe(handle, eventURL, timeoutp, subs_id);
+
+
+The _eventURL_ value comes from the device description document.
+
+_timeoutp_ points to an integer containing the subscription timeout in
+seconds. This is the time in seconds, typically a fraction of an hour to a
+few hours, after which the device will cancel the subscription if it has
+not been renewed. The library can change the value passed by the client
+code.
+
+The library performs automatic renewals of subscriptions internally, the
+client code does not need to deal with them.
+
+_subs_id_ is an @ref Upnp_SID character array, which will contain the
+subscription identifier (a UUID) after the call. This value will be passed
+with the event callbacks, and can be used to cancel the subscription, using
+@ref UpnpUnSubscribe.
+
+Once the client is subscribed to the events fro a service, its callback
+function will be called with an event type of @ref UPNP_EVENT_RECEIVED and
+a @ref Upnp_Event data structure. The latter contains a map of the changed
+variables names and the new values.
+
+The first callback, during or just after the UnpnSubscribe call will
+contain the name and values of _all_ the service eventable state variables.
+
+
+# Device side operation
+
+
+## Device: registration
+
+Registering a root device is done by calling the @ref
+UpnpRegisterRootDevice2 function.
+
+    int status = UpnpRegisterRootDevice2(
+        descriptionType, description, 0, 0, mycallback, mycontext, myhandle)
+
+_descriptionType_ is a @ref Upnp_DescType member, and indicates if the
+_description_ character pointer contains an URL, an inline character
+string, or a file name. In the two last cases, the description will be
+served from an internal buffer, with an URL path in the root of the WEB
+server tree. The file name will be the same as the input file name, or
+_description.xml_ if the description is passed as a buffer.
+
+Multiple root devices can be registered in a single instance of the
+library. You can't pass the description documents as memory buffers in this
+case (because of the fixed file name).
+
+The two parameters after the _description_ pointer are unused.
+
+_mycallback_ and _mycontext_ are the callback and callback context
+parameter which will be used when the library calls the device code.
+
+_myhandle_ can be used to reference this device registration, for example
+for unsetting it with @ref UpnpUnRegisterRootDevice
+
+## Device: discovery
+
+UPnP device send advertisements about their presence when they start up,
+and later, at regular intervals. For a libnpupnp device, this process is
+started by a call to @ref UpnpSendAdvertisement.
+
+    int status = UpnpSendAdvertisement(handle, expiration);
+
+_expiration_ is the time in seconds after which clients should consider the
+advertisement as expired. Set it to 0 to use the library default (1800
+S). While the process lives, the library will automatically renew the
+advertisement before the expiration time, so you do not need to make
+further calls.
+
+Without this call, the device will not advertise itself spontaneously on
+the network, but it will still answer search requests, so it is not
+invisible.
+
+
+## Device: WEB server and Virtual Directories
+
+You can set the internal HTTP server to serve files from the local file
+system by calling @ref UpnpSetWebServerRootDir.
+
+    int status = UpnpSetWebServerRootDir(rootDir);
+
+If this is not called, the internal HTTP server will not allow any access
+to the local file system. In this case, you will need to set up a Virtual
+Directory to hold the service description files, which is actually the
+common way to do things.
+
+The call will accept a relative _rootDir_ parameter, but using one would be
+a bad idea in most cases.
+
+
+### Device: Virtual Directories
+
+
+
+## Device: actions
+
+
+## Device: events
+
+
+
 
 */
