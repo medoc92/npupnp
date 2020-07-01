@@ -439,6 +439,7 @@ static int UpnpInitPreamble()
         return retVal;
     }
 #endif
+    NetIF::Interfaces::setlogfp(UpnpGetDebugFile(UPNP_DEBUG, API));
     curl_global_init(CURL_GLOBAL_ALL);
     
     /* needed by SSDP or other parts. */

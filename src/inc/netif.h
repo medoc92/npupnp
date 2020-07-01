@@ -34,6 +34,7 @@
  * Offer a simplified and system-idependant interface to a system's network
  * interfaces.
  */
+#include <stdio.h>
 #include <string>
 #include <ostream>
 #include <vector>
@@ -132,7 +133,7 @@ private:
     Internal *m{nullptr};
 };
 
-/** Represent the system's network interfaces. */
+/** Represent the system's network interfaces. Singleton class. */
 
 class Interfaces {
 public:
@@ -169,6 +170,8 @@ public:
     /** Find interface address belongs too among all interfaces
      *  Returns both the interface and the address inside the interface. */
     const Interface *interfaceForAddress(const IPAddr& addr, IPAddr& hostaddr);
+
+    static void setlogfp(FILE *fp);
     
 private:
     Interfaces(const Interfaces &) = delete;

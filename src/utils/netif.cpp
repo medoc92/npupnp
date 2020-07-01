@@ -35,6 +35,7 @@
 #include <iostream>
 #include <algorithm>
 #include <numeric>
+#include <sstream>
 
 #ifndef _WIN32
 
@@ -63,17 +64,27 @@
 
 #endif /* _WIN32 */
 
-#ifndef _WIN32
+
+namespace NetIF {
+
+static FILE *logfp;
+
+//#ifdef _WIN32
 #define NETIF_DEBUG
-#endif
+//#endif
+
+#define LOGERR(X) {                                                 \
+        if (logfp) {                                                \
+            std::ostringstream oss;                                 \
+            oss << X;                                               \
+            fprintf(logfp, "%s", oss.str().c_str());                \
+        }                                                           \
+    }
 #ifdef NETIF_DEBUG
-#define LOGDEB(X) std::cerr << X << std::flush
+#define LOGDEB(X) LOGERR(X)
 #else
 #define LOGDEB(X)
 #endif
-#define LOGERR(X) std::cerr << X << std::flush
-
-namespace NetIF {
 
 class IPAddr::Internal {
 public:
@@ -434,7 +445,6 @@ public:
 
 Interfaces::Internal::Internal()
 {
-    std::cerr << "Interfaces::Internal::Internal()\n\n";
     struct ifaddrs *ifap, *ifa;
 
     /* Get system interface addresses. */
@@ -658,18 +668,17 @@ bool Interfaces::refresh()
     return true;
 }
 
+void Interfaces::setlogfp(FILE *fp)
+{
+    logfp = fp;
+}
+
 Interfaces *theInterfacesP;
 
 Interfaces *Interfaces::theInterfaces()
 {
     if (nullptr == theInterfacesP) {
         theInterfacesP = new Interfaces();
-#ifdef NETIF_DEBUG
-        if (theInterfacesP) {
-            std::cerr << "NetIF::Interfaces::theInterfaces(): interfaces:\n";
-            theInterfacesP->print(std::cerr);
-        }
-#endif
     }
     return theInterfacesP;
 }
@@ -701,13 +710,6 @@ std::vector<Interface> Interfaces::select(const Filter& filt) const
         [=](const NetIF::Interface &entry){
                      return (entry.m->flags & yesflags) == yesflags &&
                          (entry.m->flags & noflags) == 0;});
-#ifdef NETIF_DEBUG
-    LOGDEB("Interfaces::select: selected:\n");
-    for (const auto& entry : out) {
-        entry.print(std::cerr);
-    }
-    LOGDEB("Interfaces::select: selected: end list\n");
-#endif
     return out;
 }
 
