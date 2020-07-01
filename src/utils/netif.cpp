@@ -63,12 +63,15 @@
 
 #endif /* _WIN32 */
 
-//#define NETIF_DEBUG
+#ifndef _WIN32
+#define NETIF_DEBUG
+#endif
 #ifdef NETIF_DEBUG
 #define LOGDEB(X) std::cerr << X << std::flush
 #else
 #define LOGDEB(X)
 #endif
+#define LOGERR(X) std::cerr << X << std::flush
 
 namespace NetIF {
 
@@ -431,22 +434,23 @@ public:
 
 Interfaces::Internal::Internal()
 {
+    std::cerr << "Interfaces::Internal::Internal()\n\n";
     struct ifaddrs *ifap, *ifa;
 
     /* Get system interface addresses. */
     if (getifaddrs(&ifap) != 0) {
-        std::cerr << "getifaddrs failed\n";
+        LOGERR("NetIF::Interfaces: getifaddrs failed\n");
         return;
     }
     std::vector<Interface> vifs;
     for (ifa = ifap; ifa != nullptr; ifa = ifa->ifa_next) {
-        // std::cerr << "Interface name " << ifa->ifa_name << "\n";
+        LOGDEB("NetIF::Interfaces: I/F name " << ifa->ifa_name << "\n");
 
         // Skip interfaces which are address-less, LOOPBACK, DOWN, or
         // that don't support MULTICAST.
         if (nullptr == ifa->ifa_addr) {
-            //std::cerr << "Skipping " << ifa->ifa_name <<
-            //    " because noaddr.\n";
+            LOGDEB("NetIF::Interfaces: Skipping " << ifa->ifa_name <<
+                   " because it has no address.\n");
             continue;
         }
         auto ifit = find_if(vifs.begin(), vifs.end(),
@@ -457,12 +461,15 @@ Interfaces::Internal::Internal()
             ifit = --vifs.end();
         }
         if (ifa->ifa_flags & IFF_LOOPBACK) {
+            LOGDEB("NetIF::Interfaces: " << ifa->ifa_name << " is loopback\n");
             ifit->m->setflag(Interface::Flags::LOOPBACK);
         }
         if (ifa->ifa_flags & IFF_UP) {
+            LOGDEB("NetIF::Interfaces: " << ifa->ifa_name << " is UP\n");
             ifit->m->setflag(Interface::Flags::UP);
         }
         if (ifa->ifa_flags & IFF_MULTICAST) {
+            LOGDEB("NetIF::Interfaces: " << ifa->ifa_name << " has MULTICAST\n");
             ifit->m->setflag(Interface::Flags::MULTICAST);
         }
         ifit->m->index = if_nametoindex(ifa->ifa_name);
@@ -473,8 +480,10 @@ Interfaces::Internal::Internal()
             ifit->m->addresses.emplace_back(ifa->ifa_addr);
             ifit->m->netmasks.emplace_back(ifa->ifa_netmask);
             if (ifa->ifa_addr->sa_family == AF_INET6) {
+                LOGDEB("NetIF::Interfaces: " << ifa->ifa_name << " has IPV6\n");
                 ifit->m->setflag(Interface::Flags::HASIPV6);
             } else {
+                LOGDEB("NetIF::Interfaces: " << ifa->ifa_name << " has IPV4\n");
                 ifit->m->setflag(Interface::Flags::HASIPV4);
             }
         }
@@ -490,13 +499,15 @@ Interfaces::Internal::Internal()
         case AF_LINK:
         {
             auto sdl = reinterpret_cast<struct sockaddr_dl*>(ifa->ifa_addr);
+            LOGDEB("NetIF::Interfaces: " << ifa->ifa_name << " has hwaddr\n");
             ifit->m->sethwaddr((const char*)LLADDR(sdl), sdl->sdl_alen);
         }
         break;
 #endif
         default:
             // common: AF_PACKET: 17
-            //std::cerr << "Unknown family " << ifa->ifa_addr->sa_family << "\n";
+            LOGDEB("NetIF::Interfaces: " << ifa->ifa_name <<
+                   "Unknown family " << ifa->ifa_addr->sa_family << "\n");
             break;
         }
     }
@@ -530,13 +541,13 @@ Interfaces::Internal::Internal()
         AF_UNSPEC,  GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_DNS_SERVER,
         NULL, adapts, &adapts_sz);
     if (ret != ERROR_BUFFER_OVERFLOW) {
-        std::cerr << "GetAdaptersAddresses: fail1\n";
+        LOGERR("NetIF::Interfaces: GetAdaptersAddresses: ret1 " << ret <<"\n");
         return;
     }
     /* Allocate enough memory. */
     adapts = (PIP_ADAPTER_ADDRESSES) malloc(adapts_sz);
     if (nullptr == adapts) {
-        std::cerr << "Out of memory\n";
+        LOGERR("NetIF::Interfaces: GetAdaptersAddresses: Out of memory\n");
         return;
     }
     /* Do the call that will actually return the info. */
@@ -544,7 +555,7 @@ Interfaces::Internal::Internal()
         AF_UNSPEC, GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_DNS_SERVER,
         NULL, adapts, &adapts_sz);
     if (ret != ERROR_SUCCESS) {
-        std::cerr << "GetAdaptersAddresses: fail2\n";
+        LOGERR("NetIF::Interfaces: GetAdaptersAddresses: ret2 " << ret <<"\n");
         goto out;
     }
 
@@ -564,12 +575,15 @@ Interfaces::Internal::Internal()
                wcstombs(tmpnm, adapts_item->FriendlyName, sizeof(tmpnm));
         ifit->m->friendlyname = tmpnm;
         if (!(adapts_item->Flags & IP_ADAPTER_NO_MULTICAST)) {
+            LOGDEB("NetIF::Interfaces: " << tmpnm << " has MULTICAST\n");
             ifit->m->setflag(Interface::Flags::MULTICAST);
         }
         if (adapts_item->OperStatus == IfOperStatusUp) {
+            LOGDEB("NetIF::Interfaces: " << tmpnm << " is UP\n");
             ifit->m->setflag(Interface::Flags::UP);
         }
         if (adapts_item->IfType == IF_TYPE_SOFTWARE_LOOPBACK) {
+            LOGDEB("NetIF::Interfaces: " << tmpnm << " is LOOPBACK\n");
             ifit->m->setflag(Interface::Flags::LOOPBACK);
         }
         // Note: upnpapi.c used IfIndex instead.
@@ -577,6 +591,7 @@ Interfaces::Internal::Internal()
         /* The MAC is in the pAdapter->Address char array */
         ifit->m->sethwaddr((const char *)adapts_item->PhysicalAddress,
                            adapts_item->PhysicalAddressLength);
+        LOGDEB("NetIF::Interfaces: " << tmpnm << " has hwaddr\n");
         uni_addr = adapts_item->FirstUnicastAddress;
         while (uni_addr) {
             SOCKADDR *ip_addr = 
@@ -585,6 +600,7 @@ Interfaces::Internal::Internal()
             case AF_INET:
             {
                 ifit->m->setflag(Interface::Flags::HASIPV4);
+                LOGDEB("NetIF::Interfaces: " << tmpnm << " has IPV4\n");
                 ifit->m->addresses.emplace_back(ip_addr);
                 uint32_t mask =
                     netprefixlentomask(uni_addr->OnLinkPrefixLength);
@@ -596,6 +612,7 @@ Interfaces::Internal::Internal()
             break;
             case AF_INET6:
                 ifit->m->setflag(Interface::Flags::HASIPV6);
+                LOGDEB("NetIF::Interfaces: " << tmpnm << " has IPV6\n");
                 ifit->m->addresses.emplace_back(ip_addr);
                 // Not for now...
                 ifit->m->netmasks.emplace_back();
