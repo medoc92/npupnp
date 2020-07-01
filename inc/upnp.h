@@ -299,7 +299,7 @@ typedef int  UpnpDevice_Handle;
  * This value defines the reason for an event callback, and the kind
  * of data structure which the \b Event parameter points to.
  */
-typedef enum Upnp_EventType {
+typedef enum Upnp_EventType_e {
     /*  Control callbacks */
 
     /** Received by a device when a control point issues a control
@@ -383,7 +383,7 @@ typedef char Upnp_SID[44];
 
 /** @brief Specifies the type of description passed to 
  * @ref UpnpRegisterRootDevice2. */
-typedef enum Upnp_DescType { 
+typedef enum Upnp_DescType_e { 
     /** @brief The description is the URL to the description document. */
     UPNPREG_URL_DESC, 
     
