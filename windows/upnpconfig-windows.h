@@ -40,7 +40,7 @@
  ***************************************************************************/ 
 
 /** The library version (string) e.g. "1.3.0" */
-#define NPUPNP_VERSION_STRING "4.0.7"
+#define NPUPNP_VERSION_STRING "4.1.0"
 
 /** Major version of the library */
 #define NPUPNP_VERSION_MAJOR 4

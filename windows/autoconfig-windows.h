@@ -102,13 +102,13 @@
 #define NPUPNP_VERSION_MAJOR 4
 
 /* see upnpconfig.h */
-#define NPUPNP_VERSION_MINOR 0
+#define NPUPNP_VERSION_MINOR 1
 
 /* see upnpconfig.h */
-#define NPUPNP_VERSION_PATCH 7
+#define NPUPNP_VERSION_PATCH 0
 
 /* see upnpconfig.h */
-#define NPUPNP_VERSION_STRING "4.0.7"
+#define NPUPNP_VERSION_STRING "4.1.0"
 
 /* Name of package */
 #define PACKAGE "libnpupnp"
@@ -120,7 +120,7 @@
 #define PACKAGE_NAME "libnpupnp"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "libnpupnp 4.0.7"
+#define PACKAGE_STRING "libnpupnp 4.1.0"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "libnpupnp"
@@ -129,7 +129,7 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "4.0.7"
+#define PACKAGE_VERSION "4.1.0"
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
@@ -174,7 +174,7 @@
 #define USE_EXPAT 1
 
 /* Version number of package */
-#define VERSION "4.0.7"
+#define VERSION "4.1.0"
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */
