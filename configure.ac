@@ -244,6 +244,14 @@ if test X$useexpat = Xyes ; then
    AC_DEFINE(USE_EXPAT, 1, [Use expat])
 fi
 
+AC_ARG_ENABLE(fixxml,
+    AC_HELP_STRING([--enable-fixxml],
+    [Replace bad utf-8 characters in some SOAP payloads (bad media servers).]),
+    fixxml=$enableval, fixxml=no)
+if test X$fixxml = Xyes ; then
+   AC_DEFINE(FIX_XML, 1, [Try to fix some XML content])
+fi
+
 LIBNPUPNP_LIBS="$curl_LIBS $libmicrohttpd_LIBS $expat_LIBS $LIBS"
 echo "LIBNPUPNP_LIBS[" $LIBNPUPNP_LIBS "]"
 AC_SUBST(LIBNPUPNP_LIBS)

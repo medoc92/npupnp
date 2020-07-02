@@ -55,6 +55,39 @@
 #define XMLPARSERTP PicoXMLParser
 #endif
 
+#ifdef FIX_XML
+#include "utf8iter.h"
+
+static const std::string replchar{"\xef\xbf\xbd"};
+
+bool checkencoding(const std::string& in, std::string& out, bool fixit=false,
+                   int maxrepl = 100)
+{
+    Utf8Iter it(in);
+    for (;!it.eof(); it++) {
+        if (it.error()) {
+            if (!fixit) {
+                return false;
+            }
+            out += replchar;
+            for (int i = 0; i < maxrepl; i++) {
+                it.retryfurther();
+                if (it.eof())
+                    return true;
+                if (!it.error())
+                    break;
+                out += replchar;
+            }
+            if (it.error()) {
+                return false;
+            }
+        }
+        it.appendchartostring(out);
+    }
+    return true;
+}
+#endif // FIX_XML
+
 class UPnPResponseParser : public XMLPARSERTP {
 public:
     UPnPResponseParser(
@@ -121,7 +154,21 @@ get_response_value(
         return UPNP_E_BAD_RESPONSE;
     }
     *errcodep = 0;
-    UPnPResponseParser mparser(payload, rspname, rspdata, errcodep, errdesc);
+
+    const std::string *plp = &payload;
+#ifdef FIX_XML
+    // Some media servers (minidlna) sometimes send bad utf-8 chars
+    // because of careless truncation. XML parsers don't like
+    // this. Try to fix by replacing bad chars with the usual question
+    // mark. This is not built by default as it forces a perf penalty
+    // at all times for just a few bad cases.
+    std::string fixed;
+    if (checkencoding(payload, fixed, true)) {
+        plp = &fixed;
+    }
+#endif // FIX_XML
+
+    UPnPResponseParser mparser(*plp, rspname, rspdata, errcodep, errdesc);
     if (!mparser.Parse()) {
         UpnpPrintf(UPNP_INFO, SOAP, __FILE__, __LINE__,
                    "soap:get_response_value: parse failed for [%s]\n",
