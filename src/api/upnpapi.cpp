@@ -241,8 +241,9 @@ static int getIfInfo(const char *IfNames)
     } else {
         // No interface specified. Use first appropriate one, or all.
         std::vector<NetIF::Interface::Flags>
-            needed{NetIF::Interface::Flags::HASIPV4};
-        needed.push_back(NetIF::Interface::Flags::MULTICAST);
+            needed{NetIF::Interface::Flags::HASIPV4, 
+                   NetIF::Interface::Flags::UP,
+                   NetIF::Interface::Flags::MULTICAST};
         if (using_ipv6()) {
             needed.push_back(NetIF::Interface::Flags::HASIPV6);
         }
@@ -317,7 +318,9 @@ static int getmyipv4(const char *inipv4 = nullptr)
     NetIF::Interfaces *ifs = NetIF::Interfaces::theInterfaces();
     NetIF::Interface *netifp{nullptr};
     NetIF::Interfaces::Filter
-        filt{.needs={NetIF::Interface::Flags::HASIPV4},
+        filt{.needs = {NetIF::Interface::Flags::HASIPV4, 
+                       NetIF::Interface::Flags::UP,
+                       NetIF::Interface::Flags::MULTICAST},
              .rejects={NetIF::Interface::Flags::LOOPBACK}
     };
     std::vector<NetIF::Interface> selected = ifs->select(filt);

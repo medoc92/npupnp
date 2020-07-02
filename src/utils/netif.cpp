@@ -581,15 +581,17 @@ Interfaces::Internal::Internal()
         auto ifit = find_if(vifs.begin(), vifs.end(),
                             [adapts_item] (const Interface& ifr) {
                                 return adapts_item->AdapterName == ifr.m->name;});
-        if (ifit == vifs.end()) {
-            vifs.emplace_back(adapts_item->AdapterName);
-            ifit = --vifs.end();
-        }
-
         /* We're converting chars using the current code page. It would be nicer
            to convert to UTF-8 */
         char tmpnm[256];
                wcstombs(tmpnm, adapts_item->FriendlyName, sizeof(tmpnm));
+        if (ifit == vifs.end()) {
+            LOGDEB("NetIF::Interfaces: I/F friendlyname " << tmpnm <<
+                   " AdapterName " << adapts_item->AdapterName << "\n");
+            vifs.emplace_back(adapts_item->AdapterName);
+            ifit = --vifs.end();
+        }
+
         ifit->m->friendlyname = tmpnm;
         if (!(adapts_item->Flags & IP_ADAPTER_NO_MULTICAST)) {
             LOGDEB("NetIF::Interfaces: " << tmpnm << " has MULTICAST\n");
