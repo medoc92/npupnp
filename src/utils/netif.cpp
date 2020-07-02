@@ -546,6 +546,13 @@ Interfaces::Internal::Internal()
     ULONG ret;
     std::vector<Interface> vifs;
 
+    // Note: we are using the GetAdaptersAddresses() call which is the
+    // recommended interface for modern Windows. However the old lib
+    // (-0.17) used getAdaptersInfo(), which gives different names for
+    // the adapters, which means that, e.g. if the adapter name is
+    // specified in the upplay prefs, it will be need to be set again
+    // after changing versions.
+    
     /* Get Adapters addresses required size. */
     ret = GetAdaptersAddresses(
         AF_UNSPEC,  GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_DNS_SERVER,

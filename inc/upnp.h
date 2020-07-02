@@ -1730,6 +1730,28 @@ EXPORT_SPEC int UpnpDownloadUrlItem(
  */
 
 /**
+ * @brief Enables or disables the WEB server file service. The WEB
+ * server is automatically enabled by UpnpInit2(), this call should only be used
+ * to stop it.
+ *
+ * @return An integer representing one of the following:
+ *       \li \c UPNP_E_SUCCESS: The operation completed successfully.
+ *       \li \c UPNP_E_INVALID_ARGUMENT: \b enable is not valid.
+ */
+EXPORT_SPEC int UpnpEnableWebserver(
+    /** [in] \c TRUE to enable, \c FALSE to disable. */
+    int enable);
+
+/**
+ * @brief Returns \c TRUE if the webserver is enabled, or \c FALSE if it is not.
+ *
+ *  @return An integer representing one of the following:
+ *       \li \c TRUE: The webserver is enabled.
+ *       \li \c FALSE: The webserver is not enabled
+ */
+EXPORT_SPEC int UpnpIsWebserverEnabled(void);
+
+/**
  * @brief Sets the document root directory for the internal WEB server.
  *
  * If this is not called, the internal WEB server will not serve any
@@ -1902,28 +1924,6 @@ struct UpnpVirtualDirCallbacks
     /** @brief @ref VDCallback_Close callback */
     VDCallback_Close close;
 };
-
-/**
- * @brief Enables or disables the WEB server file service. The WEB
- * server is automatically enabled by UpnpInit2(), this call should only be used
- * to stop it.
- *
- * @return An integer representing one of the following:
- *       \li \c UPNP_E_SUCCESS: The operation completed successfully.
- *       \li \c UPNP_E_INVALID_ARGUMENT: \b enable is not valid.
- */
-EXPORT_SPEC int UpnpEnableWebserver(
-    /** [in] \c TRUE to enable, \c FALSE to disable. */
-    int enable);
-
-/**
- * @brief Returns \c TRUE if the webserver is enabled, or \c FALSE if it is not.
- *
- *  @return An integer representing one of the following:
- *       \li \c TRUE: The webserver is enabled.
- *       \li \c FALSE: The webserver is not enabled
- */
-EXPORT_SPEC int UpnpIsWebserverEnabled(void);
 
 /**
  *  @brief Sets the callback functions to be used to access a virtual directory.

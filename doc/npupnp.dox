@@ -13,7 +13,9 @@ as possible for a program currently using libupnp. The structure of the C
 API is conserved.
 
 Beyond issues of reliability and maintability, the main evolution in the
-new library is the support for multiple network interfaces.
+new library is the support for multiple network interfaces. Also, helper
+code for parsing an UPnP device description document and for accessing the
+machine network interfaces is now exposed.
 
 libnupnp implements a low level interface to the UPnP protocol. It has a
 separate set of functions for client and device implementations, with a few
@@ -33,6 +35,11 @@ We present the programming interface in three sections:
 It is possible, but uncommon, to use both the client and device interfaces
 in the same instance.
 
+Some code examples are present in the document. In addition, it may be
+useful to clone the [npupnp samples
+repository](https://framagit.org/medoc92/npupnp-samples/-/tree/master),
+which contain buildable and runnable examples, and will also referenced
+further down.
 
 # Common functions
 
@@ -50,18 +57,20 @@ desired.
 
 Example:
 
-    #include <upnp/upnp.h>
-    #include <upnp/upnpdebug.h>
+~~~~
+#include <upnp/upnp.h>
+#include <upnp/upnpdebug.h>
+
+int main(int argc, char **argv)
+{
+    UpnpSetLogFileNames("/tmp/mylogfilename.txt", "");
+    UpnpSetLogLevel(UPNP_INFO);
+    UpnpInitLog();
+
+    UpnpPrintf(UPNP_INFO, DOM, __FILE__, __LINE__, "my log message\n");
     
-    int main(int argc, char **argv)
-    {
-        UpnpSetLogFileNames("/tmp/mylogfilename.txt", "");
-        UpnpSetLogLevel(UPNP_INFO);
-        UpnpInitLog();
-    
-        UpnpPrintf(UPNP_INFO, DOM, __FILE__, __LINE__, "my log message\n");
-        
-        int success = UpnpInit2("", ...
+    int success = UpnpInit2("", ...
+~~~~
     
 
 ## Common library initialisation
@@ -105,45 +114,45 @@ follows:
 
 Example:
 
+~~~~
+#include <upnp/upnp.h>
+#include <upnp/upnpdebug.h>
+#include <upnp/upnptools.h>
 
-    #include <upnp/upnp.h>
-    #include <upnp/upnpdebug.h>
-    #include <upnp/upnptools.h>
-    
-    #include <iostream>
-    
-    int main(int argc, char **argv)
-    {
-        if (argc != 2) {
-            std::cerr << "Usage: npupnp_init <ifname>\n";
-            return 1;
-        }
-        const char *ifname = argv[1];
-    
-        UpnpSetLogFileNames("", "");
-        UpnpSetLogLevel(UPNP_INFO);
-        UpnpInitLog();
-    
-        int port = 0;
-        unsigned int flags = UPNP_FLAG_IPV6;
-    
-        int success = UpnpInitWithOptions(
-            ifname, port, flags, UPNP_OPTION_NETWORK_WAIT, 5, UPNP_OPTION_END);
-    
-        if (success != UPNP_E_SUCCESS) {
-            std::cerr << "init failed: " << success << " " <<
-                UpnpGetErrorMessage(success) << "\n";
-            return 1;
-        }
-    
-        std::cout << "IPV4 address: " << UpnpGetServerIpAddress() << "\n";
-        std::cout << "IPV6 address: " << UpnpGetServerIp6Address() << "\n";
-        std::cout << "Port: " << UpnpGetServerPort() << "\n";
-    
-        UpnpFinish();
-        return 0;
+#include <iostream>
+
+int main(int argc, char **argv)
+{
+    if (argc != 2) {
+        std::cerr << "Usage: npupnp_init <ifname>\n";
+        return 1;
     }
-    
+    const char *ifname = argv[1];
+
+    UpnpSetLogFileNames("", "");
+    UpnpSetLogLevel(UPNP_INFO);
+    UpnpInitLog();
+
+    int port = 0;
+    unsigned int flags = UPNP_FLAG_IPV6;
+
+    int success = UpnpInitWithOptions(
+        ifname, port, flags, UPNP_OPTION_NETWORK_WAIT, 5, UPNP_OPTION_END);
+
+    if (success != UPNP_E_SUCCESS) {
+        std::cerr << "init failed: " << success << " " <<
+            UpnpGetErrorMessage(success) << "\n";
+        return 1;
+    }
+
+    std::cout << "IPV4 address: " << UpnpGetServerIpAddress() << "\n";
+    std::cout << "IPV6 address: " << UpnpGetServerIp6Address() << "\n";
+    std::cout << "Port: " << UpnpGetServerPort() << "\n";
+
+    UpnpFinish();
+    return 0;
+}
+~~~~    
 
 
 # Client side operation
@@ -153,9 +162,9 @@ Example:
 A client (Control Point) program just needs to register its callback
 function to the library, and will immediately begin to receive network
 events (broadcast discovery messages):
-
-    int success = UpnpRegisterClient(mycallback, (void *)mycontext, &myhandle);
-
+~~~~
+int success = UpnpRegisterClient(mycallback, (void *)mycontext, &myhandle);
+~~~~
 This register the @ref Upnp_FunPtr _mycallback_ function to receive
 events. The _mycontext_ cookie will be passed with each call. The return
 value @ref UpnpClient_Handle _myhandle_ can be used to reference
@@ -169,7 +178,9 @@ UPnP devices on the network, but this might be rather slow, so you will
 normally want to trigger an UPnP search. This is done with the
 @ref UpnpSearchAsync function.
 
-    int status = UpnpSearchAsync(hnd, windowsecs, "upnp:rootdevice", &mycontext);
+~~~~
+int status = UpnpSearchAsync(hnd, windowsecs, "upnp:rootdevice", &mycontext);
+~~~~
 
 The first parameter is the client handle obtained with @ref
 UpnpRegisterClient.
@@ -199,9 +210,11 @@ callback function is the _Location_ field, which contains the URL of the
 description document for the device. You can download this document with
 the @ref UpnpDownloadUrlItem helper function.
 
-    std::string data;
-    std::string content_type;
-    success = UpnpDownloadUrlItem(url, data, content_type);
+~~~~
+std::string data;
+std::string content_type;
+success = UpnpDownloadUrlItem(url, data, content_type);
+~~~~
 
 Once downloaded, the XML description document will need to be parsed to
 access the list of services and other information elements.
@@ -218,112 +231,113 @@ availability, for presenting a choice to the user, or against a supplied
 device name.
 
 
-    #include <unistd.h>
-    #include <set>
-    #include <mutex>
-    #include <condition_variable>
-    
-    #include <libupnpp/control/description.hxx>
-    
-    #include <upnp/upnp.h>
-    #include <upnp/upnpdebug.h>
-    #include <upnp/upnptools.h>
-    
-    #include <iostream>
-    
-    static int clctxt;
-    
-    std::set<std::string> locations;
-    std::mutex locations_mutex;
-    std::condition_variable locations_cv;
-    static bool searchdone;
-    
-    static int mycallback(Upnp_EventType etyp, const void *evt, void *ctxt)
-    {
-        UpnpDiscovery *dsp = (UpnpDiscovery*)evt;
-        switch (etyp) {
-        case UPNP_DISCOVERY_ADVERTISEMENT_ALIVE:
-            goto dldesc;
-        case UPNP_DISCOVERY_ADVERTISEMENT_BYEBYE:
-            break;
-        case UPNP_DISCOVERY_SEARCH_RESULT:
-            goto dldesc;
-        case UPNP_DISCOVERY_SEARCH_TIMEOUT:
-        {
-            std::unique_lock<std::mutex> loclock;
-            searchdone = true;
-            locations_cv.notify_all();
-        }
+~~~~
+#include <unistd.h>
+#include <set>
+#include <mutex>
+#include <condition_variable>
+
+#include <libupnpp/control/description.hxx>
+
+#include <upnp/upnp.h>
+#include <upnp/upnpdebug.h>
+#include <upnp/upnptools.h>
+
+#include <iostream>
+
+static int clctxt;
+
+std::set<std::string> locations;
+std::mutex locations_mutex;
+std::condition_variable locations_cv;
+static bool searchdone;
+
+static int mycallback(Upnp_EventType etyp, const void *evt, void *ctxt)
+{
+    UpnpDiscovery *dsp = (UpnpDiscovery*)evt;
+    switch (etyp) {
+    case UPNP_DISCOVERY_ADVERTISEMENT_ALIVE:
+        goto dldesc;
+    case UPNP_DISCOVERY_ADVERTISEMENT_BYEBYE:
         break;
-        default:
-            std::cerr << "Received surprising event type " << etyp << "\n";
-            break;
-        }        
-        return 0;
-    
-    dldesc:
-        std::unique_lock<std::mutex> loclock;
-        locations.insert(dsp->Location);
-        locations_cv.notify_all();
-        return 0;
-    }
-    
-    int main(int argc, char **argv)
+    case UPNP_DISCOVERY_SEARCH_RESULT:
+        goto dldesc;
+    case UPNP_DISCOVERY_SEARCH_TIMEOUT:
     {
-        UpnpSetLogFileNames("", "");
-        UpnpSetLogLevel(UPNP_ERROR);
-        UpnpInitLog();
-    
-        int success = UpnpInitWithOptions("*", 0, UPNP_FLAG_IPV6, UPNP_OPTION_END);
-        if (success != UPNP_E_SUCCESS) {
-            std::cerr << "init failed: " << success << " " <<
-                UpnpGetErrorMessage(success) << "\n";
-            return 1;
-        }
-    
-        UpnpClient_Handle chdl;
-        success = UpnpRegisterClient(mycallback, &clctxt, &chdl);
-        if (success != UPNP_E_SUCCESS) {
-            std::cerr << "register client failed: " << success << " " <<
-                UpnpGetErrorMessage(success) << "\n";
-            return 1;
-        }
-    
-        int searchctxt;
-        success = UpnpSearchAsync(chdl, 3, "upnp:rootdevice", &searchctxt);
-    
-        std::unique_lock<std::mutex> locklocs(locations_mutex);
-        for (;;) {
-            locations_cv.wait(locklocs);
-            if (searchdone) {
-                break;
-            }
-            for (auto it = locations.begin(); it != locations.end();) {
-                std::string data;
-                std::string ct;
-                int success = UpnpDownloadUrlItem(*it, data, ct);
-                if (success != UPNP_E_SUCCESS) {
-                    std::cerr << "UpnpDownloadUrlItem failed: " << success << " " <<
-                        UpnpGetErrorMessage(success) << "\n";
-                    continue;
-                }
-    
-                UPnPClient::UPnPDeviceDesc desc(*it, data);
-                if (!desc.ok) {
-                    std::cout << "Description parse failed for " << *it << "\n";
-                } else {
-                    std::cout << "Got " << data.size() <<
-                        " bytes of description data. " << " friendly name: " <<
-                        desc.friendlyName << "\n";
-                }
-                it = locations.erase(it);
-            }
-        }
-    
-        UpnpFinish();
-        return 0;
+        std::unique_lock<std::mutex> loclock;
+        searchdone = true;
+        locations_cv.notify_all();
+    }
+    break;
+    default:
+        std::cerr << "Received surprising event type " << etyp << "\n";
+        break;
+    }        
+    return 0;
+
+dldesc:
+    std::unique_lock<std::mutex> loclock;
+    locations.insert(dsp->Location);
+    locations_cv.notify_all();
+    return 0;
+}
+
+int main(int argc, char **argv)
+{
+    UpnpSetLogFileNames("", "");
+    UpnpSetLogLevel(UPNP_ERROR);
+    UpnpInitLog();
+
+    int success = UpnpInitWithOptions("*", 0, UPNP_FLAG_IPV6, UPNP_OPTION_END);
+    if (success != UPNP_E_SUCCESS) {
+        std::cerr << "init failed: " << success << " " <<
+            UpnpGetErrorMessage(success) << "\n";
+        return 1;
     }
 
+    UpnpClient_Handle chdl;
+    success = UpnpRegisterClient(mycallback, &clctxt, &chdl);
+    if (success != UPNP_E_SUCCESS) {
+        std::cerr << "register client failed: " << success << " " <<
+            UpnpGetErrorMessage(success) << "\n";
+        return 1;
+    }
+
+    int searchctxt;
+    success = UpnpSearchAsync(chdl, 3, "upnp:rootdevice", &searchctxt);
+
+    std::unique_lock<std::mutex> locklocs(locations_mutex);
+    for (;;) {
+        locations_cv.wait(locklocs);
+        if (searchdone) {
+            break;
+        }
+        for (auto it = locations.begin(); it != locations.end();) {
+            std::string data;
+            std::string ct;
+            int success = UpnpDownloadUrlItem(*it, data, ct);
+            if (success != UPNP_E_SUCCESS) {
+                std::cerr << "UpnpDownloadUrlItem failed: " << success << " " <<
+                    UpnpGetErrorMessage(success) << "\n";
+                continue;
+            }
+
+            UPnPClient::UPnPDeviceDesc desc(*it, data);
+            if (!desc.ok) {
+                std::cout << "Description parse failed for " << *it << "\n";
+            } else {
+                std::cout << "Got " << data.size() <<
+                    " bytes of description data. " << " friendly name: " <<
+                    desc.friendlyName << "\n";
+            }
+            it = locations.erase(it);
+        }
+    }
+
+    UpnpFinish();
+    return 0;
+}
+~~~~
 
 
 ## Client: control
@@ -336,8 +350,10 @@ Once this is determined, and if you know the actions and parameters
 supported by the service, you can use the @ref UpnpSendAction call to
 request that the device does something for you:
 
-    status = UpnpSendAction(handle, headerString, actionURL, serviceType,
-        actionName, actionParams, responseData, errorCodep, errorDescr);
+~~~~
+status = UpnpSendAction(handle, headerString, actionURL, serviceType,
+           actionName, actionParams, responseData, errorCodep, errorDescr);
+~~~~
 
 Refer to the @ref UpnpSendAction reference documentation for details on the
 parameters, we will just add a few remarks here.
@@ -364,8 +380,9 @@ usually just hard-code the argument list.
 A client can opt to be informed of the state changes in a service by
 subscribing to its events, using the @ref UpnpSubscribe function.
 
-    int status = UpnpSubscribe(handle, eventURL, timeoutp, subs_id);
-
+~~~~
+int status = UpnpSubscribe(handle, eventURL, timeoutp, subs_id);
+~~~~
 
 The _eventURL_ value comes from the device description document.
 
@@ -400,8 +417,10 @@ contain the name and values of _all_ the service eventable state variables.
 Registering a root device is done by calling the @ref
 UpnpRegisterRootDevice2 function.
 
-    int status = UpnpRegisterRootDevice2(
-        descriptionType, description, 0, 0, mycallback, mycontext, myhandle)
+~~~~
+int status = UpnpRegisterRootDevice2(
+          descriptionType, description, 0, 0, mycallback, mycontext, myhandle)
+~~~~
 
 _descriptionType_ is a @ref Upnp_DescType member, and indicates if the
 _description_ character pointer contains an URL, an inline character
@@ -428,7 +447,9 @@ UPnP device send advertisements about their presence when they start up,
 and later, at regular intervals. For a libnpupnp device, this process is
 started by a call to @ref UpnpSendAdvertisement.
 
-    int status = UpnpSendAdvertisement(handle, expiration);
+~~~~
+int status = UpnpSendAdvertisement(handle, expiration);
+~~~~
 
 _expiration_ is the time in seconds after which clients should consider the
 advertisement as expired. Set it to 0 to use the library default (1800
@@ -443,10 +464,14 @@ invisible.
 
 ## Device: WEB server and Virtual Directories
 
+### Device: WEB server: local file system
+
 You can set the internal HTTP server to serve files from the local file
 system by calling @ref UpnpSetWebServerRootDir.
 
-    int status = UpnpSetWebServerRootDir(rootDir);
+~~~~
+int status = UpnpSetWebServerRootDir(rootDir);
+~~~~
 
 If this is not called, the internal HTTP server will not allow any access
 to the local file system. In this case, you will need to set up a Virtual
@@ -456,17 +481,182 @@ common way to do things.
 The call will accept a relative _rootDir_ parameter, but using one would be
 a bad idea in most cases.
 
+See
+[here](https://framagit.org/medoc92/npupnp-samples/-/blob/master/smallsamps/npupnp_fsdevice.cpp)
+for a small sample device storing its description files in the file system.
+
 
 ### Device: Virtual Directories
 
+The integrated WEB server has the capability to serve documents from
+application-provided data. This is performed by:
+
+- Defining a set of callbacks to perform the needed operations on virtual
+  files
+- Defining directory paths where file operations should be virtual.
+
+All subpaths of a defined virtual path are considered virtual, not only the
+immediate file children.
+
+Virtual Paths are checked before file system paths and will hide the whole
+subtree (in case @ref SetWebServerRootdir() has been called in a way which
+may result in collisions).
+
+#### Virtual Directories: defining the callbacks
+
+Let us see for example how to set the @ref VDCallback_GetInfo function
+which is always the first one that the WEB server calls when processing a
+document request. The function prototype is as follows:
+
+~~~~
+int (*VDCallback_GetInfo)(
+    const char *filepath,
+    struct File_Info *info,
+    const void *cookie,
+    const void **request_cookiep
+);
+~~~~
+
+The _filepath_ parameter is an absolute file system path.
+
+The @ref File_Info _info_ pointer is used both to supply information about
+the HTTP request (its headers), and to return information about the file
+and possibly additional headers to set in the response.
+
+_cookie_ is an application context pointer set when defining the path as a
+Virtual Directory.
+
+_request_cookiep_ is specific of this request and can be set the
+_VDCallback_GetInfo_ to track the different calls associated with this
+specific request.
+
+The callback is defined through the following call:
+
+~~~~
+int status = UpnpVirtualDir_set_GetInfoCallback(callback);
+~~~~
+
+There are similar definitions for _open_, _read_, _write_ (unused at the
+moment), _seek_ and _close_.
+
+It is also possible to set all the callbacks in one call by using the @ref
+UpnpVirtualDirCallbacks structure and @ref UpnpSetVirtualDirCallbacks().
+
+
+#### Virtual Directories: defining a virtual path
+
+You associate a path with the Virtual Directory system by using
+@ref UpnpAddVirtualDir :
+
+~~~~
+int status = UpnpAddVirtualDir(dirpath, cookie, oldcookiep);
+~~~~
+
+The cookie will be set in further file-related calls under this
+path. The pointer-to-pointer oldcookiep can be set to retrieve the old
+value of the cookie in case the path was already associated. You can set it
+to _nullptr_ if you're not interested.
+
+You can also erase an association with @ref UpnpRemoveVirtualDir, and get
+rid of them all with @ref UpnpRemoveAllVirtualDirs.
+
+See [this file in the
+samples](https://framagit.org/medoc92/npupnp-samples/-/tree/master/src/device.cpp) for
+an example of a small bogus but functional device using a virtual directory
+to store its description files.
+
+The [virtual directory
+implementation](https://framagit.org/medoc92/npupnp-samples/-/blob/master/src/myvdir.cpp)
+in the sample is actually file-system-backed to make things simple, but
+this does not change the principle.
 
 
 ## Device: actions
+
+Actions requested by a Control Point to a specific device service action
+will be received by the device callback with a type of @ref
+UPNP_CONTROL_ACTION_REQUEST, and an associated @ref Upnp_Action_Request
+data structure, used both to define what is requested, and the data which
+should be returned.
+
+The main input fields of the structure are the following:
+
+- _DevUDN_, _ServiceID_, and _ActionName_ define the entry point.
+- _args_, a vector of (name,value) pairs holds the input
+  arguments parsed from the XML payload. The latter is also accessible as
+  _xmlAction_ in case the parser missed something.
+- _CtrlPtIPAddr_  (a_sockaddr_ pointer), and _Os_ (client string) describe
+  the remote client.
+
+On output:
+
+- _ErrCode_ (HTTP error status) and _ErrStr_ can be used to describe an error.
+- _resdata_ is a vector of (name,value) pairs to hold the response values.
+- _xmlResponse_ is an alternative way to return the data as an XML SOAP
+  payload. If this is set, _resdata_ is ignored. This may be easier to use
+  for some applications when transitionning from pupnp.
+
+
+See [this file in the samples]
+(https://framagit.org/medoc92/npupnp-samples/-/tree/master/src/device.cpp) for
+an example of a small bogus but functional device processing some actions.
+
 
 
 ## Device: events
 
 
+### Device: events: subscription
 
+A device implementation will be informed of a subscription request by a
+callback of type @ref UPNP_EVENT_SUBSCRIPTION_REQUEST. The associated
+@ref Upnp_Subscription_Request data structure holds the device and service
+identifiers, and the subscription ID set by the library.
+
+The subscription can be rejected by returning an error,
+for example if there is an inconsistency in the device/service data,
+but will more commonly be accepted, in which case the initial set of state
+variable values should be returned by a call to
+@ref UpnpAcceptSubscription or @ref UpnpAcceptSubscriptionXML which only
+differ by the format of the returned state data.
+
+This call should be performed from the @ref UPNP_EVENT_SUBSCRIPTION_REQUEST
+callback.
+
+~~~~
+int ret = UpnpAcceptSubscription(handle, UDN, serviceId, names, values, cnt, SID);
+
+int ret UpnpAcceptSubscriptionXML(handle, UDN, serviceId, propertyset, SID);
+~~~~
+
+_UDN_, _serviceId_, and _SID_ come from the input
+@ref Upnp_Subscription_Request structure.
+
+_names_, _values_ are parallel arrays of C string pointers, of size _cnt_.
+
+Alternatively, _propertyset_ is an XML GENA property set ready for sending
+back (see the UPnP standard).
+
+
+### Device: events: eventing
+
+A device generates UPnP events by calls to @ref UpnpNotify or @ref
+UpnpNotifyXML, which only differ in the returned data format:
+
+~~~~
+int ret = UpnpNotify(handle, UDN, serviceId, names, values, count);
+
+int ret UpnpNotifyXML(handle, UDN, serviceId, propset)
+~~~~
+
+The device application code only has to call one of these once for a state
+event. The library will arrange to send the event to all the currently
+suscribed control points.
+
+Our bogus [sample device]
+(https://framagit.org/medoc92/npupnp-samples/-/tree/master/src/device.cpp)
+also has eventing code, which can be triggered by it [associated client]
+(https://framagit.org/medoc92/npupnp-samples/-/tree/master/src/ctl.cpp)
+using an action to change a variable value.
 
 */
