@@ -1,0 +1,62 @@
+= libnpupnp : replacing the venerable pupnp/libupnp
+
+== Rationale
+
+The libupnpp library, which provides the C++ interface for upmpdcli and
+upplay, used to rely on the venerable
+link:https://github.com/pupnp/pupnp[libupnp library] (a.k.a pupnp: Portable
+UPnP) to provide the base UPnP protocol functionality.
+
+Pupnp is very old and has suffered for a number of years from indifferent
+maintenance resulting in buggy releases being shipped by the Linux
+distributions (and endless trouble for me). For a few years now, I had to
+ship a patched version of an older release of the library with upmpdcli and
+upplay to work around the problem.
+
+I did make an effort to help with a situation, and contributed a number of
+significant bug fixes to the package. See
+link:https://www.lesbonscomptes.com/pages/libupnpEvents.html[this, for
+example], or the Github pull requests. However, after a few years of
+suffering, I came to the conclusion that the situation was unsalvageable,
+and, at the beginning of 2020, I created a new library, named libnpupnp
+(new pupnp), based of the best and most specific parts of the old code. The
+changes:
+
+- The custom XML library (ixml) is not used any more (expat is used instead
+  to parse XML when needed).
+- The HTTP server and client parts have respectively been replaced by
+  libmicrohttpd and libcurl, two well-maintained and widely used
+  libraries.
+- The retained code has been converted to C++, and most of the locally
+  grown containers (lists etc.) have been replaced by STL objects.
+- Not even counting the ixml disparition (ixml was never a big issue), this
+  brought the UPnP part of the library from around 24000 lines (C files
+  only) to a manageable 13000 lines of C++, retaining the really
+  UPnP-specific parts of the old library.
+
+The current implementation has a C++ interface, because of the use of STL
+containers to replace XML DOM trees in a couple of entry points. It would
+be reasonably easy to add a pure C interface if someone saw a point to
+it. See the next section for a more detailed description of the changes.
+
+Of course there is no chance that the new library is free of bugs, but I
+think that they will be easier to find and fix than previously.
+
+In practise, the libupnpp layer has isolated the applications from these
+changes, and upmpdcli and upplay can still be built with libupnpp 0.17.x and
+libupnp. But the default is now to build the packages with libupnpp 0.18.x
+and libnpupnp.
+
+== New features
+
+- Support for providing service on multiple network interfaces. 
+- Helper interface for parsing an XML device description into an easy to
+  use C++ data structure.
+- Helper interface for accessing the machine network interfaces.
+
+== Documentation
+
+You will find more details in a link:porting-from-pupnp.html[small document
+about porting a pupnp application to npupnp] and the
+link:refdoc/html/index.html[the libnpupnp documentation].
+

@@ -3,12 +3,18 @@
 
 == Overview
 
-The npupnp library preserves most of the API from libupnp. The main
-changes:
+When creating the new library, the goal was to keep the API intact, as much
+as feasible.
+
+The main modifications with consequences:
 
 - The IXML XML DOM package is not supplied or used any more. This has
   consequences in several places.
 - The asynchronous interface has been removed.
+
+The suppression of libixml has forced changes where IXML
+elements were present in the interfaces (e.g. DOM trees). These elements
+have been replaced with C++ data elements, or XML text.
 
 The IXML removal is of course an issue if your program relies on it a
 lot. In many cases however, IXML is mostly used by the client programs to
@@ -18,8 +24,12 @@ most cases.
 
 The following lists the main API changes.
 
-
 == struct Upnp_Action_Request
+
+struct Upnp_Action_Request (or its equivalent in libupnp 1.8) is used in
+the device interface to communicate an action request to the client code
+and retrieve the result. In libupnp, this structure has two IXML DOM tree
+members to transport the request and the response arguments.
 
 The `IXML_Document` fields (`ActionRequest`, `ActionResult`) are replaced with
 STL vectors of pairs of strings (name/values). Additionally, the original
@@ -40,10 +50,13 @@ This affects the control point library callback when the event type is
 
 == struct File_Info
 
-The `content_type` field is now an +std::string+ (it was a dynamically
-allocated character string).
+The libupnp `struct File_Info` has a dynamically allocated ixml DOMString
+member for the content type value. In libupnp, this is replaced by an
+std::string.
 
-The `Extra_Headers` feature has been replaced by two STL maps:
+libupnp has had a variety of ways for the client to set HTTP headers in the
+`struct File_Info`, so that the libupnp WEB server sets them in the HTTP
+response. The `Extra_Headers` feature has been replaced by two STL maps:
 
 - `request_headers` contains the HTTP headers received with the request.
 - `response_headers` allow the application to set specific headers to be
@@ -55,16 +68,18 @@ sent back to the Control Point.
 The Action and Response arguments have been changed from IXML DOM trees to
 STL vectors of pairs of strings. 
 
-== UpnpAcceptSubscriptionExt()
+
+== UpnpAcceptSubscriptionEx()
 
 This used DOM tree objects to pass the initial set of variable values. The
 call has been replaced with `UpnpAcceptSubscriptionXML()`, which uses an XML
 propertyset +std::string+. The `UpnpAcceptSubscription()` call, which uses
 +char**+ arrays for the names and values is still available.
 
-== UpnpNotifyExt()
+== UpnpNotifyEx()
 
-Same as `UpnpAcceptSubscriptionExt()`.
+Same change for the UpnpNotifyEx() -> UpnpNotifyXML() calls which are used
+to dispatch state change events.
 
 == UpnpDownloadUrlItem()
 
