@@ -10,6 +10,9 @@ npupnp (new pupnp or not pupnp ?) is an UPnP library derived from the
 venerable pupnp (https://github.com/pupnp/pupnp), based on its 1.6.x
 branch (around 1.6.25).
 
+Have a look at the
+[DOC](https://www.lesbonscomptes.com/upmpdcli/npupnp-doc/libnpupnp.html) !
+
 Main modifications:
 
  - Support multiple network interfaces
