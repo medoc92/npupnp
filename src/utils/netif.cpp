@@ -69,9 +69,7 @@ namespace NetIF {
 
 static FILE *logfp;
 
-//#ifdef _WIN32
-#define NETIF_DEBUG
-//#endif
+// #define NETIF_DEBUG
 
 #define LOGERR(X) {                                                 \
         if (logfp) {                                                \

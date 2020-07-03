@@ -499,7 +499,7 @@ All subpaths of a defined virtual path are considered virtual, not only the
 immediate file children.
 
 Virtual Paths are checked before file system paths and will hide the whole
-subtree (in case @ref SetWebServerRootdir() has been called in a way which
+subtree (in case @ref UpnpSetWebServerRootDir() has been called in a way which
 may result in collisions).
 
 #### Virtual Directories: defining the callbacks
