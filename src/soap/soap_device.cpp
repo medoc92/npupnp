@@ -236,17 +236,28 @@ static void handle_invoke_action(
     action.args = actargs;
     mhdt->copyClientAddress(&action.CtrlPtIPAddr);
     mhdt->copyHeader("user-agent", action.Os);
-    soap_info->callback(UPNP_CONTROL_ACTION_REQUEST,&action,soap_info->cookie);
-    if (action.ErrCode != UPNP_E_SUCCESS) {
-        if (strlen(action.ErrStr) == 0) {
+
+    int ret = soap_info->callback(
+        UPNP_CONTROL_ACTION_REQUEST, &action, soap_info->cookie);
+    if (ret != UPNP_E_SUCCESS) {
+        UpnpPrintf(UPNP_DEBUG, SOAP, __FILE__, __LINE__,
+                   "Action callback failed. ret %d errcode %d errstr [%s]\n",
+                   ret, action.ErrCode, action.ErrStr);
+        if (action.ErrCode <= 0) {
+            // ErrCode should be something like an HTTP status...
             err_code = SOAP_ACTION_FAILED;
             err_str = Soap_Action_Failed;
         } else {
             err_code = action.ErrCode;
-            err_str = action.ErrStr;
+            if (action.ErrStr[0]) {
+                err_str = action.ErrStr;
+            } else {
+                err_str = http_get_code_text(action.ErrCode);
+            }
         }
         goto error_handler;
     }
+
     if (!action.xmlResponse.empty()) {
         // The client prefers to talk xml than use the args. We need to
         // parse the data.
