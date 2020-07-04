@@ -1,3 +1,13 @@
+libnpupnp1 (4.0.8-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Improved processing of device errors, better error data returned.
+  * Optional (configure time) code to fix bad utf-8 in data returned from
+    some Media Servers (e.g. Minidlna).
+  * Fix/improve the network interface selection code.
+  * Export the NetIF API to avoid duplication in libupnpp.
+  
+ -- Jean-Francois Dockes <jf@dockes.org>  Sat, 04 Jul 2020 09:57:00 +0200
+
 libnpupnp1 (4.0.7-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Fix vulnerability to Callstranger (CVE-2020-12695) 
