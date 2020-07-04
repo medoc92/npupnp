@@ -877,10 +877,9 @@ static int GetDescDocumentAndURL(
     Upnp_DescType descriptionType, char *description,
     int AddressFamily, UPnPDeviceDesc& desc, char descURL[LINE_SIZE]);
 
-int UpnpRegisterRootDeviceAllForms(
+static int registerRootDeviceAllForms(
     Upnp_DescType descriptionType,
     const char *description_const,
-    size_t,      /* buflen, ignored */
     Upnp_FunPtr Fun,
     const void *Cookie,
     UpnpDevice_Handle *Hnd,
@@ -895,7 +894,7 @@ int UpnpRegisterRootDeviceAllForms(
 
     HandleLock();
 
-    UpnpPrintf(UPNP_INFO,API,__FILE__,__LINE__, "UpnpRegisterRootDeviceAllF\n");
+    UpnpPrintf(UPNP_INFO,API,__FILE__,__LINE__, "registerRootDeviceAllF\n");
 
     if (UpnpSdkInit != 1) {
         retVal = UPNP_E_FINISH;
@@ -944,7 +943,7 @@ int UpnpRegisterRootDeviceAllForms(
     HInfo->MaxSubscriptionTimeOut = UPNP_INFINITE;
 
     UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-               "UpnpRegisterRootDeviceAllForms: Ok Description at : %s\n",
+               "registerRootDeviceAllForms: Ok Description at : %s\n",
                HInfo->DescURL);
 
 #if EXCLUDE_GENA == 0
@@ -954,7 +953,7 @@ int UpnpRegisterRootDeviceAllForms(
     hasServiceTable = initServiceTable(HInfo->devdesc, &HInfo->ServiceTable);
     if (hasServiceTable) {
         UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-                   "UpnpRegisterRootDeviceAllForms: GENA services:\n");
+                   "registerRootDeviceAllForms: GENA services:\n");
         printServiceTable(&HInfo->ServiceTable, UPNP_ALL, API);
     } else {
         UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
@@ -973,8 +972,8 @@ int UpnpRegisterRootDevice(
     const char *DescUrl, Upnp_FunPtr Fun, const void *Cookie,
     UpnpDevice_Handle *Hnd)
 {
-    return UpnpRegisterRootDeviceAllForms(
-        UPNPREG_URL_DESC, DescUrl, 0, Fun, Cookie, Hnd, nullptr);
+    return registerRootDeviceAllForms(
+        UPNPREG_URL_DESC, DescUrl, Fun, Cookie, Hnd, nullptr);
 }
 
 int UpnpRegisterRootDevice2(
@@ -982,16 +981,16 @@ int UpnpRegisterRootDevice2(
     size_t, int ignored, Upnp_FunPtr Fun, const void *Cookie,
     UpnpDevice_Handle *Hnd)
 {
-    return UpnpRegisterRootDeviceAllForms(
-        descriptionType, description_const, 0, Fun, Cookie, Hnd, nullptr);
+    return registerRootDeviceAllForms(
+        descriptionType, description_const, Fun, Cookie, Hnd, nullptr);
 }
 
 int UpnpRegisterRootDevice4(
     const char *DescUrl, Upnp_FunPtr Fun, const void *Cookie,
     UpnpDevice_Handle *Hnd, int /*AddressFamily*/, const char *LowerDescUrl)
 {
-    return UpnpRegisterRootDeviceAllForms(
-        UPNPREG_URL_DESC, DescUrl, 0, Fun, Cookie, Hnd, LowerDescUrl);
+    return registerRootDeviceAllForms(
+        UPNPREG_URL_DESC, DescUrl, Fun, Cookie, Hnd, LowerDescUrl);
 }
 
 int UpnpUnRegisterRootDevice(UpnpDevice_Handle Hnd)
