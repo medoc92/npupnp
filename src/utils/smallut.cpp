@@ -73,18 +73,18 @@ int stringicmp(const string& s1, const string& s2)
             ++it2;
         }
         return size1 == size2 ? 0 : -1;
-    } else {
-        while (it2 != s2.end()) {
-            c1 = ::toupper(*it1);
-            c2 = ::toupper(*it2);
-            if (c1 != c2) {
-                return c1 > c2 ? 1 : -1;
-            }
-            ++it1;
-            ++it2;
-        }
-        return size1 == size2 ? 0 : 1;
     }
+
+    while (it2 != s2.end()) {
+        c1 = ::toupper(*it1);
+        c2 = ::toupper(*it2);
+        if (c1 != c2) {
+            return c1 > c2 ? 1 : -1;
+        }
+        ++it1;
+        ++it2;
+    }
+    return size1 == size2 ? 0 : 1;
 }
 void stringtolower(string& io)
 {
@@ -152,17 +152,17 @@ int stringlowercmp(const string& s1, const string& s2)
             ++it2;
         }
         return size1 == size2 ? 0 : -1;
-    } else {
-        while (it2 != s2.end()) {
-            c2 = ::tolower(*it2);
-            if (*it1 != c2) {
-                return *it1 > c2 ? 1 : -1;
-            }
-            ++it1;
-            ++it2;
-        }
-        return size1 == size2 ? 0 : 1;
     }
+
+    while (it2 != s2.end()) {
+        c2 = ::tolower(*it2);
+        if (*it1 != c2) {
+            return *it1 > c2 ? 1 : -1;
+        }
+        ++it1;
+        ++it2;
+    }
+    return size1 == size2 ? 0 : 1;
 }
 
 //  s1 is already uppercase
@@ -183,17 +183,17 @@ int stringuppercmp(const string& s1, const string& s2)
             ++it2;
         }
         return size1 == size2 ? 0 : -1;
-    } else {
-        while (it2 != s2.end()) {
-            c2 = ::toupper(*it2);
-            if (*it1 != c2) {
-                return *it1 > c2 ? 1 : -1;
-            }
-            ++it1;
-            ++it2;
-        }
-        return size1 == size2 ? 0 : 1;
     }
+
+    while (it2 != s2.end()) {
+        c2 = ::toupper(*it2);
+        if (*it1 != c2) {
+            return *it1 > c2 ? 1 : -1;
+        }
+        ++it1;
+        ++it2;
+    }
+    return size1 == size2 ? 0 : 1;
 }
 
 bool beginswith(const std::string& big, const std::string& small)
@@ -422,7 +422,8 @@ void stringToTokens(const string& str, vector<string>& tokens,
         if (pos == string::npos) {
             tokens.push_back(str.substr(startPos));
             break;
-        } else if (pos == startPos) {
+        }
+        if (pos == startPos) {
             // Dont' push empty tokens after first
             if (tokens.empty()) {
                 tokens.emplace_back();
@@ -450,7 +451,8 @@ void stringSplitString(const string& str, vector<string>& tokens,
         if (pos == string::npos) {
             tokens.push_back(str.substr(startPos));
             break;
-        } else if (pos == startPos) {
+        }
+        if (pos == startPos) {
             // Initial or consecutive separators
             tokens.emplace_back();
         } else {

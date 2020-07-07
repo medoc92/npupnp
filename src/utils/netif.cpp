@@ -203,9 +203,8 @@ IPAddr::Family IPAddr::family() const
 {
     if (m->ok) {
         return static_cast<IPAddr::Family>(m->saddr->sa_family);
-    } else {
-        return Family::Invalid;
     }
+    return Family::Invalid;
 }
 
 IPAddr::Scope IPAddr::scopetype() const
@@ -217,8 +216,9 @@ IPAddr::Scope IPAddr::scopetype() const
     if (IN6_IS_ADDR_LINKLOCAL(
             &((struct sockaddr_in6 *)(m->saddr))->sin6_addr)) {
         return Scope::LINK;
-    } else if (IN6_IS_ADDR_SITELOCAL(
-        &((struct sockaddr_in6 *)(m->saddr))->sin6_addr)) {
+    }
+    if (IN6_IS_ADDR_SITELOCAL(
+            &((struct sockaddr_in6*)(m->saddr))->sin6_addr)) {
         return Scope::SITE;
     }
     return Scope::GLOBAL;
@@ -760,7 +760,7 @@ const Interface *Interfaces::interfaceForAddress(
             &peerbuf)->sin_addr.s_addr;
         return interfaceForAddress4(peeraddr, vifs, hostaddr);
     }
-    
+
     if (addr.family() == IPAddr::Family::IPV6)    {
         auto peeraddr =
             reinterpret_cast<struct sockaddr_in6*>(&peerbuf);
@@ -768,32 +768,32 @@ const Interface *Interfaces::interfaceForAddress(
             uint32_t addr4;
             memcpy(&addr4, &peeraddr->sin6_addr.s6_addr[12], 4);
             return interfaceForAddress4(addr4, vifs, hostaddr);
-        } else {
-            int index = -1;
-            if (peeraddr->sin6_scope_id > 0) {
-                index = static_cast<int>(peeraddr->sin6_scope_id);
-            }
+        }
 
-            const Interface *netifp{nullptr};
-            for (const auto& netif : vifs) {
-                if (netif.hasflag(Interface::Flags::HASIPV6)) {
-                    if (nullptr == netifp) {
-                        netifp = &netif;
-                    }
-                    if (netif.getindex() == index) {
-                        netifp = &netif;
-                    }
+        int index = -1;
+        if (peeraddr->sin6_scope_id > 0) {
+            index = static_cast<int>(peeraddr->sin6_scope_id);
+        }
+
+        const Interface* netifp{nullptr};
+        for (const auto& netif : vifs) {
+            if (netif.hasflag(Interface::Flags::HASIPV6)) {
+                if (nullptr == netifp) {
+                    netifp = &netif;
+                }
+                if (netif.getindex() == index) {
+                    netifp = &netif;
                 }
             }
-            hostaddr = IPAddr();
-            if (netifp) {
-                const auto ipaddr = netifp->firstipv6addr(IPAddr::Scope::LINK);
-                if (ipaddr) {
-                    hostaddr = *ipaddr;
-                } 
-            }
-            return netifp;
         }
+        hostaddr = IPAddr();
+        if (netifp) {
+            const auto ipaddr = netifp->firstipv6addr(IPAddr::Scope::LINK);
+            if (ipaddr) {
+                hostaddr = *ipaddr;
+            }
+        }
+        return netifp;
     }
     return nullptr;
 }

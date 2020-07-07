@@ -556,14 +556,14 @@ static int waitForNetwork(
         }
         if (ret == UPNP_E_SUCCESS) {
             break;
-        } else {
-            if (!NetIF::Interfaces::theInterfaces()->refresh()) {
-                UpnpPrintf(UPNP_ERROR, API, __FILE__, __LINE__,
-                           "UpnpInit: could not read network interface state "
-                           "from system\n");
-            }
-            std::this_thread::sleep_for(std::chrono::seconds(loop_sleep));
-        } 
+        }
+
+        if (!NetIF::Interfaces::theInterfaces()->refresh()) {
+            UpnpPrintf(UPNP_ERROR, API, __FILE__, __LINE__,
+                       "UpnpInit: could not read network interface state "
+                       "from system\n");
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(loop_sleep));
     }
     return ret;
 }
