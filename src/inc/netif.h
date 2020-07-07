@@ -133,7 +133,7 @@ public:
         IPAddr::Scope scope = IPAddr::Scope::Invalid) const;
     /** @brief Return the interface addresses and the corresponding
      * netmasks, as parallel arrays */
-    const std::pair<const std::vector<IPAddr>&, const std::vector<IPAddr>&>
+    std::pair<const std::vector<IPAddr>&, const std::vector<IPAddr>&>
     getaddresses() const;
     /** @brief Return the interface index */
     int getindex() const;
