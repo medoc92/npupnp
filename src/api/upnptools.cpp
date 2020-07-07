@@ -113,11 +113,9 @@ struct ErrorString ErrorMessages[] = {
 
 const char *UpnpGetErrorMessage(int rc)
 {
-    size_t i;
-
-    for (i = 0; i < sizeof (ErrorMessages) / sizeof (ErrorMessages[0]); ++i) {
-        if (rc == ErrorMessages[i].rc) {
-            return ErrorMessages[i].rcError;
+    for (const auto& i : ErrorMessages) {
+        if (rc == i.rc) {
+            return i.rcError;
         }
     }
 
