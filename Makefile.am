@@ -83,20 +83,19 @@ endif
 # genlib
 libnpupnp_la_SOURCES += \
 	src/dispatcher/miniserver.cpp \
+	src/threadutil/ThreadPool.cpp \
+	src/threadutil/TimerThread.cpp \
 	src/utils/description.cpp \
 	src/utils/genut.cpp \
 	src/utils/httputils.cpp \
 	src/utils/inet_pton.cpp \
-	src/utils/netif.cpp \
-	src/utils/statcodes.cpp \
-	src/webserver/webserver.cpp \
 	src/utils/md5.cpp \
+	src/utils/netif.cpp \
 	src/utils/smallut.cpp \
-	src/utils/uri.cpp
-
-libnpupnp_la_SOURCES += \
-	src/threadutil/ThreadPool.cpp \
-	src/threadutil/TimerThread.cpp
+	src/utils/statcodes.cpp \
+	src/utils/uri.cpp \
+	src/webserver/webserver.cpp \
+        src/utils/utf8iter.cpp
 
 # gena
 if ENABLE_GENA

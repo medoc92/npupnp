@@ -55,38 +55,7 @@
 #define XMLPARSERTP PicoXMLParser
 #endif
 
-#ifdef FIX_XML
 #include "utf8iter.h"
-
-static const std::string replchar{"\xef\xbf\xbd"};
-
-bool checkencoding(const std::string& in, std::string& out, bool fixit=false,
-                   int maxrepl = 100)
-{
-    Utf8Iter it(in);
-    for (;!it.eof(); it++) {
-        if (it.error()) {
-            if (!fixit) {
-                return false;
-            }
-            out += replchar;
-            for (int i = 0; i < maxrepl; i++) {
-                it.retryfurther();
-                if (it.eof())
-                    return true;
-                if (!it.error())
-                    break;
-                out += replchar;
-            }
-            if (it.error()) {
-                return false;
-            }
-        }
-        it.appendchartostring(out);
-    }
-    return true;
-}
-#endif // FIX_XML
 
 class UPnPResponseParser : public XMLPARSERTP {
 public:
@@ -155,25 +124,25 @@ get_response_value(
     }
     *errcodep = 0;
 
-    const std::string *plp = &payload;
-#ifdef FIX_XML
-    // Some media servers (minidlna) sometimes send bad utf-8 chars
-    // because of careless truncation. XML parsers don't like
-    // this. Try to fix by replacing bad chars with the usual question
-    // mark. This is not built by default as it forces a perf penalty
-    // at all times for just a few bad cases.
-    std::string fixed;
-    if (checkencoding(payload, fixed, true)) {
-        plp = &fixed;
-    }
-#endif // FIX_XML
-
-    UPnPResponseParser mparser(*plp, rspname, rspdata, errcodep, errdesc);
+    UPnPResponseParser mparser(payload, rspname, rspdata, errcodep, errdesc);
     if (!mparser.Parse()) {
-        UpnpPrintf(UPNP_INFO, SOAP, __FILE__, __LINE__,
-                   "soap:get_response_value: parse failed for [%s]\n",
-                   payload.c_str());
-        return UPNP_E_BAD_RESPONSE;;
+        // Some media servers (minidlna) sometimes send bad utf-8 chars
+        // because of careless truncation. XML parsers don't like
+        // this. Try to fix by replacing bad chars with the usual question
+        // mark.
+        std::string fixed;
+        if (utf8check(payload, fixed, true) < 0) {
+            UpnpPrintf(UPNP_INFO, SOAP, __FILE__, __LINE__,
+                       "soap: fix encoding failed for %s\n", payload.c_str());
+            return UPNP_E_BAD_RESPONSE;;
+        }            
+        UPnPResponseParser mparser1(fixed, rspname, rspdata, errcodep, errdesc);
+        if (!mparser1.Parse()) {
+            UpnpPrintf(UPNP_INFO, SOAP, __FILE__, __LINE__,
+                       "soap:get_response_value: parse failed for [%s]\n",
+                       payload.c_str());
+            return UPNP_E_BAD_RESPONSE;;
+        }
     }
     return (*errcodep) ? SOAP_ACTION_RESP_ERROR : SOAP_ACTION_RESP;
 }

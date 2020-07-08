@@ -287,4 +287,17 @@ extern void utf8truncate(std::string& s, int maxlen, int flags = 0,
                          std::string ws = " \t\n\r");
 extern size_t utf8len(const std::string& s);
 
+/** @brief Check and possibly fix string by replacing badly encoded
+ * characters with the standard question mark replacement character.
+ *
+ * @param in the string to check
+ * @param[out] if fixit is true, the fixed output string
+ * @param fixit if true, copy a fixed string to out
+ * @param maxrepl maximum replacements before we bail out
+ * @return -1 for failure (fixit false or maxrepl reached). 
+ *   0 or positive: replacement count.
+ */
+extern int utf8check(
+    const std::string& in, std::string& out, bool fixit=false, int maxrepl=100);
+
 #endif /* _UTF8ITER_H_INCLUDED_ */
