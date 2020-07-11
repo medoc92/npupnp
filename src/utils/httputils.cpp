@@ -195,7 +195,7 @@ int http_FixStrUrl(const std::string& surl, uri_type *fixed_url)
  *    UPNP_E_INVALID_URL
  ************************************************************************/
 int http_Download(const char *_surl, int timeout_secs,
-                  char **document, size_t *doc_length, char *content_type)
+                  char **document, size_t *, char *content_type)
 {
     uri_type url;
     UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__, "http_Download: %s\n",_surl);
@@ -487,6 +487,7 @@ size_t header_callback_curl(char *buffer, size_t size, size_t nitems, void *s)
 
 size_t write_callback_null_curl(char *buffer, size_t size, size_t nitems, void *)
 {
+    (void)buffer;
 #if 0
     fprintf(stderr, "DATA: [");
     fwrite(buffer, size, nitems, stderr);

@@ -35,6 +35,7 @@
 #include <regex>
 
 #include "upnpdebug.h"
+#include "UpnpGlobal.h"
 
 #define CCRLF "\r\n"
 

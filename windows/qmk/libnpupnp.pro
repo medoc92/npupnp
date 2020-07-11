@@ -3,41 +3,38 @@ QT       -= core gui
 TARGET = npupnp
 TEMPLATE = lib
 
-CONFIG += object_parallel_to_source
 CONFIG += qt warn_on thread
 CONFIG += staticlib
 
 DEFINES += WIN32_MEAN_AND_LEAN
 DEFINES += UPNP_STATIC_LIB
 DEFINES += CURL_STATICLIB
-DEFINES -= UNICODE
-DEFINES -= _UNICODE
-DEFINES += _MBCS
 DEFINES += PSAPI_VERSION=1
-DEFINES += DISABLE_SMALLUT
 
 INCLUDEPATH += ../../
 INCLUDEPATH += ../../inc
 INCLUDEPATH += ../../src/inc
-INCLUDEPATH += c:/users/bill/documents/upnp/expat-2.1.0/lib
-INCLUDEPATH += c:/users/bill/documents/upnp/curl-7.70.0/include
-# Comes from the official libmicrohttpd downloads
-#INCLUDEPATH += c:/users/bill/documents/upnp/libmicrohttpd-0.9.65-w32-bin/x86/MinGW/static/mingw32/include
-INCLUDEPATH += c:/users/bill/documents/upnp/libmicrohttpd-0.9.65/src/include
 
-LIBS += c:/users/bill/documents/upnp/expat-2.1.0/.libs/libexpat.a
-LIBS += c:/users/bill/documents/upnp/curl-7.70.0/lib/libcurl.a
-#LIBS += -Lc:/users/bill/documents/upnp/libmicrohttpd-0.9.65-w32-bin/x86/MinGW/static/mingw32/lib/ -llibmicrohttpd
-LIBS += -Lc:/users/bill/documents/upnp/libmicrohttpd-0.9.65/.libs/ -lmicrohttpd
+## W7 with mingw
+contains(QMAKE_CC, gcc){
+  INCLUDEPATH += c:/users/bill/documents/upnp/expat-2.1.0/lib
+  INCLUDEPATH += c:/users/bill/documents/upnp/curl-7.70.0/include
+  INCLUDEPATH += c:/users/bill/documents/upnp/libmicrohttpd-0.9.65/src/include
+  QMAKE_CXXFLAGS += -std=c++11 -Wno-unused-parameter
+}
+
+# W10 with msvc 2017
+contains(QMAKE_CC, cl){
+  DEFINES += NOMINMAX
+  INCLUDEPATH += c:/users/bill/documents/upnp/expat-2.2.9/Source/lib
+  INCLUDEPATH += c:/users/bill/documents/upnp/curl-7.70.0/include
+  INCLUDEPATH += c:/users/bill/documents/upnp/libmicrohttpd-0.9.65-w32-bin/x86/VS2017/Release-static/
+}
 
 LIBS += -liphlpapi
 LIBS += -lwldap32
 LIBS += -lws2_32
 
-contains(QMAKE_CC, gcc){
-    # MingW
-    QMAKE_CXXFLAGS += -std=c++11 -Wno-unused-parameter
-}
 
 SOURCES += \
 ../../src/api/upnpapi.cpp \

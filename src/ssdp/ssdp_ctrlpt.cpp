@@ -41,6 +41,7 @@ nnn * Redistribution and use in source and binary forms, with or without
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <algorithm>
 
 #include "upnp.h"
 #include "ssdpparser.h"
@@ -68,7 +69,7 @@ static void* thread_cb_search_result(void *data)
 
 void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
                             struct sockaddr_storage *dest_addr,
-                            void *cookie)
+                            void *)
 {
     int handle;
     struct Handle_Info *ctrlpt_info = nullptr;

@@ -23,18 +23,15 @@
         #endif /* LIBUPNP_EXPORTS */
     #endif /* UPNP_STATIC_LIB */
 
-    #ifdef UPNP_USE_MSVCPP
-        /* define some things the M$ VC++ doesn't know */
-        #define UPNP_INLINE _inline
-        typedef __int64 int64_t;
-        #define PRId64 "I64d"
-        /* no ssize_t defined for VC */
-        #ifdef  _WIN64
-        typedef int64_t ssize_t;
-        #else
-        typedef int32_t ssize_t;
-        #endif
-    #endif /* UPNP_USE_MSVCPP */
+#ifdef _MSC_VER
+/* define some things the M$ VC++ doesn't know */
+#define UPNP_INLINE _inline
+/* no ssize_t defined for VC */
+typedef int ssize_t;
+#define strncasecmp _strnicmp
+#define strcasecmp _stricmp
+#define getpid _getpid
+#endif /* _MSC_VER */
 
     #ifdef __GNUC__
         #define UPNP_INLINE inline

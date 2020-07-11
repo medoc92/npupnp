@@ -98,18 +98,6 @@
 /* Define to 1 to prevent compilation of assert() */
 /* #undef NDEBUG */
 
-/* see upnpconfig.h */
-#define NPUPNP_VERSION_MAJOR 4
-
-/* see upnpconfig.h */
-#define NPUPNP_VERSION_MINOR 1
-
-/* see upnpconfig.h */
-#define NPUPNP_VERSION_PATCH 0
-
-/* see upnpconfig.h */
-#define NPUPNP_VERSION_STRING "4.1.0"
-
 /* Name of package */
 #define PACKAGE "libnpupnp"
 

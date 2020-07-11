@@ -30,6 +30,10 @@
 #include <map>
 #include <vector>
 
+#ifdef _MSC_VER
+typedef int ssize_t;
+#endif
+
 class ExpatXMLParser {
 public:
 

@@ -37,9 +37,15 @@
 #include <chrono>
 #include <thread>
 #include <cstdlib>
+#include <algorithm>
 
+#ifndef _MSC_VER
 #include <unistd.h>
+#else
+#include <process.h>
+#endif
 
+#include "UpnpGlobal.h"
 #include "md5.h"
 #include "netif.h"
 
@@ -62,11 +68,11 @@ std::string gena_sid_uuid()
     static std::string hwaddr;
     if (hwaddr.empty()) {
         NetIF::Interfaces *ifs = NetIF::Interfaces::theInterfaces();
-        NetIF::Interfaces::Filter
-            filt{.needs={NetIF::Interface::Flags::HASHWADDR,
-                         NetIF::Interface::Flags::HASIPV4},
-                 .rejects={NetIF::Interface::Flags::LOOPBACK}
-        };
+        NetIF::Interfaces::Filter filt;
+            filt.needs = {NetIF::Interface::Flags::HASHWADDR,
+                          NetIF::Interface::Flags::HASIPV4};
+            filt.rejects = {NetIF::Interface::Flags::LOOPBACK};
+
         auto selected = ifs->select(filt);
         for (const auto& entry : selected) {
             hwaddr = entry.gethexhwaddr();

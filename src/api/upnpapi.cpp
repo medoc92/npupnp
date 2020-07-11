@@ -247,10 +247,10 @@ static int getIfInfo(const char *IfNames)
         if (using_ipv6()) {
             needed.push_back(NetIF::Interface::Flags::HASIPV6);
         }
-        NetIF::Interfaces::Filter
-            filt{.needs=needed,
-                 .rejects={NetIF::Interface::Flags::LOOPBACK}
-        };
+        NetIF::Interfaces::Filter filt;
+        filt.needs=needed;
+        filt.rejects={NetIF::Interface::Flags::LOOPBACK};
+
         selected = ifs->select(filt);
         if (!selected.empty() && !g_use_all_interfaces) {
             selected.resize(1);
@@ -317,12 +317,12 @@ static int getmyipv4(const char *inipv4 = nullptr)
     bool ipspecified = (nullptr != inipv4 && 0 != inipv4[0]);
     NetIF::Interfaces *ifs = NetIF::Interfaces::theInterfaces();
     NetIF::Interface *netifp{nullptr};
-    NetIF::Interfaces::Filter
-        filt{.needs = {NetIF::Interface::Flags::HASIPV4, 
+    NetIF::Interfaces::Filter filt;
+    filt.needs = {NetIF::Interface::Flags::HASIPV4, 
                        NetIF::Interface::Flags::UP,
-                       NetIF::Interface::Flags::MULTICAST},
-             .rejects={NetIF::Interface::Flags::LOOPBACK}
-    };
+                  NetIF::Interface::Flags::MULTICAST};
+    filt.rejects = {NetIF::Interface::Flags::LOOPBACK};
+
     std::vector<NetIF::Interface> selected = ifs->select(filt);
     if (selected.empty()) {
         UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
@@ -978,7 +978,7 @@ int UpnpRegisterRootDevice(
 
 int UpnpRegisterRootDevice2(
     Upnp_DescType descriptionType, const char *description_const,
-    size_t, int ignored, Upnp_FunPtr Fun, const void *Cookie,
+    size_t, int /*ignored*/, Upnp_FunPtr Fun, const void *Cookie,
     UpnpDevice_Handle *Hnd)
 {
     return registerRootDeviceAllForms(

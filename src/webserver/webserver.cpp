@@ -63,6 +63,23 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
+#if !defined(S_IFLNK)
+#define S_IFLNK 0
+#endif
+#ifndef S_ISDIR
+# define S_ISDIR(ST_MODE) (((ST_MODE) & _S_IFMT) == _S_IFDIR)
+#endif
+#ifndef S_ISREG
+# define S_ISREG(ST_MODE) (((ST_MODE) & _S_IFMT) == _S_IFREG)
+#endif
+
+#ifdef _MSC_VER
+#include <io.h>
+#define OPEN _open
+#else
+#define OPEN open
+#endif
+
 /*!
  * Response Types.
  */
@@ -430,7 +447,7 @@ static bool parseRanges(
  * \brief Other header processing. Only HDR_ACCEPT_LANGUAGE for now.
  */
 static int CheckOtherHTTPHeaders(
-    MHDTransaction *mhdt, struct SendInstruction *RespInstr, int64_t filesize)
+    MHDTransaction *mhdt, struct SendInstruction *RespInstr, int64_t)
 {
     for (const auto& header : mhdt->headers) {
         /* find header type. */
@@ -679,6 +696,7 @@ public:
 static ssize_t vFileReaderCallback(void *cls, uint64_t pos, char *buf,
                                    size_t max)
 {
+    (void)pos;
     auto ctx = static_cast<VFileReaderCtxt*>(cls);
     if (nullptr == ctx->fp) {
         UpnpPrintf(UPNP_ERROR, MSERV, __FILE__, __LINE__,
@@ -731,7 +749,7 @@ void web_server_callback(MHDTransaction *mhdt)
         switch (rtype) {
         case RESP_FILEDOC:
         {
-            int fd = open(filename.c_str(), 0);
+            int fd = OPEN(filename.c_str(), 0);
             if (fd < 0) {
                 http_SendStatusResponse(mhdt, HTTP_FORBIDDEN);
             } else {

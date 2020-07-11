@@ -67,6 +67,7 @@
 #include <iostream>
 #include <sys/types.h>
 #include <thread>
+#include <algorithm>
 
 #include <microhttpd.h>
 
@@ -128,7 +129,7 @@ static UPNP_INLINE void fdset_if_valid(SOCKET sock, fd_set *set)
     }
 }
 
-static MHD_Result headers_cb(void *cls, enum MHD_ValueKind kind, 
+static MHD_Result headers_cb(void *cls, enum MHD_ValueKind,
                              const char *k, const char *value)
 {
     auto mhtt = static_cast<MHDTransaction *>(cls);
@@ -146,7 +147,7 @@ static MHD_Result headers_cb(void *cls, enum MHD_ValueKind kind,
     return MHD_YES;
 }
 
-static MHD_Result queryvalues_cb(void *cls, enum MHD_ValueKind kind, 
+static MHD_Result queryvalues_cb(void *cls, enum MHD_ValueKind,
                                  const char *key, const char *value)
 {
     auto mhdt = static_cast<MHDTransaction *>(cls);
@@ -170,8 +171,8 @@ static const std::map<std::string, http_method_t> strmethtometh {
         };
 
 void request_completed_cb(
-    void *cls, struct MHD_Connection *conn,
-    void **con_cls, enum MHD_RequestTerminationCode toe)
+    void *, struct MHD_Connection *,
+    void **con_cls, enum MHD_RequestTerminationCode)
 {
     if (nullptr == con_cls)
         return;
@@ -183,7 +184,7 @@ void request_completed_cb(
 // We listen on INADDR_ANY, but only accept connections from our
 // configured interfaces
 static MHD_Result filter_connections(
-    void *, const sockaddr *addr, socklen_t addrlen)
+    void *, const sockaddr *addr, socklen_t)
 {
     if (g_use_all_interfaces) {
         return MHD_YES;
@@ -200,7 +201,7 @@ static MHD_Result filter_connections(
 }
 
 static MHD_Result answer_to_connection(
-    void *cls, struct MHD_Connection *conn, 
+    void *, struct MHD_Connection *conn, 
     const char *url, const char *method, const char *version, 
     const char *upload_data, size_t *upload_data_size,
     void **con_cls)

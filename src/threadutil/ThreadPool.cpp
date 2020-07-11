@@ -71,9 +71,9 @@ public:
     bool ok{false};
     int createWorker(std::unique_lock<std::mutex>& lck);
     void addWorker(std::unique_lock<std::mutex>& lck);
-    void StatsAccountLQ(long diffTime);
-    void StatsAccountMQ(long diffTime);
-    void StatsAccountHQ(long diffTime);
+    void StatsAccountLQ(int64_t diffTime);
+    void StatsAccountMQ(int64_t diffTime);
+    void StatsAccountHQ(int64_t diffTime);
     void CalcWaitTime(ThreadPriority p, ThreadPoolJob *job);
     void bumpPriority();
     int shutdown();
@@ -146,19 +146,19 @@ int ThreadPool::start(ThreadPoolAttr *attr)
     return -1;
 }
 
-void ThreadPool::Internal::StatsAccountLQ(long diffTime)
+void ThreadPool::Internal::StatsAccountLQ(int64_t diffTime)
 {
     this->stats.totalJobsLQ++;
     this->stats.totalTimeLQ += static_cast<double>(diffTime);
 }
 
-void ThreadPool::Internal::StatsAccountMQ(long diffTime)
+void ThreadPool::Internal::StatsAccountMQ(int64_t diffTime)
 {
     this->stats.totalJobsMQ++;
     this->stats.totalTimeMQ += static_cast<double>(diffTime);
 }
 
-void ThreadPool::Internal::StatsAccountHQ(long diffTime)
+void ThreadPool::Internal::StatsAccountHQ(int64_t diffTime)
 {
     this->stats.totalJobsHQ++;
     this->stats.totalTimeHQ += static_cast<double>(diffTime);
@@ -180,7 +180,7 @@ void ThreadPool::Internal::CalcWaitTime(ThreadPriority p, ThreadPoolJob *job)
     auto now = steady_clock::now();
     auto ms =
         duration_cast<milliseconds>(now - job->requestTime);
-    long diff = ms.count();
+    auto diff = ms.count();
     switch (p) {
     case LOW_PRIORITY:
         StatsAccountLQ(diff);
@@ -216,7 +216,9 @@ static int SetPolicyType(ThreadPoolAttr::PolicyType in)
     setpriority(PRIO_PROCESS, 0, 0);
     retVal = 0;
 #elif defined(_MSC_VER)
-    retVal = sched_setscheduler(0, in);
+//    retVal = sched_setscheduler(0, in);
+    (void)in;
+    retVal = 0;
 #elif defined(_POSIX_PRIORITY_SCHEDULING) && _POSIX_PRIORITY_SCHEDULING > 0
     struct sched_param current;
     int sched_result;
@@ -303,7 +305,7 @@ void ThreadPool::Internal::bumpPriority()
     while (!done) {
         if (!this->medJobQ.empty()) {
             tempJob = this->medJobQ.front();
-            long diffTime = duration_cast<milliseconds>(
+            auto diffTime = duration_cast<milliseconds>(
                 now - tempJob->requestTime).count();
             if (diffTime >= this->attr.starvationTime) {
                 /* If job has waited longer than the starvation time
@@ -316,7 +318,7 @@ void ThreadPool::Internal::bumpPriority()
         }
         if (!this->lowJobQ.empty()) {
             tempJob = this->lowJobQ.front();
-            long diffTime = duration_cast<milliseconds>(
+            auto diffTime = duration_cast<milliseconds>(
                 now - tempJob->requestTime).count();
             if (diffTime >= this->attr.maxIdleTime) {
                 /* If job has waited longer than the starvation time
