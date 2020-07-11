@@ -63,5 +63,5 @@ SOURCES += \
 ../../src/utils/netif.cpp \
 ../../src/utils/statcodes.cpp \
 ../../src/utils/uri.cpp \
+../../src/utils/utf8iter.cpp \
 ../../src/webserver/webserver.cpp
-
