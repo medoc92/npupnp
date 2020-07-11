@@ -31,7 +31,9 @@
 #include <vector>
 
 #ifdef _MSC_VER
-typedef int ssize_t;
+#define EXPATMM_SSIZE_T int
+#else
+#define EXPATMM_SSIZE_T ssize_t
 #endif
 
 class ExpatXMLParser {
@@ -70,7 +72,7 @@ public:
         if(!Ready())
             return false;
 
-        ssize_t bytes_read;
+        EXPATMM_SSIZE_T bytes_read;
         /* Loop, reading the XML source block by block */
         while((bytes_read = read_block()) >= 0) {
             if(bytes_read > 0) {
@@ -173,7 +175,7 @@ protected:
      * to the buffer), you are free to use an entirely different
      * I/O mechanism, like what does the inputRefXMLParser below.
      */
-    virtual ssize_t read_block(void) {
+    virtual EXPATMM_SSIZE_T read_block(void) {
         last_error = XML_ERROR_NO_ELEMENTS;
         status = XML_STATUS_ERROR;
         return -1;
@@ -333,7 +335,7 @@ public:
     }
 
 protected:
-    ssize_t read_block(void) {
+    EXPATMM_SSIZE_T read_block(void) {
         if (getLastError() == XML_ERROR_FINISHED) {
             setStatus(XML_STATUS_OK);
             return -1;
