@@ -1,3 +1,9 @@
+libnpupnp1 (4.0.9-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Restored some SOAP_E_XX error codes removed by mistake from API.
+  
+ -- Jean-Francois Dockes <jf@dockes.org>  Tue, 14 Jul 2020 08:22:00 +0200
+
 libnpupnp1 (4.0.8-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Improved processing of device errors, better error data returned.
