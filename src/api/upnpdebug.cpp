@@ -72,7 +72,7 @@ int UpnpInitLog(void)
             return UPNP_E_SUCCESS;
         }
         if (envlevel) {
-            g_log_level = (Upnp_LogLevel)atoi(envlevel);
+            g_log_level = static_cast<Upnp_LogLevel>(atoi(envlevel));
         }
         if (envfn) {
             fileName = envfn;

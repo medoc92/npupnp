@@ -556,14 +556,14 @@ static int waitForNetwork(
         }
         if (ret == UPNP_E_SUCCESS) {
             break;
-        } else {
-            if (!NetIF::Interfaces::theInterfaces()->refresh()) {
-                UpnpPrintf(UPNP_ERROR, API, __FILE__, __LINE__,
-                           "UpnpInit: could not read network interface state "
-                           "from system\n");
-            }
-            std::this_thread::sleep_for(std::chrono::seconds(loop_sleep));
-        } 
+        }
+
+        if (!NetIF::Interfaces::theInterfaces()->refresh()) {
+            UpnpPrintf(UPNP_ERROR, API, __FILE__, __LINE__,
+                       "UpnpInit: could not read network interface state "
+                       "from system\n");
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(loop_sleep));
     }
     return ret;
 }
@@ -647,7 +647,7 @@ EXPORT_SPEC int UpnpInitWithOptions(
 
     va_start(ap, flags);
     for (;;) {
-        int option = (Upnp_InitOption) va_arg(ap, int);
+        int option = static_cast<Upnp_InitOption>(va_arg(ap, int));
         if (option == UPNP_OPTION_END) {
             break;
         }

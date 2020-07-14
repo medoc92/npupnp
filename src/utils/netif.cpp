@@ -126,14 +126,14 @@ IPAddr::IPAddr(const char *caddr)
                 &reinterpret_cast<struct sockaddr_in6*>(m->saddr)->sin6_addr)
             == 1) {
             m->saddr->sa_family = AF_INET6;
-            m->ok = 1;
+            m->ok = true;
         }
     } else {
         if (inet_pton(AF_INET, caddr,
                       &reinterpret_cast<struct sockaddr_in*>(m->saddr)->sin_addr)
             == 1) {
             m->saddr->sa_family = AF_INET;
-            m->ok = 1;
+            m->ok = true;
         }
     }
 }
@@ -203,9 +203,8 @@ IPAddr::Family IPAddr::family() const
 {
     if (m->ok) {
         return static_cast<IPAddr::Family>(m->saddr->sa_family);
-    } else {
-        return Family::Invalid;
     }
+    return Family::Invalid;
 }
 
 IPAddr::Scope IPAddr::scopetype() const
@@ -217,8 +216,9 @@ IPAddr::Scope IPAddr::scopetype() const
     if (IN6_IS_ADDR_LINKLOCAL(
             &((struct sockaddr_in6 *)(m->saddr))->sin6_addr)) {
         return Scope::LINK;
-    } else if (IN6_IS_ADDR_SITELOCAL(
-        &((struct sockaddr_in6 *)(m->saddr))->sin6_addr)) {
+    }
+    if (IN6_IS_ADDR_SITELOCAL(
+            &((struct sockaddr_in6*)(m->saddr))->sin6_addr)) {
         return Scope::SITE;
     }
     return Scope::GLOBAL;
@@ -344,11 +344,9 @@ const std::string& Interface::getfriendlyname() const
     return m->friendlyname.empty() ? m->name : m->friendlyname;
 }
 
-const std::pair<const std::vector<IPAddr>&, const std::vector<IPAddr>&>
-Interface::getaddresses() const
-{
-    return std::pair<const std::vector<IPAddr>&, const std::vector<IPAddr>&>
-        (m->addresses, m->netmasks);
+std::pair<const std::vector<IPAddr>&, const std::vector<IPAddr>&>
+Interface::getaddresses() const {
+    return {m->addresses, m->netmasks};
 }
 
 bool Interface::trimto(const std::vector<IPAddr>& keep)
@@ -367,7 +365,7 @@ bool Interface::trimto(const std::vector<IPAddr>& keep)
             mit++;
         }
     }
-    return m->addresses.empty() ? false : true;
+    return !m->addresses.empty();
 }
 
 const IPAddr *Interface::firstipv4addr() const
@@ -404,17 +402,17 @@ std::ostream& Interface::print(std::ostream& out) const
     out << m->name << ": <";
     std::vector<std::string> flgs;
     if (m->flags & static_cast<unsigned int>(Flags::HASIPV4))
-        flgs.push_back("HASIPV4");
+        flgs.emplace_back("HASIPV4");
     if (m->flags & static_cast<unsigned int>(Flags::HASIPV6))
-        flgs.push_back("HASIPV6");
+        flgs.emplace_back("HASIPV6");
     if (m->flags & static_cast<unsigned int>(Flags::LOOPBACK))
-        flgs.push_back("LOOPBACK");
+        flgs.emplace_back("LOOPBACK");
     if (m->flags & static_cast<unsigned int>(Flags::UP))
-        flgs.push_back("UP");
+        flgs.emplace_back("UP");
     if (m->flags & static_cast<unsigned int>(Flags::MULTICAST))
-        flgs.push_back("MULTICAST");
+        flgs.emplace_back("MULTICAST");
     if (m->flags & static_cast<unsigned int>(Flags::HASHWADDR))
-        flgs.push_back("HASHWADDR");
+        flgs.emplace_back("HASHWADDR");
     auto it = flgs.begin();
     if (it != flgs.end())
         out << *it++;
@@ -434,7 +432,7 @@ std::ostream& Interface::print(std::ostream& out) const
 class Interfaces::Internal {
 public:
     Internal();
-    ~Internal();
+    ~Internal() = default;
     std::vector<Interface> interfaces;
 };
 
@@ -500,7 +498,7 @@ Interfaces::Internal::Internal()
         case AF_PACKET:
         {
             auto sll = reinterpret_cast<struct sockaddr_ll*>(ifa->ifa_addr);
-            ifit->m->sethwaddr((const char*)sll->sll_addr, sll->sll_halen);
+            ifit->m->sethwaddr(reinterpret_cast<const char*>(sll->sll_addr), sll->sll_halen);
         }
         break;
 #else
@@ -653,11 +651,6 @@ out:
 
 #endif /* _WIN32 */
 
-Interfaces::Internal::~Internal()
-{
-}
-
-
 Interfaces::Interfaces()
 {
     m = new Internal();
@@ -701,16 +694,15 @@ std::ostream& Interfaces::print(std::ostream& out) {
 
 std::vector<Interface> Interfaces::select(const Filter& filt) const
 {
-    unsigned int yesflags{0};
-    for (auto f : filt.needs) {
-        yesflags |= static_cast<unsigned int>(f);
-    }
-    unsigned int noflags{0};
-    for (auto f : filt.rejects) {
-        noflags |= static_cast<unsigned int>(f);
-    }
+    uint32_t yesflags = std::accumulate(filt.needs.begin(), filt.needs.end(), 0,
+        [](uint32_t yes, const NetIF::Interface::Flags &f){ return yes | static_cast<unsigned int>(f); });
+
+    uint32_t noflags = std::accumulate(filt.rejects.begin(), filt.rejects.end(), 0,
+        [](uint32_t no, const NetIF::Interface::Flags &f){ return no | static_cast<unsigned int>(f); });
+
     LOGDEB("Interfaces::select: yesflags " << std::hex << yesflags <<
            " noflags " << noflags << std::dec << "\n");
+
     std::vector<Interface> out;
     const auto& ifs = theInterfaces()->m->interfaces;
     std::copy_if(ifs.begin(), ifs.end(), std::back_inserter(out),
@@ -768,40 +760,40 @@ const Interface *Interfaces::interfaceForAddress(
             &peerbuf)->sin_addr.s_addr;
         return interfaceForAddress4(peeraddr, vifs, hostaddr);
     }
-    
+
     if (addr.family() == IPAddr::Family::IPV6)    {
-        struct sockaddr_in6 *peeraddr =
+        auto peeraddr =
             reinterpret_cast<struct sockaddr_in6*>(&peerbuf);
         if (IN6_IS_ADDR_V4MAPPED(&peeraddr->sin6_addr)) {
             uint32_t addr4;
             memcpy(&addr4, &peeraddr->sin6_addr.s6_addr[12], 4);
             return interfaceForAddress4(addr4, vifs, hostaddr);
-        } else {
-            int index = -1;
-            if (peeraddr->sin6_scope_id > 0) {
-                index = static_cast<int>(peeraddr->sin6_scope_id);
-            }
+        }
 
-            const Interface *netifp{nullptr};
-            for (const auto& netif : vifs) {
-                if (netif.hasflag(Interface::Flags::HASIPV6)) {
-                    if (nullptr == netifp) {
-                        netifp = &netif;
-                    }
-                    if (netif.getindex() == index) {
-                        netifp = &netif;
-                    }
+        int index = -1;
+        if (peeraddr->sin6_scope_id > 0) {
+            index = static_cast<int>(peeraddr->sin6_scope_id);
+        }
+
+        const Interface* netifp{nullptr};
+        for (const auto& netif : vifs) {
+            if (netif.hasflag(Interface::Flags::HASIPV6)) {
+                if (nullptr == netifp) {
+                    netifp = &netif;
+                }
+                if (netif.getindex() == index) {
+                    netifp = &netif;
                 }
             }
-            hostaddr = IPAddr();
-            if (netifp) {
-                const auto ipaddr = netifp->firstipv6addr(IPAddr::Scope::LINK);
-                if (ipaddr) {
-                    hostaddr = *ipaddr;
-                } 
-            }
-            return netifp;
         }
+        hostaddr = IPAddr();
+        if (netifp) {
+            const auto ipaddr = netifp->firstipv6addr(IPAddr::Scope::LINK);
+            if (ipaddr) {
+                hostaddr = *ipaddr;
+            }
+        }
+        return netifp;
     }
     return nullptr;
 }

@@ -1390,9 +1390,8 @@ EXPORT_SPEC int UpnpSendAction(
     const std::string& actionName,
     const std::vector<std::pair<std::string, std::string>>& actionParams,
     std::vector<std::pair<std::string, std::string>>& responseData,
-    int *errorCodep,
-    std::string&  errorDescr
-    );
+    int* errcodep,
+    std::string& errdesc);
 
 /** @} Control */
 

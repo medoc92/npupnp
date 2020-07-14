@@ -256,14 +256,14 @@ void MD5Final(string &digest, MD5_CTX *context)
 {
     unsigned char d[16];
     MD5Final (d, context);
-    digest.assign((const char *)d, 16);
+    digest.assign(reinterpret_cast<const char*>(d), 16);
 }
 
 string& MD5String(const string& data, string& digest)
 {
     MD5_CTX ctx;
     MD5Init(&ctx);
-    MD5Update(&ctx, (const unsigned char*)data.c_str(), data.length());
+    MD5Update(&ctx, reinterpret_cast<const unsigned char*>(data.c_str()), data.length());
     MD5Final(digest, &ctx);
     return digest;
 }
@@ -273,7 +273,7 @@ string& MD5HexPrint(const string& digest, string &out)
     out.erase();
     out.reserve(33);
     static const char hex[]="0123456789abcdef";
-    auto hash = (const unsigned char *)digest.c_str();
+    auto hash = reinterpret_cast<const unsigned char*>(digest.c_str());
     for (int i = 0; i < 16; i++) {
     out.append(1, hex[hash[i] >> 4]);
     out.append(1, hex[hash[i] & 0x0f]);
@@ -293,7 +293,7 @@ string& MD5HexScan(const string& xdigest, string& digest)
         digest.erase();
         return digest;
     }
-    digest.append(1, (unsigned char)val);
+    digest.append(1, static_cast<unsigned char>(val));
     }
     return digest;
 }
