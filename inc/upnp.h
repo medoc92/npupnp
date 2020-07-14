@@ -278,6 +278,13 @@
  * error codes. */
 #define UPNP_E_INTERNAL_ERROR        -911
 
+/* SOAP-related error codes */
+#define UPNP_SOAP_E_INVALID_ACTION   401
+#define UPNP_SOAP_E_INVALID_ARGS     402
+#define UPNP_SOAP_E_OUT_OF_SYNC      403
+#define UPNP_SOAP_E_INVALID_VAR      404
+#define UPNP_SOAP_E_ACTION_FAILED    501
+
 /* @} ErrorCodes */
 
 
