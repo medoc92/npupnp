@@ -27,27 +27,27 @@
 
 #include <cstring>
 
-#define PUT_BIT_LE(i, cp, value) do {            \
-    (cp)[i] = (uint8_t)(((value) >> 8 * i) & 0xFF);    \
-} while (0)
+#define PUT_BIT_LE(i, cp, value) do {                   \
+        (cp)[i] = (uint8_t)(((value) >> 8 * i) & 0xFF); \
+    } while (0)
 
-#define PUT_64BIT_LE(cp, value) do {    \
-    PUT_BIT_LE(7, cp, value);    \
-    PUT_BIT_LE(6, cp, value);    \
-    PUT_BIT_LE(5, cp, value);    \
-    PUT_BIT_LE(4, cp, value);    \
-    PUT_BIT_LE(3, cp, value);    \
-    PUT_BIT_LE(2, cp, value);    \
-    PUT_BIT_LE(1, cp, value);    \
-    PUT_BIT_LE(0, cp, value);    \
-} while (0)
+#define PUT_64BIT_LE(cp, value) do {            \
+        PUT_BIT_LE(7, cp, value);               \
+        PUT_BIT_LE(6, cp, value);               \
+        PUT_BIT_LE(5, cp, value);               \
+        PUT_BIT_LE(4, cp, value);               \
+        PUT_BIT_LE(3, cp, value);               \
+        PUT_BIT_LE(2, cp, value);               \
+        PUT_BIT_LE(1, cp, value);               \
+        PUT_BIT_LE(0, cp, value);               \
+    } while (0)
 
-#define PUT_32BIT_LE(cp, value) do {    \
-    PUT_BIT_LE(3, cp, value);    \
-    PUT_BIT_LE(2, cp, value);    \
-    PUT_BIT_LE(1, cp, value);    \
-    PUT_BIT_LE(0, cp, value);    \
-} while (0)
+#define PUT_32BIT_LE(cp, value) do {            \
+        PUT_BIT_LE(3, cp, value);               \
+        PUT_BIT_LE(2, cp, value);               \
+        PUT_BIT_LE(1, cp, value);               \
+        PUT_BIT_LE(0, cp, value);               \
+    } while (0)
 
 static uint8_t PADDING[MD5_BLOCK_LENGTH] = {
     0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -145,7 +145,7 @@ MD5Final(unsigned char digest[MD5_DIGEST_LENGTH], MD5_CTX *ctx)
 #define F4(x, y, z) (y ^ (x | ~z))
 
 /* This is the central step in the MD5 algorithm. */
-#define MD5STEP(f, w, x, y, z, data, s) \
+#define MD5STEP(f, w, x, y, z, data, s)                         \
     ( w += f(x, y, z) + data,  w = w<<s | w>>(32-s),  w += x )
 
 /*
@@ -275,8 +275,8 @@ string& MD5HexPrint(const string& digest, string &out)
     static const char hex[]="0123456789abcdef";
     auto hash = reinterpret_cast<const unsigned char*>(digest.c_str());
     for (int i = 0; i < 16; i++) {
-    out.append(1, hex[hash[i] >> 4]);
-    out.append(1, hex[hash[i] & 0x0f]);
+        out.append(1, hex[hash[i] >> 4]);
+        out.append(1, hex[hash[i] & 0x0f]);
     }
     return out;
 }
@@ -285,15 +285,15 @@ string& MD5HexScan(const string& xdigest, string& digest)
 {
     digest.erase();
     if (xdigest.length() != 32) {
-    return digest;
-    }
-    for (unsigned int i = 0; i < 16; i++) {
-    unsigned int val;
-    if (sscanf(xdigest.c_str() + 2*i, "%2x", &val) != 1) {
-        digest.erase();
         return digest;
     }
-    digest.append(1, static_cast<unsigned char>(val));
+    for (unsigned int i = 0; i < 16; i++) {
+        unsigned int val;
+        if (sscanf(xdigest.c_str() + 2*i, "%2x", &val) != 1) {
+            digest.erase();
+            return digest;
+        }
+        digest.append(1, static_cast<unsigned char>(val));
     }
     return digest;
 }
