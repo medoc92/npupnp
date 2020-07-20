@@ -61,6 +61,7 @@ libnpupnp_la_SOURCES = \
 	src/inc/upnp_timeout.h \
 	src/inc/upnpapi.h \
 	src/inc/uri.h \
+        src/inc/utf8iter.h \
 	src/inc/webserver.h
 
 # ssdp

@@ -1,3 +1,9 @@
+libnpupnp1 (4.0.10-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Forgotten include file in dist.
+  
+ -- Jean-Francois Dockes <jf@dockes.org>  Mon, 20 Jul 2020 08:09:00 +0200
+
 libnpupnp1 (4.0.9-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Restored some SOAP_E_XX error codes removed by mistake from API.
