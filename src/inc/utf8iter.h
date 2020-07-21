@@ -283,8 +283,8 @@ private:
 enum Utf8TruncateFlag {UTF8T_NONE, UTF8T_ATWORD, UTF8T_ELLIPSIS};
 // maxlen is in utf-8 chars.
 extern void utf8truncate(std::string& s, int maxlen, int flags = 0,
-                         std::string ellipsis = "...",
-                         std::string ws = " \t\n\r");
+                         const std::string& ellipsis = "...",
+                         const std::string& ws = " \t\n\r");
 extern size_t utf8len(const std::string& s);
 
 /** @brief Check and possibly fix string by replacing badly encoded
