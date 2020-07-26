@@ -22,8 +22,8 @@
 
 using namespace std;
 
-void utf8truncate(std::string& s, int maxlen, int flags, string ellipsis,
-                  string ws)
+void utf8truncate(std::string& s, int maxlen, int flags, const string& ellipsis,
+                  const string& ws)
 {
     if (s.size() <= string::size_type(maxlen)) {
         return;
