@@ -8,7 +8,7 @@ AM_CXXFLAGS = -std=c++11
 
 LIBNPUPNP_LIBS=@LIBNPUPNP_LIBS@
 
-npupnpincludedir = $(includedir)/npupnp/upnp
+npupnpincludedir = $(includedir)/npupnp
 npupnpinclude_HEADERS = \
 	inc/upnp.h \
 	inc/upnpdebug.h \
