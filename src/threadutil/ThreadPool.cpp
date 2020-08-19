@@ -209,6 +209,8 @@ void ThreadPool::Internal::CalcWaitTime(ThreadPriority p, ThreadPoolJob *job)
 static int SetPolicyType(ThreadPoolAttr::PolicyType in)
 {
     int retVal = 0;
+    ((void)(in));
+    
 #ifdef __CYGWIN__
     /* TODO not currently working... */
     retVal = 0;
