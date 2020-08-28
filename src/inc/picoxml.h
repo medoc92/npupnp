@@ -107,7 +107,7 @@ protected:
      */
     virtual void endElement(const std::string& /* nm */) {}
     /** Expatmm compat */
-    virtual void EndElement(const XML_Char */* nm */) {}
+    virtual void EndElement(const XML_Char * /* nm */) {}
 
     /**
      * Non-tag data handler.

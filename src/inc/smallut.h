@@ -57,9 +57,9 @@ struct StringIcmpPred {
     const std::string& m_s1;
 };
 
-extern int stringlowercmp(const std::string& s1,
+extern int stringlowercmp(const std::string& s1, // already lower
                           const std::string& s2);
-extern int stringuppercmp(const std::string& s1,
+extern int stringuppercmp(const std::string& s1, // already upper
                           const std::string& s2);
 
 extern void stringtolower(std::string& io);
