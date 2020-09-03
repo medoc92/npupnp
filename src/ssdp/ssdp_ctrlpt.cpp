@@ -433,15 +433,14 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
 
 #ifdef UPNP_ENABLE_IPV6
     if (gSsdpReqSocket6 != INVALID_SOCKET && FD_ISSET(gSsdpReqSocket6, &wrSet)) {
-        struct sockaddr_storage ssv6;
-        memset(&ssv6, 0, sizeof(ssv6));
-        
+        struct sockaddr_storage ssv6 = {};
+
         auto destAddr6 = reinterpret_cast<struct sockaddr_in6 *>(&ssv6);
         destAddr6->sin6_family = static_cast<sa_family_t>(AF_INET6);
         inet_pton(AF_INET6, SSDP_IPV6_LINKLOCAL, &destAddr6->sin6_addr);
         destAddr6->sin6_port = htons(SSDP_PORT);
         destAddr6->sin6_scope_id = apiFirstIPV6Index();
-        
+
         for (int cnt = 0; cnt < NUM_SSDP_COPY; cnt++) {
             UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
                        ">>> SSDP SEND M-SEARCH >>>\n%s\n", ReqBufv6.c_str());
@@ -454,8 +453,7 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
 #endif /* IPv6 */
 
     if (gSsdpReqSocket4 != INVALID_SOCKET && FD_ISSET(gSsdpReqSocket4, &wrSet)) {
-        struct sockaddr_storage ssv4;
-        memset(&ssv4, 0, sizeof(ssv4));
+        struct sockaddr_storage ssv4 = {};
 
         auto destAddr4 = reinterpret_cast<struct sockaddr_in *>(&ssv4);
         destAddr4->sin_family = static_cast<sa_family_t>(AF_INET);

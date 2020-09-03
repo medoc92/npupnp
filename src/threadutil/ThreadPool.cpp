@@ -36,7 +36,6 @@
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>    /* for memset()*/
 
 #include <chrono>
 #include <thread>
@@ -222,10 +221,9 @@ static int SetPolicyType(ThreadPoolAttr::PolicyType in)
     (void)in;
     retVal = 0;
 #elif defined(_POSIX_PRIORITY_SCHEDULING) && _POSIX_PRIORITY_SCHEDULING > 0
-    struct sched_param current;
+    struct sched_param current = {};
     int sched_result;
 
-    memset(&current, 0, sizeof(current));
     sched_getparam(0, &current);
     current.sched_priority = sched_get_priority_min(DEFAULT_POLICY);
     sched_result = sched_setscheduler(0, in, &current);

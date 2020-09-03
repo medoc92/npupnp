@@ -307,7 +307,7 @@ static int create_ssdp_sock_v4(SOCKET *ssdpSock)
     }
 #endif /* BSD, __OSX__, __APPLE__ */
 
-    memset(&ss, 0, sizeof(ss));
+    ss = {};
     ssdpAddr4->sin_family = static_cast<sa_family_t>(AF_INET);
     ssdpAddr4->sin_addr.s_addr = htonl(INADDR_ANY);
     ssdpAddr4->sin_port = htons(SSDP_PORT);
@@ -323,8 +323,7 @@ static int create_ssdp_sock_v4(SOCKET *ssdpSock)
         auto ipaddr = netif.firstipv4addr();
         if (nullptr == ipaddr)
             continue;
-        struct ip_mreq ssdpMcastAddr;
-        memset((void *)&ssdpMcastAddr, 0, sizeof(struct ip_mreq));
+        struct ip_mreq ssdpMcastAddr = {};
         ssdpMcastAddr.imr_interface.s_addr =inet_addr(ipaddr->straddr().c_str());
         ssdpMcastAddr.imr_multiaddr.s_addr = inet_addr(SSDP_IP);
         ret = setsockopt(*ssdpSock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
@@ -457,7 +456,7 @@ static int create_ssdp_sock_v6(bool isulagua, SOCKET *ssdpSock)
     {
         struct sockaddr_storage ss;
         auto ssdpAddr6 = reinterpret_cast<struct sockaddr_in6 *>(&ss);
-        memset(&ss, 0, sizeof(ss));
+        ss = {};
         ssdpAddr6->sin6_family = static_cast<sa_family_t>(AF_INET6);
         ssdpAddr6->sin6_addr = in6addr_any;
         ssdpAddr6->sin6_scope_id = 0;
@@ -468,8 +467,7 @@ static int create_ssdp_sock_v6(bool isulagua, SOCKET *ssdpSock)
             errorcause = "bind()";
             goto error_handler;
         }
-        struct ipv6_mreq ssdpMcastAddr;
-        memset((void *)&ssdpMcastAddr, 0, sizeof(ssdpMcastAddr));
+        struct ipv6_mreq ssdpMcastAddr = {};
         NetIF::IPAddr ipa(isulagua? SSDP_IPV6_SITELOCAL : SSDP_IPV6_LINKLOCAL);
         struct sockaddr_in6 sa6;
         ipa.copyToAddr(reinterpret_cast<struct sockaddr*>(&sa6));

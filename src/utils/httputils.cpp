@@ -114,7 +114,7 @@ void MHDTransaction::copyClientAddress(struct sockaddr_storage *dest) const
     if (nullptr == dest)
         return;
     if (nullptr == client_address) {
-        memset(dest, 0, sizeof(struct sockaddr_storage));
+        dest = {};
         return;
     }
     if (client_address->ss_family == AF_INET) {

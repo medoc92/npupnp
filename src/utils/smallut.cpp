@@ -953,10 +953,9 @@ static void cerrdip(const string& s, DateInterval *dip)
 // back
 static bool addperiod(DateInterval *dp, DateInterval *pp)
 {
-    struct tm tm;
     // Create a struct tm with possibly non normalized fields and let
     // timegm sort it out
-    memset(&tm, 0, sizeof(tm));
+    struct tm tm = {};
     tm.tm_year = dp->y1 - 1900 + pp->y1;
     tm.tm_mon = dp->m1 + pp->m1 - 1;
     tm.tm_mday = dp->d1 + pp->d1;

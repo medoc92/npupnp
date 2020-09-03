@@ -308,7 +308,7 @@ static int receive_from_stopSock(SOCKET ssock, fd_set *set)
 
     if (FD_ISSET(ssock, set)) {
         len = sizeof(ss);
-        memset(&ss, 0, sizeof(ss));
+        ss = {};
         byteReceived = recvfrom(
             ssock, requestBuf, static_cast<size_t>(25), 0, fromaddr, &len);
         
@@ -462,7 +462,7 @@ static int get_miniserver_stopsock(MiniServerSockArray *out)
         return UPNP_E_OUTOF_SOCKET;
     }
     /* Bind to local socket. */
-    memset(&stop_sockaddr, 0, sizeof (stop_sockaddr));
+    stop_sockaddr = {};
     stop_sockaddr.sin_family = static_cast<sa_family_t>(AF_INET);
     stop_sockaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
     ret = bind(out->miniServerStopSock, reinterpret_cast<struct sockaddr *>(&stop_sockaddr),
@@ -501,8 +501,7 @@ static int available_port(int reqport)
 
     int port = std::max(APPLICATION_LISTENING_PORT, reqport);
     int ret = UPNP_E_SOCKET_BIND;
-    struct sockaddr_storage saddr;
-    memset(&saddr, 0, sizeof(saddr));
+    struct sockaddr_storage saddr = {};
     auto ip = reinterpret_cast<struct sockaddr_in*>(&saddr);
     ip->sin_family = AF_INET;
     ip->sin_addr.s_addr = htonl(INADDR_ANY);

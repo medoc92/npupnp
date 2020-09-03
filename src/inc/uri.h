@@ -53,7 +53,7 @@
  */
 struct hostport_type {
     hostport_type() {
-        memset(&IPaddress, 0, sizeof(sockaddr_storage));
+        IPaddress = {};
     }
     /*! Full host port. */
     std::string text;

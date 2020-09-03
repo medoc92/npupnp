@@ -126,9 +126,8 @@ static int parse_hostport(
             af = AF_INET;
         else {
             /* Must be a host name. */
-            struct addrinfo hints, *res, *res0;
+            struct addrinfo hints = {}, *res, *res0;
 
-            memset(&hints, 0, sizeof(hints));
             hints.ai_family = AF_UNSPEC;
             hints.ai_socktype = SOCK_STREAM;
 

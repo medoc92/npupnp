@@ -118,8 +118,8 @@ IPAddr& IPAddr::operator=(const IPAddr& o)
 IPAddr::IPAddr(const char *caddr)
     : IPAddr()
 {
-    std::memset(&m->address, 0, sizeof(m->address));
-    
+    m->address = {};
+
     if (std::strchr(caddr, ':') != nullptr) {
         if (inet_pton(
                 AF_INET6, caddr,
@@ -141,7 +141,7 @@ IPAddr::IPAddr(const char *caddr)
 IPAddr::IPAddr(const struct sockaddr *sa)
     : IPAddr()
 {
-    memset(&m->address, 0, sizeof(m->address));
+    m->address = {};
     switch (sa->sa_family) {
     case AF_INET:
         memcpy(m->saddr, sa, sizeof(struct sockaddr_in));
@@ -169,7 +169,7 @@ bool IPAddr::ok() const
 bool IPAddr::copyToStorage(struct sockaddr_storage *dest) const
 {
     if (!m->ok) {
-        memset(dest, 0, sizeof(struct sockaddr_storage));
+        dest = {};
         return false;
     }
     memcpy(dest, &m->address, sizeof(struct sockaddr_storage));
@@ -619,8 +619,7 @@ Interfaces::Internal::Internal()
                 ifit->m->addresses.emplace_back(ip_addr);
                 uint32_t mask =
                     netprefixlentomask(uni_addr->OnLinkPrefixLength);
-                struct sockaddr_in sa;
-                memset(&sa, 0, sizeof(sa));
+                struct sockaddr_in sa = {};
                 sa.sin_addr.s_addr = mask;
                 ifit->m->netmasks.emplace_back((struct sockaddr*)&sa);
             }

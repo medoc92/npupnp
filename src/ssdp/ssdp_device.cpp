@@ -289,7 +289,7 @@ static SOCKET createReplySocket6(
 // Set the UPnP predefined multicast destination addresses
 static bool ssdpMcastAddr(struct sockaddr_storage& ss, int AddressFamily)
 {
-    memset(&ss, 0, sizeof(ss));
+    ss = {};
     switch (AddressFamily) {
     case AF_INET:
     {

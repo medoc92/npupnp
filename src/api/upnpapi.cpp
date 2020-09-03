@@ -129,7 +129,7 @@ unsigned short LOCAL_PORT_V6;
 
 /*! UPnP device and control point handle table    */
 #define NUM_HANDLE 200
-static Handle_Info *HandleTable[NUM_HANDLE];
+static std::array<Handle_Info*, NUM_HANDLE> HandleTable;
 
 /*! Maximum content-length (in bytes) that the SDK will process on an incoming
  * packet. Content-Length exceeding this size will be not processed and
@@ -474,7 +474,7 @@ static int UpnpInitPreamble()
 
     /* Initializes the handle list. */
     HandleLock();
-    memset(HandleTable, 0, sizeof(HandleTable));
+    HandleTable = {};
     HandleUnlock();
 
     /* Initialize SDK global thread pools. */

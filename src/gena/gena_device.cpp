@@ -701,7 +701,7 @@ static int create_url_list(
 
 void gena_process_subscription_request(MHDTransaction *mhdt)
 {
-    struct Upnp_Subscription_Request request_struct;
+    struct Upnp_Subscription_Request request_struct = {};
     int return_code = 1;
     int time_out = 1801;
     service_info *service;
@@ -711,8 +711,6 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
     UpnpDevice_Handle device_handle;
     int rc = 0;
     std::list<subscription>::iterator sub;
-    
-    memset(&request_struct, 0, sizeof(request_struct));
 
     UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
                "Subscription Request Received:\n");
