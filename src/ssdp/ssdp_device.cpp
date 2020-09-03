@@ -642,11 +642,13 @@ static int AdvertiseAndReplyOneDest(
     std::string lowerloc{SInfo->LowerDescURL};
     replaceLochost(lowerloc, lochost);
 
-    // Store the root and embedded devices in a single vector for convenience
+    // Store pointers to the root and embedded devices in a single vector
+    // for later convenience of mostly identical processing.
     alldevices.push_back(&SInfo->devdesc);
-    for (const auto& dev : SInfo->devdesc.embedded) {
-        alldevices.push_back(&dev);
-    }
+    std::transform(SInfo->devdesc.embedded.begin(),
+                   SInfo->devdesc.embedded.end(),
+                   std::back_inserter(alldevices),
+                   [](UPnPDeviceDesc& subdev) { return &subdev; });
 
     /* send advertisements/replies */
     while (NumCopy == 0 || (isNotify && NumCopy < NUM_SSDP_COPY)) {

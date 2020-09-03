@@ -88,13 +88,9 @@ int stringicmp(const string& s1, const string& s2)
 }
 void stringtolower(string& io)
 {
-    string::iterator it = io.begin();
-    string::iterator ite = io.end();
-    while (it != ite) {
-        *it = ::tolower(*it);
-        it++;
-    }
+    std::transform(io.begin(), io.end(), io.begin(), [](unsigned char c) { return std::tolower(c); });
 }
+
 string stringtolower(const string& i)
 {
     string o = i;
@@ -104,13 +100,9 @@ string stringtolower(const string& i)
 
 void stringtoupper(string& io)
 {
-    string::iterator it = io.begin();
-    string::iterator ite = io.end();
-    while (it != ite) {
-        *it = ::toupper(*it);
-        it++;
-    }
+    std::transform(io.begin(), io.end(), io.begin(), [](unsigned char c) { return std::toupper(c); });
 }
+
 string stringtoupper(const string& i)
 {
     string o = i;
