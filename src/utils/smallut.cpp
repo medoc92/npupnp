@@ -1351,7 +1351,7 @@ string flagsToString(const vector<CharFlags>& flags, unsigned int val)
 {
     const char *s;
     string out;
-    for (auto& flag : flags) {
+    for (const auto& flag : flags) {
         if ((val & flag.value) == flag.value) {
             s = flag.yesname;
         } else {
@@ -1372,7 +1372,7 @@ string flagsToString(const vector<CharFlags>& flags, unsigned int val)
 string valToString(const vector<CharFlags>& flags, unsigned int val)
 {
     string out;
-    for (auto& flag : flags) {
+    for (const auto& flag : flags) {
         if (flag.value == val) {
             out = flag.yesname;
             return out;
