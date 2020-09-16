@@ -1,3 +1,17 @@
+libnpupnp1 (4.0.12-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Accept running with ipv4 only if no ipv6 address is available (when
+    ipv6 was enabled by a call to UpnpInit2() or by UPNP_FLAG_IPV6). Add
+    UPNP_FLAG_IPV6_REQUIRED option flag for mandatory v6.
+  
+ -- Jean-Francois Dockes <jf@dockes.org>  Mon, 14 Sep 2020 08:43:00 +0200
+
+libnpupnp1 (4.0.11-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Improve compatibility with newer microhttpd versions.
+  
+ -- Jean-Francois Dockes <jf@dockes.org>  Sat, 12 Sep 2020 15:11:00 +0200
+
 libnpupnp1 (4.0.10-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Forgotten include file in dist.

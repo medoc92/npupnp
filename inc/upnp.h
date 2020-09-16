@@ -406,8 +406,10 @@ typedef enum Upnp_DescType_e {
 /** Option values for the @ref UpnpInitWithOptions flags argument */
 typedef enum {
     UPNP_FLAG_NONE = 0,
-    /** Enable IPV6 operation (the default is IPV4 only) */
+    /** Accept IPV4+IPV6 operation, run with IPV4 only if IPV6 not available */
     UPNP_FLAG_IPV6 = 1,
+    /** Same but fail if IPV6 is not available. */
+    UPNP_FLAG_IPV6_REQUIRED = 2,
 } Upnp_InitFlag;
 
 /** Values for the @ref UpnpInitWithOptions vararg options list */

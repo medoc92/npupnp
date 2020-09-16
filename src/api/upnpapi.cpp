@@ -244,7 +244,8 @@ static int getIfInfo(const char *IfNames)
             needed{NetIF::Interface::Flags::HASIPV4, 
                    NetIF::Interface::Flags::UP,
                    NetIF::Interface::Flags::MULTICAST};
-        if (using_ipv6()) {
+        if (0 != (g_optionFlags & UPNP_FLAG_IPV6_REQUIRED)) {
+            UpnpPrintf(UPNP_DEBUG, API, __FILE__, __LINE__, "Requiring IPV6\n");
             needed.push_back(NetIF::Interface::Flags::HASIPV6);
         }
         NetIF::Interfaces::Filter filt;
@@ -280,6 +281,14 @@ static int getIfInfo(const char *IfNames)
         actifnames += netif.getname() + " ";
     }
 
+    /* If IPV6_REQUIRED was not set, maybe we have no IPV6 address. In this 
+     * case, turn off all ipv6 operation */
+    if (v6addr.empty()) {
+        UpnpPrintf(UPNP_DEBUG, API, __FILE__, __LINE__, "No IPV6 address on "
+                   "selected interface(s): turning off IPV6 operation\n");
+        g_optionFlags &= ~UPNP_FLAG_IPV6;
+    }
+    
     if (v4addr.empty() && v6addr.empty()) {
         UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
                    "No usable IP addresses were found.\n");

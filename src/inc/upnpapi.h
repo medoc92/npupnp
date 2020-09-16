@@ -217,6 +217,9 @@ extern bool g_use_all_interfaces;
 
 extern unsigned int g_optionFlags;
 
+// Test if we should do ipv6-related stuff. The flag is set by the
+// init caller, and can be reset during init if we find no
+// ipv6-enabled interface
 inline bool using_ipv6() {
 #ifdef __APPLE__
     return false;
