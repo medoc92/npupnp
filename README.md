@@ -4,7 +4,7 @@ Copyright (c) 2000-2003 Intel Corporation - All Rights Reserved.
 Copyright (c) 2005-2006 Rémi Turboult <r3mi@users.sourceforge.net>  
 Copyright (c) 2006 Michel Pfeiffer and others <virtual_worlds@gmx.de>  
 Copyright (c) 2020 Jean-Francois Dockes <jf@dockes.org>  
-See LICENSE for details.
+See COPYING for details.
 
 npupnp (new pupnp or not pupnp ?) is an UPnP library derived from the
 venerable pupnp (https://github.com/pupnp/pupnp), based on its 1.6.x
