@@ -24,6 +24,19 @@ AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([inc/upnp.h])
 
+AC_CANONICAL_HOST
+# Detect the target system
+case "${host_os}" in
+    linux*|uclinux*) build_linux=yes;;
+    darwin*) build_mac=yes;;
+    *freebsd*) build_freebsd=yes;;
+    *) AC_MSG_WARN(["OS $host_os is unknown"]);;
+esac
+# Pass the conditionals to automake
+AM_CONDITIONAL([LINUX], [test "$build_linux" = "yes"])
+AM_CONDITIONAL([OSX], [test "$build_mac" = "yes"])
+AM_CONDITIONAL([FREEBSD], [test "$build_freebsd" = "yes"])
+
 AM_INIT_AUTOMAKE([1.8 -Wall foreign subdir-objects])
 AM_PROG_AR
 AC_DISABLE_STATIC

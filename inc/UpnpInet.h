@@ -21,42 +21,27 @@ typedef ADDRESS_FAMILY sa_family_t;
 
 #else /* ! _WIN32 -> */
 
+/*** Windows compat macros */
 #define UpnpCloseSocket(s) {close(s); s = -1;}
 #define UPNP_SOCK_GET_LAST_ERROR() errno
 /* SOCKET is typedefd by the system and unsigned on Win32 */
 typedef int SOCKET;
 #define INVALID_SOCKET (-1)
 #define SOCKET_ERROR (-1)
-
-#ifndef __APPLE__
-#include <netinet/in_systm.h>
-#include <netinet/ip.h>
-#include <netinet/ip_icmp.h>
-#endif /* ! __APPLE__ */
-
-#include <sys/time.h>
-#include <sys/param.h>
+/*** End Windows compat */
 
 #if defined(__sun)
-
-#include <fcntl.h>
-#include <sys/sockio.h>
-
-#elif (defined(BSD) && BSD >= 199306) || defined (__FreeBSD_kernel__)
-
-#include <ifaddrs.h>
-/* Do not move or remove the include below for "sys/socket"!
- * Will break FreeBSD builds. */
-#include <sys/socket.h>
-
+#  include <fcntl.h>
+#  include <sys/sockio.h>
 #endif
 
-#include <arpa/inet.h>  /* for inet_pton() */
-#include <net/if.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <ifaddrs.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 
-#endif /* _WIN32 */
 
-/* @} Sock */
+#endif /* ! _WIN32 */
 
 #endif /* UPNPINET_H */

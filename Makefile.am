@@ -131,7 +131,11 @@ EXTRA_DIST = \
 
 # This variable must have 'exec' in its name, in order to be installed 
 # by 'install-exec' target (instead of default 'install-data')
+if FREEBSD
+pkgconfigexecdir = $(prefix)/libdata/pkgconfig
+else
 pkgconfigexecdir = $(libdir)/pkgconfig
+endif
 pkgconfigexec_DATA = libnpupnp.pc
 
 $(pkgconfigexec_DATA): config.status
