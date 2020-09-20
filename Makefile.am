@@ -145,8 +145,16 @@ $(pkgconfigexec_DATA): config.status
 
 CLEANFILES = 
 
-# Ensure that the working copy is clean and create tag
+
+# Dist: ensure that the working copy is clean and create tag.
+# On Linux also check that nothing changed in the symbols table: changes
+# must be explicit, may need an solib version change, and an update of the
+# reference file.
 dist-hook:
+if LINUX
+	nm -g --defined-only --demangle .libs/libnpupnp.so | grep ' T ' | \
+           awk '{print $$3}' | diff - $(top_srcdir)/symbols-reference
+endif
 	test ! -d $(top_srcdir)/.git || cd $(top_srcdir) && \
 			git diff-index --quiet HEAD
 	vers=`echo $(VERSION) | sed -e 's/~/_/g'`;\
