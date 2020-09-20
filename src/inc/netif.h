@@ -46,10 +46,12 @@
 #include <netinet/in.h>
 #endif
 
+#include "UpnpGlobal.h"
+
 namespace NetIF {
 
 /** @brief Represent an IPV4 or IPV6 address */
-class IPAddr {
+class EXPORT_SPEC IPAddr {
 public:
     /** @brief address family types. The values are identifal to the
      * system's definitions */
@@ -97,7 +99,7 @@ private:
 /** @brief Represent a system network interface, its attributes and its
  * addresses. Usually built by the module internal code by
  * querying the system interfaces. */
-class Interface {
+class EXPORT_SPEC Interface {
 public:
     /** @brief Interface attributes */
     enum class Flags {NONE = 0, HASIPV4 = 1, HASIPV6 = 2, LOOPBACK=4,
@@ -150,7 +152,7 @@ private:
 
 
 /** @brief Represent the system's network interfaces. Singleton class. */
-class Interfaces {
+class EXPORT_SPEC Interfaces {
 public:
     /** @brief Return the Interfaces singleton after possibly building
      * it by querying the system */

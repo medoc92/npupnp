@@ -26,6 +26,9 @@ endif
 lib_LTLIBRARIES = libnpupnp.la
 
 libnpupnp_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/src/inc 
+if LINUX
+libnpupnp_la_CXXFLAGS = -fvisibility=hidden
+endif
 
 
 libnpupnp_la_LDFLAGS = \

@@ -39,7 +39,9 @@
 #include <vector>
 #include <string>
 
-class UPnPServiceDesc {
+#include "UpnpGlobal.h"
+
+class EXPORT_SPEC UPnPServiceDesc {
 public:
     /// Service Type e.g. urn:schemas-upnp-org:service:ConnectionManager:1
     std::string serviceType;
@@ -53,7 +55,7 @@ public:
     std::string eventSubURL;
 };
 
-class UPnPDeviceDesc {
+class EXPORT_SPEC UPnPDeviceDesc {
 public:
     UPnPDeviceDesc(const std::string& url, const std::string& description);
     UPnPDeviceDesc() {}

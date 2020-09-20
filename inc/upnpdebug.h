@@ -37,6 +37,7 @@
  * @brief libnpupnp message log definitions */
 
 #include "upnpconfig.h"
+#include "UpnpGlobal.h"
 
 #include <stdio.h>
 
@@ -86,19 +87,19 @@ typedef enum Upnp_LogLevel {
  *
  * @return -1 for failure or UPNP_E_SUCCESS for success.
  */
-extern int UpnpInitLog(void);
+EXPORT_SPEC int UpnpInitLog(void);
 
 /** @brief Set the log verbosity level. */
-extern void UpnpSetLogLevel(
+EXPORT_SPEC void UpnpSetLogLevel(
     /** [in] Log level. */
     Upnp_LogLevel log_level);
 
 /** @brief Closes the log output, if appropriate. */
-extern void UpnpCloseLog(void);
+EXPORT_SPEC void UpnpCloseLog(void);
 
 /** @brief Set the name for the log file. You will then need to call
  * @ref UpnpInitLog to close the old file if needed, and open the new one. */
-extern void UpnpSetLogFileNames(
+EXPORT_SPEC void UpnpSetLogFileNames(
     /** [in] Name of the log file. NULL or empty to use stderr. */
     const char *fileName,
     /** Ignored, used to be a second file. */
@@ -110,7 +111,7 @@ extern void UpnpSetLogFileNames(
  * @return NULL if the log is not active for this module / level, else
  *  the output file pointer.
  */
-extern FILE *UpnpGetDebugFile(
+EXPORT_SPEC FILE *UpnpGetDebugFile(
     /** [in] The level of the debug logging. It will decide whether debug
      * statement will go to standard output, or any of the log files. */
     Upnp_LogLevel level,
@@ -118,7 +119,7 @@ extern FILE *UpnpGetDebugFile(
     Dbg_Module module);
 
 /** @brief Prints the debug statement to the current output */
-extern void UpnpPrintf(
+EXPORT_SPEC void UpnpPrintf(
     /** [in] Message level, to be compared to the current verbosity. */
     Upnp_LogLevel DLevel,
     /** [in] Emitting code area. */

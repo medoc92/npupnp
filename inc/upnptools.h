@@ -46,6 +46,7 @@
 /* Function declarations only if tools compiled into the library */
 #if UPNP_HAVE_TOOLS
 
+#include "UpnpGlobal.h"
 
 #ifdef __cplusplus
 extern "C" {
