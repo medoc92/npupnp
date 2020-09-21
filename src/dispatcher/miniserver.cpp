@@ -428,9 +428,9 @@ static int get_port(
         return -1;
     }
     if (sockinfo.ss_family == AF_INET) {
-        *port = ntohs(((struct sockaddr_in*)&sockinfo)->sin_port);
+        *port = ntohs(reinterpret_cast<struct sockaddr_in*>(&sockinfo)->sin_port);
     } else if(sockinfo.ss_family == AF_INET6) {
-        *port = ntohs(((struct sockaddr_in6*)&sockinfo)->sin6_port);
+        *port = ntohs(reinterpret_cast<struct sockaddr_in6*>(&sockinfo)->sin6_port);
     }
     UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
                "sockfd = %d, .... port = %d\n", sockfd, static_cast<int>(*port));

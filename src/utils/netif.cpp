@@ -214,11 +214,11 @@ IPAddr::Scope IPAddr::scopetype() const
     if (family() != Family::IPV6)
         return Scope::Invalid;
     if (IN6_IS_ADDR_LINKLOCAL(
-            &((struct sockaddr_in6 *)(m->saddr))->sin6_addr)) {
+            &(reinterpret_cast<struct sockaddr_in6*>(m->saddr))->sin6_addr)) {
         return Scope::LINK;
     }
     if (IN6_IS_ADDR_SITELOCAL(
-            &((struct sockaddr_in6*)(m->saddr))->sin6_addr)) {
+            &(reinterpret_cast<struct sockaddr_in6*>(m->saddr))->sin6_addr)) {
         return Scope::SITE;
     }
     return Scope::GLOBAL;
@@ -390,7 +390,7 @@ const IPAddr *Interface::firstipv6addr(IPAddr::Scope scope) const
         if (entry.family() == IPAddr::Family::IPV6 &&
             (scope != IPAddr::Scope::LINK ||
              IN6_IS_ADDR_LINKLOCAL(
-                 &((struct sockaddr_in6 *)(entry.m->saddr))->sin6_addr))) {
+                 &(reinterpret_cast<struct sockaddr_in6*>(entry.m->saddr))->sin6_addr))) {
             return &entry;
         }
     }

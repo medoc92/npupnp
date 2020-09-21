@@ -169,7 +169,7 @@ static int parse_hostport(
         port = 80U;
     /* The length of the host and port string can be calculated by */
     /* subtracting pointers. */
-    hostport_size = (size_t)c - (size_t)workbuf;
+    hostport_size = size_t(c) - size_t(workbuf);
     /* Fill in the 'out' information. */
     switch (af) {
     case AF_INET:
