@@ -63,7 +63,7 @@ struct ErrorString {
 /*!
  * \brief Array of error structures.
  */
-struct ErrorString ErrorMessages[] = {
+static struct ErrorString ErrorMessages[] = {
     {UPNP_E_SUCCESS, "UPNP_E_SUCCESS"},
     {UPNP_E_INVALID_HANDLE, "UPNP_E_INVALID_HANDLE"},
     {UPNP_E_INVALID_PARAM, "UPNP_E_INVALID_PARAM"},

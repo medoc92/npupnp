@@ -481,7 +481,7 @@ typedef struct Upnp_Action_Request UpnpActionRequest;
 #define UpnpActionRequest_get_xmlAction(x) ((x)->xmlAction)
 #define UpnpActionRequest_get_xmlResponse(x) ((x)->xmlResponse)
 #define UpnpActionRequest_set_xmlResponse(x, v) ((x)->xmlResponse = (v))
-#define UpnpActionRequest_get_CtrlPtIPAddr(x) (&((x)->CtrlPtIPAddr));
+#define UpnpActionRequest_get_CtrlPtIPAddr(x) (&((x)->CtrlPtIPAddr))
 #define UpnpActionRequest_get_Os_cstr(x) ((x)->Os.c_str())
 
 /** @ref UPNP_EVENT_RECEIVED callback data.  */

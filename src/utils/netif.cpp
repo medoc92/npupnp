@@ -71,13 +71,13 @@ static FILE *logfp;
 
 // #define NETIF_DEBUG
 
-#define LOGERR(X) {                                                 \
+#define LOGERR(X) do {                                              \
         if (logfp) {                                                \
             std::ostringstream oss;                                 \
             oss << X;                                               \
             fprintf(logfp, "%s", oss.str().c_str());                \
         }                                                           \
-    }
+    } while (0)
 #ifdef NETIF_DEBUG
 #define LOGDEB(X) LOGERR(X)
 #else
@@ -673,7 +673,7 @@ void Interfaces::setlogfp(FILE *fp)
     logfp = fp;
 }
 
-Interfaces *theInterfacesP;
+static Interfaces *theInterfacesP;
 
 Interfaces *Interfaces::theInterfaces()
 {

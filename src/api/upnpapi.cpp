@@ -88,7 +88,7 @@ std::mutex GlobalClientSubscribeMutex;
 std::mutex GlobalHndRWLock;
 
 /*! Initialization mutex. */
-std::mutex gSDKInitMutex;
+static std::mutex gSDKInitMutex;
 
 /*! Send thread pool. */
 ThreadPool gSendThreadPool;
@@ -154,11 +154,11 @@ int g_UpnpSdkEQMaxAge = MAX_SUBSCRIPTION_EVENT_AGE;
 
 /*! Global variable to denote the state of Upnp SDK == 0 if uninitialized,
  * == 1 if initialized. */
-int UpnpSdkInit = 0;
+static int UpnpSdkInit = 0;
 
 /*! Global variable to denote the state of Upnp SDK client registration.
  * == 0 if unregistered, == 1 if registered. We only accept one client (CP) */
-int UpnpSdkClientRegistered = 0;
+static int UpnpSdkClientRegistered = 0;
 
 #ifdef UPNP_HAVE_OPTSSDP
 /*! Global variable used in discovery notifications. */
@@ -1873,7 +1873,6 @@ Upnp_Handle_Type GetDeviceHandleInfo(
         switch (GetHandleInfo(*device_handle_out, HndInfo)) {
         case HND_DEVICE:
             return HND_DEVICE;
-            break;
         default:
             break;
         }
