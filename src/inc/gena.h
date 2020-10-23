@@ -90,20 +90,21 @@ extern std::mutex GlobalClientSubscribeMutex;
 /*!
  * \brief Locks the subscription.
  */
-#define SubscribeLock() \
+#define SubscribeLock() do { \
     UpnpPrintf(UPNP_ALL, GENA, __FILE__, __LINE__,"Trying Subscribe Lock\n"); \
     GlobalClientSubscribeMutex.lock();                                    \
-    UpnpPrintf(UPNP_ALL, GENA, __FILE__, __LINE__, "Subscribe Lock\n");
+    UpnpPrintf(UPNP_ALL, GENA, __FILE__, __LINE__, "Subscribe Lock\n"); \
+  } while(0)
 
 
 /*!
  * \brief Unlocks the subscription.
  */
-#define SubscribeUnlock() \
+#define SubscribeUnlock() do { \
     UpnpPrintf(UPNP_ALL, GENA, __FILE__,__LINE__,"Trying Subscribe UnLock\n"); \
     GlobalClientSubscribeMutex.unlock();                                \
-    UpnpPrintf(UPNP_ALL, GENA, __FILE__, __LINE__, "Subscribe UnLock\n");
-
+    UpnpPrintf(UPNP_ALL, GENA, __FILE__, __LINE__, "Subscribe UnLock\n"); \
+  } while(0)
 
 /*!
  * \brief This is the callback function called by the miniserver to handle

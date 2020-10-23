@@ -52,13 +52,13 @@ public:
     /* Destructor that cleans up xml_buffer and parser */
     virtual ~ExpatXMLParser(void) {
         valid_parser = false;
-        if(expat_parser != NULL) {
+        if(expat_parser != nullptr) {
             XML_ParserFree(expat_parser);
-            expat_parser = NULL;
+            expat_parser = nullptr;
         }
-        if(xml_buffer != NULL) {
+        if(xml_buffer != nullptr) {
             delete [] xml_buffer;
-            xml_buffer = NULL;
+            xml_buffer = nullptr;
         }
     }
 
@@ -240,11 +240,11 @@ private:
     static void _element_start_handler(void *userData, const XML_Char *name,
                                        const XML_Char **atts) {
         ExpatXMLParser *me = (ExpatXMLParser*)userData;
-        if(me != NULL) {
+        if(me != nullptr) {
             me->m_path.push_back(StackEl(name));
             StackEl& lastelt = me->m_path.back();
             lastelt.start_index = XML_GetCurrentByteIndex(me->expat_parser);
-            for (int i = 0; atts[i] != 0; i += 2) {
+            for (int i = 0; atts[i] != nullptr; i += 2) {
                 lastelt.attributes[atts[i]] = atts[i+1];
             }
             me->StartElement(name, atts);
@@ -252,7 +252,7 @@ private:
     }
     static void _element_end_handler(void *userData, const XML_Char *name) {
         ExpatXMLParser *me = (ExpatXMLParser*)userData;
-        if(me != NULL) {
+        if(me != nullptr) {
             me->EndElement(name);
             me->m_path.pop_back();
         }
@@ -260,29 +260,29 @@ private:
     static void _character_data_handler(void *userData,
                                         const XML_Char *s, int len) {
         ExpatXMLParser *me = (ExpatXMLParser*)userData;
-        if(me != NULL) me->CharacterData(s, len);
+        if(me != nullptr) me->CharacterData(s, len);
     }
     static void _processing_instr_handler(void *userData,
                                           const XML_Char *target,
                                           const XML_Char *data) {
         ExpatXMLParser *me = (ExpatXMLParser*)userData;
-        if(me != NULL) me->ProcessingInstruction(target, data);
+        if(me != nullptr) me->ProcessingInstruction(target, data);
     }
     static void _comment_handler(void *userData, const XML_Char *data) {
         ExpatXMLParser *me = (ExpatXMLParser*)userData;
-        if(me != NULL) me->CommentData(data);
+        if(me != nullptr) me->CommentData(data);
     }
     static void _default_handler(void *userData, const XML_Char *s, int len) {
         ExpatXMLParser *me = (ExpatXMLParser*)userData;
-        if(me != NULL) me->DefaultHandler(s, len);
+        if(me != nullptr) me->DefaultHandler(s, len);
     }
     static void _cdata_start_handler(void *userData) {
         ExpatXMLParser *me = (ExpatXMLParser*)userData;
-        if(me != NULL) me->CDataStart();
+        if(me != nullptr) me->CDataStart();
     }
     static void _cdata_end_handler(void *userData) {
         ExpatXMLParser *me = (ExpatXMLParser*)userData;
-        if(me != NULL) me->CDataEnd();
+        if(me != nullptr) me->CDataEnd();
     }
     /* Register our static handlers with the Expat events. */
     void register_default_handlers() {
@@ -299,16 +299,16 @@ private:
     /* Constructor common code */
     void init(size_t chunk_size = 0) {
         valid_parser = false;
-        expat_parser = NULL;
+        expat_parser = nullptr;
         xml_buffer_size = chunk_size ? chunk_size : 10240;
         xml_buffer = new XML_Char[xml_buffer_size];
-        if(xml_buffer == NULL)
+        if(xml_buffer == nullptr)
             return;
-        expat_parser = XML_ParserCreate(NULL);
+        expat_parser = XML_ParserCreate(nullptr);
 
-        if(expat_parser == NULL) {
+        if(expat_parser == nullptr) {
             delete [] xml_buffer;
-            xml_buffer = NULL;
+            xml_buffer = nullptr;
             return;
         }
         status = XML_STATUS_OK;
@@ -335,7 +335,7 @@ public:
     }
 
 protected:
-    EXPATMM_SSIZE_T read_block(void) {
+    EXPATMM_SSIZE_T read_block(void) override {
         if (getLastError() == XML_ERROR_FINISHED) {
             setStatus(XML_STATUS_OK);
             return -1;
@@ -343,10 +343,10 @@ protected:
         setLastError(XML_ERROR_FINISHED);
         return m_input.size();
     }
-    const char *getReadBuffer() {
+    const char *getReadBuffer() override {
         return m_input.c_str();
     }
-    virtual size_t getBlockSize(void) {
+    virtual size_t getBlockSize(void) override {
         return m_input.size();
     }
 protected:

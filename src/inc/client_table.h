@@ -11,6 +11,8 @@ struct ClientSubscription {
     std::string SID;
     std::string actualSID;
     std::string eventURL;
+    ClientSubscription() = default;
+    ClientSubscription(const ClientSubscription& other) = default;
     ClientSubscription& operator=(const ClientSubscription& other) {
         if (this != &other) {
             SID = other.SID;

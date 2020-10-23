@@ -83,7 +83,7 @@ public:
  * Waits for next event to occur and schedules associated job into threadpool.
  *    arg is cast to (TimerThread *).
  */
-void *thread_timer(void *arg)
+static void *thread_timer(void *arg)
 {
     auto timer = static_cast<TimerThread::Internal *>(arg);
     TimerEvent *nextEvent = nullptr;

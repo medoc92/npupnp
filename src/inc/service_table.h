@@ -64,7 +64,7 @@ struct subscription {
        completion. */
     std::list<Notification*> outgoing;
 
-    subscription() {};
+    subscription() = default;
     ~subscription();
     subscription& operator=(const subscription&) = delete;
     subscription(const subscription& rhs)  = delete;
