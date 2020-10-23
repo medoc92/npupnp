@@ -60,9 +60,9 @@ static const std::string request_res
 static const std::string response_res
 =sttoken_s + "/" + "([0-9].[0-9])" + WS + "([0-9]+)" + WS + "([^\r]+)" + "\r\n";
 
-static std::regex header_re(header_res, std::regex_constants::extended);
-static std::regex request_re(request_res, std::regex_constants::extended);
-static std::regex response_re(response_res, std::regex_constants::extended);
+static const std::regex header_re(header_res, std::regex_constants::extended);
+static const std::regex request_re(request_res, std::regex_constants::extended);
+static const std::regex response_re(response_res, std::regex_constants::extended);
 
 void SSDPPacketParser::trimright(char *cp, size_t len) {
     while (len > 0) {

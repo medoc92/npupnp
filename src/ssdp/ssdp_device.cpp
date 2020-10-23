@@ -666,6 +666,7 @@ static int AdvertiseAndReplyOneDest(
                         break;
                     }
                 }
+                [[gnu::fallthrough]];
                 case SSDP_DEVICETYPE: {
                     if (!strncasecmp(DeviceType,devType,strlen(DeviceType)-2)) {
                         if (std::atoi(std::strrchr(DeviceType, ':') + 1)

@@ -134,14 +134,14 @@ get_response_value(
         if (utf8check(payload, fixed, true) < 0) {
             UpnpPrintf(UPNP_INFO, SOAP, __FILE__, __LINE__,
                        "soap: fix encoding failed for %s\n", payload.c_str());
-            return UPNP_E_BAD_RESPONSE;;
-        }            
+            return UPNP_E_BAD_RESPONSE;
+        }
         UPnPResponseParser mparser1(fixed, rspname, rspdata, errcodep, errdesc);
         if (!mparser1.Parse()) {
             UpnpPrintf(UPNP_INFO, SOAP, __FILE__, __LINE__,
                        "soap:get_response_value: parse failed for [%s]\n",
                        payload.c_str());
-            return UPNP_E_BAD_RESPONSE;;
+            return UPNP_E_BAD_RESPONSE;
         }
     }
     return (*errcodep) ? SOAP_ACTION_RESP_ERROR : SOAP_ACTION_RESP;
@@ -199,7 +199,7 @@ int SoapSendAction(
 
     std::map<std::string, std::string> http_headers;
     std::string responsestr;
-    long http_status;
+    long http_status = 0;
     int ret_code;
     {
         CURL *easy = curl_easy_init();

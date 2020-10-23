@@ -321,7 +321,7 @@ int http_SendStatusResponse(MHDTransaction *mhdt, int status_code)
 }
 
 
-static std::regex textxml_re(
+static const std::regex textxml_re(
     "text[ \t]*/[ \t]*xml([ \t]*;.*)?",
     std::regex_constants::extended | std::regex_constants::icase);
 
