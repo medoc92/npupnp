@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2019 J.F.Dockes
+/* Copyright (C) 2017-2020 J.F.Dockes
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU Lesser General Public License as published by
  *   the Free Software Foundation; either version 2.1 of the License, or
@@ -17,12 +17,13 @@
 
 #include "utf8iter.h"
 
+#include <algorithm>
 #include <unordered_set>
 #include <iostream>
 
 using namespace std;
 
-void utf8truncate(std::string& s, int maxlen, int flags, const string& ellipsis,
+void utf8truncate(string& s, int maxlen, int flags, const string& ellipsis,
                   const string& ws)
 {
     if (s.size() <= string::size_type(maxlen)) {
@@ -39,11 +40,7 @@ void utf8truncate(std::string& s, int maxlen, int flags, const string& ellipsis,
 
     if (flags & UTF8T_ELLIPSIS) {
         size_t ellen = utf8len(ellipsis);
-        if (maxlen > int(ellen)) {
-            maxlen -= ellen;
-        } else {
-            maxlen = 0;
-        }
+        maxlen = std::max(0, maxlen - int(ellen));
     }
 
     Utf8Iter iter(s);
@@ -51,7 +48,7 @@ void utf8truncate(std::string& s, int maxlen, int flags, const string& ellipsis,
     string::size_type lastwspos = 0;
     for (; !iter.eof(); iter++) {
         unsigned int c = *iter;
-        if (iter.getCpos() < string::size_type(maxlen)) {
+        if (iter.getBpos() < string::size_type(maxlen)) {
             pos = iter.getBpos() + iter.getBlen();
             if ((flags & UTF8T_ATWORD) && wss.find(c) != wss.end()) {
                 lastwspos = pos;

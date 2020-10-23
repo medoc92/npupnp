@@ -281,11 +281,18 @@ private:
 
 
 enum Utf8TruncateFlag {UTF8T_NONE, UTF8T_ATWORD, UTF8T_ELLIPSIS};
-// maxlen is in utf-8 chars.
-extern void utf8truncate(std::string& s, int maxlen, int flags = 0,
-                         const std::string& ellipsis = "...",
-                         const std::string& ws = " \t\n\r");
-extern size_t utf8len(const std::string& s);
+
+/** Truncate utf8 string, maintaining encoding integrity
+ * @param s input string to be modified in place
+ * @param maxlen maximum size after truncation in bytes
+ * @param flags Specify cutting at word position, adding an ellipsis
+ */
+void utf8truncate(std::string& s, int maxlen, int flags = 0,
+                  const std::string& ellipsis = "...",
+                  const std::string& ws = " \t\n\r");
+
+/** Compute length in characters of utf-8 string */
+size_t utf8len(const std::string& s);
 
 /** @brief Check and possibly fix string by replacing badly encoded
  * characters with the standard question mark replacement character.
@@ -297,7 +304,7 @@ extern size_t utf8len(const std::string& s);
  * @return -1 for failure (fixit false or maxrepl reached). 
  *   0 or positive: replacement count.
  */
-extern int utf8check(
+int utf8check(
     const std::string& in, std::string& out, bool fixit=false, int maxrepl=100);
 
 #endif /* _UTF8ITER_H_INCLUDED_ */
