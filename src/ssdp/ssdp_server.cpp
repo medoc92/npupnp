@@ -59,44 +59,46 @@ SOCKET gSsdpReqSocket6 = INVALID_SOCKET;
 
 // Extract criteria from ssdp packet. Cmd can come from either an USN,
 // NT, or ST field. The possible forms are:
-//   ssdp:all
-//   upnp:rootdevice
-//   urn:domain-name:device:deviceType:v
-//   urn:domain-name:service:serviceType:v
-//   urn:schemas-upnp-org:device:deviceType:v
-//   urn:schemas-upnp-org:service:serviceType:v
-//   uuid:device-UUID
-//   uuid:device-UUID::upnp:rootdevice
-//   uuid:device-UUID::urn:domain-name:device:deviceType:v
-//   uuid:device-UUID::urn:domain-name:service:serviceType:v
-//   uuid:device-UUID::urn:schemas-upnp-org:device:deviceType:v
-//   uuid:device-UUID::urn:schemas-upnp-org:service:serviceType:v
+// 
+// ST
+//     ssdp:all
+// ST, NT
+//     upnp:rootdevice
+//     urn:domain-name:device:<deviceType>:<v>
+//     urn:schemas-upnp-org:device:<deviceType>:<v>
+//     urn:domain-name:service:<serviceType>:<v>
+//     urn:schemas-upnp-org:service:<serviceType>:<v>
+//  ST, NT, USN
+//     uuid:<device-UUID>
+//  USN
+//     uuid:<device-UUID>::upnp:rootdevice
+//     uuid:<device-UUID>::urn:schemas-upnp-org:device:<deviceType>:<v>
+//     uuid:<device-UUID>::urn:domain-name:device:<deviceType>:<v>
+//     uuid:<device-UUID>::urn:domain-name:service:<serviceType>:<v>
+//     uuid:<device-UUID>::urn:schemas-upnp-org:service:<serviceType>:<v>
 // We get the UDN, device or service type as available.
 int unique_service_name(const char *cmd, SsdpEntity *Evt)
 {
     int CommandFound = 0;
 
-    if (strstr(const_cast<char*>(cmd), "uuid:") == cmd) {
-        char *theend = strstr(const_cast<char*>(cmd), "::");
+    if (strstr(cmd, "uuid:") == cmd) {
+        const char *theend = strstr(cmd, "::");
         if (nullptr != theend) {
             size_t n = theend - cmd;
-            if (n >= sizeof(Evt->UDN))
-                n = sizeof(Evt->UDN) - 1;
-            memcpy(Evt->UDN, cmd, n);
-            Evt->UDN[n] = 0;
+            Evt->UDN = std::string(cmd, n);
         } else {
-            upnp_strlcpy(Evt->UDN, cmd, sizeof(Evt->UDN));
+            Evt->UDN = std::string(cmd, std::min(LINE_SIZE, strlen(cmd)));
         }
         CommandFound = 1;
     }
 
-    char *urncp = strstr(const_cast<char*>(cmd), "urn:");
-    if (urncp && strstr(const_cast<char*>(cmd), ":service:")) {
-        upnp_strlcpy(Evt->ServiceType, urncp, sizeof(Evt->ServiceType));
+    const char *urncp = strstr(cmd, "urn:");
+    if (urncp && strstr(cmd, ":service:")) {
+        Evt->ServiceType = std::string(urncp, std::min(LINE_SIZE, strlen(urncp)));
         CommandFound = 1;
     }
     if (urncp && strstr(const_cast<char*>(cmd), ":device:")) {
-        upnp_strlcpy(Evt->DeviceType, urncp, sizeof(Evt->DeviceType));
+        Evt->DeviceType = std::string(urncp, std::min(LINE_SIZE, strlen(urncp)));
         CommandFound = 1;
     }
 
@@ -114,17 +116,19 @@ enum SsdpSearchType ssdp_request_type1(const char *cmd)
         return SSDP_ROOTDEVICE;
     if (strstr(cmd, "uuid:"))
         return SSDP_DEVICEUDN;
-    if (strstr(cmd, "urn:") && strstr(cmd, ":device:"))
-        return SSDP_DEVICETYPE;
-    if (strstr(cmd, "urn:") && strstr(cmd, ":service:"))
-        return SSDP_SERVICE;
+    if (strstr(cmd, "urn:")) {
+        if (strstr(cmd, ":device:"))
+            return SSDP_DEVICETYPE;
+        else if (strstr(cmd, ":service:"))
+            return SSDP_SERVICE;
+    }
     return SSDP_SERROR;
 }
 
 int ssdp_request_type(const char *cmd, SsdpEntity *Evt)
 {
     /* clear event */
-    memset(Evt, 0, sizeof(SsdpEntity));
+    *Evt = SsdpEntity();
     unique_service_name(cmd, Evt);
     if ((Evt->RequestType = ssdp_request_type1(cmd)) == SSDP_SERROR) {
         return -1;

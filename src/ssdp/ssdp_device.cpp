@@ -65,15 +65,19 @@ struct SsdpSearchReply {
     SsdpEntity event;
 };
 
+static void del_ssdpsearchreply(void *p)
+{
+    delete static_cast<SsdpSearchReply *>(p);
+}
+
 static void *thread_advertiseandreply(void *data)
 {
     auto arg = static_cast<SsdpSearchReply *>(data);
 
-    AdvertiseAndReply(MSGTYPE_REPLY, arg->handle,
-                      arg->event.RequestType,
+    AdvertiseAndReply(arg->handle, MSGTYPE_REPLY, 
+                      arg->MaxAge,
                       reinterpret_cast<struct sockaddr *>(&arg->dest_addr),
-                      arg->event.DeviceType,
-                      arg->event.UDN, arg->event.ServiceType, arg->MaxAge);
+                      arg->event);
     return nullptr;
 }
 
@@ -84,7 +88,6 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
     struct Handle_Info *dev_info = nullptr;
     int mx;
     SsdpEntity event;
-    SsdpSearchReply *threadArg = nullptr;
     int maxAge;
 
     /* check man hdr. */
@@ -131,13 +134,13 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
         UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
                    "MX       =  %d\n", maxAge);
         UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-                   "DeviceType     =    %s\n", event.DeviceType);
+                   "DeviceType     =    %s\n", event.DeviceType.c_str());
         UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-                   "DeviceUuid     =    %s\n", event.UDN);
+                   "DeviceUuid     =    %s\n", event.UDN.c_str());
         UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-                   "ServiceType =  %s\n", event.ServiceType);
-        threadArg =
-            static_cast<SsdpSearchReply *>(malloc(sizeof(SsdpSearchReply)));
+                   "ServiceType =  %s\n", event.ServiceType.c_str());
+
+        SsdpSearchReply *threadArg = new SsdpSearchReply;
         if (threadArg == nullptr)
             return;
         threadArg->handle = handle;
@@ -152,8 +155,7 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
                    "ssdp_handle_device_req: scheduling resp in %d ms\n",delayms);
         gTimerThread->schedule(
             TimerThread::SHORT_TERM, std::chrono::milliseconds(delayms),
-            nullptr, thread_advertiseandreply, threadArg,
-            static_cast<ThreadPool::free_routine>(free));
+            nullptr, thread_advertiseandreply, threadArg, del_ssdpsearchreply);
         start = handle;
     }
 }
@@ -585,14 +587,37 @@ static void replaceLochost(std::string& location, const std::string& lochost)
     }
 }
 
+static int servOrDevVers(const char *in)
+{
+    const char *cp = std::strrchr(in, ':');
+    if (nullptr == cp)
+        return 0;
+    cp++;
+    if (*cp != 0) {
+        return std::atoi(cp);
+    } else {
+        return 0;
+    }
+}
+
+static bool sameServOrDevNoVers(const char *his, const char *mine)
+{
+    const char *cp = std::strrchr(mine, ':');
+    if (nullptr == cp) {
+        // ??
+        return !strcasecmp(his, mine);
+    } else {
+        return !strncasecmp(his, mine, cp - mine);
+    }
+}
 
 // Send SSDP messages for one root device, one destination address,
 // which is the reply host or one of our source addresses. There may
 // be subdevices
 static int AdvertiseAndReplyOneDest(
-    SOCKET sock, SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
-    enum SsdpSearchType SearchType, struct sockaddr *DestAddr, char *DeviceType,
-    char *DeviceUDN, char *ServiceType, int Exp, const std::string& lochost)
+    UpnpDevice_Handle Hnd, SSDPDevMessageType tp, int Exp,
+    struct sockaddr *DestAddr, const SsdpEntity& sdata, SOCKET sock, 
+    const std::string& lochost)
 {
     int retVal = UPNP_E_SUCCESS;
     int defaultExp = DEFAULT_MAXAGE;
@@ -638,67 +663,67 @@ static int AdvertiseAndReplyOneDest(
                     sock, DestAddr, tp, devType,  isroot, UDNstr,
                     location, Exp, pwr);
             } else {
-                switch (SearchType) {
+                switch (sdata.RequestType) {
                 case SSDP_ALL:
                     DeviceReply(sock, DestAddr, devType, isroot, UDNstr,
                                 location, defaultExp, pwr);
                     break;
+
                 case SSDP_ROOTDEVICE:
                     if (isroot) {
                         SendReply(sock, DestAddr, devType, 1, UDNstr,
                                   location, defaultExp, 0, pwr);
                     }
                     break;
-                case SSDP_DEVICEUDN: {
-                    if (DeviceUDN && strlen(DeviceUDN)) {
-                        if (strcasecmp(DeviceUDN, UDNstr) != 0) {
-                            UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
-                                       "DeviceUDN=%s/search UDN=%s NOMATCH\n",
-                                       UDNstr, DeviceUDN);
-                            break;
-                        }
 
+                case SSDP_DEVICEUDN:
+                    if (!strcasecmp(sdata.UDN.c_str(), UDNstr)) {
                         UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
                                    "DeviceUDN=%s/search UDN=%s MATCH\n",
-                                   UDNstr, DeviceUDN);
+                                   UDNstr, sdata.UDN.c_str());
                         SendReply(sock, DestAddr, devType, 0, UDNstr, location,
                                   defaultExp, 0, pwr);
-                        break;
-                    }
-                }
-                [[gnu::fallthrough]];
+                    } else {
+                        UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+                                   "DeviceUDN=%s/search UDN=%s NOMATCH\n",
+                                   UDNstr, sdata.UDN.c_str());
+                    }                            
+                    break;
+
                 case SSDP_DEVICETYPE: {
-                    if (!strncasecmp(DeviceType,devType,strlen(DeviceType)-2)) {
-                        if (std::atoi(std::strrchr(DeviceType, ':') + 1)
-                            < std::atoi(&devType[std::strlen(devType) - static_cast<size_t>(1)])) {
+                    const char *dt = sdata.DeviceType.c_str();
+                    if (sameServOrDevNoVers(dt, devType)) {
+                        int myvers = servOrDevVers(devType);
+                        int hisvers = servOrDevVers(dt);
+                        if (hisvers < myvers) {
                             /* the requested version is lower than the
                                device version must reply with the
                                lower version number and the lower
                                description URL */
                             UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
                                        "DeviceType=%s/srchdevType=%s MATCH\n",
-                                       devType, DeviceType);
-                            SendReply(sock, DestAddr, DeviceType, 0, UDNstr,
+                                       devType, dt);
+                            SendReply(sock, DestAddr, dt, 0, UDNstr,
                                       lowerloc, defaultExp, 1, pwr);
-                        } else if (std::atoi(std::strrchr(DeviceType, ':') + 1)
-                                   == std::atoi(&devType[std::strlen(devType) - 1])) {
+                        } else if (hisvers == myvers) {
                             UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
                                        "DeviceType=%s/srchDevType=%s MATCH\n",
-                                       devType, DeviceType);
-                            SendReply(sock, DestAddr, DeviceType, 0,
+                                       devType, dt);
+                            SendReply(sock, DestAddr, dt, 0,
                                       UDNstr, location, defaultExp, 1, pwr);
                         } else {
                             UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
                                        "DeviceType=%s/srchDevType=%s NOMATCH\n",
-                                       devType, DeviceType);
+                                       devType, dt);
                         }
                     } else {
                         UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
                                    "DeviceType=%s /srchdevType=%s NOMATCH\n",
-                                   devType, DeviceType);
+                                   devType, dt);
                     }
-                    break;
                 }
+                    break;
+
                 default:
                     break;
                 }
@@ -720,53 +745,52 @@ static int AdvertiseAndReplyOneDest(
                     ServiceSend(sock, tp, DestAddr, servType, UDNstr, location,
                                 Exp, pwr);
                 } else {
-                    switch (SearchType) {
+                    switch (sdata.RequestType) {
                     case SSDP_ALL:
                         ServiceSend(sock, MSGTYPE_REPLY, DestAddr, servType,
                                     UDNstr, location, defaultExp, pwr);
                         break;
-                    case SSDP_SERVICE:
-                        if (ServiceType) {
-                            if (!strncasecmp(ServiceType, servType,
-                                             strlen(ServiceType) - 2)) {
-                                if (std::atoi(std::strrchr(ServiceType, ':') + 1) <
-                                    std::atoi(&servType[std::strlen(servType) - 1])) {
-                                    /* the requested version is lower
-                                       than the service version must
-                                       reply with the lower version
-                                       number and the lower
-                                       description URL */
-                                    UpnpPrintf(
-                                        UPNP_DEBUG, SSDP, __FILE__, __LINE__,
-                                        "ServiceTp=%s/searchServTp=%s MATCH\n",
-                                        ServiceType, servType);
-                                    SendReply(sock, DestAddr, ServiceType, 0,
-                                              UDNstr, lowerloc,
-                                              defaultExp, 1, pwr);
-                                } else if (
-                                    std::atoi(std::strrchr(ServiceType, ':') + 1)
-                                    == std::atoi(&servType[std::strlen(servType) - 1])) {
-                                    UpnpPrintf(
-                                        UPNP_DEBUG, SSDP, __FILE__, __LINE__,
-                                        "ServiceTp=%s/searchServTp=%s MATCH\n",
-                                        ServiceType, servType);
-                                    SendReply(sock, DestAddr, ServiceType, 0,
-                                              UDNstr, location, defaultExp, 1,
-                                              pwr);
-                                } else {
-                                    UpnpPrintf(
-                                        UPNP_DEBUG, SSDP, __FILE__, __LINE__,
-                                        "ServiceTp=%s/srchServTp=%s NO MATCH\n",
-                                        ServiceType, servType);
-                                }
+
+                    case SSDP_SERVICE: {
+                        const char *sst = sdata.ServiceType.c_str();
+                        if (sameServOrDevNoVers(sst, servType)) {
+                            int myvers = servOrDevVers(servType);
+                            int hisvers = servOrDevVers(sst);
+                            if (hisvers < myvers) {
+                                /* the requested version is lower
+                                   than the service version must
+                                   reply with the lower version
+                                   number and the lower
+                                   description URL */
+                                UpnpPrintf(
+                                    UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+                                    "ServiceTp=%s/searchServTp=%s MATCH\n",
+                                    sst, servType);
+                                SendReply(sock, DestAddr, sst, 0,
+                                          UDNstr, lowerloc,
+                                          defaultExp, 1, pwr);
+                            } else if (hisvers == myvers) {
+                                UpnpPrintf(
+                                    UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+                                    "ServiceTp=%s/searchServTp=%s MATCH\n",
+                                    sst, servType);
+                                SendReply(sock, DestAddr, sst, 0, UDNstr,
+                                          location, defaultExp, 1, pwr);
                             } else {
                                 UpnpPrintf(
                                     UPNP_DEBUG, SSDP, __FILE__, __LINE__,
                                     "ServiceTp=%s/srchServTp=%s NO MATCH\n",
-                                    ServiceType, servType);
+                                    sst, servType);
                             }
+                        } else {
+                            UpnpPrintf(
+                                UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+                                "ServiceTp=%s/srchServTp=%s NO MATCH\n",
+                                sst, servType);
                         }
+                    }
                         break;
+
                     default:
                         break;
                     }
@@ -783,11 +807,12 @@ static int AdvertiseAndReplyOneDest(
 
 // Process the advertisements or replies for one root device (which
 // may have subdevices).
+//
+// This top routine calls AdvertiseAndReplyOneDest() to do the real
+// work for each of the appropriate network addresses/interfaces.
 
-int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
-                      enum SsdpSearchType SearchType,
-                      struct sockaddr *repDestAddr, char *DeviceType,
-                      char *DeviceUDN, char *ServiceType, int Exp)
+int AdvertiseAndReply(UpnpDevice_Handle Hnd, SSDPDevMessageType tp, int Exp,
+                      struct sockaddr *repDestAddr, const SsdpEntity& sdata)
 {
     bool isNotify = (tp == MSGTYPE_ADVERTISEMENT || tp == MSGTYPE_SHUTDOWN);
     int ret = UPNP_E_SUCCESS;
@@ -812,8 +837,7 @@ int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
                 }
 
                 ret = AdvertiseAndReplyOneDest(
-                    sock, tp, Hnd, SearchType, destaddr, DeviceType,
-                    DeviceUDN, ServiceType, Exp, lochost);
+                    Hnd, tp, Exp, destaddr, sdata, sock, lochost);
                 
                 if (ret != UPNP_E_SUCCESS) {
                     UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
@@ -841,8 +865,7 @@ int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
                     goto exitfunc;
                 }
                 ret = AdvertiseAndReplyOneDest(
-                    sock, tp, Hnd, SearchType, destaddr, DeviceType,
-                    DeviceUDN, ServiceType, Exp, lochost);
+                    Hnd, tp, Exp, destaddr, sdata, sock, lochost);
 
                 UpnpCloseSocket(sock);
                 sock = INVALID_SOCKET;
@@ -858,8 +881,7 @@ int AdvertiseAndReply(SSDPDevMessageType tp, UpnpDevice_Handle Hnd,
             goto exitfunc;
         }
         ret = AdvertiseAndReplyOneDest(
-            sock, tp, Hnd, SearchType, repDestAddr, DeviceType,
-            DeviceUDN, ServiceType, Exp, lochost);
+            Hnd, tp, Exp, repDestAddr, sdata, sock, lochost);            
     }
 
 exitfunc:

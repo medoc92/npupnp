@@ -1034,8 +1034,8 @@ int UpnpUnRegisterRootDeviceLowPower(UpnpDevice_Handle Hnd, int PowerState,
     HandleUnlock();
 
 #if EXCLUDE_SSDP == 0
-    retVal = AdvertiseAndReply(MSGTYPE_SHUTDOWN, Hnd, SSDP_SERROR,
-                               nullptr, nullptr,nullptr,nullptr, HInfo->MaxAge);
+    SsdpEntity sd;
+    retVal = AdvertiseAndReply(Hnd, MSGTYPE_SHUTDOWN,HInfo->MaxAge, nullptr, sd);
 #endif
 
     if (checkLockHandle(HND_INVALID, Hnd, &HInfo) == HND_INVALID) {
@@ -1340,7 +1340,7 @@ static int GetDescDocumentAndURL(
 
 int UpnpSendAdvertisement(UpnpDevice_Handle Hnd, int Exp)
 {
-    return UpnpSendAdvertisementLowPower (Hnd, Exp, -1, -1, -1);
+    return UpnpSendAdvertisementLowPower(Hnd, Exp, -1, -1, -1);
 }
 
 void thread_autoadvertise(void *input)
@@ -1377,8 +1377,8 @@ int UpnpSendAdvertisementLowPower(
     SInfo->SleepPeriod = SleepPeriod;
     SInfo->RegistrationState = RegistrationState;
     HandleUnlock();
-    retVal = AdvertiseAndReply(MSGTYPE_ADVERTISEMENT, Hnd, SSDP_SERROR,
-                               nullptr, nullptr, nullptr, nullptr, Exp);
+    SsdpEntity sd;
+    retVal = AdvertiseAndReply(Hnd, MSGTYPE_ADVERTISEMENT, Exp, nullptr, sd);
 
     if(retVal != UPNP_E_SUCCESS)
         return retVal;

@@ -95,17 +95,14 @@ struct SsdpSearchArg {
 /* Storage for the data extracted from a received M-SEARCH Search
    Target (ST) or NOTIFY Notification Type (NT) header. */
 struct SsdpEntity {
-    enum SsdpSearchType RequestType;
-    char UDN[LINE_SIZE];
-    char DeviceType[LINE_SIZE];
-    char ServiceType[LINE_SIZE];
+    enum SsdpSearchType RequestType{SSDP_SERROR};
+    std::string UDN;
+    std::string DeviceType;
+    std::string ServiceType;
 #if 0
     void dump(std::ostream& ostr) {
-        ostr <<    " RequestType " << RequestType << 
-            " Mx " << Mx << " UDN " << UDN << 
-            " DeviceType " << DeviceType << " ServiceType " << ServiceType << 
-            " Location " << Location << " HostAddr " << HostAddr << 
-            " Os " << Os << " Ext " << Ext << " Date " << Date << "\n";
+        ostr << " RequestType " << RequestType << " UDN " << UDN <<
+            " DeviceType "<< DeviceType << " ServiceType " << ServiceType<<"\n";
     }
 #endif
 };
@@ -128,21 +125,16 @@ enum SSDPDevMessageType {MSGTYPE_SHUTDOWN, MSGTYPE_ADVERTISEMENT, MSGTYPE_REPLY}
  * \return UPNP_E_SUCCESS if successful else appropriate error.
  */
 int AdvertiseAndReply(
-    SSDPDevMessageType tp,
     /* [in] Device handle. */
     UpnpDevice_Handle Hnd, 
-    /* [in] Search type for sending replies. Ignored for NOTIFY */
-    enum SsdpSearchType SearchType, 
-    /* [in] Search response address. Null and ignored for NOTIFY */
-    struct sockaddr *DestAddr,
-    /* [in] Search device type. Null and ignored for NOTIFY. */
-    char *DeviceType, 
-    /* [in] Device UDN. Null and ignored for NOTIFY. */
-    char *DeviceUDN, 
-    /* [in] Service type. Null and ignored for NOTIFY. */
-    char *ServiceType,
+    /* [in] Message type: notify alive/shutdown, or search reply */
+    SSDPDevMessageType tp,
     /* [in] Advertisement max-age or search response random delay base. */
-    int Exp);
+    int Exp,
+    struct sockaddr *repDestAddr,
+    /* [in] Additional descriptive data for a search request */
+    const SsdpEntity& sdata
+);
 
 /*!
  * \brief Fills the fields of the event structure like DeviceType, Device UDN

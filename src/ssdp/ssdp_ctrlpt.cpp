@@ -136,9 +136,6 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
     memset(param.ServiceType, 0, sizeof(param.ServiceType));
     /* not used; version is in ServiceType */
     param.ServiceVer[0] = '\0';
-    event.UDN[0] = '\0';
-    event.DeviceType[0] = '\0';
-    event.ServiceType[0] = '\0';
     nt_found = 0;
     if (parser.nt) {
         nt_found = (ssdp_request_type(parser.nt, &event) == 0);
@@ -149,10 +146,8 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
     }
     if (nt_found || usn_found) {
         upnp_strlcpy(param.DeviceId, event.UDN, sizeof(param.DeviceId));
-        upnp_strlcpy(param.DeviceType, event.DeviceType,
-                sizeof(param.DeviceType));
-        upnp_strlcpy(param.ServiceType, event.ServiceType,
-                sizeof(param.ServiceType));
+        upnp_strlcpy(param.DeviceType, event.DeviceType, sizeof(param.DeviceType));
+        upnp_strlcpy(param.ServiceType, event.ServiceType,sizeof(param.ServiceType));
     }
     /* ADVERT. OR BYEBYE */
     if (!parser.isresponse) {
@@ -221,8 +216,7 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
                 matched = (event.RequestType == SSDP_ROOTDEVICE);
                 break;
             case SSDP_DEVICEUDN:
-                matched = !strncmp(searchArg->searchTarget.c_str(),
-                                   parser.st, stlen);
+                matched = !strncmp(searchArg->searchTarget.c_str(), parser.st, stlen);
                 break;
             case SSDP_DEVICETYPE:
             {
