@@ -27,7 +27,7 @@ lib_LTLIBRARIES = libnpupnp.la
 
 libnpupnp_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/src/inc 
 if LINUX
-libnpupnp_la_CXXFLAGS = -fvisibility=hidden
+libnpupnp_la_CXXFLAGS = -fvisibility=hidden -std=c++11
 endif
 
 
