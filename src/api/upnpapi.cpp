@@ -98,12 +98,12 @@ TimerThread *gTimerThread;
 ThreadPool gRecvThreadPool;
 /*! Mini server thread pool. */
 ThreadPool gMiniServerThreadPool;
-static std::vector<std::pair<ThreadPool *, const char *> > o_threadpools{
+static constexpr std::array<std::pair<ThreadPool*, const char*>, 3> o_threadpools{{
     {&gSendThreadPool, "Send thread pool"},
     {&gRecvThreadPool, "Receive thread pool"},
-    {&gMiniServerThreadPool, "Mini server thread pool"}
-};
-                                                                 
+    {&gMiniServerThreadPool, "Mini server thread pool"},
+}};
+
 /*! Flag to indicate the state of web server */
 WebServerState bWebServerState = WEB_SERVER_DISABLED;
 
