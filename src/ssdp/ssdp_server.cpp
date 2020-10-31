@@ -119,7 +119,7 @@ enum SsdpSearchType ssdp_request_type1(const char *cmd)
     if (strstr(cmd, "urn:")) {
         if (strstr(cmd, ":device:"))
             return SSDP_DEVICETYPE;
-        else if (strstr(cmd, ":service:"))
+        if (strstr(cmd, ":service:"))
             return SSDP_SERVICE;
     }
     return SSDP_SERROR;

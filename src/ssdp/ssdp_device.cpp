@@ -595,9 +595,8 @@ static int servOrDevVers(const char *in)
     cp++;
     if (*cp != 0) {
         return std::atoi(cp);
-    } else {
-        return 0;
     }
+    return 0;
 }
 
 static bool sameServOrDevNoVers(const char *his, const char *mine)
@@ -606,9 +605,8 @@ static bool sameServOrDevNoVers(const char *his, const char *mine)
     if (nullptr == cp) {
         // ??
         return !strcasecmp(his, mine);
-    } else {
-        return !strncasecmp(his, mine, cp - mine);
     }
+    return !strncasecmp(his, mine, cp - mine);
 }
 
 // Send SSDP messages for one root device, one destination address,
