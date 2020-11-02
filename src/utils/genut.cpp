@@ -70,20 +70,30 @@ size_t upnp_strlcpy(char *dst, const char *src, size_t dsize)
 
 string xmlQuote(const string& in)
 {
-    return std::accumulate(in.begin(), in.end(), string(""), [](const string& o, char i) { switch (i) {
-         case '"':
-              return o + "&quot;";
-          case '&':
-              return o + "&amp;";
-          case '<':
-              return o + "&lt;";
-          case '>':
-              return o + "&gt;";
-          case '\'':
-              return o + "&apos;";
-          default:
-              return o + i;
-      } });
+    string out;
+    out.reserve(in.size());
+    for (char i : in) {
+        switch (i) {
+        case '"':
+            out += "&quot;";
+            break;
+        case '&':
+            out += "&amp;";
+            break;
+        case '<':
+            out += "&lt;";
+            break;
+        case '>':
+            out += "&gt;";
+            break;
+        case '\'':
+            out += "&apos;";
+            break;
+        default:
+            out += i;
+        }
+    }
+    return out;
 }
 
 int dom_cmp_name(const std::string& domname, const std::string& ref)

@@ -1,3 +1,10 @@
+libnpupnp1 (4.0.13-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Fix bad change in xml-quoting function, which resulted in catastrophic
+    performance degradatation for, e.g. reading big playlists.
+  
+ -- Jean-Francois Dockes <jf@dockes.org>  Mon, 02 Nov 2020 13:10:00 +0100
+
 libnpupnp1 (4.0.12-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Accept running with ipv4 only if no ipv6 address is available (when
