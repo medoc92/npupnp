@@ -160,7 +160,8 @@ static MHD_Result queryvalues_cb(void *cls, enum MHD_ValueKind,
     return MHD_YES;
 }
 
-static const std::map<std::string, http_method_t> strmethtometh {
+// Use int not enum as data.second spares a map code instanciation (at least with some compilers)
+static const std::map<std::string, int> strmethtometh {
     {"get", HTTPMETHOD_GET},
     {"head", HTTPMETHOD_HEAD},
     {"m-post", HTTPMETHOD_MPOST},
@@ -234,7 +235,7 @@ static MHD_Result answer_to_connection(
                 mhdt->headers.find("soapaction") != mhdt->headers.end()) {
                 mhdt->method = SOAPMETHOD_POST;
             } else {
-                mhdt->method = it->second;
+                mhdt->method = http_method_t(it->second);
             }
         }
         return MHD_YES;
