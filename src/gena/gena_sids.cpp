@@ -95,7 +95,7 @@ std::string gena_sid_uuid()
     MD5_CTX c;
     unsigned char hash[16];
     MD5Init(&c);
-    MD5Update(&c, reinterpret_cast<unsigned char*>(const_cast<char*>(str.str().c_str())), str.str().size());
+    MD5Update(&c, reinterpret_cast<const unsigned char*>(str.str().c_str()), str.str().size());
     MD5Final(hash, &c);
 
     std::string out;

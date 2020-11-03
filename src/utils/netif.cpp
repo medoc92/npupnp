@@ -87,7 +87,7 @@ static FILE *logfp;
 class IPAddr::Internal {
 public:
     bool ok{false};
-    struct sockaddr_storage address;
+    struct sockaddr_storage address{};
     struct sockaddr *saddr{nullptr};
 };
 
@@ -118,8 +118,6 @@ IPAddr& IPAddr::operator=(const IPAddr& o)
 IPAddr::IPAddr(const char *caddr)
     : IPAddr()
 {
-    m->address = {};
-
     if (std::strchr(caddr, ':') != nullptr) {
         if (inet_pton(
                 AF_INET6, caddr,
@@ -141,7 +139,6 @@ IPAddr::IPAddr(const char *caddr)
 IPAddr::IPAddr(const struct sockaddr *sa)
     : IPAddr()
 {
-    m->address = {};
     switch (sa->sa_family) {
     case AF_INET:
         memcpy(m->saddr, sa, sizeof(struct sockaddr_in));
