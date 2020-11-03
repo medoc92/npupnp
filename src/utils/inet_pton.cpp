@@ -103,7 +103,8 @@ static char *inet_ntop6(const unsigned char *src, char *dst, socklen_t size)
      *    Copy the input (bytewise) array into a wordwise array.
      *    Find the longest run of 0x00's in src[] for :: shorthanding.
      */
-    words = {};
+
+    memset(words, '\0', sizeof words);
     for (i = 0; i < NS_IN6ADDRSZ; i++)
         words[i / 2] |= (src[i] << ((1 - (i % 2)) << 3));
     best.base = -1;

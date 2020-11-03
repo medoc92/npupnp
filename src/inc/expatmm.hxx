@@ -314,7 +314,7 @@ private:
         status = XML_STATUS_OK;
         last_error = XML_ERROR_NONE;
 
-        xml_buffer = {};
+        memset(xml_buffer, 0, xml_buffer_size * sizeof(XML_Char));
 
         /* Set the "ready" flag on this parser */
         valid_parser = true;

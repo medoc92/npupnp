@@ -166,7 +166,7 @@ bool IPAddr::ok() const
 bool IPAddr::copyToStorage(struct sockaddr_storage *dest) const
 {
     if (!m->ok) {
-        dest = {};
+        *dest = {};
         return false;
     }
     memcpy(dest, &m->address, sizeof(struct sockaddr_storage));

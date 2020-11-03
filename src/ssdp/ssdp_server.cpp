@@ -277,7 +277,7 @@ void readFromSSDPSocket(SOCKET socket)
 static int create_ssdp_sock_v4(SOCKET *ssdpSock)
 {
     int onOff;
-    struct sockaddr_storage ss;
+    struct sockaddr_storage ss = {};
     auto ssdpAddr4 = reinterpret_cast<struct sockaddr_in *>(&ss);
     int ret = UPNP_E_SOCKET_ERROR;
     std::string errorcause;
@@ -307,7 +307,6 @@ static int create_ssdp_sock_v4(SOCKET *ssdpSock)
     }
 #endif /* BSD, __OSX__, __APPLE__ */
 
-    ss = {};
     ssdpAddr4->sin_family = static_cast<sa_family_t>(AF_INET);
     ssdpAddr4->sin_addr.s_addr = htonl(INADDR_ANY);
     ssdpAddr4->sin_port = htons(SSDP_PORT);
