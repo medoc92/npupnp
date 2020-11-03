@@ -179,7 +179,7 @@ static int ScheduleGenaAutoRenew(
     }
 
     /* schedule expire event */
-    memset(RenewEventStruct, 0, sizeof(struct Upnp_Event_Subscribe));
+    RenewEventStruct = {};
     RenewEventStruct->ErrCode = UPNP_E_SUCCESS;
     RenewEventStruct->TimeOut = TimeOut;
     upnp_strlcpy(RenewEventStruct->Sid, tmpSID, sizeof(RenewEventStruct->Sid));

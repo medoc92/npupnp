@@ -114,7 +114,7 @@ void MHDTransaction::copyClientAddress(struct sockaddr_storage *dest) const
     if (nullptr == dest)
         return;
     if (nullptr == client_address) {
-        memset(dest, 0, sizeof(struct sockaddr_storage));
+        dest = {};
         return;
     }
     if (client_address->ss_family == AF_INET) {
@@ -446,20 +446,20 @@ std::string make_date_string(time_t thetime)
 std::string query_encode(const std::string& qs)
 {
     std::string out;
+    out.reserve(qs.size());
+    const char *h = "0123456789ABCDEF";
     const char *cp = qs.c_str();
-    for (std::string::size_type i = 0; i < qs.size(); i++) {
-        unsigned int c;
-        const char *h = "0123456789ABCDEF";
-        c = cp[i];
-        if ((c >= 'A' && c <= 'Z') ||
-            (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
-            c == '*' || c == '-' || c== '.' || c == '_') {
-            out += char(c);
+    while (*cp) {
+        if ((*cp >= 'A' && *cp <= 'Z') ||
+            (*cp >= 'a' && *cp <= 'z') || (*cp >= '0' && *cp <= '9') ||
+            *cp == '*' || *cp == '-' || *cp== '.' || *cp == '_') {
+            out += *cp;
         } else {
             out += '%';
-            out += h[(c >> 4) & 0xf];
-            out += h[c & 0xf];
+            out += h[(((unsigned int)*cp) >> 4) & 0xf];
+            out += h[((unsigned int)*cp) & 0xf];
         }
+        cp++;
     }
     return out;
 }

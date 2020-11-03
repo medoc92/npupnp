@@ -126,9 +126,8 @@ static int parse_hostport(
             af = AF_INET;
         else {
             /* Must be a host name. */
-            struct addrinfo hints, *res, *res0;
+            struct addrinfo hints = {}, *res, *res0;
 
-            memset(&hints, 0, sizeof(hints));
             hints.ai_family = AF_UNSPEC;
             hints.ai_socktype = SOCK_STREAM;
 
@@ -170,7 +169,7 @@ static int parse_hostport(
         port = 80U;
     /* The length of the host and port string can be calculated by */
     /* subtracting pointers. */
-    hostport_size = (size_t)c - (size_t)workbuf;
+    hostport_size = size_t(c) - size_t(workbuf);
     /* Fill in the 'out' information. */
     switch (af) {
     case AF_INET:

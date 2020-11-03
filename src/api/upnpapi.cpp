@@ -98,12 +98,12 @@ TimerThread *gTimerThread;
 ThreadPool gRecvThreadPool;
 /*! Mini server thread pool. */
 ThreadPool gMiniServerThreadPool;
-static std::vector<std::pair<ThreadPool *, const char *> > o_threadpools{
+static constexpr std::array<std::pair<ThreadPool*, const char*>, 3> o_threadpools{{
     {&gSendThreadPool, "Send thread pool"},
     {&gRecvThreadPool, "Receive thread pool"},
-    {&gMiniServerThreadPool, "Mini server thread pool"}
-};
-                                                                 
+    {&gMiniServerThreadPool, "Mini server thread pool"},
+}};
+
 /*! Flag to indicate the state of web server */
 WebServerState bWebServerState = WEB_SERVER_DISABLED;
 
@@ -129,7 +129,7 @@ unsigned short LOCAL_PORT_V6;
 
 /*! UPnP device and control point handle table    */
 #define NUM_HANDLE 200
-static Handle_Info *HandleTable[NUM_HANDLE];
+static std::array<Handle_Info*, NUM_HANDLE> HandleTable;
 
 /*! Maximum content-length (in bytes) that the SDK will process on an incoming
  * packet. Content-Length exceeding this size will be not processed and
@@ -474,7 +474,7 @@ static int UpnpInitPreamble()
 
     /* Initializes the handle list. */
     HandleLock();
-    memset(HandleTable, 0, sizeof(HandleTable));
+    HandleTable = {};
     HandleUnlock();
 
     /* Initialize SDK global thread pools. */
@@ -946,7 +946,7 @@ static int registerRootDeviceAllForms(
                "Root Device URL for legacy CPs: %s\n", HInfo->LowerDescURL);
     HInfo->HType = HND_DEVICE;
     HInfo->Callback = Fun;
-    HInfo->Cookie = (char *)Cookie;
+    HInfo->Cookie = reinterpret_cast<char*>(const_cast<void*>(Cookie));
     HInfo->MaxAge = DEFAULT_MAXAGE;
     HInfo->MaxSubscriptions = UPNP_INFINITE;
     HInfo->MaxSubscriptionTimeOut = UPNP_INFINITE;
@@ -1076,7 +1076,7 @@ int UpnpRegisterClient(Upnp_FunPtr Fun, const void *Cookie,
     }
     HInfo->HType = HND_CLIENT;
     HInfo->Callback = Fun;
-    HInfo->Cookie = (char *)Cookie;
+    HInfo->Cookie = reinterpret_cast<char*>(const_cast<void*>(Cookie));
 #ifdef INCLUDE_DEVICE_APIS
     HInfo->MaxAge = 0;
     HInfo->MaxSubscriptions = UPNP_INFINITE;

@@ -160,7 +160,8 @@ static MHD_Result queryvalues_cb(void *cls, enum MHD_ValueKind,
     return MHD_YES;
 }
 
-static const std::map<std::string, http_method_t> strmethtometh {
+// Use int not enum as data.second spares a map code instanciation (at least with some compilers)
+static const std::map<std::string, int> strmethtometh {
     {"get", HTTPMETHOD_GET},
     {"head", HTTPMETHOD_HEAD},
     {"m-post", HTTPMETHOD_MPOST},
@@ -234,7 +235,7 @@ static MHD_Result answer_to_connection(
                 mhdt->headers.find("soapaction") != mhdt->headers.end()) {
                 mhdt->method = SOAPMETHOD_POST;
             } else {
-                mhdt->method = it->second;
+                mhdt->method = http_method_t(it->second);
             }
         }
         return MHD_YES;
@@ -308,7 +309,7 @@ static int receive_from_stopSock(SOCKET ssock, fd_set *set)
 
     if (FD_ISSET(ssock, set)) {
         len = sizeof(ss);
-        memset(&ss, 0, sizeof(ss));
+        ss = {};
         byteReceived = recvfrom(
             ssock, requestBuf, static_cast<size_t>(25), 0, fromaddr, &len);
         
@@ -428,9 +429,9 @@ static int get_port(
         return -1;
     }
     if (sockinfo.ss_family == AF_INET) {
-        *port = ntohs(((struct sockaddr_in*)&sockinfo)->sin_port);
+        *port = ntohs(reinterpret_cast<struct sockaddr_in*>(&sockinfo)->sin_port);
     } else if(sockinfo.ss_family == AF_INET6) {
-        *port = ntohs(((struct sockaddr_in6*)&sockinfo)->sin6_port);
+        *port = ntohs(reinterpret_cast<struct sockaddr_in6*>(&sockinfo)->sin6_port);
     }
     UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
                "sockfd = %d, .... port = %d\n", sockfd, static_cast<int>(*port));
@@ -462,7 +463,7 @@ static int get_miniserver_stopsock(MiniServerSockArray *out)
         return UPNP_E_OUTOF_SOCKET;
     }
     /* Bind to local socket. */
-    memset(&stop_sockaddr, 0, sizeof (stop_sockaddr));
+    stop_sockaddr = {};
     stop_sockaddr.sin_family = static_cast<sa_family_t>(AF_INET);
     stop_sockaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
     ret = bind(out->miniServerStopSock, reinterpret_cast<struct sockaddr *>(&stop_sockaddr),
@@ -501,8 +502,7 @@ static int available_port(int reqport)
 
     int port = std::max(APPLICATION_LISTENING_PORT, reqport);
     int ret = UPNP_E_SOCKET_BIND;
-    struct sockaddr_storage saddr;
-    memset(&saddr, 0, sizeof(saddr));
+    struct sockaddr_storage saddr = {};
     auto ip = reinterpret_cast<struct sockaddr_in*>(&saddr);
     ip->sin_family = AF_INET;
     ip->sin_addr.s_addr = htonl(INADDR_ANY);
