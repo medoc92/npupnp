@@ -160,6 +160,12 @@ if test "x$enable_reuseaddr" = xyes ; then
         AC_DEFINE(UPNP_MINISERVER_REUSEADDR, 1, [see upnpconfig.h])
 fi
 
+AC_ARG_ENABLE(testprogs,
+    AC_HELP_STRING([--enable-testprogs],
+   [Enable building small test drivers. These are not unit tests.]),
+        buildtestprogs=$enableval, buildtestprogs=no)
+AM_CONDITIONAL([COND_TESTPROGS], [test "$buildtestprogs" = yes])
+
 AC_TYPE_SIZE_T
 AC_TYPE_OFF_T
 AC_DEFINE([_LARGE_FILE_SOURCE], [], [Large files support])
@@ -266,5 +272,8 @@ AC_CONFIG_FILES([
 	libnpupnp.pc
 	])
 
+if test X$buildtestprogs = Xyes ; then
+   AC_CONFIG_FILES([test/Makefile])
+fi
 
 AC_OUTPUT
