@@ -311,7 +311,7 @@ static int getIfInfo(const char *IfNames)
         }
     }
     UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-               "interfaces= %s, v4= %s, v6= %s\n",
+               "Chosen interfaces= %s, v4= %s, v6= %s\n",
                actifnames.c_str(), v4addr.c_str(), v6addr.c_str());
 
     return UPNP_E_SUCCESS;
@@ -602,6 +602,14 @@ static int upnpInitCommon(const char *hostIP, const char *ifName,
                hostIP ? hostIP : "",ifName?ifName:"",static_cast<int>(DestPort));
 
     retVal = waitForNetwork(hostIP, ifName);
+
+    {
+        std::ostringstream ifdump;
+        NetIF::Interfaces *ifs = NetIF::Interfaces::theInterfaces();
+        ifs->print(ifdump);
+        UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
+                   "All network interfaces:\n%s\n", ifdump.str().c_str());
+    }
     if (retVal != UPNP_E_SUCCESS) {
         UpnpPrintf(UPNP_ERROR, API, __FILE__, __LINE__,
                    "UpnpInit: no usable IP address found after waiting %d S\n",
