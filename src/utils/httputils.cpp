@@ -320,25 +320,23 @@ int http_SendStatusResponse(MHDTransaction *mhdt, int status_code)
     return UPNP_E_SUCCESS;
 }
 
-
-static const std::regex textxml_re(
-    "text[ \t]*/[ \t]*xml([ \t]*;.*)?",
-    std::regex_constants::extended | std::regex_constants::icase);
-
 bool has_xml_content_type(MHDTransaction *mhdt)
 {
+    static const char *xmlmtype = "text/xml";
+    static const size_t mtlen = strlen(xmlmtype);
+
     auto it = mhdt->headers.find("content-type");
     if (it == mhdt->headers.end()) {
         UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
                    "has_xml_content: no content type header\n");
         return false;
     }
-    bool ret = regex_match(it->second, textxml_re);
-    if (!ret) {
+    if (strncasecmp(xmlmtype, it->second.c_str(), mtlen)) {
         UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__, "has_xml_content: "
-                   "no match for [%s]\n", it->second.c_str());
+                   "text/xml not found in [%s]\n", it->second.c_str());
+        return false;
     }
-    return ret;
+    return true;
 }
 
 bool timeout_header_value(std::map<std::string, std::string>& headers,
