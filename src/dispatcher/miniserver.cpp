@@ -138,8 +138,9 @@ static MHD_Result headers_cb(void *cls, enum MHD_ValueKind,
     stringtolower(key);
     // It is always possible to combine multiple identically named headers
     // name into one comma separated list. See HTTP 1.1 section 4.2
-    if (mhtt->headers.find(key) != mhtt->headers.end()) {
-        mhtt->headers[key] = mhtt->headers[key] + "," + value;
+    auto it = mhtt->headers.find(key);
+    if (it != mhtt->headers.end()) {
+        it->second = it->second + "," + value;
     } else {
         mhtt->headers[key] = value;
     }
