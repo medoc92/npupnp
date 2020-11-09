@@ -129,15 +129,15 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
         maxAge = dev_info->MaxAge;
         HandleUnlock();
 
-        UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
+        UpnpPrintf(UPNP_DEBUG, API, __FILE__, __LINE__,
                    "MAX-AGE        =  %d\n", maxAge);
-        UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
+        UpnpPrintf(UPNP_DEBUG, API, __FILE__, __LINE__,
                    "MX       =  %d\n", maxAge);
-        UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
+        UpnpPrintf(UPNP_DEBUG, API, __FILE__, __LINE__,
                    "DeviceType     =    %s\n", event.DeviceType.c_str());
-        UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
+        UpnpPrintf(UPNP_DEBUG, API, __FILE__, __LINE__,
                    "DeviceUuid     =    %s\n", event.UDN.c_str());
-        UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
+        UpnpPrintf(UPNP_DEBUG, API, __FILE__, __LINE__,
                    "ServiceType =  %s\n", event.ServiceType.c_str());
 
         SsdpSearchReply *threadArg = new SsdpSearchReply;
