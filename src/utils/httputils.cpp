@@ -46,7 +46,6 @@
 #include <string>
 #include <sstream>
 #include <iostream>
-#include <regex>
 #include <map>
 
 #include <curl/curl.h>
