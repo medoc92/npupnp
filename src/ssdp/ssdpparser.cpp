@@ -31,38 +31,22 @@
 #include "ssdpparser.h"
 
 #include <iostream>
+#include <cstring>
+#include <mutex>
 #include <string>
-#include <regex>
 
 #include "upnpdebug.h"
 #include "UpnpGlobal.h"
 
 #define CCRLF "\r\n"
 
-static const std::string CRLF{CCRLF};
-// As per RFC 2616 2.2 Basic Rules
-static const std::string SEPARATORS{ "]()<>@,;:\\\"/[?={} \t"};
-static const std::string WS{"[ \t]+"};
-static const std::string WSMAYBE{"[ \t]*"};
+static const char *notify_start = "NOTIFY * HTTP/1.1\r\n";
+static const size_t notify_start_len = strlen(notify_start);
+static const char *msearch_start = "M-SEARCH * HTTP/1.1\r\n";
+static const size_t msearch_start_len = strlen(msearch_start);
+static const char *response_start = "HTTP/1.1 200 OK\r\n";
+static const size_t response_start_len = strlen(response_start);
 
-// Start token
-static const std::string sttoken_s = std::string("^([^") + SEPARATORS + "]+)";
-
-// Header line
-static const std::string header_res
-= sttoken_s + ":" + WSMAYBE + "([^\r]+)?\r\n";
-
-// Request line
-static const std::string request_res
-= sttoken_s + WS + "([^ \t]+)" + WS + "([A-Za-z]+)/([0-9]+.[0-9]+)[ \t]*\r\n";
-
-// Response line
-static const std::string response_res
-=sttoken_s + "/" + "([0-9].[0-9])" + WS + "([0-9]+)" + WS + "([^\r]+)" + "\r\n";
-
-static const std::regex header_re(header_res, std::regex_constants::extended);
-static const std::regex request_re(request_res, std::regex_constants::extended);
-static const std::regex response_re(response_res, std::regex_constants::extended);
 
 void SSDPPacketParser::trimright(char *cp, size_t len) {
     while (len > 0) {
@@ -100,44 +84,58 @@ void SSDPPacketParser::dump(std::ostream& os) const {
 
 bool SSDPPacketParser::parse()
 {
-    std::cmatch m;
-    if (regex_search(m_packet, m, request_re)) {
-        method = (m_packet + m.position(1));
-        method[m[1].length()] = 0;
-        url = (m_packet + m.position(2));
-        url[m[2].length()] = 0;
-        protocol = (m_packet + m.position(3));
-        protocol[m[3].length()] = 0;
-        version = (m_packet + m.position(4));
-        version[m[4].length()] = 0;
-    } else if (regex_search(m_packet, m, response_re)) {
+    protocol = "HTTP";
+    version = "1.1";
+    char *cp;
+    if (!strncmp(m_packet, notify_start, notify_start_len)) {
+        method = "NOTIFY";
+        url = "*";
+        cp = m_packet + notify_start_len;
+    } else if (!strncmp(m_packet, msearch_start, msearch_start_len)) {
+        method = "M-SEARCH";
+        url = "*";
+        cp = m_packet + msearch_start_len;
+    } else if (!strncmp(m_packet, response_start, response_start_len)) {
         isresponse = true;
-        protocol = (m_packet + m.position(1));
-        protocol[m[1].length()] = 0;
-        version = (m_packet + m.position(2));
-        version[m[2].length()] = 0;
-        status  = (m_packet + m.position(3));
-        status[m[3].length()] = 0;
+        status  = "200";
+        cp = m_packet + response_start_len;
     } else {
-        UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,    "SSDP parser: could "
-                   "not find request line in [%s]\n", m_packet);
+        UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
+                   "SSDP parser: bad first line in [%s]\n", m_packet);
         return false;
     }
-        
-    char *cp = m_packet+ m.length();
+
     
     for (;;) {
-        if (!regex_search(cp, m, header_re)) {
-            break;
+        char *nm = cp;
+        char *colon = strchr(cp, ':');
+        if (nullptr == colon) {
+            bool ret = strcmp(cp, "\r\n") == 0;
+            if (!ret) {
+                UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__, "SSDP parser: "
+                           "no empty line at end of packet: [%s]\n", cp);
+            }
+            return ret;
         }
 
-        char *nm = (cp + m.position(1));
-        nm[m[1].length()] = 0;
-
-        char *val = (cp + m.position(2));
-        val[m[2].length()] = 0;
-        trimright(val, m[2].length());
-
+        *colon = 0;
+        cp = colon + 1;
+        // Get rid of white space after colon.
+        while (*cp == ' ' || *cp == '\t') {
+            cp++;
+        }
+        char *eol = strstr(cp, "\r\n");
+        if (nullptr == eol) {
+            // This is an error
+            UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
+                       "SSDP parser: no EOL after: [%s]\n",   cp);
+            break;
+        }
+        char *val = cp;
+        *eol = 0;
+        trimright(val, eol - val);
+        cp = eol + 2;
+        
         bool known{false};
         switch (nm[0]) {
         case 'c': case 'C':
@@ -197,10 +195,15 @@ bool SSDPPacketParser::parse()
             break;
         }
 #if 0
-        if (known) {
-            cerr << "NM [" << nm << "] VAL [" << val << "]\n";
-        } else { 
-            cerr << "Unknown header name [" << nm << "]\n";
+        {
+            static std::mutex mmut;
+            std::unique_lock<std::mutex> lock(mmut);
+            if (known) {
+                std::cerr << "NM [" << nm << "] VAL [" << val << "]\n";
+            } else { 
+                std::cerr << "Unknown header name [" << nm
+                          << "] in " << saved <<"\n";
+            }
         }
 #else
         if (!known) {
@@ -208,12 +211,6 @@ bool SSDPPacketParser::parse()
                        "SSDP parser: unknown header name [%s]\n", nm);
         }            
 #endif
-        cp += m.length();
     }
-    bool ret = strcmp(cp, "\r\n") == 0;
-    if (!ret) {
-        UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
-                   "SSDP parser: no empty line at end of packet: [%s]\n", cp);
-    }
-    return ret;
+    return false;
 }

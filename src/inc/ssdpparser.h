@@ -46,24 +46,24 @@ public:
 
     // Results. After parsing, the set fields point into the original buffer.
     bool isresponse{false};
-    char *cache_control{nullptr};
-    char *date{nullptr};
+    const char *cache_control{nullptr};
+    const char *date{nullptr};
     bool  ext{false};
-    char *host{nullptr};
-    char *location{nullptr};
-    char *man{nullptr};
-    char *method{nullptr};
-    char *mx{nullptr};
-    char *nt{nullptr};
-    char *nts{nullptr};
-    char *protocol{nullptr};
-    char *server{nullptr};
-    char *st{nullptr};
-    char *status{nullptr};
-    char *url{nullptr};
-    char *user_agent{nullptr};
-    char *usn{nullptr};
-    char *version{nullptr};
+    const char *host{nullptr};
+    const char *location{nullptr};
+    const char *man{nullptr};
+    const char *method{nullptr};
+    const char *mx{nullptr};
+    const char *nt{nullptr};
+    const char *nts{nullptr};
+    const char *protocol{nullptr};
+    const char *server{nullptr};
+    const char *st{nullptr};
+    const char *status{nullptr};
+    const char *url{nullptr};
+    const char *user_agent{nullptr};
+    const char *usn{nullptr};
+    const char *version{nullptr};
     
 private:
     char *m_packet;
