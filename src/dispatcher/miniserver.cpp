@@ -501,7 +501,7 @@ static int available_port(int reqport)
                    "miniserver: reuseaddr: %s\n", errorBuffer);
     }
 
-    int port = std::max(APPLICATION_LISTENING_PORT, reqport);
+    int port = reqport <= 0 ? APPLICATION_LISTENING_PORT : reqport;
     int ret = UPNP_E_SOCKET_BIND;
     struct sockaddr_storage saddr = {};
     auto ip = reinterpret_cast<struct sockaddr_in*>(&saddr);
