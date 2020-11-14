@@ -186,18 +186,11 @@ subscription::~subscription()
 service_info *FindServiceId(
     service_table *table, const std::string& serviceId, const std::string& UDN)
 {
-    auto it = std::find_if(
-        table->serviceList.begin(), table->serviceList.end(),
-        [serviceId,UDN](const service_info& si)->bool{
-            return (serviceId == si.serviceId) &&
-                (UDN == si.UDN);});
-    if (it == table->serviceList.end()) {
-        return nullptr;
-    }
+    for (auto& si : table->serviceList)
+        if ((serviceId == si.serviceId) && (UDN == si.UDN))
+            return &si;
 
-    return &(*it);
-
-
+    return nullptr;
 }
 
 /************************************************************************

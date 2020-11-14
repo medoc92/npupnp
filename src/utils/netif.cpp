@@ -710,15 +710,11 @@ std::vector<Interface> Interfaces::select(const Filter& filt) const
 
 Interface *Interfaces::findByName(const char *nm) const
 {
-    if (m->interfaces.empty()) {
-        return nullptr;
-    }
-    auto it = std::find_if(
-        m->interfaces.begin(), m->interfaces.end(),
-        [nm] (const Interface& ifr) {
-            return nm == ifr.m->name || nm == ifr.m->friendlyname;});
+    for (auto& ifr : m->interfaces)
+        if (nm == ifr.m->name || nm == ifr.m->friendlyname)
+            return &ifr;
 
-    return it == m->interfaces.end() ? nullptr : &(*it);
+    return nullptr;
 }
 
 static const Interface* interfaceForAddress4(
