@@ -21,7 +21,9 @@ typedef ADDRESS_FAMILY sa_family_t;
 
 #else /* ! _WIN32 -> */
 
-/*** Windows compat macros */
+#include <unistd.h>
+
+/*** Windows compatibility macros */
 #define UpnpCloseSocket(s) do {close(s); s = -1;} while(0)
 #define UPNP_SOCK_GET_LAST_ERROR() errno
 /* SOCKET is typedefd by the system and unsigned on Win32 */
