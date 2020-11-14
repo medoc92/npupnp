@@ -27,21 +27,16 @@ protected:
     void EndElement(const XML_Char *name) override {
         trimstring(m_chardata, " \t\n\r");
 
-        UPnPDeviceDesc *dev;
-        bool ismain = false;
+        // If deviceList is in the current tag path, this is an embedded device.
         // Arghh: upmpdcli wrongly used devicelist instead of
         // deviceList. Support both as it is unlikely that anybody
         // would use both for different purposes
-        if (find_if(m_path.begin(), m_path.end(),
-                    [] (const StackEl& el) {
-                        return !stringlowercmp("devicelist", el.name);})
-            == m_path.end()) {
-            dev = &m_device;
-            ismain = true;
-        } else {
-            dev = &m_tdevice;
-            ismain = false;
-        }
+        bool ismain = !std::any_of(
+            m_path.begin(), m_path.end(),
+            [](const StackEl& el) {
+                return !stringlowercmp("devicelist", el.name);});
+
+        UPnPDeviceDesc* dev = ismain ? &m_device : &m_tdevice;
 
         if (!strcmp(name, "service")) {
             dev->services.push_back(m_tservice);
