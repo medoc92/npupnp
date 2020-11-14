@@ -37,7 +37,6 @@
 
 #include <cassert>
 #include <cstring>
-#include <microhttpd.h>
 
 #include <iostream>
 #include <sstream>
