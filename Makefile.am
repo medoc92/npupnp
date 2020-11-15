@@ -64,6 +64,7 @@ libnpupnp_la_SOURCES = \
 	src/inc/service_table.h \
 	src/inc/genut.h \
 	src/inc/smallut.h \
+	src/inc/smallut_instantiate.h \
 	src/inc/soaplib.h \
 	src/inc/ssdplib.h \
 	src/inc/ssdpparser.h \
@@ -136,8 +137,8 @@ EXTRA_DIST = \
 	libnpupnp.pc.in \
 	README.md \
 	autogen.sh \
-	src/utils/win_dll.cpp
-
+	src/utils/win_dll.cpp \
+        test/Makefile.am
 
 # This variable must have 'exec' in its name, in order to be installed 
 # by 'install-exec' target (instead of default 'install-data')

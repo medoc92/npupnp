@@ -1,3 +1,10 @@
+libnpupnp1 (4.0.14-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Fix parsing of UPnP description with multiple embedded devices.
+  * Allow using a port below 49152.
+  
+ -- Jean-Francois Dockes <jf@dockes.org>  Mon, 02 Nov 2020 13:10:00 +0100
+
 libnpupnp1 (4.0.13-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Fix bad change in xml-quoting function, which resulted in catastrophic
