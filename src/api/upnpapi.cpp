@@ -39,6 +39,8 @@
 #include <utility>
 #include <mutex>
 #include <thread>
+#include <array>
+
 #include <curl/curl.h>
 
 #include "upnpapi.h"
