@@ -17,18 +17,18 @@ INCLUDEPATH += ../../src/inc
 
 ## W7 with mingw
 contains(QMAKE_CC, gcc){
-  INCLUDEPATH += c:/users/bill/documents/upnp/expat-2.1.0/lib
-  INCLUDEPATH += c:/users/bill/documents/upnp/curl-7.70.0/include
-  INCLUDEPATH += c:/users/bill/documents/upnp/libmicrohttpd-0.9.65/src/include
+  INCLUDEPATH += $$PWD/../../../expat-2.1.0/lib
+  INCLUDEPATH += $$PWD/../../../curl-7.70.0/include
+  INCLUDEPATH += $$PWD/../../../libmicrohttpd-0.9.65/src/include
   QMAKE_CXXFLAGS += -std=c++11 -Wno-unused-parameter
 }
 
 # W10 with msvc 2017
 contains(QMAKE_CC, cl){
   DEFINES += NOMINMAX
-  INCLUDEPATH += c:/users/bill/documents/upnp/expat-2.2.9/Source/lib
-  INCLUDEPATH += c:/users/bill/documents/upnp/curl-7.70.0/include
-  INCLUDEPATH += c:/users/bill/documents/upnp/libmicrohttpd-0.9.65-w32-bin/x86/VS2017/Release-static/
+  INCLUDEPATH += $$PWD/../../../expat-2.2.9/Source/lib
+  INCLUDEPATH += $$PWD/../../../curl-7.70.0/include
+  INCLUDEPATH += $$PWD/../../../libmicrohttpd-0.9.65-w32-bin/x86/VS2017/Release-static/
 }
 
 LIBS += -liphlpapi
