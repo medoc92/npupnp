@@ -68,6 +68,7 @@
 #include <sys/types.h>
 #include <thread>
 #include <algorithm>
+#include <condition_variable>
 
 #include <microhttpd.h>
 
@@ -79,22 +80,18 @@
 #define MHD_Result int
 #endif
 
-/*! . */
 #define APPLICATION_LISTENING_PORT 49152
 
-/*! . */
 using MiniServerState = enum {
-    /*! . */
     MSERV_IDLE,
-    /*! . */
-    MSERV_RUNNING,
-    /*! . */
-    MSERV_STOPPING
+    MSERV_RUNNING
 };
 
 /*!
  * module vars
  */
+static std::mutex gMServStateMutex;
+static std::condition_variable gMServStateCV;
 static MiniServerSockArray *miniSocket;
 static MiniServerState gMServState = MSERV_IDLE;
 static struct MHD_Daemon *mhd;
@@ -359,7 +356,11 @@ static void *thread_miniserver(void *)
 #endif /* INCLUDE_CLIENT_APIS */
     ++maxMiniSock;
 
-    gMServState = MSERV_RUNNING;
+    {
+        std::unique_lock<std::mutex> lck(gMServStateMutex);
+        gMServState = MSERV_RUNNING;
+        gMServStateCV.notify_all();
+    }
     while (!stopSock) {
         FD_ZERO(&rdSet);
         FD_ZERO(&expSet);
@@ -402,9 +403,11 @@ static void *thread_miniserver(void *)
             miniSocket->miniServerStopSock, &rdSet);
     }
 
+    std::unique_lock<std::mutex> lck(gMServStateMutex);
     delete miniSocket;
     miniSocket = nullptr;
     gMServState = MSERV_IDLE;
+    gMServStateCV.notify_all();
     return nullptr;
 }
 
@@ -467,7 +470,8 @@ static int get_miniserver_stopsock(MiniServerSockArray *out)
     stop_sockaddr = {};
     stop_sockaddr.sin_family = static_cast<sa_family_t>(AF_INET);
     stop_sockaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    ret = bind(out->miniServerStopSock, reinterpret_cast<struct sockaddr *>(&stop_sockaddr),
+    ret = bind(out->miniServerStopSock,
+               reinterpret_cast<struct sockaddr *>(&stop_sockaddr),
                sizeof(stop_sockaddr));
     if (ret == SOCKET_ERROR) {
         UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
@@ -549,15 +553,15 @@ int StartMiniServer(uint16_t *listen_port4, uint16_t *listen_port6)
     int port=0;
     int ret_code = UPNP_E_OUTOF_MEMORY;
     unsigned int mhdflags = 0;
-    
-    switch (gMServState) {
-    case MSERV_IDLE:
-        break;
-    default:
-        /* miniserver running. */
-        UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
-                   "miniserver: ALREADY RUNNING !\n");
-        return UPNP_E_INTERNAL_ERROR;
+
+    {
+        std::unique_lock<std::mutex> lck(gMServStateMutex);
+        if (gMServState != MSERV_IDLE) {
+            /* miniserver running. */
+            UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
+                       "miniserver: ALREADY RUNNING !\n");
+            return UPNP_E_INTERNAL_ERROR;
+        }
     }
 
     miniSocket = new MiniServerSockArray;
@@ -583,25 +587,25 @@ int StartMiniServer(uint16_t *listen_port4, uint16_t *listen_port6)
         goto out;
     }
 
-    ret_code = gMiniServerThreadPool.addPersistent(thread_miniserver,miniSocket);
-    if (ret_code != 0) {
-        ret_code = UPNP_E_OUTOF_MEMORY;
-        goto out;
+    {
+        std::unique_lock<std::mutex> lck(gMServStateMutex);
+        ret_code = gMiniServerThreadPool.addPersistent(
+            thread_miniserver,miniSocket);
+        if (ret_code != 0) {
+            ret_code = UPNP_E_OUTOF_MEMORY;
+            goto out;
+        }
+        /* Wait for miniserver to start. */
+        gMServStateCV.wait_for(lck, std::chrono::seconds(60));
+        if (gMServState != MSERV_RUNNING) {
+            /* Took it too long to start that thread. */
+            UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
+                       "miniserver: thread_miniserver not starting !\n");
+            ret_code = UPNP_E_INTERNAL_ERROR;
+            goto out;
+        }
     }
-    /* Wait for miniserver to start. */
-    for (int count = 0; count < 10000; count++) {
-        if (gMServState == static_cast<MiniServerState>(MSERV_RUNNING))
-            break;
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    }
-    if (gMServState != static_cast<MiniServerState>(MSERV_RUNNING)) {
-        /* Took it too long to start that thread. */
-        UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
-                   "miniserver: thread_miniserver not starting !\n");
-        ret_code = UPNP_E_INTERNAL_ERROR;
-        goto out;
-    }
-
+    
 #ifdef INTERNAL_WEB_SERVER
     port = available_port(static_cast<int>(*listen_port4));
     if (port < 0) {
@@ -652,17 +656,15 @@ int StopMiniServer()
     char errorBuffer[ERROR_BUFFER_LEN];
     socklen_t socklen = sizeof (struct sockaddr_in);
     SOCKET sock;
-    struct sockaddr_in ssdpAddr;
+    struct sockaddr_in stopaddr;
     char buf[256] = "ShutDown";
     size_t bufLen = strlen(buf);
 
-    switch(gMServState) {
-    case MSERV_RUNNING:
-        gMServState = MSERV_STOPPING;
-        break;
-    default:
+    std::unique_lock<std::mutex> lck(gMServStateMutex);
+    if (gMServState != MSERV_RUNNING) {
         return 0;
     }
+
     sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock == INVALID_SOCKET) {
         posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
@@ -670,16 +672,14 @@ int StopMiniServer()
                    "StopMiniserver: socket(): %s\n", errorBuffer);
         return 0;
     }
-    while(gMServState != static_cast<MiniServerState>(MSERV_IDLE)) {
-        ssdpAddr.sin_family = static_cast<sa_family_t>(AF_INET);
-        ssdpAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-        ssdpAddr.sin_port = htons(miniSocket->stopPort);
-        sendto(sock, buf, bufLen, 0, reinterpret_cast<struct sockaddr *>(&ssdpAddr), socklen);
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        if (gMServState == static_cast<MiniServerState>(MSERV_IDLE)) {
-            break;
-        }
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+    stopaddr.sin_family = static_cast<sa_family_t>(AF_INET);
+    stopaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    stopaddr.sin_port = htons(miniSocket->stopPort);
+
+    while (gMServState != MSERV_IDLE) {
+        sendto(sock, buf, bufLen, 0,
+               reinterpret_cast<struct sockaddr *>(&stopaddr), socklen);
+        gMServStateCV.wait_for(lck, std::chrono::seconds(1));
     }
     UpnpCloseSocket(sock);
 
