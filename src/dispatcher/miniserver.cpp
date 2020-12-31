@@ -103,6 +103,7 @@ static MiniServerCallback gGenaCallback = nullptr;
 
 void SetHTTPGetCallback(MiniServerCallback callback)
 {
+    std::lock_guard<std::mutex> lck(gMServStateMutex);
     gGetCallback = callback;
 }
 
@@ -268,8 +269,11 @@ static MHD_Result answer_to_connection(
     case HTTPMETHOD_GET:
     case HTTPMETHOD_POST:
     case HTTPMETHOD_HEAD:
+    {
+        std::lock_guard<std::mutex> lck(gMServStateMutex);
         callback = gGetCallback;
         break;
+    }
     default:
         callback = nullptr;
     }

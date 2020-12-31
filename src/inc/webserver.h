@@ -87,11 +87,5 @@ int web_server_add_virtual_dir(
 int web_server_remove_virtual_dir(const char *dirname);
 void web_server_clear_virtual_dirs();
 
-/*!
- * \brief Main entry point into web server; Handles HTTP GET and HEAD
- * requests.
- */
-void web_server_callback(MHDTransaction *);
-
 #endif /* GENLIB_NET_HTTP_WEBSERVER_H */
 

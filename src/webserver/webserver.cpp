@@ -215,6 +215,8 @@ public:
 /* Virtual directory list. This is used with a linear search by the
    web server to perform prefix matches. */
 static std::vector<VirtualDirListEntry> virtualDirList;
+static std::mutex vdlmutex;
+
 
 /* Compute MIME type from file name extension. */
 static UPNP_INLINE int get_content_type(
@@ -259,35 +261,6 @@ int web_server_unset_localdoc(const std::string& path)
     return UPNP_E_SUCCESS;
 }
 
-int web_server_init()
-{
-    if (bWebServerState == WEB_SERVER_DISABLED) {
-        virtualDirCallback.get_info = nullptr;
-        virtualDirCallback.open = nullptr;
-        virtualDirCallback.read = nullptr;
-        virtualDirCallback.write = nullptr;
-        virtualDirCallback.seek = nullptr;
-        virtualDirCallback.close = nullptr;
-        bWebServerState = WEB_SERVER_ENABLED;
-    }
-    return 0;
-}
-
-/*!
- * \brief Release memory allocated for the global web server root directory
- * and the global XML document. Resets the flag bWebServerState to
- * WEB_SERVER_DISABLED.
- *
- */
-void web_server_destroy()
-{
-    if (bWebServerState == WEB_SERVER_ENABLED) {
-        gDocumentRootDir.clear();
-        localDocs.clear();
-        bWebServerState = WEB_SERVER_DISABLED;
-    }
-}
-
 /* Get file information, local file system version */
 static int get_file_info(const char *filename, struct File_Info *info)
 {
@@ -329,6 +302,7 @@ int web_server_set_root_dir(const char *root_dir)
     return 0;
 }
 
+
 int web_server_add_virtual_dir(
     const char *dirname, const void *cookie, const void **oldcookie)
 {
@@ -353,6 +327,7 @@ int web_server_add_virtual_dir(
         entry.path += '/';
     }
 
+    std::lock_guard<std::mutex> lock(vdlmutex);
     auto old = std::find_if(virtualDirList.begin(), virtualDirList.end(),
                             [entry](const VirtualDirListEntry& old) {
                                 return entry.path == old.path;
@@ -373,6 +348,7 @@ int web_server_remove_virtual_dir(const char *dirname)
     if (dirname == nullptr) {
         return UPNP_E_INVALID_PARAM;
     }
+    std::lock_guard<std::mutex> lock(vdlmutex);
     for (auto it = virtualDirList.begin(); it != virtualDirList.end(); it++) {
         if (it->path == dirname) {
             virtualDirList.erase(it);
@@ -385,6 +361,7 @@ int web_server_remove_virtual_dir(const char *dirname)
 
 void web_server_clear_virtual_dirs()
 {
+    std::lock_guard<std::mutex> lock(vdlmutex);
     virtualDirList.clear();
 }
 
@@ -399,6 +376,7 @@ static const VirtualDirListEntry *isFileInVirtualDir(const std::string& path)
     // We ensure that vd entries paths end with /. Meaning that if
     // the paths compare equal up to the vd path len, the input
     // path is in a subdir of the vd path.
+    std::lock_guard<std::mutex> lock(vdlmutex);
     for (const auto& vd : virtualDirList)
         if (!vd.path.compare(0, vd.path.size(), path, 0, vd.path.size()))
             return &vd;
@@ -726,7 +704,7 @@ static void vFileFreeCallback (void *cls)
     }
 }
 
-void web_server_callback(MHDTransaction *mhdt)
+static void web_server_callback(MHDTransaction *mhdt)
 {
     int ret;
     auto rtype = static_cast<enum resp_type>(0);
@@ -816,4 +794,27 @@ void web_server_callback(MHDTransaction *mhdt)
     UpnpPrintf(UPNP_DEBUG,HTTP,__FILE__,__LINE__,
                "webserver: response ready. Status %d\n", mhdt->httpstatus);
 }
+
+int web_server_init()
+{
+    bWebServerState = WEB_SERVER_ENABLED;
+    SetHTTPGetCallback(web_server_callback);
+    return 0;
+}
+
+/*
+ * Release memory allocated for the global web server root directory
+ * and the global XML document. Resets the flag bWebServerState to
+ * WEB_SERVER_DISABLED.
+ */
+void web_server_destroy()
+{
+    if (bWebServerState == WEB_SERVER_ENABLED) {
+        SetHTTPGetCallback(nullptr);
+        gDocumentRootDir.clear();
+        localDocs.clear();
+        bWebServerState = WEB_SERVER_DISABLED;
+    }
+}
+
 #endif /* EXCLUDE_WEB_SERVER */

@@ -2021,14 +2021,10 @@ int UpnpEnableWebserver(int enable)
         if((retVal = web_server_init()) != UPNP_E_SUCCESS) {
             return retVal;
         }
-        bWebServerState = WEB_SERVER_ENABLED;
-        SetHTTPGetCallback(web_server_callback);
         break;
 
     case false:
         web_server_destroy();
-        bWebServerState = WEB_SERVER_DISABLED;
-        SetHTTPGetCallback(nullptr);
         break;
 #endif /* INTERNAL_WEB_SERVER */
     default:
