@@ -61,6 +61,8 @@ void SSDPPacketParser::trimright(char *cp, size_t len) {
 
 void SSDPPacketParser::dump(std::ostream& os) const {
     os <<
+        " bootid " << (bootid ? bootid : "(null)") <<
+        " configid " << (configid ? configid : "(null)") <<
         " cache_control " << (cache_control ? cache_control : "(null)") <<
         " date " << (date ? date : "(null)") <<
         " ext " << (ext ? "true" : "false") <<
@@ -72,6 +74,7 @@ void SSDPPacketParser::dump(std::ostream& os) const {
         " nt " << (nt ? nt : "(null)") <<
         " nts " << (nts ? nts : "(null)") <<
         " protocol " << (protocol ? protocol : "(null)") <<
+        " searchport " << (searchport ? searchport : "(null)") <<
         " server " << (server ? server : "(null)") <<
         " st " << (st ? st : "(null)") <<
         " status " << (status ? status : "(null)") <<
@@ -138,9 +141,16 @@ bool SSDPPacketParser::parse()
         
         bool known{false};
         switch (nm[0]) {
+        case 'b': case 'B':
+            if (!strcasecmp("BOOTID.UPNP.ORG", nm)) {
+                bootid = val; known = true;
+            }
+            break;
         case 'c': case 'C':
             if (!strcasecmp("CACHE-CONTROL", nm)) {
                 cache_control = val; known = true;
+            } else if (!strcasecmp("CONFIGID.UPNP.ORG", nm)) {
+                configid = val; known = true;
             }
             break;
         case 'd': case 'D':
@@ -182,6 +192,8 @@ bool SSDPPacketParser::parse()
                 server = val; known = true;
             } else if (!strcasecmp("ST", nm)) {
                 st = val; known = true;
+            } else if (!strcasecmp("SEARCHPORT.UPNP.ORG", nm)) {
+                searchport = val; known = true;
             }
             break;
         case 'u': case 'U':

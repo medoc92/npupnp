@@ -46,6 +46,8 @@ public:
 
     // Results. After parsing, the set fields point into the original buffer.
     bool isresponse{false};
+    const char *bootid{nullptr};
+    const char *configid{nullptr};
     const char *cache_control{nullptr};
     const char *date{nullptr};
     bool  ext{false};
@@ -57,6 +59,7 @@ public:
     const char *nt{nullptr};
     const char *nts{nullptr};
     const char *protocol{nullptr};
+    const char *searchport{nullptr};
     const char *server{nullptr};
     const char *st{nullptr};
     const char *status{nullptr};
