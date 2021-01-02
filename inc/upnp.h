@@ -554,8 +554,7 @@ typedef struct Upnp_Discovery UpnpDiscovery;
 #define UpnpDiscovery_get_Os_cstr(x) ((x)->Os)
 #define UpnpDiscovery_get_DestAddr(x) (&((x)->DestAddr))
     
-/** Returned along with a @ref UPNP_EVENT_SUBSCRIBE_COMPLETE or @ref
- * UPNP_EVENT_UNSUBSCRIBE_COMPLETE callback.  */
+/** Returned along with a UPNP_EVENT_AUTORENEWAL_FAILED callback.  */
 struct Upnp_Event_Subscribe {
 
     /** @brief The SID for this subscription.  For subscriptions, this only
