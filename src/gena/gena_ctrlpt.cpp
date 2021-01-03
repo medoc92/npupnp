@@ -85,53 +85,43 @@ static void *thread_autorenewsubscription(
     void *input)
 {
     auto event = static_cast<upnp_timeout *>(input);
-    auto sub_struct =
-        static_cast<struct Upnp_Event_Subscribe *>(event->Event);
-    void *cookie;
-    Upnp_FunPtr callback_fun;
-    struct Handle_Info *handle_info;
+    auto sub_struct = static_cast<struct Upnp_Event_Subscribe *>(event->Event);
     int send_callback = 0;
-    int eventType = 0;
-    int timeout = 0;
-    int errCode = 0;
-    std::string tmpSID;
+    Upnp_EventType eventType = UPNP_EVENT_AUTORENEWAL_FAILED;
 
     if (AUTO_RENEW_TIME == 0) {
+        // We are compile-time configured for no auto-renewal.
         UpnpPrintf( UPNP_INFO, GENA, __FILE__, __LINE__, "GENA SUB EXPIRED\n");
         sub_struct->ErrCode = UPNP_E_SUCCESS;
         send_callback = 1;
         eventType = UPNP_EVENT_SUBSCRIPTION_EXPIRED;
     } else {
         UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__, "GENA AUTO RENEW\n");
-        timeout = sub_struct->TimeOut;
-        tmpSID = sub_struct->Sid;
-        errCode = genaRenewSubscription(
-            event->handle,
-            tmpSID,
-            &timeout);
+        int timeout = sub_struct->TimeOut;
+        std::string tmpSID = sub_struct->Sid;
+        int errCode = genaRenewSubscription(event->handle, tmpSID, &timeout);
         sub_struct->ErrCode = errCode;
         sub_struct->TimeOut = timeout;
         if (errCode != UPNP_E_SUCCESS &&
             errCode != GENA_E_BAD_SID &&
             errCode != GENA_E_BAD_HANDLE) {
             send_callback = 1;
-            eventType = UPNP_EVENT_AUTORENEWAL_FAILED;
         }
     }
 
     if (send_callback) {
         HandleReadLock();
-        if( GetHandleInfo( event->handle, &handle_info ) != HND_CLIENT ) {
+        struct Handle_Info *handle_info;
+        if (GetHandleInfo(event->handle, &handle_info) != HND_CLIENT) {
             HandleUnlock();
             free_upnp_timeout(event);
             goto end_function;
         }
 
         /* make callback */
-        callback_fun = handle_info->Callback;
-        cookie = handle_info->Cookie;
+        Upnp_FunPtr callback_fun = handle_info->Callback;
         HandleUnlock();
-        callback_fun(static_cast<Upnp_EventType>(eventType), event->Event, cookie);
+        callback_fun(eventType, event->Event, handle_info->Cookie);
     }
 
 end_function:
