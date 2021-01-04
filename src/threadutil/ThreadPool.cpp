@@ -45,6 +45,16 @@
 
 using namespace std::chrono;
 
+// #define THREADPOOL_DEBUG
+#define LOGERR(X) do {                                              \
+        std::cerr << X;                                             \
+    } while (0)
+#ifdef THREADPOOL_DEBUG
+#define LOGDEB(X) LOGERR(X)
+#else
+#define LOGDEB(X)
+#endif
+
 /*! Internal ThreadPool Job. */
 struct ThreadPoolJob {
     ThreadPoolJob(start_routine _func,
@@ -414,6 +424,7 @@ static void *WorkerThread(void *arg)
             /* wait for a job up to the specified max time */
             retCode = tp->condition.wait_for(lck, idlemillis);
         }
+
         tp->stats.idleThreads--;
         /* idle time */
         tp->stats.totalIdleTime += static_cast<double>(time(nullptr)) - static_cast<double>(start);
@@ -467,6 +478,7 @@ static void *WorkerThread(void *arg)
     }
 
 exit_function:
+    LOGDEB("ThreadWorker: thread exiting\n");
     tp->totalThreads--;
     tp->start_and_shutdown.notify_all();
     return nullptr;
@@ -495,9 +507,10 @@ int ThreadPool::Internal::createWorker(std::unique_lock<std::mutex>& lck)
 
     if (this->attr.maxThreads != ThreadPoolAttr::INFINITE_THREADS &&
         this->totalThreads + 1 > this->attr.maxThreads) {
+        LOGDEB("ThreadPool::createWorker: not creating thread: too many\n");
         return EMAXTHREADS;
     }
-
+    LOGDEB("ThreadPool::createWorker: creating thread\n");
     std::thread nthread(WorkerThread, this);
     nthread.detach();
 
@@ -527,6 +540,9 @@ void ThreadPool::Internal::addWorker(std::unique_lock<std::mutex>& lck)
 {
     long jobs = highJobQ.size() + lowJobQ.size() + medJobQ.size();
     int threads = totalThreads - persistentThreads;
+    LOGDEB("ThreadPool::addWorker: jobs: " << jobs << " threads: "<< threads <<
+           " busyThr: " << busyThreads << " jobsPerThread: " <<
+           attr.jobsPerThread << "\n");
     while (threads == 0 ||
            (jobs / threads) >= attr.jobsPerThread ||
            (totalThreads == busyThreads) ) {
@@ -625,7 +641,7 @@ int ThreadPool::addJob(
 
     int totalJobs = m->highJobQ.size() + m->lowJobQ.size() + m->medJobQ.size();
     if (totalJobs >= m->attr.maxJobsTotal) {
-        fprintf(stderr, "total jobs = %d, too many jobs\n", totalJobs);
+        LOGERR("ThreadPool::addJob: too many jobs: " << totalJobs << "\n");
         goto exit_function;
     }
 
