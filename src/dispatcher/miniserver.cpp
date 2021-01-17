@@ -142,8 +142,16 @@ static MHD_Result headers_cb(void *cls, enum MHD_ValueKind,
     } else {
         mhtt->headers[key] = value;
     }
-    UpnpPrintf(UPNP_ALL, MSERV, __FILE__, __LINE__,
-               "miniserver:gather_header: [%s: %s]\n",    key.c_str(), value);
+    UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+               "miniserver:req_header: [%s: %s]\n",    key.c_str(), value);
+    return MHD_YES;
+}
+
+static MHD_Result show_resp_headers_cb(
+    void *, enum MHD_ValueKind, const char *k, const char *value)
+{
+    UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+               "miniserver:resp_header: [%s] -> [%s]\n", k, value);
     return MHD_YES;
 }
 
@@ -208,7 +216,7 @@ static MHD_Result answer_to_connection(
     void **con_cls)
 {
     if (nullptr == *con_cls) {
-        UpnpPrintf(UPNP_DEBUG, MSERV, __FILE__, __LINE__,
+        UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
                    "answer_to_connection1: url [%s] method [%s]"
                    " version [%s]\n", url, method, version);
         // First call, allocate and set context, get the headers, etc.
@@ -289,6 +297,7 @@ static MHD_Result answer_to_connection(
         return MHD_NO;
     }
 
+    MHD_get_response_headers (mhdt->response, show_resp_headers_cb, nullptr);
     MHD_Result ret = MHD_queue_response(conn, mhdt->httpstatus, mhdt->response);
     MHD_destroy_response(mhdt->response);
     return ret;
