@@ -219,6 +219,8 @@ int SoapSendAction(
         list = curl_slist_append(list, soapaction.c_str());
         list = curl_slist_append(list, "Accept:");
         list = curl_slist_append(list, "Expect:");
+        list = curl_slist_append(
+            list, (std::string("USER-AGENT: ") + get_sdk_info()).c_str());
         curl_easy_setopt(easy, CURLOPT_HTTPHEADER, list);
         std::string surl = uri_asurlstr(url);
         curl_easy_setopt(easy, CURLOPT_URL, surl.c_str());
