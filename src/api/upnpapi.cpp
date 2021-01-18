@@ -1099,6 +1099,17 @@ int UpnpRegisterClient(Upnp_FunPtr Fun, const void *Cookie,
     return UPNP_E_SUCCESS;
 }
 
+void UpnpClientSetProduct(
+    UpnpClient_Handle Hnd, const char *product, const char *version)
+{
+    if (nullptr == product || 0 == *product ||
+        nullptr == version || 0 == *version) {
+        return;
+    }
+    // We just have one client connection, so let httputils store the thing.
+    get_sdk_client_info(std::string(product) + "/" + version);
+}
+
 int UpnpUnRegisterClient(UpnpClient_Handle Hnd)
 {
     struct Handle_Info *HInfo;

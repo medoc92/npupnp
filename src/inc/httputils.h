@@ -167,7 +167,11 @@ bool timeout_header_value(std::map<std::string,std::string>& headers,
 /* Produce HTTP date string */
 extern std::string make_date_string(time_t thetime);
 
-/* Return the server information for the operating system */
-std::string get_sdk_info();
+/* Return the SERVER information to be set in HTTP headers */
+const std::string& get_sdk_info();
+
+/* Return the USER-AGENT information to be set in HTTP headers */
+const std::string& get_sdk_client_info(
+    const std::string& newvalue=std::string());
 
 #endif /* _HTTPUTILS_H_ */

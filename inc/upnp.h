@@ -1127,6 +1127,18 @@ EXPORT_SPEC int UpnpRegisterRootDevice4(
     const char *LowerDescUrl);
 
 /**
+ * @brief Set the product information part of the SERVER header sent with 
+ *  some network requests.
+ */
+EXPORT_SPEC void UpnpDeviceSetProduct(
+    /** [in] The handle of the control point instance to unregister. */
+    UpnpDevice_Handle Hnd,
+    /** [in] The product name, e.g. "MyAwsomeProduct" */
+    const char *product,
+    /** [in] The product version, e.g: "1.1" */
+    const char *version);
+
+/**
  * @brief Unregisters a root device.
  *
  * After this call, the @ref UpnpDevice_Handle is no longer valid. For all
@@ -1204,6 +1216,18 @@ EXPORT_SPEC int UpnpRegisterClient(
     UpnpClient_Handle *Hnd);
 
 /**
+ * @brief Set the product information part of the User-Agent header sent with 
+ *  some network requests.
+ */
+EXPORT_SPEC void UpnpClientSetProduct(
+    /** [in] The handle of the control point instance to unregister. */
+    UpnpClient_Handle Hnd,
+    /** [in] The product name, e.g. "MyAwsomeProduct" */
+    const char *product,
+    /** [in] The product version, e.g: "1.1" */
+    const char *version);
+
+/**
  * @brief Unregisters a control point application, unsubscribing all active
  * subscriptions.
  *
@@ -1217,7 +1241,8 @@ EXPORT_SPEC int UpnpRegisterClient(
  *
  * @return An integer representing one of the following:
  *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
- *     \li \c UPNP_E_INVALID_HANDLE: The handle is not a valid control point handle.
+ *     \li \c UPNP_E_INVALID_HANDLE: The handle is not a valid control
+ *       point handle.
  */
 EXPORT_SPEC int UpnpUnRegisterClient(
     /** [in] The handle of the control point instance to unregister. */

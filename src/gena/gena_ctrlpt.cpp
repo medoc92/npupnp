@@ -241,7 +241,7 @@ static int gena_unsubscribe(
     struct curl_slist *list = nullptr;
     list = curl_slist_append(list, (std::string("SID: ") + sid).c_str());
     list = curl_slist_append(
-        list, (std::string("USER-AGENT: ") + get_sdk_info()).c_str());
+        list, (std::string("USER-AGENT: ") + get_sdk_client_info()).c_str());
     curl_easy_setopt(easy, CURLOPT_HTTPHEADER, list);
 
     CURLcode code = curl_easy_perform(easy);
@@ -385,7 +385,7 @@ static int gena_subscribe(
     hdls.hlist = curl_slist_append(
         hdls.hlist, (std::string("TIMEOUT: Second-") + timostr.str()).c_str());
     hdls.hlist = curl_slist_append(
-        hdls.hlist, (std::string("USER-AGENT: ") + get_sdk_info()).c_str());
+        hdls.hlist, (std::string("USER-AGENT: ")+get_sdk_client_info()).c_str());
     curl_easy_setopt(hdls.htalk, CURLOPT_HTTPHEADER, hdls.hlist);
 
     CURLcode curlcode = curl_easy_perform(hdls.htalk);

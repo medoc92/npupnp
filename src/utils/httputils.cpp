@@ -227,7 +227,7 @@ int http_Download(const char *_surl, int timeout_secs,
 
     struct curl_slist *list = nullptr;
     list = curl_slist_append(
-        list, (std::string("USER-AGENT: ") + get_sdk_info()).c_str());
+        list, (std::string("USER-AGENT: ") + get_sdk_client_info()).c_str());
     list = curl_slist_append(list, "Connection: close");
     curl_easy_setopt(easy, CURLOPT_HTTPHEADER, list);
 
@@ -393,30 +393,59 @@ struct tm *http_gmtime_r(const time_t *clock, struct tm *result)
 
 #endif
 
-std::string get_sdk_info()
+static const std::string& get_sdk_common_info()
 {
-    std::ostringstream ostr;
+    static std::string sdk_common_info;
+    if (sdk_common_info.empty()) {
+        std::ostringstream ostr;
 #ifdef UPNP_ENABLE_UNSPECIFIED_SERVER
-    ostr << "Unspecified, UPnP/1.0, Unspecified"
+        ostr << "Unspecified UPnP/1.0 Unspecified"
 #else /* UPNP_ENABLE_UNSPECIFIED_SERVER */
 #ifdef _WIN32
-    OSVERSIONINFO versioninfo;
-    versioninfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+            OSVERSIONINFO versioninfo;
+        versioninfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
 
-    if (GetVersionEx(&versioninfo) != 0)
-        ostr << versioninfo.dwMajorVersion << "." << versioninfo.dwMinorVersion<<
-            "." << versioninfo.dwBuildNumber << " " << versioninfo.dwPlatformId
-            << "/" << versioninfo.szCSDVersion <<
-            ", UPnP/1.0, Portable SDK for UPnP devices/" PACKAGE_VERSION;
+        if (GetVersionEx(&versioninfo) != 0)
+            ostr << versioninfo.dwMajorVersion << "." <<
+                versioninfo.dwMinorVersion << "." <<
+                versioninfo.dwBuildNumber << " " << versioninfo.dwPlatformId
+                 << "/" << versioninfo.szCSDVersion;
 #else
-    struct utsname sys_info;
+        struct utsname sys_info;
 
-    if (uname(&sys_info) != -1)
-        ostr << sys_info.sysname << "/" << sys_info.release << 
-            ", UPnP/1.0, Portable SDK for UPnP devices/" PACKAGE_VERSION;
+        if (uname(&sys_info) != -1)
+            ostr << sys_info.sysname << "/" << sys_info.release;
 #endif
 #endif /* UPNP_ENABLE_UNSPECIFIED_SERVER */
-    return ostr.str();
+
+        ostr << " UPnP/1.0 ";
+        sdk_common_info = ostr.str();
+    }
+    return sdk_common_info;
+}
+
+const std::string& get_sdk_info()
+{
+    static std::string sdk_server_info;
+    if (sdk_server_info.empty()) {
+        sdk_server_info = get_sdk_common_info() + 
+            "Portable SDK for UPnP devices/" PACKAGE_VERSION;
+    }
+    
+    return sdk_server_info;
+}
+
+const std::string& get_sdk_client_info(const std::string& newvalue)
+{
+    static std::string sdk_client_info;
+    if (sdk_client_info.empty() || !newvalue.empty()) {
+        // If this was never set, or the client wants to set its name, compute
+        sdk_client_info = get_sdk_common_info() +
+            (!newvalue.empty() ? newvalue : 
+             std::string("Portable SDK for UPnP devices/" PACKAGE_VERSION));
+    }
+    
+    return sdk_client_info;
 }
 
 std::string make_date_string(time_t thetime)

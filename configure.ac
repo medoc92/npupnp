@@ -1,6 +1,6 @@
 AC_PREREQ(2.60)
 
-AC_INIT([libnpupnp], [4.0.14], [jfd@recoll.org])
+AC_INIT([libnpupnp], [4.1.0], [jfd@recoll.org])
 
 # - Start with version information of ‘0:0:0’ for each libtool library.
 # - Update the version information only immediately before a public release
