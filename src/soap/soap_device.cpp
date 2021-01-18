@@ -117,7 +117,9 @@ static void send_error_response(
     const std::string& txt = ostr.str();
     mhdt->response = MHD_create_response_from_buffer(
         txt.size(), const_cast<char*>(txt.c_str()), MHD_RESPMEM_MUST_COPY);
-    MHD_add_response_header(mhdt->response, "Content-Type", "text/xml");
+    MHD_add_response_header(mhdt->response, "Content-Type",
+                            R"(text/xml; charset="utf-8")");
+    MHD_add_response_header(mhdt->response, "SERVER", get_sdk_info().c_str());
     /* We do as the original code, but should this not be error_code? */
     mhdt->httpstatus = 500;
 }
@@ -145,7 +147,8 @@ static void send_action_response(
     UpnpPrintf(UPNP_INFO, SOAP, __FILE__, __LINE__,
                "Action Response data: [%s]\n", txt.c_str());
     mhdt->response = MHD_create_response_from_buffer(
-        txt.size(), const_cast<char*>(txt.c_str()),    MHD_RESPMEM_MUST_COPY);
+        txt.size(), const_cast<char*>(txt.c_str()), MHD_RESPMEM_MUST_COPY);
+    MHD_add_response_header(mhdt->response, "SERVER", get_sdk_info().c_str());
     mhdt->httpstatus = 200;
 }
 
