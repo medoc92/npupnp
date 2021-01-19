@@ -82,8 +82,7 @@ public:
     struct MHD_Response *response{nullptr};
     int httpstatus;
 
-    ~MHDTransaction() {
-    }
+    ~MHDTransaction() {}
     void copyClientAddress(struct sockaddr_storage *dest) const;
     // Returns false if header not found, else copies it
     bool copyHeader(const std::string& name, std::string& value);
@@ -168,7 +167,8 @@ bool timeout_header_value(std::map<std::string,std::string>& headers,
 extern std::string make_date_string(time_t thetime);
 
 /* Return the SERVER information to be set in HTTP headers */
-const std::string& get_sdk_info();
+const std::string get_sdk_device_info(
+    const std::string& custvalue=std::string());
 
 /* Return the USER-AGENT information to be set in HTTP headers */
 const std::string& get_sdk_client_info(

@@ -65,6 +65,21 @@ struct SsdpSearchReply {
     SsdpEntity event;
 };
 
+struct SSDPPwrState {
+    int PowerState;
+    int SleepPeriod;
+    int RegistrationState;
+};
+
+// A bundle to simplify arg lists
+struct SSDPCommonData {
+    SOCKET sock;
+    struct sockaddr *DestAddr;
+    const char *DevOrServType;
+    SSDPPwrState pwr;
+    std::string prodvers;
+};
+
 static void del_ssdpsearchreply(void *p)
 {
     delete static_cast<SsdpSearchReply *>(p);
@@ -339,17 +354,12 @@ static int sendPackets(
     return UPNP_E_SUCCESS;
 }
 
-struct SSDPPwrState {
-    int PowerState;
-    int SleepPeriod;
-    int RegistrationState;
-};
-    
+ 
 /* Creates a device notify or search reply packet. */
 static void CreateServicePacket(
     SSDPDevMessageType msg_type, const char *nt, const char *usn,
     const std::string& location, int duration, std::string &packet,
-    int AddressFamily, SSDPPwrState& pwr)
+    int AddressFamily, SSDPPwrState& pwr, const std::string& prodvers)
 {
     std::ostringstream str;
     switch (msg_type) {
@@ -360,7 +370,7 @@ static void CreateServicePacket(
             "DATE: " << make_date_string(0) << "\r\n" <<
             "EXT:\r\n" <<
             "LOCATION: " << location << "\r\n" <<
-            "SERVER: " << get_sdk_info() << "\r\n" <<
+            "SERVER: " << get_sdk_device_info(prodvers) << "\r\n" <<
 #ifdef UPNP_HAVE_OPTSSDP
             "OPT: " << R"("http://schemas.upnp.org/upnp/1/0/"; ns=01)" << "\r\n" <<
             "01-NLS: " << gUpnpSdkNLSuuid << "\r\n" <<
@@ -388,7 +398,7 @@ static void CreateServicePacket(
             "HOST: " << host << ":" << SSDP_PORT << "\r\n" <<
             "CACHE-CONTROL: max-age=" << duration << "\r\n" <<
             "LOCATION: " << location << "\r\n" <<
-            "SERVER: " << get_sdk_info() << "\r\n" <<
+            "SERVER: " << get_sdk_device_info(prodvers) << "\r\n" <<
 #ifdef UPNP_HAVE_OPTSSDP
             "OPT: " << R"("http://schemas.upnp.org/upnp/1/0/"; ns=01)" << "\r\n" <<
             "01-NLS: " << gUpnpSdkNLSuuid << "\r\n" <<
@@ -416,9 +426,8 @@ static void CreateServicePacket(
 }
 
 static int DeviceAdvertisementOrShutdown(
-    SOCKET sock, struct sockaddr *DestAddr,
-    SSDPDevMessageType msgtype, const char *DevType, int RootDev,
-    const char *Udn, const std::string& Location,int Duration, SSDPPwrState& pwr)
+    SSDPCommonData& sscd, SSDPDevMessageType msgtype, const char *DevType,
+    int RootDev, const char *Udn, const std::string& Location, int Duration)
 {
     char Mil_Usn[LINE_SIZE];
     std::string msgs[3];
@@ -432,17 +441,17 @@ static int DeviceAdvertisementOrShutdown(
             goto error_handler;
         CreateServicePacket(msgtype, "upnp:rootdevice",
                             Mil_Usn, Location, Duration, msgs[0],
-                            DestAddr->sa_family, pwr);
+                            sscd.DestAddr->sa_family, sscd.pwr, sscd.prodvers);
     }
     /* both root and sub-devices need to send these two messages */
     CreateServicePacket(msgtype, Udn, Udn,
-                        Location, Duration, msgs[1], DestAddr->sa_family,
-                        pwr);
+                        Location, Duration, msgs[1], sscd.DestAddr->sa_family,
+                        sscd.pwr, sscd.prodvers);
     rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::%s", Udn, DevType);
     if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Usn))
         goto error_handler;
-    CreateServicePacket(msgtype, DevType, Mil_Usn,
-                        Location, Duration, msgs[2], DestAddr->sa_family, pwr);
+    CreateServicePacket(msgtype, DevType, Mil_Usn, Location, Duration, msgs[2],
+                        sscd.DestAddr->sa_family, sscd.pwr, sscd.prodvers);
     /* check error */
     if ((RootDev && msgs[0].empty()) || msgs[1].empty() || msgs[2].empty()) {
         goto error_handler;
@@ -450,10 +459,10 @@ static int DeviceAdvertisementOrShutdown(
     /* send packets */
     if (RootDev) {
         /* send 3 msg types */
-        ret_code = sendPackets(sock, DestAddr, 3, &msgs[0]);
+        ret_code = sendPackets(sscd.sock, sscd.DestAddr, 3, &msgs[0]);
     } else {        /* sub-device */
         /* send 2 msg types */
-        ret_code = sendPackets(sock, DestAddr, 2, &msgs[1]);
+        ret_code = sendPackets(sscd.sock, sscd.DestAddr, 2, &msgs[1]);
     }
 
 error_handler:
@@ -461,9 +470,8 @@ error_handler:
 }
 
 static int SendReply(
-    SOCKET sock, struct sockaddr *DestAddr, const char *DevType, int RootDev,
-    const char *Udn, const std::string& Location, int Duration, int ByType,
-    SSDPPwrState& pwr)
+    SSDPCommonData& sscd, const char *DevType, int RootDev,
+    const char *Udn, const std::string& Location, int Duration, int ByType)
 {
     int ret_code = UPNP_E_OUTOF_MEMORY;
     std::string msgs[2];
@@ -471,7 +479,7 @@ static int SendReply(
     char Mil_Usn[LINE_SIZE];
     int i;
     int rc = 0;
-    int family = static_cast<int>(DestAddr->sa_family);
+    int family = static_cast<int>(sscd.DestAddr->sa_family);
 
     if (RootDev) {
         /* one msg for root device */
@@ -480,22 +488,22 @@ static int SendReply(
         rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::upnp:rootdevice", Udn);
         if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Usn))
             goto error_handler;
-        CreateServicePacket(MSGTYPE_REPLY, "upnp:rootdevice", Mil_Usn,
-                            Location, Duration, msgs[0], family, pwr);
+        CreateServicePacket(MSGTYPE_REPLY, "upnp:rootdevice", Mil_Usn, Location,
+                            Duration, msgs[0], family, sscd.pwr, sscd.prodvers);
     } else {
         /* two msgs for embedded devices */
         num_msgs = 1;
 
         /*NK: FIX for extra response when someone searches by udn */
         if (!ByType) {
-            CreateServicePacket(MSGTYPE_REPLY, Udn, Udn, Location,
-                                Duration, msgs[0], family, pwr);
+            CreateServicePacket(MSGTYPE_REPLY, Udn, Udn, Location, Duration,
+                                msgs[0], family, sscd.pwr, sscd.prodvers);
         } else {
             rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::%s", Udn, DevType);
             if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Usn))
                 goto error_handler;
-            CreateServicePacket(MSGTYPE_REPLY, DevType, Mil_Usn,
-                                Location, Duration, msgs[0], family, pwr);
+            CreateServicePacket(MSGTYPE_REPLY, DevType, Mil_Usn, Location,
+                                Duration, msgs[0],family,sscd.pwr,sscd.prodvers);
         }
     }
     /* check error */
@@ -505,20 +513,20 @@ static int SendReply(
         }
     }
 
-    ret_code =    sendPackets(sock, DestAddr, num_msgs, msgs);
+    ret_code = sendPackets(sscd.sock, sscd.DestAddr, num_msgs, msgs);
 
 error_handler:
     return ret_code;
 }
 
 static int DeviceReply(
-    SOCKET sock, struct sockaddr *DestAddr, const char *DevType, int RootDev,
-    const char *Udn, const std::string& Location,int Duration, SSDPPwrState& pwr)
+    SSDPCommonData& sscd, const char *DevType, int RootDev,
+    const char *Udn, const std::string& Location, int Duration)
 {
     std::string szReq[3];
     char Mil_Nt[LINE_SIZE], Mil_Usn[LINE_SIZE];
     int rc = 0;
-    int family = static_cast<int>(DestAddr->sa_family);
+    int family = static_cast<int>(sscd.DestAddr->sa_family);
     
     /* create 2 or 3 msgs */
     if (RootDev) {
@@ -527,8 +535,8 @@ static int DeviceReply(
         rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::upnp:rootdevice", Udn);
         if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Usn))
             return UPNP_E_OUTOF_MEMORY;
-        CreateServicePacket(MSGTYPE_REPLY, Mil_Nt, Mil_Usn,
-                            Location, Duration, szReq[0], family, pwr);
+        CreateServicePacket(MSGTYPE_REPLY, Mil_Nt, Mil_Usn, Location,
+                            Duration, szReq[0], family, sscd.pwr, sscd.prodvers);
     }
     rc = snprintf(Mil_Nt, sizeof(Mil_Nt), "%s", Udn);
     if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Nt))
@@ -536,31 +544,30 @@ static int DeviceReply(
     rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s", Udn);
     if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Usn))
         return UPNP_E_OUTOF_MEMORY;
-    CreateServicePacket(MSGTYPE_REPLY, Mil_Nt, Mil_Usn,
-                        Location, Duration, szReq[1], family, pwr);
+    CreateServicePacket(MSGTYPE_REPLY, Mil_Nt, Mil_Usn, Location, Duration,
+                        szReq[1], family, sscd.pwr, sscd.prodvers);
     rc = snprintf(Mil_Nt, sizeof(Mil_Nt), "%s", DevType);
     if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Nt))
         return UPNP_E_OUTOF_MEMORY;
     rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::%s", Udn, DevType);
     if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Usn))
         return UPNP_E_OUTOF_MEMORY;
-    CreateServicePacket(MSGTYPE_REPLY, Mil_Nt, Mil_Usn,    Location, Duration,
-                        szReq[2], family, pwr);
+    CreateServicePacket(MSGTYPE_REPLY, Mil_Nt, Mil_Usn, Location, Duration,
+                        szReq[2], family, sscd.pwr, sscd.prodvers);
     /* check error */
     if ((RootDev && szReq[0].empty()) || szReq[1].empty() || szReq[2].empty()) {
         return UPNP_E_OUTOF_MEMORY;
     }
     /* send replies */
     if (RootDev) {
-        return sendPackets(sock, DestAddr, 3, szReq);
+        return sendPackets(sscd.sock, sscd.DestAddr, 3, szReq);
     }
-    return sendPackets(sock, DestAddr, 2, &szReq[1]);
+    return sendPackets(sscd.sock, sscd.DestAddr, 2, &szReq[1]);
 }
 
 static int ServiceSend(
-    SOCKET sock, SSDPDevMessageType tp, struct sockaddr *DestAddr,
-    const char *ServType, const char *Udn, const std::string& Location,
-    int Duration, SSDPPwrState& pwr)
+    SSDPCommonData& sscd, SSDPDevMessageType tp, const char *ServType,
+    const char *Udn, const std::string& Location, int Duration)
 {
     char Mil_Usn[LINE_SIZE];
     std::string szReq[1];
@@ -570,13 +577,13 @@ static int ServiceSend(
     if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Usn))
         return UPNP_E_OUTOF_MEMORY;
     CreateServicePacket(tp, ServType, Mil_Usn, Location, Duration, szReq[0],
-                        DestAddr->sa_family, pwr);
+                        sscd.DestAddr->sa_family, sscd.pwr, sscd.prodvers);
     if (szReq[0].empty()) {
         return UPNP_E_OUTOF_MEMORY;
 
     }
     
-    return sendPackets(sock, DestAddr, 1, szReq);
+    return sendPackets(sscd.sock, sscd.DestAddr, 1, szReq);
 }
 
 static void replaceLochost(std::string& location, const std::string& lochost)
@@ -632,8 +639,14 @@ static int AdvertiseAndReplyOneDest(
     }
 
     defaultExp = SInfo->MaxAge;
-    SSDPPwrState pwr {
-        SInfo->PowerState, SInfo->SleepPeriod,SInfo->RegistrationState};
+
+    struct SSDPCommonData sscd;
+    sscd.sock = sock;
+    sscd.DestAddr = DestAddr;
+    sscd.pwr = SSDPPwrState{
+        SInfo->PowerState, SInfo->SleepPeriod, SInfo->RegistrationState};
+    sscd.prodvers = SInfo->productversion;
+
     
     std::string location{SInfo->DescURL};
     replaceLochost(location, lochost);
@@ -659,19 +672,18 @@ static int AdvertiseAndReplyOneDest(
             const char *UDNstr = devp->UDN.c_str();
             if (isNotify) {
                 DeviceAdvertisementOrShutdown(
-                    sock, DestAddr, tp, devType,  isroot, UDNstr,
-                    location, Exp, pwr);
+                    sscd, tp, devType,  isroot, UDNstr, location, Exp);
             } else {
                 switch (sdata.RequestType) {
                 case SSDP_ALL:
-                    DeviceReply(sock, DestAddr, devType, isroot, UDNstr,
-                                location, defaultExp, pwr);
+                    DeviceReply(sscd, devType, isroot, UDNstr,
+                                location, defaultExp);
                     break;
 
                 case SSDP_ROOTDEVICE:
                     if (isroot) {
-                        SendReply(sock, DestAddr, devType, 1, UDNstr,
-                                  location, defaultExp, 0, pwr);
+                        SendReply(sscd, devType, 1, UDNstr,
+                                  location, defaultExp, 0);
                     }
                     break;
 
@@ -680,8 +692,8 @@ static int AdvertiseAndReplyOneDest(
                         UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
                                    "DeviceUDN=%s/search UDN=%s MATCH\n",
                                    UDNstr, sdata.UDN.c_str());
-                        SendReply(sock, DestAddr, devType, 0, UDNstr, location,
-                                  defaultExp, 0, pwr);
+                        SendReply(sscd, devType, 0, UDNstr, location,
+                                  defaultExp, 0);
                     } else {
                         UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
                                    "DeviceUDN=%s/search UDN=%s NOMATCH\n",
@@ -702,14 +714,14 @@ static int AdvertiseAndReplyOneDest(
                             UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
                                        "DeviceType=%s/srchdevType=%s MATCH\n",
                                        devType, dt);
-                            SendReply(sock, DestAddr, dt, 0, UDNstr,
-                                      lowerloc, defaultExp, 1, pwr);
+                            SendReply(sscd, dt, 0, UDNstr,
+                                      lowerloc, defaultExp, 1);
                         } else if (hisvers == myvers) {
                             UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
                                        "DeviceType=%s/srchDevType=%s MATCH\n",
                                        devType, dt);
-                            SendReply(sock, DestAddr, dt, 0,
-                                      UDNstr, location, defaultExp, 1, pwr);
+                            SendReply(sscd, dt, 0,
+                                      UDNstr, location, defaultExp, 1);
                         } else {
                             UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
                                        "DeviceType=%s/srchDevType=%s NOMATCH\n",
@@ -741,13 +753,12 @@ static int AdvertiseAndReplyOneDest(
                 UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
                            "ServiceType = %s\n", servType);
                 if (isNotify) {
-                    ServiceSend(sock, tp, DestAddr, servType, UDNstr, location,
-                                Exp, pwr);
+                    ServiceSend(sscd, tp, servType, UDNstr, location, Exp);
                 } else {
                     switch (sdata.RequestType) {
                     case SSDP_ALL:
-                        ServiceSend(sock, MSGTYPE_REPLY, DestAddr, servType,
-                                    UDNstr, location, defaultExp, pwr);
+                        ServiceSend(sscd, MSGTYPE_REPLY, servType,
+                                    UDNstr, location, defaultExp);
                         break;
 
                     case SSDP_SERVICE: {
@@ -765,16 +776,15 @@ static int AdvertiseAndReplyOneDest(
                                     UPNP_DEBUG, SSDP, __FILE__, __LINE__,
                                     "ServiceTp=%s/searchServTp=%s MATCH\n",
                                     sst, servType);
-                                SendReply(sock, DestAddr, sst, 0,
-                                          UDNstr, lowerloc,
-                                          defaultExp, 1, pwr);
+                                SendReply(sscd, sst, 0, UDNstr, lowerloc,
+                                          defaultExp, 1);
                             } else if (hisvers == myvers) {
                                 UpnpPrintf(
                                     UPNP_DEBUG, SSDP, __FILE__, __LINE__,
                                     "ServiceTp=%s/searchServTp=%s MATCH\n",
                                     sst, servType);
-                                SendReply(sock, DestAddr, sst, 0, UDNstr,
-                                          location, defaultExp, 1, pwr);
+                                SendReply(sscd, sst, 0, UDNstr,
+                                          location, defaultExp, 1);
                             } else {
                                 UpnpPrintf(
                                     UPNP_DEBUG, SSDP, __FILE__, __LINE__,

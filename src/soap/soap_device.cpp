@@ -77,6 +77,7 @@ struct soap_devserv_t {
     char service_type[NAME_SIZE];
     char service_id[NAME_SIZE];
     std::string action_name;
+    std::string productversion;
     Upnp_FunPtr callback;
     void *cookie;
 };
@@ -91,7 +92,8 @@ static constexpr auto bodyprolog =
  * \brief Sends SOAP error response.
  */
 static void send_error_response(
-    MHDTransaction *mhdt, int error_code, const char *err_msg)
+    MHDTransaction *mhdt, int error_code, const char *err_msg,
+    const std::string& productversion)
 {
     const static std::string start_body = std::string(bodyprolog) +
             "<s:Fault>\n"
@@ -119,7 +121,8 @@ static void send_error_response(
         txt.size(), const_cast<char*>(txt.c_str()), MHD_RESPMEM_MUST_COPY);
     MHD_add_response_header(mhdt->response, "Content-Type",
                             R"(text/xml; charset="utf-8")");
-    MHD_add_response_header(mhdt->response, "SERVER", get_sdk_info().c_str());
+    MHD_add_response_header(mhdt->response, "SERVER",
+                            get_sdk_device_info(productversion).c_str());
     /* We do as the original code, but should this not be error_code? */
     mhdt->httpstatus = 500;
 }
@@ -148,7 +151,9 @@ static void send_action_response(
                "Action Response data: [%s]\n", txt.c_str());
     mhdt->response = MHD_create_response_from_buffer(
         txt.size(), const_cast<char*>(txt.c_str()), MHD_RESPMEM_MUST_COPY);
-    MHD_add_response_header(mhdt->response, "SERVER", get_sdk_info().c_str());
+    MHD_add_response_header(
+        mhdt->response, "SERVER",
+        get_sdk_device_info(soap_info->productversion).c_str());
     mhdt->httpstatus = 200;
 }
 
@@ -283,7 +288,7 @@ static void handle_invoke_action(
 
 error_handler:
     if (err_code != 0)
-        send_error_response(mhdt, err_code, err_str);
+        send_error_response(mhdt, err_code, err_str, soap_info->productversion);
 }
 
 /*!
@@ -317,6 +322,7 @@ static int get_dev_service(
     upnp_strlcpy(soap_info->service_id, serv_info->serviceId, NAME_SIZE);
     soap_info->callback = hdlinfo->Callback;
     soap_info->cookie = hdlinfo->Cookie;
+    soap_info->productversion = hdlinfo->productversion;
     HandleUnlock();
     return 0;
 }
@@ -432,6 +438,7 @@ void soap_device_callback(MHDTransaction *mhdt)
     soap_devserv_t soap_info;
     std::vector<std::pair<std::string, std::string>> args;
     std::string strippedxml;
+    std::string productversion;
     
     /* The device/service identified by the request URI */
     if (get_dev_service(mhdt, &soap_info) < 0) {
@@ -491,11 +498,14 @@ void soap_device_callback(MHDTransaction *mhdt)
     handle_invoke_action(mhdt, &soap_info, strippedxml, args);
 
     if (mhdt->response)
-        MHD_add_response_header(mhdt->response, "Content-Type", R"(text/xml; charset="utf-8")");
+        MHD_add_response_header(mhdt->response, "Content-Type",
+                                R"(text/xml; charset="utf-8")");
 
 error_handler:
+    // productversion could be empty here, in which case we will send the lib
+    // name/version instead
     if (err_code != 0)
-        send_error_response(mhdt, err_code, err_str);
+        send_error_response(mhdt, err_code, err_str, soap_info.productversion);
 }
 
 #endif /* EXCLUDE_SOAP */

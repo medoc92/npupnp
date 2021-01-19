@@ -1129,8 +1129,12 @@ EXPORT_SPEC int UpnpRegisterRootDevice4(
 /**
  * @brief Set the product information part of the SERVER header sent with 
  *  some network requests.
+ * @return An integer representing one of the following:
+ *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
+ *     \li \c UPNP_E_INVALID_HANDLE: The handle is not a valid device handle.
+ *     \li \c UPNP_E_INVALID_PARAM: null or empty product or version.
  */
-EXPORT_SPEC void UpnpDeviceSetProduct(
+EXPORT_SPEC int UpnpDeviceSetProduct(
     /** [in] The handle of the control point instance to unregister. */
     UpnpDevice_Handle Hnd,
     /** [in] The product name, e.g. "MyAwsomeProduct" */

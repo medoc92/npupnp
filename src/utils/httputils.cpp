@@ -361,20 +361,6 @@ bool timeout_header_value(std::map<std::string, std::string>& headers,
     return true;
 }
 
-/************************************************************************
- * Function: get_sdk_info
- *
- * Parameters:
- *    OUT char *info;    buffer to store the operating system information
- *    IN size_t infoSize; size of buffer
- *
- * Description:
- *    Returns the server information for the operating system
- *
- * Return:
- *    UPNP_INLINE void
- ************************************************************************/
-
 #ifdef _WIN32
 struct tm *http_gmtime_r(const time_t *clock, struct tm *result)
 {
@@ -424,15 +410,11 @@ static const std::string& get_sdk_common_info()
     return sdk_common_info;
 }
 
-const std::string& get_sdk_info()
+const std::string get_sdk_device_info(const std::string& customvalue)
 {
-    static std::string sdk_server_info;
-    if (sdk_server_info.empty()) {
-        sdk_server_info = get_sdk_common_info() + 
-            "Portable SDK for UPnP devices/" PACKAGE_VERSION;
-    }
-    
-    return sdk_server_info;
+    return get_sdk_common_info() +
+        (!customvalue.empty() ? customvalue :
+         std::string("Portable SDK for UPnP devices/" PACKAGE_VERSION));
 }
 
 const std::string& get_sdk_client_info(const std::string& newvalue)

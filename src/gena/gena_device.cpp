@@ -577,7 +577,8 @@ ExitFunction:
  *
  * \return UPNP_E_SUCCESS if successful, otherwise the appropriate error code.
  */
-static int respond_ok(MHDTransaction *mhdt, int time_out, subscription *sub)
+static int respond_ok(MHDTransaction *mhdt, int time_out, subscription *sub,
+                      const std::string& prodvers)
 {
     std::ostringstream ts;
 
@@ -591,7 +592,8 @@ static int respond_ok(MHDTransaction *mhdt, int time_out, subscription *sub)
         MHD_create_response_from_buffer(0, nullptr, MHD_RESPMEM_PERSISTENT);
     MHD_add_response_header(mhdt->response,    "SID", sub->sid);
     MHD_add_response_header(mhdt->response,    "TIMEOUT", ts.str().c_str());
-    MHD_add_response_header(mhdt->response, "SERVER", get_sdk_info().c_str());
+    MHD_add_response_header(mhdt->response,
+                            "SERVER", get_sdk_device_info(prodvers).c_str());
     return UPNP_E_SUCCESS;
 }
 
@@ -812,7 +814,8 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
 
     /* respond OK */
     if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(sub->sid) ||
-        respond_ok(mhdt, time_out, &(*sub)) != UPNP_E_SUCCESS) {
+        respond_ok(mhdt, time_out, &(*sub), handle_info->productversion)
+        != UPNP_E_SUCCESS) {
         service->subscriptionList.pop_back();
         HandleUnlock();
         return;
@@ -913,7 +916,8 @@ void gena_process_subscription_renewal_request(MHDTransaction *mhdt)
         sub->expireTime = time(nullptr) + time_out;
     }
 
-    if (respond_ok(mhdt, time_out, sub) != UPNP_E_SUCCESS) {
+    if (respond_ok(mhdt, time_out, sub, handle_info->productversion)
+        != UPNP_E_SUCCESS) {
         RemoveSubscriptionSID(sub->sid, service);
     }
 

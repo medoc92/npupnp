@@ -1012,6 +1012,24 @@ int UpnpRegisterRootDevice4(
         UPNPREG_URL_DESC, DescUrl, Fun, Cookie, Hnd, LowerDescUrl);
 }
 
+int UpnpDeviceSetProduct(
+    UpnpDevice_Handle Hnd, const char *product, const char *version)
+{
+    struct Handle_Info *HInfo = nullptr;
+    if (UpnpSdkInit != 1) {
+        return UPNP_E_INVALID_HANDLE;
+    }
+    if (nullptr==product || 0== *product || nullptr==version || 0== *version) {
+        return UPNP_E_INVALID_PARAM;
+    }
+    if (checkLockHandle(HND_INVALID, Hnd, &HInfo) == HND_INVALID) {
+        return UPNP_E_INVALID_HANDLE;
+    }
+    HInfo->productversion = std::string(product) + "/" + std::string(version);
+    HandleUnlock();
+    return UPNP_E_SUCCESS;
+}
+
 int UpnpUnRegisterRootDevice(UpnpDevice_Handle Hnd)
 {
     return UpnpUnRegisterRootDeviceLowPower(Hnd, -1, -1, -1);

@@ -91,6 +91,8 @@ struct Handle_Info
     /*! URL for the use of SSDP when answering to legacy CPs (CP searching
      * for a v1 when the device is v2). */
     char  LowerDescURL[LINE_SIZE];
+    /* Product/version value to send out in SERVER fields */
+    std::string productversion;
     /* Advertisement timeout */
     int MaxAge{0};
     /* Power State as defined by UPnP Low Power. */
