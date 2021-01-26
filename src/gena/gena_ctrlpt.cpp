@@ -91,12 +91,12 @@ static void *thread_autorenewsubscription(
 
     if (AUTO_RENEW_TIME == 0) {
         // We are compile-time configured for no auto-renewal.
-        UpnpPrintf( UPNP_INFO, GENA, __FILE__, __LINE__, "GENA SUB EXPIRED\n");
+        UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__, "GENA SUB EXPIRED\n");
         sub_struct->ErrCode = UPNP_E_SUCCESS;
         send_callback = 1;
         eventType = UPNP_EVENT_SUBSCRIPTION_EXPIRED;
     } else {
-        UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__, "GENA AUTO RENEW\n");
+        UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__, "GENA AUTO RENEW\n");
         int timeout = sub_struct->TimeOut;
         std::string tmpSID = sub_struct->Sid;
         int errCode = genaRenewSubscription(event->handle, tmpSID, &timeout);
