@@ -66,6 +66,7 @@
 #include <cstring>
 #include <iostream>
 #include <sys/types.h>
+#include <stdarg.h>
 #include <thread>
 #include <algorithm>
 #include <condition_variable>
@@ -560,6 +561,14 @@ static int available_port(int reqport)
     return ret;
 }
 
+static void mhdlogger(void *, const char *fmt, va_list ap)
+{
+    char buf[1024];
+    vsnprintf(buf, 1023, fmt, ap);
+    buf[1023] = 0;
+    UpnpPrintf(UPNP_DEBUG, MSERV, __FILE__, __LINE__, "microhttpd: %s\n", buf);
+}
+
 /* @param[input,output] listen_port4/6 listening ports for incoming HTTP. */
 int StartMiniServer(uint16_t *listen_port4, uint16_t *listen_port6)
 {
@@ -645,6 +654,7 @@ int StartMiniServer(uint16_t *listen_port4, uint16_t *listen_port6)
         &answer_to_connection, nullptr, /* Request handler and arg */
         MHD_OPTION_NOTIFY_COMPLETED, request_completed_cb, nullptr,
         MHD_OPTION_CONNECTION_TIMEOUT, static_cast<unsigned int>(UPNP_TIMEOUT),
+        MHD_OPTION_EXTERNAL_LOGGER, mhdlogger, nullptr, 
         MHD_OPTION_END);
     if (nullptr == mhd) {
         UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
