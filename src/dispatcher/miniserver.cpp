@@ -298,6 +298,8 @@ static MHD_Result answer_to_connection(
         return MHD_NO;
     }
 
+    MHD_add_response_header(mhdt->response, "Connection", "close");
+
     MHD_get_response_headers (mhdt->response, show_resp_headers_cb, nullptr);
     MHD_Result ret = MHD_queue_response(conn, mhdt->httpstatus, mhdt->response);
     MHD_destroy_response(mhdt->response);

@@ -783,11 +783,20 @@ static void web_server_callback(MHDTransaction *mhdt)
             assert(0);
         }
     }
+
+    bool serverhfound{false};
     for (const auto& header : headers) {
         //std::cerr << "web_server_callback: adding header [" << header.first <<
         //"]->[" << header.second << "]\n";
+        if (!stringlowercmp("server", header.first)) {
+            serverhfound = true;
+        }
         MHD_add_response_header(mhdt->response, header.first.c_str(),
                                 header.second.c_str());
+    }
+    if (!serverhfound) {
+        MHD_add_response_header(mhdt->response, "SERVER",
+                                get_sdk_device_info("").c_str());
     }
     MHD_add_response_header(mhdt->response, "Accept-Ranges", "bytes");
     
