@@ -223,7 +223,7 @@ extern unsigned int g_optionFlags;
 // init caller, and can be reset during init if we find no
 // ipv6-enabled interface
 inline bool using_ipv6() {
-#ifdef __APPLE__
+#if !defined(UPNP_ENABLE_IPV6) || defined(__APPLE__)
     return false;
 #else
     return 0 != (g_optionFlags & UPNP_FLAG_IPV6);
