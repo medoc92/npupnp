@@ -448,9 +448,7 @@ Interfaces::Internal::Internal()
     std::vector<Interface> vifs;
     for (ifa = ifap; ifa != nullptr; ifa = ifa->ifa_next) {
         LOGDEB("NetIF::Interfaces: I/F name " << ifa->ifa_name << "\n");
-
-        // Skip interfaces which are address-less, LOOPBACK, DOWN, or
-        // that don't support MULTICAST.
+        // Skip interfaces which are address-less.
         if (nullptr == ifa->ifa_addr) {
             LOGDEB("NetIF::Interfaces: Skipping " << ifa->ifa_name <<
                    " because it has no address.\n");
@@ -475,6 +473,12 @@ Interfaces::Internal::Internal()
             LOGDEB("NetIF::Interfaces: " << ifa->ifa_name << " has MULTICAST\n");
             ifit->m->setflag(Interface::Flags::MULTICAST);
         }
+#ifdef __HAIKU__
+        // It seems that Haiku does not set the MULTICAST flag even on
+        // interfaces which do support the function. So, force it and hope for the
+        // best:
+        ifit->m->setflag(Interface::Flags::MULTICAST);
+#endif        
         ifit->m->index = if_nametoindex(ifa->ifa_name);
         switch (ifa->ifa_addr->sa_family) {
         case AF_INET:
