@@ -299,7 +299,13 @@ static SOCKET createReplySocket6(
     }
     return sock;
 }
-#endif
+#else // ! ENABLE_IPV6 ->
+static SOCKET createReplySocket6(
+    struct sockaddr_in6 *destaddr, std::string& lochost)
+{
+    return INVALID_SOCKET;
+}
+#endif // ! ENABLE_IPV6
 
 // Set the UPnP predefined multicast destination addresses
 static bool ssdpMcastAddr(struct sockaddr_storage& ss, int AddressFamily)
