@@ -54,6 +54,11 @@
 #define NPUPNP_VERSION    \
   ((NPUPNP_VERSION_MAJOR*100 + NPUPNP_VERSION_MINOR)*100 + NPUPNP_VERSION_PATCH)
 
+#define NPUPNP_AT_LEAST(A,B,C)                                          \
+    (NPUPNP_VERSION_MAJOR > (A) ||                                      \
+     (NPUPNP_VERSION_MAJOR == (A) &&                                    \
+      (NPUPNP_VERSION_MINOR > (B) ||                                    \
+       (NPUPNP_VERSION_MINOR == (B) && NPUPNP_VERSION_PATCH >= (C)))))
 
 /***************************************************************************
  * Library optional features
