@@ -1118,7 +1118,7 @@ int UpnpRegisterClient(Upnp_FunPtr Fun, const void *Cookie,
 }
 
 void UpnpClientSetProduct(
-    UpnpClient_Handle Hnd, const char *product, const char *version)
+    UpnpClient_Handle, const char *product, const char *version)
 {
     if (nullptr == product || 0 == *product ||
         nullptr == version || 0 == *version) {
