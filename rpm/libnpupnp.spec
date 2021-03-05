@@ -1,6 +1,6 @@
 Summary: UPnP base library
 Name: libnpupnp
-Version: 4.0.7
+Version: 4.0.14
 Release: 1%{?dist}
 License: BSD
 Group: Application/Multimedia
