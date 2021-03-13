@@ -18,7 +18,7 @@ AC_INIT([libnpupnp], [4.1.0], [jfd@recoll.org])
 # to be installed. Not necessary for now.
 # Previous version: 2.1.2 was [2:0:0]
 # Previous version: 2.2.1 was [3:0:0]
-AC_SUBST([LT_VERSION_NPUPNP],       [4:2:0])
+AC_SUBST([LT_VERSION_NPUPNP],       [5:0:1])
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])

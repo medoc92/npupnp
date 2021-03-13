@@ -1,3 +1,12 @@
+libnpupnp1 (4.1.0-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Send SERVER and USER-AGENT headers in misc places where mandated or useful.
+  * Add API for the client code to set the user-agent and server string values
+  * Fix building and running with --disable-ipv6
+  * Misc portability fixes.
+  
+ -- Jean-Francois Dockes <jf@dockes.org>  Sat, 13 Mar 2021 13:30:00 +0100
+
 libnpupnp1 (4.0.14-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Fix parsing of UPnP description with multiple embedded devices.

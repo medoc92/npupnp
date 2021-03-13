@@ -22,6 +22,8 @@ UpnpDownloadUrlItem(char
 UpnpDownloadUrlItem(std::__cxx11::basic_string<char,
 UpnpEnableWebserver(int)
 UpnpInitWithOptions(char
+UpnpClientSetProduct(int,
+UpnpDeviceSetProduct(int,
 UpnpRemoveVirtualDir(char
 UpnpUnRegisterClient(int)
 UpnpRenewSubscription(int,
