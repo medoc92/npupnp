@@ -85,7 +85,6 @@
  */
 enum resp_type {
     RESP_FILEDOC,
-    RESP_HEADERS,
     RESP_WEBDOC,
     RESP_XMLDOC,
 };
@@ -652,10 +651,6 @@ static int process_request(
     }
     headers["x-user-agent"] = X_USER_AGENT;
 
-    if (mhdt->method == HTTPMETHOD_HEAD) {
-        *rtype = RESP_HEADERS;
-    } 
-
     return HTTP_OK;
 }
 
@@ -767,14 +762,8 @@ static void web_server_callback(MHDTransaction *mhdt)
         case RESP_XMLDOC:
             mhdt->response = MHD_create_response_from_buffer(
                 RespInstr.data.size(), (void*)(strdup(RespInstr.data.c_str())),
-                MHD_RESPMEM_PERSISTENT);
+                MHD_RESPMEM_MUST_FREE);
             mhdt->httpstatus = 200;
-            break;
-
-        case RESP_HEADERS:
-            /* headers only */
-            mhdt->response = MHD_create_response_from_buffer(
-                0, nullptr, MHD_RESPMEM_PERSISTENT);
             break;
 
         default:
