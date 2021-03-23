@@ -100,11 +100,12 @@ TimerThread *gTimerThread;
 ThreadPool gRecvThreadPool;
 /*! Mini server thread pool. */
 ThreadPool gMiniServerThreadPool;
-static constexpr std::array<std::pair<ThreadPool*, const char*>, 3> o_threadpools{{
-    {&gSendThreadPool, "Send thread pool"},
-    {&gRecvThreadPool, "Receive thread pool"},
-    {&gMiniServerThreadPool, "Mini server thread pool"},
-}};
+using tpooldesc = std::pair<ThreadPool*, const char*>;
+static const std::array<std::pair<ThreadPool*, const char*>, 3> o_threadpools{
+    tpooldesc{&gSendThreadPool, "Send thread pool"},
+    tpooldesc{&gRecvThreadPool, "Receive thread pool"},
+    tpooldesc{&gMiniServerThreadPool, "Mini server thread pool"},
+};
 
 /*! Flag to indicate the state of web server */
 WebServerState bWebServerState = WEB_SERVER_DISABLED;
