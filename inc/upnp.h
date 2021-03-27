@@ -900,6 +900,19 @@ EXPORT_SPEC unsigned short UpnpGetServerPort(void);
  *    \li On error: 0 is returned if @ref UpnpInit has not succeeded.
  */
 EXPORT_SPEC unsigned short UpnpGetServerPort6(void);
+
+/*!
+ * \brief Returns the internal server IPv6 ULA or GUA UPnP listening port.
+ *
+ * If '0' is used as the port number in \b UpnpInit2, then this function can be
+ * used to retrieve the actual port allocated to the SDK.
+ *
+ * \return
+ * 	\li On success: The port on which an internal server is listening for
+ *		IPv6 ULA or GUA UPnP related requests.
+ * 	\li On error: 0 is returned if \b UpnpInit2 has not succeeded.
+ */
+EXPORT_SPEC unsigned short UpnpGetServerUlaGuaPort6(void);
 #endif
 
 /**

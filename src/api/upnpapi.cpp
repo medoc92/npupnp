@@ -812,6 +812,10 @@ unsigned short UpnpGetServerPort6()
 
     return LOCAL_PORT_V6;
 }
+unsigned short UpnpGetServerUlaGuaPort6()
+{
+        return 0U;
+}
 #endif
 
 const char *UpnpGetServerIpAddress()
