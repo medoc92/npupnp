@@ -305,6 +305,6 @@ size_t utf8len(const std::string& s);
  *   0 or positive: replacement count.
  */
 int utf8check(
-    const std::string& in, std::string& out, bool fixit=false, int maxrepl=100);
+    const std::string& in, bool fixit=false, std::string* out = nullptr, int maxrepl=100);
 
 #endif /* _UTF8ITER_H_INCLUDED_ */

@@ -131,7 +131,7 @@ get_response_value(
         // this. Try to fix by replacing bad chars with the usual question
         // mark.
         std::string fixed;
-        if (utf8check(payload, fixed, true) < 0) {
+        if (utf8check(payload, true, &fixed) < 0) {
             UpnpPrintf(UPNP_INFO, SOAP, __FILE__, __LINE__,
                        "soap: fix encoding failed for %s\n", payload.c_str());
             return UPNP_E_BAD_RESPONSE;

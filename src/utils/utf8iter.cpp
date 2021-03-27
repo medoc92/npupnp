@@ -94,7 +94,7 @@ size_t utf8len(const string& s)
 static const std::string replchar{"\xef\xbf\xbd"};
 
 // Check utf-8 encoding, replacing errors with the ? char above
-int utf8check(const std::string& in, std::string& out, bool fixit, int maxrepl)
+int utf8check(const std::string& in, bool fixit, std::string *out, int maxrepl)
 {
     int cnt = 0;
     Utf8Iter it(in);
@@ -103,7 +103,7 @@ int utf8check(const std::string& in, std::string& out, bool fixit, int maxrepl)
             if (!fixit) {
                 return -1;
             }
-            out += replchar;
+            *out += replchar;
             ++cnt;
             for (; cnt < maxrepl; cnt++) {
                 it.retryfurther();
@@ -111,7 +111,7 @@ int utf8check(const std::string& in, std::string& out, bool fixit, int maxrepl)
                     return cnt;
                 if (!it.error())
                     break;
-                out += replchar;
+                *out += replchar;
             }
             if (it.error()) {
                 return -1;
@@ -119,7 +119,7 @@ int utf8check(const std::string& in, std::string& out, bool fixit, int maxrepl)
         }
         // We have reached a good char and eof is false
         if (fixit) {
-            it.appendchartostring(out);
+            it.appendchartostring(*out);
         }
     }
     return cnt;
