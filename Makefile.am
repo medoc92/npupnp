@@ -43,8 +43,12 @@ else
 libnpupnp_la_CXXFLAGS = $(AM_CXXFLAGS)
 endif
 
+if MINGW
+MORELDFLAGS = -no-undefined
+endif
 
 libnpupnp_la_LDFLAGS = \
+	$(MORELDFLAGS) \
 	-version-info $(LT_VERSION_NPUPNP) \
 	$(LIBNPUPNP_LIBS)
 

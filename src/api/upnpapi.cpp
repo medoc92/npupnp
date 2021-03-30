@@ -638,18 +638,18 @@ exit_function:
     return retVal;
 }
 
-int UpnpInit(const char *hostIP, unsigned short DestPort)
+EXPORT_SPEC int UpnpInit(const char *hostIP, unsigned short DestPort)
 {
     return upnpInitCommon(hostIP, nullptr, DestPort);
 }
 
-int UpnpInit2(const char *IfName, unsigned short DestPort)
+EXPORT_SPEC int UpnpInit2(const char *IfName, unsigned short DestPort)
 {
     return UpnpInitWithOptions(IfName, DestPort,
                                UPNP_FLAG_IPV6, UPNP_OPTION_END);
 }
 
-int UpnpInit2(const std::vector<std::string>& ifnames, unsigned short port)
+EXPORT_SPEC int UpnpInit2(const std::vector<std::string>& ifnames, unsigned short port)
 {
     // A bit wasteful, but really simpler. Just build an interfaces
     // list string and continue with this.
@@ -748,7 +748,7 @@ static UPNP_INLINE void PrintThreadPoolStats(
 }
 #endif /* DEBUG */
 
-int UpnpFinish()
+EXPORT_SPEC int UpnpFinish()
 {
 #ifdef INCLUDE_DEVICE_APIS
     UpnpDevice_Handle device_handle;
@@ -796,7 +796,7 @@ int UpnpFinish()
     return UPNP_E_SUCCESS;
 }
 
-unsigned short UpnpGetServerPort()
+EXPORT_SPEC unsigned short UpnpGetServerPort()
 {
     if (UpnpSdkInit != 1)
         return 0U;
@@ -805,20 +805,20 @@ unsigned short UpnpGetServerPort()
 }
 
 #ifdef UPNP_ENABLE_IPV6
-unsigned short UpnpGetServerPort6()
+EXPORT_SPEC unsigned short UpnpGetServerPort6()
 {
     if (UpnpSdkInit != 1)
         return 0U;
 
     return LOCAL_PORT_V6;
 }
-unsigned short UpnpGetServerUlaGuaPort6()
+EXPORT_SPEC unsigned short UpnpGetServerUlaGuaPort6()
 {
         return 0U;
 }
 #endif
 
-const char *UpnpGetServerIpAddress()
+EXPORT_SPEC const char *UpnpGetServerIpAddress()
 {
     if (UpnpSdkInit != 1)
         return "";
@@ -829,7 +829,7 @@ const char *UpnpGetServerIpAddress()
     return addr.c_str();
 }
 
-const char *UpnpGetServerIp6Address()
+EXPORT_SPEC const char *UpnpGetServerIp6Address()
 {
     if (UpnpSdkInit != 1 || !using_ipv6()) {
         return "";
@@ -841,7 +841,7 @@ const char *UpnpGetServerIp6Address()
     return addr.c_str();
 }
 
-const char *UpnpGetServerUlaGuaIp6Address()
+EXPORT_SPEC const char *UpnpGetServerUlaGuaIp6Address()
 {
     return "";
 }
@@ -992,7 +992,7 @@ exit_function:
     return retVal;
 }
 
-int UpnpRegisterRootDevice(
+EXPORT_SPEC int UpnpRegisterRootDevice(
     const char *DescUrl, Upnp_FunPtr Fun, const void *Cookie,
     UpnpDevice_Handle *Hnd)
 {
@@ -1000,7 +1000,7 @@ int UpnpRegisterRootDevice(
         UPNPREG_URL_DESC, DescUrl, Fun, Cookie, Hnd, nullptr);
 }
 
-int UpnpRegisterRootDevice2(
+EXPORT_SPEC int UpnpRegisterRootDevice2(
     Upnp_DescType descriptionType, const char *description_const,
     size_t, int /*ignored*/, Upnp_FunPtr Fun, const void *Cookie,
     UpnpDevice_Handle *Hnd)
@@ -1009,7 +1009,7 @@ int UpnpRegisterRootDevice2(
         descriptionType, description_const, Fun, Cookie, Hnd, nullptr);
 }
 
-int UpnpRegisterRootDevice4(
+EXPORT_SPEC int UpnpRegisterRootDevice4(
     const char *DescUrl, Upnp_FunPtr Fun, const void *Cookie,
     UpnpDevice_Handle *Hnd, int /*AddressFamily*/, const char *LowerDescUrl)
 {
@@ -1017,7 +1017,7 @@ int UpnpRegisterRootDevice4(
         UPNPREG_URL_DESC, DescUrl, Fun, Cookie, Hnd, LowerDescUrl);
 }
 
-int UpnpDeviceSetProduct(
+EXPORT_SPEC int UpnpDeviceSetProduct(
     UpnpDevice_Handle Hnd, const char *product, const char *version)
 {
     struct Handle_Info *HInfo = nullptr;
@@ -1035,12 +1035,12 @@ int UpnpDeviceSetProduct(
     return UPNP_E_SUCCESS;
 }
 
-int UpnpUnRegisterRootDevice(UpnpDevice_Handle Hnd)
+EXPORT_SPEC int UpnpUnRegisterRootDevice(UpnpDevice_Handle Hnd)
 {
     return UpnpUnRegisterRootDeviceLowPower(Hnd, -1, -1, -1);
 }
 
-int UpnpUnRegisterRootDeviceLowPower(UpnpDevice_Handle Hnd, int PowerState,
+EXPORT_SPEC int UpnpUnRegisterRootDeviceLowPower(UpnpDevice_Handle Hnd, int PowerState,
                                      int SleepPeriod, int RegistrationState)
 {
     UpnpPrintf(UPNP_DEBUG,API, __FILE__, __LINE__, "UpnpUnRegisterRootDevice\n");

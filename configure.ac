@@ -1,6 +1,6 @@
-AC_PREREQ(2.60)
+AC_PREREQ([2.71])
 
-AC_INIT([libnpupnp], [4.1.1], [jfd@recoll.org])
+AC_INIT([libnpupnp],[4.1.1],[jfd@recoll.org])
 
 # - Start with version information of ‘0:0:0’ for each libtool library.
 # - Update the version information only immediately before a public release
@@ -30,12 +30,14 @@ case "${host_os}" in
     linux*|uclinux*) build_linux=yes;;
     darwin*) build_mac=yes;;
     *freebsd*) build_freebsd=yes;;
+    *mingw*) build_mingw=yes;;
     *) AC_MSG_WARN(["OS $host_os is unknown"]);;
 esac
 # Pass the conditionals to automake
 AM_CONDITIONAL([LINUX], [test "$build_linux" = "yes"])
 AM_CONDITIONAL([OSX], [test "$build_mac" = "yes"])
 AM_CONDITIONAL([FREEBSD], [test "$build_freebsd" = "yes"])
+AM_CONDITIONAL([MINGW], [test "$build_mingw" = "yes"])
 
 AM_INIT_AUTOMAKE([1.8 -Wall foreign subdir-objects])
 AM_PROG_AR
@@ -43,7 +45,7 @@ AC_DISABLE_STATIC
 LT_INIT
 
 AC_PROG_CXX
-AC_PROG_LIBTOOL
+LT_INIT
 AC_CHECK_PROG([pkg_config], [pkg-config], [yes], [no])
 if test X$pkg_config != Xyes ; then
    AC_MSG_ERROR([pkg-config program needed and not found])
@@ -88,7 +90,7 @@ AM_CONDITIONAL(ENABLE_DEBUG, test x"$enable_debug" != xno)
 #
 # Check for libupnp subsets
 #
-AC_ARG_ENABLE([client], AC_HELP_STRING([control point code (client)]))
+AC_ARG_ENABLE([client], AS_HELP_STRING([control point code (client)]))
 if test "x$enable_client" != xno ; then
 	AC_DEFINE(UPNP_HAVE_CLIENT, 1, [see upnpconfig.h])
 fi
@@ -161,8 +163,7 @@ if test "x$enable_reuseaddr" = xyes ; then
 fi
 
 AC_ARG_ENABLE(testprogs,
-    AC_HELP_STRING([--enable-testprogs],
-   [Enable building small test drivers. These are not unit tests.]),
+    AS_HELP_STRING([--enable-testprogs],[Enable building small test drivers. These are not unit tests.]),
         buildtestprogs=$enableval, buildtestprogs=no)
 AM_CONDITIONAL([COND_TESTPROGS], [test "$buildtestprogs" = yes])
 
@@ -191,26 +192,8 @@ fi
 #
 # Checks for header files (which aren't needed on Win32)
 #
-AC_HEADER_STDC
 if test "$ac_cv_win32" = "no"; then
-AC_CHECK_HEADERS(
-	[ \
-	arpa/inet.h \
-	fcntl.h \
-	inttypes.h \
-	limits.h \
-	netdb.h \
-	netinet/in.h \
-	stdlib.h \
-	string.h \
-	sys/ioctl.h \
-	sys/socket.h \
-	sys/time.h \
-	syslog.h \
-	unistd.h \
-	],
-	[],
-	[AC_MSG_ERROR([required header file missing])])
+AC_CHECK_HEADERS([ arpa/inet.h fcntl.h inttypes.h limits.h netdb.h netinet/in.h stdlib.h string.h sys/ioctl.h sys/socket.h sys/time.h syslog.h unistd.h],[],[AC_MSG_ERROR([required header file missing])])
 fi
 
 
@@ -243,7 +226,12 @@ fi
 
 
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([getifaddrs inet_pton])
+AC_CHECK_FUNCS([getifaddrs])
+AC_SEARCH_LIBS([inet_pton], [Ws2_32],
+  [AC_DEFINE([HAVE_INET_PTON], 1, [inet_pton available])], [])
+if test "$ac_cv_win32" = "yes"; then
+    AC_SEARCH_LIBS([GetAdaptersAddresses], [iphlpapi], [], [])
+fi
 # Solaris needs -lsocket -lnsl -lrt
 AC_SEARCH_LIBS([bind],           [socket])
 AC_SEARCH_LIBS([gethostbyname],  [nsl])
@@ -255,8 +243,7 @@ PKG_CHECK_MODULES([MICROHTTPD], [libmicrohttpd], [],
 AC_SUBST(MICROHTTPD_CFLAGS)
 AC_SUBST(CURL_CFLAGS)
 AC_ARG_ENABLE(expat,
-    AC_HELP_STRING([--disable-expat],
-    [Use a small internal module for parsing XML instead of libexpat.]),
+    AS_HELP_STRING([--disable-expat],[Use a small internal module for parsing XML instead of libexpat.]),
     useexpat=$enableval, useexpat=yes)
 AM_CONDITIONAL([COND_EXPAT], [test "$useexpat" = yes])
 if test X$useexpat = Xyes ; then
