@@ -1,4 +1,4 @@
-AC_PREREQ([2.71])
+AC_PREREQ([2.60])
 
 AC_INIT([libnpupnp],[4.1.1],[jfd@recoll.org])
 
@@ -228,7 +228,7 @@ fi
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([getifaddrs])
 AC_SEARCH_LIBS([inet_pton], [Ws2_32],
-  [AC_DEFINE([HAVE_INET_PTON], 1, [inet_pton available])], [])
+  [AC_DEFINE([HAVE_INET_PTON], 1, [Define to 1 if you have the `inet_pton' function.])], [])
 if test "$ac_cv_win32" = "yes"; then
     AC_SEARCH_LIBS([GetAdaptersAddresses], [iphlpapi], [], [])
 fi
