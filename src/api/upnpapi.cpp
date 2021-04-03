@@ -804,19 +804,25 @@ EXPORT_SPEC unsigned short UpnpGetServerPort()
     return LOCAL_PORT_V4;
 }
 
-#ifdef UPNP_ENABLE_IPV6
 EXPORT_SPEC unsigned short UpnpGetServerPort6()
 {
+#ifdef UPNP_ENABLE_IPV6
     if (UpnpSdkInit != 1)
         return 0U;
 
     return LOCAL_PORT_V6;
+#else
+    return 0;
+#endif
 }
 EXPORT_SPEC unsigned short UpnpGetServerUlaGuaPort6()
 {
-        return 0U;
-}
+#ifdef UPNP_ENABLE_IPV6
+        return 0;
+#else
+        return 0;
 #endif
+}
 
 EXPORT_SPEC const char *UpnpGetServerIpAddress()
 {
@@ -831,6 +837,7 @@ EXPORT_SPEC const char *UpnpGetServerIpAddress()
 
 EXPORT_SPEC const char *UpnpGetServerIp6Address()
 {
+#ifdef UPNP_ENABLE_IPV6
     if (UpnpSdkInit != 1 || !using_ipv6()) {
         return "";
     }
@@ -839,6 +846,9 @@ EXPORT_SPEC const char *UpnpGetServerIp6Address()
         addr = apiFirstIPV6Str();
     }
     return addr.c_str();
+#else
+    return nullptr;
+#endif
 }
 
 EXPORT_SPEC const char *UpnpGetServerUlaGuaIp6Address()
