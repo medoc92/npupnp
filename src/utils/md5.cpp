@@ -281,6 +281,14 @@ string& MD5HexPrint(const string& digest, string &out)
     return out;
 }
 
+std::string MD5Hex(const std::string& data)
+{
+    std::string digest, out;
+    MD5String(data, digest);
+    MD5HexPrint(digest, out);
+    return out;
+}
+
 string& MD5HexScan(const string& xdigest, string& digest)
 {
     digest.erase();
