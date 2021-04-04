@@ -73,6 +73,8 @@ public:
 
     /** @brief Check constructor success */
     bool ok() const;
+    /** Set the scopeidx from other address. Only does anything for ipv6 link-local addresses */
+    bool setScopeIdx(const IPAddr& other);
     /** @brief Returns the address family */
     Family family() const;
     /** @brief Returns the scope type of IPV6 address */
@@ -87,8 +89,9 @@ public:
     /** @brief Get reference to the internal binary address */
     const struct sockaddr_storage& getaddr() const;
     
-    /** @brief Convert to textual representation */
-    std::string straddr() const;
+    /** @brief Convert to textual representation. 
+     * Possibly add scope id if needed, possibly url-encoded. */
+    std::string straddr(bool setscope = false, bool forurl = false) const;
     
     friend class Interface;
     class Internal;

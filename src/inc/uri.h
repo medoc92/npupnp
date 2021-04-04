@@ -145,4 +145,9 @@ std::string resolve_rel_url(const std::string& base, const std::string& rel);
  */
 int parse_uri(const std::string& in, uri_type *out);
 
+/* Possibly qualify the address part of the URL with a scope id, if needed */
+std::string maybeScopeUrlAddr(const char *inurl, const struct sockaddr_storage *remoteaddr);
+std::string maybeScopeUrlAddr(
+    const char *inurl, uri_type& prsduri, const struct sockaddr_storage *remoteaddr);
+
 #endif /* GENLIB_NET_URI_H */

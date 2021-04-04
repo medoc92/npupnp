@@ -121,10 +121,10 @@ static int parse_hostport(
         *c = '\0';
         if (has_port == 1)
             c++;
-        if (last_dot != nullptr && isdigit(*(last_dot + 1)))
+        if (last_dot != nullptr && isdigit(*(last_dot + 1))) {
             /* Must be an IPv4 address. */
             af = AF_INET;
-        else {
+        } else {
             /* Must be a host name. */
             struct addrinfo hints = {}, *res, *res0;
 
@@ -138,9 +138,7 @@ static int parse_hostport(
                     case AF_INET:
                     case AF_INET6:
                         /* Found a valid IPv4 or IPv6 address. */
-                        memcpy(&out->IPaddress,
-                               res->ai_addr,
-                               res->ai_addrlen);
+                        memcpy(&out->IPaddress, res->ai_addr, res->ai_addrlen);
                         goto found;
                     }
                 }
@@ -164,9 +162,10 @@ static int parse_hostport(
         if (port == 0)
             /* Bad port number. */
             return UPNP_E_INVALID_URL;
-    } else
+    } else {
         /* Port was not specified, use default port. */
         port = 80U;
+    }
     /* The length of the host and port string can be calculated by */
     /* subtracting pointers. */
     hostport_size = size_t(c) - size_t(workbuf);
@@ -178,11 +177,26 @@ static int parse_hostport(
         ret = inet_pton(AF_INET, srvname, &sai4->sin_addr);
         break;
     case AF_INET6:
+    {
+        int scopeidx = 0;
+        auto pc = strchr(srvname, '%');
+        if (pc) {
+            *pc = 0;
+            pc++;
+            // Trying to guess if this is url-encoded. if the index is
+            // 25x, we're out of luck.
+            if (*pc == '2' && *(pc+1) == '5' && isdigit(*(pc+2))) {
+                scopeidx = atoi(pc+2);
+            } else {
+                scopeidx = atoi(pc);
+            }
+        }
         sai6->sin6_family = static_cast<sa_family_t>(af);
         sai6->sin6_port = htons(port);
-        sai6->sin6_scope_id = apiFirstIPV6Index();
+        sai6->sin6_scope_id = scopeidx;
         ret = inet_pton(AF_INET6, srvname, &sai6->sin6_addr);
-        break;
+    }
+    break;
     default:
         /* IP address was set by the hostname (getaddrinfo). */
         /* Override port: */
@@ -196,7 +210,6 @@ static int parse_hostport(
     if (ret <= 0)
         return UPNP_E_INVALID_URL;
     out->text.assign(in, hostport_size);
-
     return static_cast<int>(hostport_size);
 }
 
@@ -444,4 +457,36 @@ int parse_uri(const std::string& in, uri_type *out)
     }
 
     return UPNP_E_SUCCESS;
+}
+
+std::string maybeScopeUrlAddr(
+    const char *inurl, uri_type& prsduri, const struct sockaddr_storage *remoteaddr)
+{
+    NetIF::IPAddr urlip(reinterpret_cast<const struct sockaddr*>(&prsduri.hostport.IPaddress));
+
+    if (urlip.family() != NetIF::IPAddr::Family::IPV6 ||
+        urlip.scopetype() != NetIF::IPAddr::Scope::LINK) {
+        // Can use URL as is
+        return inurl;
+    }
+
+    // Set the scope from the one in the remote address.
+    NetIF::IPAddr remip(reinterpret_cast<const struct sockaddr*>(remoteaddr));
+    urlip.setScopeIdx(remip);
+    std::string scopedaddr = urlip.straddr(true, true);
+
+    struct sockaddr_in6 *sa6 = reinterpret_cast<struct sockaddr_in6*>(&prsduri.hostport.IPaddress);
+    char portbuf[20];
+    snprintf(portbuf, sizeof(portbuf), "%hu", ntohs(sa6->sin6_port));
+    prsduri.hostport.text = std::string("[") + scopedaddr + "]:" + portbuf;
+    return uri_asurlstr(prsduri);
+}
+
+std::string maybeScopeUrlAddr(const char *inurl, const struct sockaddr_storage *remoteaddr)
+{
+    uri_type prsduri;
+    if (parse_uri(inurl, &prsduri) != UPNP_E_SUCCESS || prsduri.hostport.text.empty()) {
+        return std::string();
+    }
+    return maybeScopeUrlAddr(inurl, prsduri, remoteaddr);
 }

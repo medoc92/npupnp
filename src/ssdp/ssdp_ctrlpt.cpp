@@ -114,14 +114,22 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
     if (parser.date) {
         upnp_strlcpy(param.Date, parser.date, LINE_SIZE);
     }
-    /* dest addr */
+    /* remote addr */
     memcpy(&param.DestAddr, dest_addr, sizeof(struct sockaddr_storage));
     /* EXT is upnp 1.0 compat. It has no value in 1.1 */
     param.Ext[0] = '\0';
-    /* LOCATION */
+    /* LOCATION. If the URL contains an IPV6 link-local address, we
+       need to qualify it with the scope id, else, later on, when the
+       client code calls, e.g. UpnpSendAction, we won't know what
+       interface this is for (the socket addr is not part of the
+       call). */
     param.Location[0] = '\0';
     if (parser.location) {
-        upnp_strlcpy(param.Location, parser.location, LINE_SIZE);
+        std::string scopedloc = maybeScopeUrlAddr(parser.location, dest_addr);
+        if (scopedloc.empty()) {
+            return;
+        }
+        upnp_strlcpy(param.Location, scopedloc.c_str(), LINE_SIZE);
     }
     /* SERVER / USER-AGENT */
     param.Os[0] = '\0';

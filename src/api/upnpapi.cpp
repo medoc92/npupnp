@@ -1850,8 +1850,7 @@ int UpnpDownloadUrlItem(const char *url, char **outBuf, char *contentType)
 
     if (url == nullptr || outBuf == nullptr)
         return UPNP_E_INVALID_PARAM;
-    ret_code = http_Download(url, HTTP_DEFAULT_TIMEOUT, outBuf, &dummy,
-                             contentType);
+    ret_code = http_Download(url, HTTP_DEFAULT_TIMEOUT, outBuf, &dummy, contentType);
     if (ret_code > 0)
         /* error reply was received */
         ret_code = UPNP_E_INVALID_URL;

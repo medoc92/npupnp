@@ -143,7 +143,7 @@ static MHD_Result headers_cb(void *cls, enum MHD_ValueKind,
     } else {
         mhtt->headers[key] = value;
     }
-    UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+    UpnpPrintf(UPNP_DEBUG, MSERV, __FILE__, __LINE__,
                "miniserver:req_header: [%s: %s]\n",    key.c_str(), value);
     return MHD_YES;
 }
@@ -151,7 +151,7 @@ static MHD_Result headers_cb(void *cls, enum MHD_ValueKind,
 static MHD_Result show_resp_headers_cb(
     void *, enum MHD_ValueKind, const char *k, const char *value)
 {
-    UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+    UpnpPrintf(UPNP_DEBUG, MSERV, __FILE__, __LINE__,
                "miniserver:resp_header: [%s] -> [%s]\n", k, value);
     return MHD_YES;
 }

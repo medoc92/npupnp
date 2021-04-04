@@ -226,16 +226,6 @@ static int gena_unsubscribe(
     curl_easy_setopt(easy, CURLOPT_CUSTOMREQUEST, "UNSUBSCRIBE");
     std::string surl =  uri_asurlstr(dest_url);
     curl_easy_setopt(easy, CURLOPT_URL, surl.c_str());
-    // If this is an ipv6 url (which we check rather cavalierly),
-    // this may be a link-local address, and it needs an interface
-    // index (scope_id). This is a temporary hack to work with a
-    // single ipv6 interface until we do the right thing which
-    // would be to store and transport the appropriate scope for
-    // every endpoint
-    if (using_ipv6() && surl.find('[') != std::string::npos) {
-        curl_easy_setopt(easy, CURLOPT_ADDRESS_SCOPE, apiFirstIPV6Index());
-    }
-    
     curl_easy_setopt(easy, CURLOPT_TIMEOUT, HTTP_DEFAULT_TIMEOUT);
 
     struct curl_slist *list = nullptr;
@@ -358,16 +348,6 @@ static int gena_subscribe(
     curl_easy_setopt(hdls.htalk, CURLOPT_WRITEFUNCTION,write_callback_null_curl);
     curl_easy_setopt(hdls.htalk, CURLOPT_CUSTOMREQUEST, "SUBSCRIBE");
     curl_easy_setopt(hdls.htalk, CURLOPT_URL, urlforcurl.c_str());
-    // If this is an ipv6 url (which we check rather cavalierly),
-    // this may be a link-local address, and it needs an interface
-    // index (scope_id). This is a temporary hack to work with a
-    // single ipv6 interface until we do the right thing which
-    // would be to store and transport the appropriate scope for
-    // every endpoint
-    if (using_ipv6() && urlforcurl.find('[') != std::string::npos) {
-        curl_easy_setopt(hdls.htalk, CURLOPT_ADDRESS_SCOPE, apiFirstIPV6Index());
-    }
-    
     curl_easy_setopt(hdls.htalk, CURLOPT_TIMEOUT, HTTP_DEFAULT_TIMEOUT);
     curl_easy_setopt(hdls.htalk, CURLOPT_HEADERFUNCTION, header_callback_curl);
     curl_easy_setopt(hdls.htalk, CURLOPT_HEADERDATA, &http_headers);

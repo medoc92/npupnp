@@ -57,7 +57,7 @@ struct subscription {
     int ToSendEventKey{0};
     time_t expireTime{0};
     int active{0};
-    std::vector<uri_type> DeliveryURLs;
+    std::vector<std::string> DeliveryURLs;
     /* List of queued events for this subscription. Only one event job
        at a time goes into the thread pool. The first element in the
        list is a copy of the active job. Others are activated on job

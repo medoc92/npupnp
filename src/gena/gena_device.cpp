@@ -49,6 +49,7 @@
 #include "upnpapi.h"
 #include "gena_sids.h"
 #include "genut.h"
+#include "uri.h"
 
 static constexpr auto XML_PROPERTYSET_HEADER =
     R"(<e:propertyset xmlns:e="urn:schemas-upnp-org:event-1-0">)" "\n";
@@ -160,17 +161,7 @@ static int genaNotify(const std::string& propertySet, const subscription *sub)
         list = curl_slist_append(list, "Expect:");
         list = curl_slist_append(list, R"(Content-Type: text/xml; charset="utf-8")");
         curl_easy_setopt(easy, CURLOPT_HTTPHEADER, list);
-        std::string surl =  uri_asurlstr(url);
-        curl_easy_setopt(easy, CURLOPT_URL, surl.c_str());
-        // If this is an ipv6 url (which we check rather cavalierly),
-        // this may be a link-local address, and it needs an interface
-        // index (scope_id). This is a temporary hack to work with a
-        // single ipv6 interface until we do the right thing which
-        // would be to store and transport the appropriate scope for
-        // every endpoint
-        if (using_ipv6() && surl.find('[') != std::string::npos) {
-            curl_easy_setopt(easy, CURLOPT_ADDRESS_SCOPE, apiFirstIPV6Index());
-        }
+        curl_easy_setopt(easy, CURLOPT_URL, url.c_str());
 
         CURLcode code = curl_easy_perform(easy);
         if (code == CURLE_OK) {
@@ -598,6 +589,50 @@ static int respond_ok(MHDTransaction *mhdt, int time_out, subscription *sub,
 }
 
 
+// Callstranger (CVE-2020-12695)) https://kb.cert.org/vuls/id/339275
+//    The Open Connectivity Foundation UPnP specification
+//    before 2020-04-17 does not forbid the acceptance of a
+//    subscription request with a delivery URL on a different
+//    network segment than the fully qualified
+//    event-subscription URL, aka the CallStranger issue. This
+//    tool checks for the vulnerability.
+// So we need to check the delivery address against our own incoming
+// connection address. TBD? currently, we just check that it matches
+// one of our supported addresses, not necessarily the one this
+// particular client connected to.
+static bool callStrangerCheck(
+    const std::string& surl, uri_type& temp, const NetIF::Interface *clnetif, NetIF::IPAddr& claddr)
+{
+    NetIF::IPAddr subsaddr(reinterpret_cast<struct sockaddr*>(&temp.hostport.IPaddress));
+    if (!subsaddr.ok()) {
+        UpnpPrintf(UPNP_INFO,GENA,__FILE__,__LINE__,"create_url_list: bad addr %s\n",surl.c_str());
+        return false;
+    }
+    // For IPV6, we check that the address is link-local. We only
+    // use a globally set network interface anyway, the client has
+    // no way to send us elsewhere. For IPV4, we let NetIF find
+    // the right interface (checking the address against the
+    // IP/netmask for each network interface). If this succeeds,
+    // and it's the same interface, we're ok
+    if (subsaddr.family() == NetIF::IPAddr::Family::IPV6) {
+        if (subsaddr.scopetype() != NetIF::IPAddr::Scope::LINK) {
+            UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
+                       "create_url_list: not link-local: %s\n",surl.c_str());
+            return false;
+        }
+    } else {
+        NetIF::IPAddr hostaddr1;
+        const auto subsnetif = NetIF::Interfaces::interfaceForAddress(subsaddr,g_netifs,hostaddr1);
+        if (subsnetif != clnetif) {
+            UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
+                       "create_url_list: diff. segment: client %s sub %s\n",
+                       claddr.straddr().c_str(), surl.c_str());
+            return false;
+        }
+    }
+    return true;
+}
+
 /*!
  * \brief Function to parse the Callback header value in subscription requests.
  *
@@ -609,13 +644,12 @@ static int respond_ok(MHDTransaction *mhdt, int time_out, subscription *sub,
  * \return The number of URLs parsed.
  */
 static int create_url_list(
-    MHDTransaction *mhdt, const std::string& ulist, std::vector<uri_type> *out)
+    MHDTransaction *mhdt, const std::string& ulist, std::vector<std::string> *out)
 {
     out->clear();
 
     // Get information for the client address
-    NetIF::IPAddr claddr(
-        reinterpret_cast<struct sockaddr*>(mhdt->client_address));
+    NetIF::IPAddr claddr(reinterpret_cast<struct sockaddr*>(mhdt->client_address));
     if (!claddr.ok()) {
         UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
                    "create_url_list: can't determine client addr\n");
@@ -624,8 +658,7 @@ static int create_url_list(
     UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
                "create_url_list: client address: %s\n",claddr.straddr().c_str());
     NetIF::IPAddr hostaddr;
-    const auto clnetif = NetIF::Interfaces::interfaceForAddress(
-        claddr, g_netifs, hostaddr);
+    const auto clnetif = NetIF::Interfaces::interfaceForAddress(claddr, g_netifs, hostaddr);
     if (nullptr == clnetif) {
         UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
                    "create_url_list: no interface for client address %s\n",
@@ -657,46 +690,27 @@ static int create_url_list(
             out->clear();
             return UPNP_E_INVALID_URL;
         }
-        // Check that the specified callback address is on the same
-        // network segment as the client address (Callstranger (CVE-2020-12695))
 
-        NetIF::IPAddr subsaddr(
-            reinterpret_cast<struct sockaddr*>(&temp.hostport.IPaddress));
-        if (!subsaddr.ok()) {
-            UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
-                       "create_url_list: bad addr %s\n", surl.c_str());
+        if (!callStrangerCheck(surl, temp, clnetif, claddr)) {
             out->clear();
             return UPNP_E_INVALID_URL;
         }
-        NetIF::IPAddr hostaddr1;
-        // For IPV6, we check that the address is link-local. We only
-        // use a globally set network interface anyway, the client has
-        // no way to send us elsewhere. For IPV4, we let NetIF find
-        // the right interface (checking the address against the
-        // IP/netmask for each network interface). If this succeeds,
-        // and it's the same interface, we're ok
-        if (subsaddr.family() == NetIF::IPAddr::Family::IPV6) {
-            if (subsaddr.scopetype() != NetIF::IPAddr::Scope::LINK) {
-                UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
-                           "create_url_list: not link-local: %s\n",surl.c_str());
-                out->clear();
-                return UPNP_E_INVALID_URL;
-            }
-        } else {
-            const auto subsnetif = NetIF::Interfaces::interfaceForAddress(
-                subsaddr, g_netifs, hostaddr1);
-            if (subsnetif != clnetif) {
-                UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
-                           "create_url_list: diff. segment: client %s sub %s\n",
-                           claddr.straddr().c_str(), surl.c_str());
-                out->clear();
-                return UPNP_E_INVALID_URL;
-            }
+
+        // Rebuild a string url from the parsed one
+        surl = uri_asurlstr(temp);
+
+        // Maybe qualify the host with a scope id (IPV6 link-local
+        // addresses). This returns surl if there is nothing to do.
+        std::string qsurl = maybeScopeUrlAddr(surl.c_str(), temp, &claddr.getaddr());
+        if (qsurl.empty()) {
+            UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
+                       "create_url_list: maybeScopeUrlAddr failed for %s\n", surl.c_str());
+            continue;
         }
-        
-        UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
-                   "create_url_list: cb url ok:  %s\n",surl.c_str());
-        out->push_back(temp);
+
+        UpnpPrintf(UPNP_ERROR, GENA, __FILE__, __LINE__,
+                   "create_url_list: cb url ok:  %s\n", qsurl.c_str());
+        out->push_back(qsurl);
     }
     return UPNP_E_SUCCESS;
 }
@@ -765,7 +779,7 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
         return;
     }
 
-    std::vector<uri_type> tmpUrls;
+    std::vector<std::string> tmpUrls;
     /* check for valid callbacks */
     {
         auto itcb = mhdt->headers.find("callback");
