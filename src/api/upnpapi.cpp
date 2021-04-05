@@ -796,6 +796,32 @@ EXPORT_SPEC int UpnpFinish()
     return UPNP_E_SUCCESS;
 }
 
+EXPORT_SPEC std::string UpnpGetUrlHostPortForClient(const struct sockaddr_storage* clsock)
+{
+    NetIF::IPAddr claddr(reinterpret_cast<const struct sockaddr*>(clsock));
+    NetIF::IPAddr hostaddr;
+    const NetIF::Interface *itf =
+        NetIF::Interfaces::interfaceForAddress(claddr, g_netifs, hostaddr);
+    if (nullptr == itf) {
+        return std::string();
+    }
+    int port = 0;
+    std::string prefix;
+    switch (hostaddr.family()) {
+    case NetIF::IPAddr::Family::IPV4:
+        port = UpnpGetServerPort();
+        break;
+    case NetIF::IPAddr::Family::IPV6:
+        prefix = "[";
+        port = UpnpGetServerPort6();
+            break;
+    default:
+        return std::string();
+    }
+
+    return prefix + hostaddr.straddr() + (prefix.empty() ? "" : "]") + ":" + lltodecstr(port);
+}
+
 EXPORT_SPEC unsigned short UpnpGetServerPort()
 {
     if (UpnpSdkInit != 1)

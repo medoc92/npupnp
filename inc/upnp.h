@@ -916,7 +916,7 @@ EXPORT_SPEC unsigned short UpnpGetServerUlaGuaPort6(void);
 #endif
 
 /**
- * @brief Returns the local IPv4 listening ip address.
+ * @brief Returns a local IPv4 listening ip address.
  *
  * If \c NULL is used as the IPv4 address in @ref UpnpInit, then this function can
  * be used to retrieve the actual interface address on which device is running.
@@ -930,7 +930,7 @@ EXPORT_SPEC const char *UpnpGetServerIpAddress(void);
 
 #ifdef UPNP_ENABLE_IPV6
 /**
- * @brief Returns the link-local IPv6 listening address.
+ * @brief Returns a link-local IPv6 listening address.
  *
  * If \c NULL is used as the IPv6 address in @ref UpnpInit, then this
  * function can be used to retrieve the actual interface address on
@@ -1815,6 +1815,21 @@ EXPORT_SPEC int UpnpIsWebserverEnabled(void);
 EXPORT_SPEC int UpnpSetWebServerRootDir( 
     /** [in] Path of the root directory of the web server. */
     const char *rootDir);
+
+/**
+ * @brief return an URL host:port string suitable for the passed-in client address.
+ *
+ * We chose a host address on the same subnet or the same link (for an
+ * IPV6 link-local client address), and the appropriate server port
+ * (as would be returned by UpnpGetServerPort[6](). Example of
+ * returned values: "192.168.0.4:49152",
+ * "[e80::4da9:6cfc:df0c:6700]:59152".
+ * The client address would typically be obtained from the
+ * CtrlPtIPAddr field of an Upnp_Action_Request structure.
+ * @return the appropriate host:port string or an empty string if no
+ *  appropriate value can be found.
+ */
+EXPORT_SPEC std::string UpnpGetUrlHostPortForClient(const struct sockaddr_storage*);
 
 /** Handle returned by the @ref VDCallback_Open virtual directory function. */
 typedef void *UpnpWebFileHandle;
