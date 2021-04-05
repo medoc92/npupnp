@@ -1,3 +1,13 @@
+libnpupnp1 (4.1.2-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Fix working with multiple ipv6 link-local interfaces by adding RFC 6874
+    zone identifiers to the URLs passed to the client code.
+  * Added UpnpGetUrlHostPortForClient() interface to help users of the web
+    server compute their URLs.
+  * Small build and compat fixes   
+
+ -- Jean-Francois Dockes <jf@dockes.org>  Mon, 05 Apr 2021 16:32:00 +0200
+
 libnpupnp1 (4.1.1-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Fix HEAD request processing. Fixes Samsung TVs not working with Gerbera+libnpupnp
