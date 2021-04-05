@@ -38,10 +38,12 @@ UpnpRegisterRootDevice4(char
 UpnpSetMaxContentLength(unsigned
 UpnpSetMaxSubscriptions(int,
 UpnpSetWebServerRootDir(char
+UpnpGetServerUlaGuaPort6()
 UpnpRemoveAllVirtualDirs()
 UpnpUnRegisterRootDevice(int)
 UpnpAcceptSubscriptionXML(int,
 UpnpSetVirtualDirCallbacks(UpnpVirtualDirCallbacks*)
+UpnpGetUrlHostPortForClient[abi:cxx11](sockaddr_storage
 UpnpGetServerUlaGuaIp6Address()
 UpnpSendAdvertisementLowPower(int,
 UpnpSetMaxSubscriptionTimeOut(int,
@@ -69,6 +71,7 @@ NetIF::Interfaces::Interfaces()
 NetIF::Interfaces::Interfaces()
 NetIF::Interfaces::~Interfaces()
 NetIF::Interfaces::~Interfaces()
+NetIF::IPAddr::setScopeIdx(NetIF::IPAddr
 NetIF::IPAddr::operator=(NetIF::IPAddr
 NetIF::IPAddr::IPAddr(sockaddr
 NetIF::IPAddr::IPAddr(char
@@ -100,6 +103,7 @@ NetIF::IPAddr::copyToStorage(sockaddr_storage*)
 NetIF::IPAddr::ok()
 NetIF::IPAddr::family()
 NetIF::IPAddr::getaddr()
+NetIF::IPAddr::straddr[abi:cxx11](bool,
 NetIF::IPAddr::straddr[abi:cxx11]()
 NetIF::IPAddr::scopetype()
 NetIF::Interface::getaddresses()

@@ -89,9 +89,11 @@ public:
     /** @brief Get reference to the internal binary address */
     const struct sockaddr_storage& getaddr() const;
     
+    /** @brief Convert to textual representation. */
+    std::string straddr() const;
     /** @brief Convert to textual representation. 
-     * Possibly add scope id if needed, possibly url-encoded. */
-    std::string straddr(bool setscope = false, bool forurl = false) const;
+     * Possibly add scope id, possibly url-encode it. */
+    std::string straddr(bool setscope, bool forurl) const;
     
     friend class Interface;
     class Internal;

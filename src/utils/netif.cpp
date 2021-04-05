@@ -246,6 +246,11 @@ bool IPAddr::setScopeIdx(const IPAddr& other)
     return true;
 }
 
+std::string IPAddr::straddr() const
+{
+    return straddr(false, false);
+}
+
 std::string IPAddr::straddr(bool setscope, bool forurl) const
 {
     if (!ok())
