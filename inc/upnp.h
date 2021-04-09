@@ -52,6 +52,13 @@
 #define NAME_SIZE  (size_t)256
 /** Value indicating a non-limited specification in some calls (e.g. timeout) */
 #define UPNP_INFINITE        -1
+/** This can be set in the file_length field of a File_Info structure
+ *  to indicate that the web server should use chunked encoding. In npupnp practise,
+ *  we set the length to -1 and let microhttpd do its thing.
+ */
+#define UPNP_USING_CHUNKED -3
+/** I don't think that this is actually used in the API, but define it for compatibility */
+#define UPNP_UNTIL_CLOSE -4
 
 
 /**

@@ -662,32 +662,33 @@ public:
     const void *request_cookie;
 };
 
-static ssize_t vFileReaderCallback(void *cls, uint64_t pos, char *buf,
-                                   size_t max)
+static ssize_t vFileReaderCallback(void *cls, uint64_t pos, char *buf, size_t max)
 {
     (void)pos;
     auto ctx = static_cast<VFileReaderCtxt*>(cls);
     if (nullptr == ctx->fp) {
-        UpnpPrintf(UPNP_ERROR, MSERV, __FILE__, __LINE__,
-                   "vFileReaderCallback: fp is null !\n");
-        return -1;
+        UpnpPrintf(UPNP_ERROR, MSERV, __FILE__, __LINE__, "vFileReaderCallback: fp is null !\n");
+        return MHD_CONTENT_READER_END_WITH_ERROR;
     }
     //std::cerr << "vFileReaderCallback: pos " << pos << " cnt " << max << "\n";
+
 #if LOCKS_UP_GERBERA_DONT_DO_IT
     if (virtualDirCallback.seek(
             ctx->fp, pos, SEEK_SET, ctx->cookie, ctx->request_cookie) !=
         (int64_t)pos) {
-        return -1;
+        return MHD_CONTENT_READER_END_WITH_ERROR;
     }
 #endif
-    int ret = virtualDirCallback.read(
-        ctx->fp, buf, max, ctx->cookie, ctx->request_cookie);
+
+    int ret = virtualDirCallback.read(ctx->fp, buf, max, ctx->cookie, ctx->request_cookie);
 
     /* From the microhttpd manual: Note that returning zero will cause
        MHD to try again. Thus, returning zero should only be used in
        conjunction with MHD_suspend_connection() to avoid busy
        waiting. */
-    return ret <= 0 ? -1 : ret;
+    if (ret > 0)
+        return ret;
+    return ret < 0 ? MHD_CONTENT_READER_END_WITH_ERROR : MHD_CONTENT_READER_END_OF_STREAM;
 }
 
 static void vFileFreeCallback (void *cls)
@@ -715,6 +716,9 @@ static void web_server_callback(MHDTransaction *mhdt)
         http_SendStatusResponse(mhdt, ret);
     } else {
         /* send response */
+        if (RespInstr.ReadSendSize < 0) {
+            RespInstr.ReadSendSize = -1;
+        }
         switch (rtype) {
         case RESP_FILEDOC:
         {
@@ -726,8 +730,7 @@ static void web_server_callback(MHDTransaction *mhdt)
                 // Not sure exactly at_offset64 appeared, but 0.9.37
                 // did not have it
                 mhdt->response = MHD_create_response_from_fd_at_offset(
-                    RespInstr.ReadSendSize, fd,
-                    static_cast<off_t>(RespInstr.offset));
+                    RespInstr.ReadSendSize, fd, static_cast<off_t>(RespInstr.offset));
 #else
                 mhdt->response = MHD_create_response_from_fd_at_offset64(
                     RespInstr.ReadSendSize, fd, RespInstr.offset);
@@ -741,28 +744,25 @@ static void web_server_callback(MHDTransaction *mhdt)
         {
             auto ctx = new VFileReaderCtxt;
             ctx->fp = virtualDirCallback.open(
-                filename.c_str(), UPNP_READ,
-                RespInstr.cookie,    RespInstr.request_cookie);
+                filename.c_str(), UPNP_READ, RespInstr.cookie, RespInstr.request_cookie);
             if (ctx->fp == nullptr) {
                 http_SendStatusResponse(mhdt, HTTP_INTERNAL_SERVER_ERROR);
             }
             ctx->cookie = RespInstr.cookie;
             ctx->request_cookie = RespInstr.request_cookie;
             if (RespInstr.offset) {
-                virtualDirCallback.seek(ctx->fp, RespInstr.offset, SEEK_SET,
-                                        ctx->cookie, ctx->request_cookie);
+                virtualDirCallback.seek(
+                    ctx->fp, RespInstr.offset, SEEK_SET, ctx->cookie, ctx->request_cookie);
             }
             mhdt->response = MHD_create_response_from_callback(
-                RespInstr.ReadSendSize, 4096, vFileReaderCallback,
-                ctx, vFileFreeCallback);
+                RespInstr.ReadSendSize, 4096, vFileReaderCallback, ctx, vFileFreeCallback);
             mhdt->httpstatus = 200;
         }
         break;
 
         case RESP_XMLDOC:
             mhdt->response = MHD_create_response_from_buffer(
-                RespInstr.data.size(), (void*)(strdup(RespInstr.data.c_str())),
-                MHD_RESPMEM_MUST_FREE);
+                RespInstr.data.size(), strdup(RespInstr.data.c_str()), MHD_RESPMEM_MUST_FREE);
             mhdt->httpstatus = 200;
             break;
 

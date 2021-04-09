@@ -1,3 +1,9 @@
+libnpupnp1 (4.1.3-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Improve pupnp compatibility by defining PUPNP_USING_CHUNKED in API.
+
+ -- Jean-Francois Dockes <jf@dockes.org>  Fri, 09 Apr 2021 09:03:00 +0200
+
 libnpupnp1 (4.1.2-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Fix working with multiple ipv6 link-local interfaces by adding RFC 6874
