@@ -708,7 +708,7 @@ static int create_url_list(
             continue;
         }
 
-        UpnpPrintf(UPNP_ERROR, GENA, __FILE__, __LINE__,
+        UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
                    "create_url_list: cb url ok:  %s\n", qsurl.c_str());
         out->push_back(qsurl);
     }
