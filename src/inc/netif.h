@@ -64,8 +64,10 @@ public:
     /** @brief Build from textual representation (e.g. 192.168.4.4) */
     explicit IPAddr(const std::string& s)
         : IPAddr(s.c_str()) {}
-    /** @brief Build from binary address in network byte order */
-    explicit IPAddr(const struct sockaddr *sa);
+    /** @brief Build from binary address in network byte order. 
+     *  @param unmapv4 if true we test for a v6 mapped v4 address and, if found, store it as v4 
+     */
+    explicit IPAddr(const struct sockaddr *sa, bool unmapv4=true);
 
     IPAddr(const IPAddr&);
     IPAddr& operator=(const IPAddr&);

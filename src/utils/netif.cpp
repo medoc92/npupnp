@@ -118,25 +118,24 @@ IPAddr& IPAddr::operator=(const IPAddr& o)
 IPAddr::IPAddr(const char *caddr)
     : IPAddr()
 {
-    if (std::strchr(caddr, ':') != nullptr) {
-        if (inet_pton(
-                AF_INET6, caddr,
-                &reinterpret_cast<struct sockaddr_in6*>(m->saddr)->sin6_addr)
-            == 1) {
+    if (nullptr != std::strchr(caddr, ':')) {
+        if (inet_pton(AF_INET6, caddr,
+                      &reinterpret_cast<struct sockaddr_in6*>(m->saddr)->sin6_addr) == 1) {
             m->saddr->sa_family = AF_INET6;
             m->ok = true;
         }
     } else {
         if (inet_pton(AF_INET, caddr,
-                      &reinterpret_cast<struct sockaddr_in*>(m->saddr)->sin_addr)
-            == 1) {
+                      &reinterpret_cast<struct sockaddr_in*>(m->saddr)->sin_addr) == 1) {
             m->saddr->sa_family = AF_INET;
             m->ok = true;
         }
     }
 }
 
-IPAddr::IPAddr(const struct sockaddr *sa)
+static const uint8_t ipv4mappedprefix[12] = {0,0,0,0,0,0,0,0,0,0,0xff,0xff};
+
+IPAddr::IPAddr(const struct sockaddr *sa, bool unmapv4)
     : IPAddr()
 {
     switch (sa->sa_family) {
@@ -145,9 +144,24 @@ IPAddr::IPAddr(const struct sockaddr *sa)
         m->ok = true;
         break;
     case AF_INET6:
+    {
+        if (unmapv4) {
+            const uint8_t *bytes =
+                reinterpret_cast<const struct sockaddr_in6 *>(sa)->sin6_addr.s6_addr;
+            if (!memcmp(bytes, ipv4mappedprefix, 12)) {
+                struct sockaddr_in *a = reinterpret_cast<struct sockaddr_in*>(m->saddr);
+                memset(a, 0, sizeof(*a));
+                a->sin_family = AF_INET;
+                memcpy(&a->sin_addr.s_addr, bytes+12, 4);
+                m->ok = true;
+                break;
+            }
+        }
+        // unmapv4==false or not a v4 mapped address, copy v6 address
         memcpy(m->saddr, sa, sizeof(struct sockaddr_in6));
         m->ok = true;
-        break;
+    }
+    break;
     default:
         break;
     }
