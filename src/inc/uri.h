@@ -48,18 +48,43 @@
 #endif
 
 /*!
- * \brief Represents a host port: e.g. "127.127.0.1:80" text is a token
- * pointing to the full string representation.
- */
+ * \brief Represents a host port: e.g. "127.127.0.1:80", "www.recoll.org" 
+*/
 struct hostport_type {
     hostport_type() {
         IPaddress = {};
     }
-    /*! Full host port. */
+    /*! Full "host:port" or "host" text. This is mostly useful when it is
+      separated from the rest of an URL parse_hostport() */
     std::string text;
-    /* Network Byte Order */
+    /*! Separate host copy: original string value, before a possible name resolution. */
+    std::string strhost;
+    /*! Set to true by parse_hostport if strhost is a host name instead of an IP address */
+    bool hostisname{false};
+    /*! Possibly empty separated port string */
+    std::string strport;
+    /* Address as computed by inet_pton() from a numeric address or
+     * getaddrinfo() from a host name. May not be set if
+     * parse_hostport was called with noresolve==true and we had a
+     * host name */
     struct sockaddr_storage IPaddress;
 };
+
+/*!
+ * \brief Parse a string representing a host and port (e.g. "127.127.0.1:80"
+ * or "localhost"), *possibly followed by the rest of an URL* and fill
+ * out a hostport_type struct.
+ */
+int parse_hostport(
+    /*! [in] String of characters representing host and port, e.g. 192.168.4.1:49152,
+      [fe80::224:1dff:fede:6868]:49152, www.recoll.org */
+    const char *in,
+    /*! [out] Parsed output. Validated syntax, separate host, port and host:port strings, 
+     *  possibly computed binary  address. */
+    hostport_type *out,
+    /*! [in] Do not call the resolver if the input contains a host name */
+    bool noresolve = false
+    );
 
 enum uriType  {
     URITP_ABSOLUTE,

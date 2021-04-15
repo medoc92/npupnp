@@ -61,19 +61,7 @@
 #include "upnpapi.h"
 #include "inet_pton.h"
 
-/*!
- * \brief Parses a string representing a host and port (e.g. "127.127.0.1:80"
- * or "localhost") and fills out a hostport_type struct with internet address
- * and a token representing the full host and port.
- *
- * Uses gethostbyname.
- */
-static int parse_hostport(
-    /*! [in] String of characters representing host and port. */
-    const char *in,
-    /*! [out] Output parameter where the host and port are represented as
-     * an internet address. */
-    hostport_type *out)
+int parse_hostport(const char *in, hostport_type *out, bool noresolve)
 {
     char workbuf[256];
     char *c;
@@ -102,6 +90,7 @@ static int parse_hostport(
             return UPNP_E_INVALID_URL;
         /* NULL terminate the srvname and then increment c. */
         *c++ = '\0';    /* overwrite the ']' */
+        out->strhost = srvname;
         if (*c == ':') {
             has_port = 1;
             c++;
@@ -119,37 +108,44 @@ static int parse_hostport(
         has_port = (*c == ':') ? 1 : 0;
         /* NULL terminate the srvname */
         *c = '\0';
+        out->strhost = srvname;
         if (has_port == 1)
             c++;
         if (last_dot != nullptr && isdigit(*(last_dot + 1))) {
-            /* Must be an IPv4 address. */
+            /* Must be an IPv4 address, because no top-level domain
+               begins with a digit, at least at the moment */
             af = AF_INET;
         } else {
             /* Must be a host name. */
-            struct addrinfo hints = {}, *res, *res0;
+            out->hostisname = true;
+            if (!noresolve) {
+                struct addrinfo hints = {}, *res, *res0;
 
-            hints.ai_family = AF_UNSPEC;
-            hints.ai_socktype = SOCK_STREAM;
+                hints.ai_family = AF_UNSPEC;
+                hints.ai_socktype = SOCK_STREAM;
 
-            ret = getaddrinfo(srvname, nullptr, &hints, &res0);
-            if (ret == 0) {
-                for (res = res0; res; res = res->ai_next) {
-                    switch (res->ai_family) {
-                    case AF_INET:
-                    case AF_INET6:
-                        /* Found a valid IPv4 or IPv6 address. */
-                        memcpy(&out->IPaddress, res->ai_addr, res->ai_addrlen);
-                        goto found;
+                ret = getaddrinfo(srvname, nullptr, &hints, &res0);
+                if (ret == 0) {
+                    for (res = res0; res; res = res->ai_next) {
+                        switch (res->ai_family) {
+                        case AF_INET:
+                        case AF_INET6:
+                            /* Found a valid IPv4 or IPv6 address. */
+                            memcpy(&out->IPaddress, res->ai_addr, res->ai_addrlen);
+                            goto found;
+                        }
                     }
-                }
-            found:
-                freeaddrinfo(res0);
-                if (res == nullptr)
-                    /* Didn't find an AF_INET or AF_INET6 address. */
+                found:
+                    freeaddrinfo(res0);
+                    if (res == nullptr) {
+                        /* Didn't find an AF_INET or AF_INET6 address. */
+                        return UPNP_E_INVALID_URL;
+                    }
+                } else {
+                    /* getaddrinfo failed. */
                     return UPNP_E_INVALID_URL;
-            } else
-                /* getaddrinfo failed. */
-                return UPNP_E_INVALID_URL;
+                }
+            }
         }
     }
     /* Check if a port is specified. */
@@ -158,6 +154,7 @@ static int parse_hostport(
         srvport = c;
         while (*c != '\0' && isdigit(*c))
             c++;
+        out->strport = std::string(srvport, c - srvport);
         port = static_cast<unsigned short int>(atoi(srvport));
         if (port == 0)
             /* Bad port number. */
