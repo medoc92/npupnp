@@ -414,9 +414,14 @@ typedef enum Upnp_DescType_e {
 typedef enum {
     UPNP_FLAG_NONE = 0,
     /** Accept IPV4+IPV6 operation, run with IPV4 only if IPV6 not available */
-    UPNP_FLAG_IPV6 = 1,
+    UPNP_FLAG_IPV6 = 0x1,
     /** Same but fail if IPV6 is not available. */
-    UPNP_FLAG_IPV6_REQUIRED = 2,
+    UPNP_FLAG_IPV6_REQUIRED = 0x2,
+    /** Do not validate HOST headers (preserve compatibility with old versions) */
+    UPNP_FLAG_NO_HOST_VALIDATE = 0x4,
+    /** Reject Web requests with a host name (non-numeric) value in the HOST header, 
+     * instead of redirecting them. */
+    UPNP_FLAG_REJECT_HOSTNAMES = 0x8,
 } Upnp_InitFlag;
 
 /** Values for the @ref UpnpInitWithOptions vararg options list */
@@ -1837,6 +1842,27 @@ EXPORT_SPEC int UpnpSetWebServerRootDir(
  *  appropriate value can be found.
  */
 EXPORT_SPEC std::string UpnpGetUrlHostPortForClient(const struct sockaddr_storage*);
+
+/*
+ * @brief Callback for validating HTTP requests HOST header values.
+ *
+ * This is called when a GET/POST/HEAD request to the Web server contains a host
+ * name (instead of a numeric address) in the HOST header. The client code can chose
+ * to authorize the request. Else it will be either redirected to a numeric
+ * address or rejected depending on the UPNP_FLAG_REJECT_HOSTNAMES
+ * option. Specific UPnP (SOAP/SUBSCRIBE...) requests are always checked to
+ * contain a numeric address and will not trigger the callback.
+ *
+ * @param hostname the value in the request HOST header.
+ * @return An integer representing one of the following:
+ *     \li \c UPNP_E_SUCCESS: a request with the HOST header set to hostname should be processed.
+ *     \li \c UPNP_E_BAD_HTTPMSG the request should be redirected or rejected.
+ */
+typedef int (*WebCallback_HostValidate)(const char *hostname, void *cookie);
+
+EXPORT_SPEC int UpnpSetWebRequestHostValidateCallback(
+    WebCallback_HostValidate callback, void *cookie);
+
 
 /** Handle returned by the @ref VDCallback_Open virtual directory function. */
 typedef void *UpnpWebFileHandle;

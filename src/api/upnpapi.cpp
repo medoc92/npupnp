@@ -110,6 +110,9 @@ static const std::array<std::pair<ThreadPool*, const char*>, 3> o_threadpools{
 /*! Flag to indicate the state of web server */
 WebServerState bWebServerState = WEB_SERVER_DISABLED;
 
+WebCallback_HostValidate g_hostvalidatecallback;
+void *g_hostvalidatecookie;
+
 /* Interfaces we are using */
 std::vector<NetIF::Interface> g_netifs;
 /* Small optimisation: if the interfaces parameter to UpnpInit2() was
@@ -793,6 +796,14 @@ EXPORT_SPEC int UpnpFinish()
     UpnpSdkInit = 0;
     UpnpCloseLog();
 
+    return UPNP_E_SUCCESS;
+}
+
+EXPORT_SPEC int UpnpSetWebRequestHostValidateCallback(
+    WebCallback_HostValidate callback, void *cookie)
+{
+    g_hostvalidatecallback = callback;
+    g_hostvalidatecookie = cookie;
     return UPNP_E_SUCCESS;
 }
 
