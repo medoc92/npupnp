@@ -54,6 +54,7 @@ UpnpUnRegisterRootDeviceLowPower(int,
 UpnpVirtualDir_set_CloseCallback(int
 UpnpVirtualDir_set_WriteCallback(int
 UpnpVirtualDir_set_GetInfoCallback(int
+UpnpSetWebRequestHostValidateCallback(int
 UpnpInit(char
 UpnpInit2(char
 UpnpInit2(std::vector<std::__cxx11::basic_string<char,
