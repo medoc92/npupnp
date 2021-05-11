@@ -902,12 +902,10 @@ EXPORT_SPEC const char *UpnpGetServerUlaGuaIp6Address()
 static int GetFreeHandle()
 {
     /* Handle 0 is not used as NULL translates to 0 when passed as a handle */
-    for (int i = 1; i < NUM_HANDLE; i++) {
-        if (HandleTable[i] == nullptr) {
-            return i;
-        }
-    }
-    return UPNP_E_OUTOF_HANDLE;
+    auto it = std::find(std::next(HandleTable.begin()), HandleTable.end(), nullptr);
+    if (it == HandleTable.end())
+        return UPNP_E_OUTOF_HANDLE;
+    return std::distance(HandleTable.begin(), it);
 }
 
 /*!
