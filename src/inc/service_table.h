@@ -47,7 +47,7 @@
 #include "ThreadPool.h"
 #include "upnpdescription.h"
 
-#define SID_SIZE  (size_t)41
+#define SID_SIZE  size_t(41)
 
 #ifdef INCLUDE_DEVICE_APIS
 

@@ -77,7 +77,7 @@ public:
         while((bytes_read = read_block()) >= 0) {
             if(bytes_read > 0) {
                 XML_Status local_status =
-                    XML_Parse(expat_parser, getReadBuffer(), (int)bytes_read,
+                    XML_Parse(expat_parser, getReadBuffer(), int(bytes_read),
                               XML_FALSE);
 
                 if(local_status != XML_STATUS_OK) {
@@ -239,7 +239,7 @@ private:
      * to do the actual handling work. */
     static void _element_start_handler(void *userData, const XML_Char *name,
                                        const XML_Char **atts) {
-        ExpatXMLParser *me = (ExpatXMLParser*)userData;
+        auto me = static_cast<ExpatXMLParser*>(userData);
         if(me != nullptr) {
             me->m_path.push_back(StackEl(name));
             StackEl& lastelt = me->m_path.back();
@@ -251,7 +251,7 @@ private:
         }
     }
     static void _element_end_handler(void *userData, const XML_Char *name) {
-        ExpatXMLParser *me = (ExpatXMLParser*)userData;
+        auto me = static_cast<ExpatXMLParser*>(userData);
         if(me != nullptr) {
             me->EndElement(name);
             me->m_path.pop_back();
@@ -259,29 +259,29 @@ private:
     }
     static void _character_data_handler(void *userData,
                                         const XML_Char *s, int len) {
-        ExpatXMLParser *me = (ExpatXMLParser*)userData;
+        auto me = static_cast<ExpatXMLParser*>(userData);
         if(me != nullptr) me->CharacterData(s, len);
     }
     static void _processing_instr_handler(void *userData,
                                           const XML_Char *target,
                                           const XML_Char *data) {
-        ExpatXMLParser *me = (ExpatXMLParser*)userData;
+        auto me = static_cast<ExpatXMLParser*>(userData);
         if(me != nullptr) me->ProcessingInstruction(target, data);
     }
     static void _comment_handler(void *userData, const XML_Char *data) {
-        ExpatXMLParser *me = (ExpatXMLParser*)userData;
+        auto me = static_cast<ExpatXMLParser*>(userData);
         if(me != nullptr) me->CommentData(data);
     }
     static void _default_handler(void *userData, const XML_Char *s, int len) {
-        ExpatXMLParser *me = (ExpatXMLParser*)userData;
+        auto me = static_cast<ExpatXMLParser*>(userData);
         if(me != nullptr) me->DefaultHandler(s, len);
     }
     static void _cdata_start_handler(void *userData) {
-        ExpatXMLParser *me = (ExpatXMLParser*)userData;
+        auto me = static_cast<ExpatXMLParser*>(userData);
         if(me != nullptr) me->CDataStart();
     }
     static void _cdata_end_handler(void *userData) {
-        ExpatXMLParser *me = (ExpatXMLParser*)userData;
+        auto me = static_cast<ExpatXMLParser*>(userData);
         if(me != nullptr) me->CDataEnd();
     }
     /* Register our static handlers with the Expat events. */
@@ -318,7 +318,7 @@ private:
 
         /* Set the "ready" flag on this parser */
         valid_parser = true;
-        XML_SetUserData(expat_parser, (void*)this);
+        XML_SetUserData(expat_parser, reinterpret_cast<void*>(this));
         register_default_handlers();
     }
 };

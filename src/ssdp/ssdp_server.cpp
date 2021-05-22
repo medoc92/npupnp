@@ -138,7 +138,7 @@ int ssdp_request_type(const char *cmd, SsdpEntity *Evt)
 }
 
 
-#define BUFSIZE   (size_t)2500
+#define BUFSIZE   size_t(2500)
 struct ssdp_thread_data {
     // The data packet is transferred to the parser, keep as pointer
     char *packet{nullptr};
