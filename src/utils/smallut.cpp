@@ -311,8 +311,7 @@ template <class T> void stringsToCSV(const T& tokens, string& s,
         if (needquotes) {
             s.append(1, '"');
         }
-        for (unsigned int i = 0; i < it->length(); i++) {
-            char car = it->at(i);
+        for (auto&& car : *it) {
             if (car == '"') {
                 s.append(2, '"');
             } else {

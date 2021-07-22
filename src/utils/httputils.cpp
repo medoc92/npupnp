@@ -210,15 +210,6 @@ int http_Download(const char *_surl, int timeout_secs,
     curl_easy_setopt(easy, CURLOPT_ERRORBUFFER, curlerrormessage);
     std::string surl = uri_asurlstr(url);
     curl_easy_setopt(easy, CURLOPT_URL, surl.c_str());
-    // If this is an ipv6 url (which we check rather cavalierly),
-    // this may be a link-local address, and it needs an interface
-    // index (scope_id). This is a temporary hack to work with a
-    // single ipv6 interface until we do the right thing which
-    // would be to store and transport the appropriate scope for
-    // every endpoint
-    if (using_ipv6() && surl.find('[') != std::string::npos) {
-        curl_easy_setopt(easy, CURLOPT_ADDRESS_SCOPE, apiFirstIPV6Index());
-    }
     curl_easy_setopt(easy, CURLOPT_TIMEOUT, timeout_secs);
     curl_easy_setopt(easy, CURLOPT_HEADERFUNCTION, header_callback_curl);
     curl_easy_setopt(easy, CURLOPT_HEADERDATA, &http_headers);
@@ -226,8 +217,7 @@ int http_Download(const char *_surl, int timeout_secs,
     curl_easy_setopt(easy, CURLOPT_WRITEDATA, &data);
 
     struct curl_slist *list = nullptr;
-    list = curl_slist_append(
-        list, (std::string("USER-AGENT: ") + get_sdk_client_info()).c_str());
+    list = curl_slist_append(list, (std::string("USER-AGENT: ") + get_sdk_client_info()).c_str());
     list = curl_slist_append(list, "Connection: close");
     curl_easy_setopt(easy, CURLOPT_HTTPHEADER, list);
 

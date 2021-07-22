@@ -38,5 +38,5 @@ extern void MD5Final(std::string& digest, MD5_CTX *);
 extern std::string& MD5String(const std::string& data, std::string& digest);
 extern std::string& MD5HexPrint(const std::string& digest, std::string& out);
 extern std::string& MD5HexScan(const std::string& xdigest, std::string& digest);
-
+extern std::string MD5Hex(const std::string& data);
 #endif /* _MD5_H_ */

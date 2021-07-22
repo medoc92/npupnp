@@ -129,8 +129,7 @@ static UPNP_INLINE void fdset_if_valid(SOCKET sock, fd_set *set)
     }
 }
 
-static MHD_Result headers_cb(void *cls, enum MHD_ValueKind,
-                             const char *k, const char *value)
+static MHD_Result headers_cb(void *cls, enum MHD_ValueKind, const char *k, const char *value)
 {
     auto mhtt = static_cast<MHDTransaction *>(cls);
     std::string key(k);
@@ -143,7 +142,7 @@ static MHD_Result headers_cb(void *cls, enum MHD_ValueKind,
     } else {
         mhtt->headers[key] = value;
     }
-    UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+    UpnpPrintf(UPNP_DEBUG, MSERV, __FILE__, __LINE__,
                "miniserver:req_header: [%s: %s]\n",    key.c_str(), value);
     return MHD_YES;
 }
@@ -151,7 +150,7 @@ static MHD_Result headers_cb(void *cls, enum MHD_ValueKind,
 static MHD_Result show_resp_headers_cb(
     void *, enum MHD_ValueKind, const char *k, const char *value)
 {
-    UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+    UpnpPrintf(UPNP_DEBUG, MSERV, __FILE__, __LINE__,
                "miniserver:resp_header: [%s] -> [%s]\n", k, value);
     return MHD_YES;
 }
@@ -201,13 +200,111 @@ static MHD_Result filter_connections(
     }
     NetIF::IPAddr incoming{addr};
     NetIF::IPAddr ifaddr;
-    if (NetIF::Interfaces::interfaceForAddress(
-            incoming, g_netifs, ifaddr) == nullptr) {
+    if (NetIF::Interfaces::interfaceForAddress(incoming, g_netifs, ifaddr) == nullptr) {
         UpnpPrintf(UPNP_ERROR, MSERV, __FILE__, __LINE__,
                    "Refusing connection from %s\n", incoming.straddr().c_str());
         return MHD_NO;
     }
     return MHD_YES;
+}
+
+// Validate the HOST header. This is is to mitigate a possible dns rebinding
+// exploit implemented in a local browser. Of course this supposes that the
+// browser will actually set a meaningful HOST, which they appear to do.
+enum VHH_Status{VHH_YES, VHH_NO, VHH_REDIRECT};
+static VHH_Status validate_host_header(MHDTransaction *mhdt, NetIF::IPAddr& claddr)
+{
+    // Find HOST header
+    auto hostit = mhdt->headers.find("host");
+    if (hostit == mhdt->headers.end()) {
+        // UPNP specifies that HOST is required in HTTP requests
+        UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+                   "answer_to_connection: no HOST header in request from %s\n",
+                   claddr.straddr().c_str());
+        return VHH_NO;
+    }
+    // Parse the value
+    struct hostport_type hostport;
+    if (UPNP_E_INVALID_URL == parse_hostport(hostit->second.c_str(), &hostport, false)) {
+        UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+                   "answer_to_connection: bad HOST header %s in request from %s\n",
+                   hostit->second.c_str(), claddr.straddr().c_str());
+        return VHH_NO;
+    }
+
+    // Host name: if the appropriate callback was set, validate with the client
+    // code, only for a Web request (UPnP calls like SOAP want numeric).
+    if (hostport.hostisname) {
+        switch (mhdt->method) {
+        case HTTPMETHOD_GET:
+        case HTTPMETHOD_HEAD:
+        case HTTPMETHOD_POST:
+        case HTTPMETHOD_SIMPLEGET:
+            break;
+        default:
+            UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+                       "answer_to_connection: bad HOST header %s (host name) in non-web "
+                       "request from %s\n", hostit->second.c_str(), claddr.straddr().c_str());
+            return VHH_NO;
+        }
+        if (nullptr != g_hostvalidatecallback &&
+            g_hostvalidatecallback(
+                hostport.strhost.c_str(), g_hostvalidatecookie) == UPNP_E_SUCCESS) {
+            return VHH_YES;
+        }
+        return (g_optionFlags & UPNP_FLAG_REJECT_HOSTNAMES) ? VHH_NO : VHH_REDIRECT;
+    }
+
+    // At this point, we know that we had a numeric IP address, and we
+    // don't actually need to check the addresses against our
+    // interfaces, the dns-rebind issue is solved. However, just because we can:
+    NetIF::IPAddr hostaddr(hostport.strhost);
+    if (!hostaddr.ok()) {
+        UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+                   "answer_to_connection: bad HOST header %s in request from %s\n",
+                   hostit->second.c_str(), claddr.straddr().c_str());
+        return VHH_NO;
+    }
+    // IPV6: set the scope idx from the client sockaddr. Does nothing for IPV4
+    hostaddr.setScopeIdx(claddr);
+    NetIF::IPAddr notused;
+    if (nullptr == NetIF::Interfaces::interfaceForAddress(hostaddr, g_netifs, notused)) {
+        UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+                   "answer_to_connection: no interface for address in HOST header %s "
+                   "in request from %s\n", hostit->second.c_str(), claddr.straddr().c_str());
+        return VHH_NO;
+    }
+
+#if 0
+    UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+               "answer_to_connection: host header %s (host %s port %s) ok for claddr %s\n",
+               hostit->second.c_str(), hostport.strhost.c_str(), hostport.strport.c_str(),
+               claddr.straddr().c_str());
+#endif
+    return VHH_YES;
+}
+
+static std::string rebuild_url_from_mhdt(
+    MHDTransaction *mhdt, const std::string& path, NetIF::IPAddr& claddr)
+{
+    std::string aurl("http://");
+    auto hostport = UpnpGetUrlHostPortForClient(mhdt->client_address);
+    if (hostport.empty()) {
+        UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+                   "answer_to_connection: got empty hostport for connection from %s\n",
+                   claddr.straddr().c_str());
+        return std::string();
+    }
+    aurl += hostport;
+    aurl += path;
+    if (mhdt->queryvalues.size()) {
+        aurl += "?";
+        for (const auto& entry: mhdt->queryvalues) {
+            aurl += query_encode(entry.first) + "=" + query_encode(entry.second) + "&";
+        }
+        aurl.pop_back();
+    }
+    return aurl;
 }
 
 static MHD_Result answer_to_connection(
@@ -228,8 +325,7 @@ static MHD_Result answer_to_connection(
             reinterpret_cast<struct sockaddr_storage*>(
                 MHD_get_connection_info (conn,MHD_CONNECTION_INFO_CLIENT_ADDRESS)->client_addr);
 
-        MHD_get_connection_values(conn, MHD_GET_ARGUMENT_KIND,
-                                  queryvalues_cb, mhdt);
+        MHD_get_connection_values(conn, MHD_GET_ARGUMENT_KIND, queryvalues_cb, mhdt);
         mhdt->conn = conn;
         mhdt->url = url;
         mhdt->version = version;
@@ -246,7 +342,36 @@ static MHD_Result answer_to_connection(
                 mhdt->method = http_method_t(it->second);
             }
         }
-        return MHD_YES;
+
+        // We normally verify the contents of the HOST header, but we used not
+        // to. This option preserves the old behaviour.
+        if (g_optionFlags & UPNP_FLAG_NO_HOST_VALIDATE) {
+            return MHD_YES;
+        }
+        
+        NetIF::IPAddr claddr(reinterpret_cast<sockaddr*>(mhdt->client_address));
+        switch (validate_host_header(mhdt, claddr)) {
+        case VHH_YES: return MHD_YES;
+        case VHH_NO: return MHD_NO;
+        case VHH_REDIRECT: break;
+        }
+
+        // Redirect
+        std::string aurl = rebuild_url_from_mhdt(mhdt, url, claddr);
+        if (aurl.empty()) {
+            return MHD_NO;
+        }
+        UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__, "Redirecting to [%s]\n", aurl.c_str());
+        struct MHD_Response *response = MHD_create_response_from_buffer(0,0,MHD_RESPMEM_PERSISTENT);
+        if (nullptr == response ) {
+            UpnpPrintf(UPNP_DEBUG, MSERV, __FILE__, __LINE__,
+                       "answer_to_connection: can't create redirect\n");
+            return MHD_NO;
+        }
+        MHD_add_response_header (response, "Location", aurl.c_str());
+        MHD_Result ret = MHD_queue_response(conn, 302, response);
+        MHD_destroy_response(response);
+        return ret;
     }
 
     auto mhdt = static_cast<MHDTransaction *>(*con_cls);
@@ -256,8 +381,7 @@ static MHD_Result answer_to_connection(
         return MHD_YES;
     }
     UpnpPrintf(UPNP_DEBUG, MSERV, __FILE__, __LINE__,
-               "answer_to_connection: end of upload, postdata:\n[%s]\n",
-               mhdt->postdata.c_str());
+               "answer_to_connection: end of upload, postdata:\n[%s]\n", mhdt->postdata.c_str());
     
     /* We now have the full request */
     
@@ -613,8 +737,7 @@ int StartMiniServer(uint16_t *listen_port4, uint16_t *listen_port6)
 
     {
         std::unique_lock<std::mutex> lck(gMServStateMutex);
-        ret_code = gMiniServerThreadPool.addPersistent(
-            thread_miniserver,miniSocket);
+        ret_code = gMiniServerThreadPool.addPersistent(thread_miniserver, miniSocket);
         if (ret_code != 0) {
             ret_code = UPNP_E_OUTOF_MEMORY;
             goto out;

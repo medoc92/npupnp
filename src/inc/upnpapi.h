@@ -219,6 +219,9 @@ extern bool g_use_all_interfaces;
 
 extern unsigned int g_optionFlags;
 
+extern WebCallback_HostValidate g_hostvalidatecallback;
+extern void *g_hostvalidatecookie;
+
 // Test if we should do ipv6-related stuff. The flag is set by the
 // init caller, and can be reset during init if we find no
 // ipv6-enabled interface

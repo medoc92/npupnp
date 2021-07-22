@@ -110,6 +110,9 @@ static const std::array<std::pair<ThreadPool*, const char*>, 3> o_threadpools{
 /*! Flag to indicate the state of web server */
 WebServerState bWebServerState = WEB_SERVER_DISABLED;
 
+WebCallback_HostValidate g_hostvalidatecallback;
+void *g_hostvalidatecookie;
+
 /* Interfaces we are using */
 std::vector<NetIF::Interface> g_netifs;
 /* Small optimisation: if the interfaces parameter to UpnpInit2() was
@@ -796,6 +799,40 @@ EXPORT_SPEC int UpnpFinish()
     return UPNP_E_SUCCESS;
 }
 
+EXPORT_SPEC int UpnpSetWebRequestHostValidateCallback(
+    WebCallback_HostValidate callback, void *cookie)
+{
+    g_hostvalidatecallback = callback;
+    g_hostvalidatecookie = cookie;
+    return UPNP_E_SUCCESS;
+}
+
+EXPORT_SPEC std::string UpnpGetUrlHostPortForClient(const struct sockaddr_storage* clsock)
+{
+    NetIF::IPAddr claddr(reinterpret_cast<const struct sockaddr*>(clsock));
+    NetIF::IPAddr hostaddr;
+    const NetIF::Interface *itf =
+        NetIF::Interfaces::interfaceForAddress(claddr, g_netifs, hostaddr);
+    if (nullptr == itf) {
+        return std::string();
+    }
+    int port = 0;
+    std::string prefix;
+    switch (hostaddr.family()) {
+    case NetIF::IPAddr::Family::IPV4:
+        port = UpnpGetServerPort();
+        break;
+    case NetIF::IPAddr::Family::IPV6:
+        prefix = "[";
+        port = UpnpGetServerPort6();
+            break;
+    default:
+        return std::string();
+    }
+
+    return prefix + hostaddr.straddr() + (prefix.empty() ? "" : "]") + ":" + lltodecstr(port);
+}
+
 EXPORT_SPEC unsigned short UpnpGetServerPort()
 {
     if (UpnpSdkInit != 1)
@@ -804,19 +841,25 @@ EXPORT_SPEC unsigned short UpnpGetServerPort()
     return LOCAL_PORT_V4;
 }
 
-#ifdef UPNP_ENABLE_IPV6
 EXPORT_SPEC unsigned short UpnpGetServerPort6()
 {
+#ifdef UPNP_ENABLE_IPV6
     if (UpnpSdkInit != 1)
         return 0U;
 
     return LOCAL_PORT_V6;
+#else
+    return 0;
+#endif
 }
 EXPORT_SPEC unsigned short UpnpGetServerUlaGuaPort6()
 {
-        return 0U;
-}
+#ifdef UPNP_ENABLE_IPV6
+        return 0;
+#else
+        return 0;
 #endif
+}
 
 EXPORT_SPEC const char *UpnpGetServerIpAddress()
 {
@@ -831,6 +874,7 @@ EXPORT_SPEC const char *UpnpGetServerIpAddress()
 
 EXPORT_SPEC const char *UpnpGetServerIp6Address()
 {
+#ifdef UPNP_ENABLE_IPV6
     if (UpnpSdkInit != 1 || !using_ipv6()) {
         return "";
     }
@@ -839,6 +883,9 @@ EXPORT_SPEC const char *UpnpGetServerIp6Address()
         addr = apiFirstIPV6Str();
     }
     return addr.c_str();
+#else
+    return nullptr;
+#endif
 }
 
 EXPORT_SPEC const char *UpnpGetServerUlaGuaIp6Address()
@@ -855,12 +902,10 @@ EXPORT_SPEC const char *UpnpGetServerUlaGuaIp6Address()
 static int GetFreeHandle()
 {
     /* Handle 0 is not used as NULL translates to 0 when passed as a handle */
-    for (int i = 1; i < NUM_HANDLE; i++) {
-        if (HandleTable[i] == nullptr) {
-            return i;
-        }
-    }
-    return UPNP_E_OUTOF_HANDLE;
+    auto it = std::find(std::next(HandleTable.begin()), HandleTable.end(), nullptr);
+    if (it == HandleTable.end())
+        return UPNP_E_OUTOF_HANDLE;
+    return std::distance(HandleTable.begin(), it);
 }
 
 /*!
@@ -1840,8 +1885,7 @@ int UpnpDownloadUrlItem(const char *url, char **outBuf, char *contentType)
 
     if (url == nullptr || outBuf == nullptr)
         return UPNP_E_INVALID_PARAM;
-    ret_code = http_Download(url, HTTP_DEFAULT_TIMEOUT, outBuf, &dummy,
-                             contentType);
+    ret_code = http_Download(url, HTTP_DEFAULT_TIMEOUT, outBuf, &dummy, contentType);
     if (ret_code > 0)
         /* error reply was received */
         ret_code = UPNP_E_INVALID_URL;
