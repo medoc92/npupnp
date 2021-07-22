@@ -524,6 +524,41 @@ Interfaces::Internal::Internal()
 
 #else /* _WIN32 ->*/
 
+bool wchartoutf8(const wchar_t *in, std::string& out, size_t wlen)
+{
+    out.clear();
+    if (nullptr == in) {
+        return true;
+    }
+    if (wlen == 0) {
+        wlen = wcslen(in);
+    }
+    int flags = WC_ERR_INVALID_CHARS;
+    int bytes = ::WideCharToMultiByte(CP_UTF8, flags, in, wlen, nullptr, 0, nullptr, nullptr);
+    if (bytes <= 0) {
+        LOGERR("wchartoutf8: conversion error1\n");
+        fwprintf(stderr, L"wchartoutf8: conversion error1 for [%s]\n", in);
+        return false;
+    }
+    char *cp = (char *)malloc(bytes+1);
+    if (nullptr == cp) {
+        LOGERR("wchartoutf8: malloc failed\n");
+        return false;
+    }
+    bytes = ::WideCharToMultiByte(CP_UTF8, flags, in, wlen, cp, bytes, nullptr, nullptr);
+    if (bytes <= 0) {
+        LOGERR("wchartoutf8: CONVERSION ERROR2\n");
+        free(cp);
+        return false;
+    }
+    cp[bytes] = 0;
+    out = cp;
+    free(cp);
+    //fwprintf(stderr, L"wchartoutf8: in: [%s]\n", in);
+    //fprintf(stderr, "wchartoutf8: out:  [%s]\n", out.c_str());
+    return true;
+}
+
 static uint32_t netprefixlentomask(uint8_t pfxlen)
 {
     uint32_t out{0};
@@ -552,8 +587,7 @@ Interfaces::Internal::Internal()
     
     /* Get Adapters addresses required size. */
     ret = GetAdaptersAddresses(
-        AF_UNSPEC,  GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_DNS_SERVER,
-        NULL, adapts, &adapts_sz);
+        AF_UNSPEC,  GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_DNS_SERVER, NULL, adapts, &adapts_sz);
     if (ret != ERROR_BUFFER_OVERFLOW) {
         LOGERR("NetIF::Interfaces: GetAdaptersAddresses: ret1 " << ret <<"\n");
         return;
@@ -566,8 +600,7 @@ Interfaces::Internal::Internal()
     }
     /* Do the call that will actually return the info. */
     ret = GetAdaptersAddresses(
-        AF_UNSPEC, GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_DNS_SERVER,
-        NULL, adapts, &adapts_sz);
+        AF_UNSPEC, GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_DNS_SERVER, NULL, adapts, &adapts_sz);
     if (ret != ERROR_SUCCESS) {
         LOGERR("NetIF::Interfaces: GetAdaptersAddresses: ret2 " << ret <<"\n");
         goto out;
