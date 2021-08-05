@@ -169,7 +169,7 @@ template <class T> bool stringToStrings(const string& s, T& tokens,
                 current += '"';
                 continue;
             case INQUOTE:
-                tokens.insert(tokens.end(), current);
+                tokens.push_back(current);
                 current.clear();
                 state = SPACE;
                 continue;
@@ -204,7 +204,7 @@ template <class T> bool stringToStrings(const string& s, T& tokens,
             case SPACE:
                 continue;
             case TOKEN:
-                tokens.insert(tokens.end(), current);
+                tokens.push_back(current);
                 current.clear();
                 state = SPACE;
                 continue;
@@ -224,12 +224,12 @@ template <class T> bool stringToStrings(const string& s, T& tokens,
                 case INQUOTE:
                     break;
                 case SPACE:
-                    tokens.insert(tokens.end(), string(1, i));
+                    tokens.emplace_back(1, i);
                     continue;
                 case TOKEN:
-                    tokens.insert(tokens.end(), current);
+                    tokens.push_back(current);
                     current.erase();
-                    tokens.insert(tokens.end(), string(1, i));
+                    tokens.emplace_back(1, i);
                     state = SPACE;
                     continue;
                 }
@@ -251,7 +251,7 @@ template <class T> bool stringToStrings(const string& s, T& tokens,
     case SPACE:
         break;
     case TOKEN:
-        tokens.insert(tokens.end(), current);
+        tokens.push_back(current);
         break;
     case INQUOTE:
     case ESCAPE:
