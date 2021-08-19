@@ -181,7 +181,7 @@ static int ScheduleGenaAutoRenew(
     /* Schedule the job */
     return_code = gTimerThread->schedule(
         TimerThread::SHORT_TERM, TimerThread::REL_SEC, TimeOut - AUTO_RENEW_TIME,
-        &(RenewEvent->eventId),    thread_autorenewsubscription, RenewEvent,
+        &(RenewEvent->eventId), thread_autorenewsubscription, RenewEvent,
         reinterpret_cast<ThreadPool::free_routine>(free_upnp_timeout));
 
     if (return_code != UPNP_E_SUCCESS) {
@@ -230,8 +230,7 @@ static int gena_unsubscribe(
 
     struct curl_slist *list = nullptr;
     list = curl_slist_append(list, (std::string("SID: ") + sid).c_str());
-    list = curl_slist_append(
-        list, (std::string("USER-AGENT: ") + get_sdk_client_info()).c_str());
+    list = curl_slist_append(list, (std::string("USER-AGENT: ") + get_sdk_client_info()).c_str());
     curl_easy_setopt(easy, CURLOPT_HTTPHEADER, list);
 
     CURLcode code = curl_easy_perform(easy);
@@ -240,8 +239,7 @@ static int gena_unsubscribe(
         curl_easy_cleanup(easy);
         curl_slist_free_all(list);
         /* We may want to detail things here, depending on the curl error */
-        UpnpPrintf(UPNP_ERROR, GENA, __FILE__, __LINE__,
-                   "CURL ERROR MESSAGE %s\n", curlerrormessage);
+        UpnpPrintf(UPNP_ERROR,GENA,__FILE__,__LINE__, "CURL ERROR MESSAGE %s\n", curlerrormessage);
         return UPNP_E_SOCKET_CONNECT;
     }
 
@@ -270,8 +268,7 @@ static std::string myCallbackUrl(NetIF::IPAddr& netaddr)
     if (netaddr.family() == NetIF::IPAddr::Family::IPV6) {
         oss << "]";
     }
-    oss << ":" << (netaddr.family() == NetIF::IPAddr::Family::IPV6 ?
-                   LOCAL_PORT_V6 : LOCAL_PORT_V4);
+    oss << ":" << (netaddr.family() == NetIF::IPAddr::Family::IPV6 ? LOCAL_PORT_V6 : LOCAL_PORT_V4);
     return oss.str();
 }
 
@@ -371,8 +368,7 @@ static int gena_subscribe(
     CURLcode curlcode = curl_easy_perform(hdls.htalk);
     if (curlcode != CURLE_OK) {
         /* We may want to detail things here, depending on the curl error */
-        UpnpPrintf(UPNP_ERROR, GENA, __FILE__, __LINE__,
-                   "CURL ERROR MESSAGE %s\n", curlerrormessage);
+        UpnpPrintf(UPNP_ERROR,GENA,__FILE__,__LINE__, "CURL ERROR MESSAGE %s\n", curlerrormessage);
         return UPNP_E_SOCKET_CONNECT;
     }
 
@@ -555,7 +551,6 @@ int genaRenewSubscription(
     /* validate handle and sid */
     if (GetHandleInfo(client_handle, &handle_info) != HND_CLIENT) {
         HandleUnlock();
-
         return_code = GENA_E_BAD_HANDLE;
         goto exit_function;
     }
@@ -563,7 +558,6 @@ int genaRenewSubscription(
     sub = GetClientSubClientSID(handle_info->ClientSubList, in_sid);
     if (sub == nullptr) {
         HandleUnlock();
-
         return_code = GENA_E_BAD_SID;
         goto exit_function;
     }
@@ -575,8 +569,7 @@ int genaRenewSubscription(
 
     HandleUnlock();
 
-    return_code = gena_subscribe(sub_copy.eventURL, TimeOut, sub_copy.actualSID,
-                                 &ActualSID);
+    return_code = gena_subscribe(sub_copy.eventURL, TimeOut, sub_copy.actualSID, &ActualSID);
 
     HandleLock();
 
@@ -669,8 +662,7 @@ void gena_process_notification_event(MHDTransaction *mhdt)
     /* get SID */
     if (itsid == mhdt->headers.end()) {
         http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
-        UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
-                   "gena_process_notification_event: no SID\n");
+        UpnpPrintf(UPNP_DEBUG,GENA,__FILE__,__LINE__, "gena_process_notification_event: no SID\n");
         return;
     }
     const std::string& sid = itsid->second;
@@ -679,15 +671,13 @@ void gena_process_notification_event(MHDTransaction *mhdt)
     /* get event key */
     if (itseq == mhdt->headers.end()) {
         http_SendStatusResponse(mhdt, HTTP_BAD_REQUEST);
-        UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
-                   "gena_process_notification_event: no SEQ\n");
+        UpnpPrintf(UPNP_DEBUG,GENA,__FILE__,__LINE__, "gena_process_notification_event: no SEQ\n");
         return;
     }
     char cb[2];
     if (sscanf(itseq->second.c_str(), "%d%1c", &eventKey, cb) != 1) {
         http_SendStatusResponse(mhdt, HTTP_BAD_REQUEST);
-        UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
-                   "gena_process_notification_event: bad seq\n");
+        UpnpPrintf(UPNP_DEBUG,GENA,__FILE__,__LINE__, "gena_process_notification_event: bad seq\n");
         return;
     }
 
@@ -696,8 +686,7 @@ void gena_process_notification_event(MHDTransaction *mhdt)
     /* get NT and NTS headers */
     if (itnt == mhdt->headers.end() || itnts == mhdt->headers.end()) {
         http_SendStatusResponse(mhdt, HTTP_BAD_REQUEST);
-        UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
-                   "gena_process_notification_event: no NTS\n");
+        UpnpPrintf(UPNP_DEBUG,GENA,__FILE__,__LINE__, "gena_process_notification_event: no NTS\n");
         return;
     }
 
