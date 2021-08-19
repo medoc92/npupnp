@@ -228,14 +228,13 @@ static int SetPolicyType(ThreadPoolAttr::PolicyType in)
     retVal = 0;
 #elif defined(_MSC_VER)
 //    retVal = sched_setscheduler(0, in);
-    (void)in;
     retVal = 0;
 #elif defined(_POSIX_PRIORITY_SCHEDULING) && _POSIX_PRIORITY_SCHEDULING > 0
     struct sched_param current = {};
     int sched_result;
-
     sched_getparam(0, &current);
-    current.sched_priority = sched_get_priority_min(DEFAULT_POLICY);
+    // At the moment, in is always SCHED_OTHER, and priority must be 0 (see sched(7))
+    current.sched_priority = 0;
     sched_result = sched_setscheduler(0, in, &current);
     retVal = (sched_result != -1 || errno == EPERM) ? 0 : errno;
 #else
@@ -244,14 +243,14 @@ static int SetPolicyType(ThreadPoolAttr::PolicyType in)
     return retVal;
 }
 
-/*!
- * \brief Sets the priority of the currently running thread.
+/*
+ * Sets the priority of the currently running thread.
  *
- * \internal
- * 
- * \return
- *    \li \c 0 on success.
- *      \li \c EINVAL invalid priority or the result of GerLastError.
+ * Note that this probably never does anything as the sched type is always SCHED_OTHER which
+ * does not use priorities (must be 0). Also, I've never seen _POSIX_PRIORITY_SCHEDULING
+ * defined except on a very weird system, so the method is generally empty.
+ *
+ * @return 0 on success, else EINVAL invalid priority or errno.
  */
 static int SetPriority(ThreadPool::ThreadPriority priority)
 {
@@ -265,18 +264,18 @@ static int SetPriority(ThreadPool::ThreadPriority priority)
     struct sched_param newPriority;
     int sched_result;
 
-    pthread_getschedparam(ithread_self(), &currentPolicy, &newPriority);
+    pthread_getschedparam(pthread_self(), &currentPolicy, &newPriority);
     minPriority = sched_get_priority_min(currentPolicy);
     maxPriority = sched_get_priority_max(currentPolicy);
     midPriority = (maxPriority - minPriority) / 2;
     switch (priority) {
-    case LOW_PRIORITY:
+    case ThreadPool::LOW_PRIORITY:
         actPriority = minPriority;
         break;
-    case MED_PRIORITY:
+    case ThreadPool::MED_PRIORITY:
         actPriority = midPriority;
         break;
-    case HIGH_PRIORITY:
+    case ThreadPool::HIGH_PRIORITY:
         actPriority = maxPriority;
         break;
     default:
@@ -286,7 +285,7 @@ static int SetPriority(ThreadPool::ThreadPriority priority)
 
     newPriority.sched_priority = actPriority;
 
-    sched_result = pthread_setschedparam(ithread_self(), currentPolicy, &newPriority);
+    sched_result = pthread_setschedparam(pthread_self(), currentPolicy, &newPriority);
     retVal = (sched_result == 0 || errno == EPERM) ? 0 : sched_result;
 exit_function:
     return retVal;
