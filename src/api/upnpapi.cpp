@@ -1200,9 +1200,6 @@ int UpnpUnRegisterClient(UpnpClient_Handle Hnd)
         return UPNP_E_INVALID_HANDLE;
     }
     /* clean up search list */
-    for (auto & it : HInfo->SsdpSearchList) {
-        delete it;
-    }
     HInfo->SsdpSearchList.clear();
 
     FreeHandle(Hnd);
