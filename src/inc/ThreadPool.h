@@ -35,6 +35,7 @@
 #define THREADPOOL_H
 
 #include <list>
+#include <memory>
 #include <string>
 
 #include <errno.h>
@@ -185,7 +186,7 @@ public:
 
     class Internal;
 private:
-    Internal *m;
+    std::unique_ptr<Internal> m;
 };
 
 #endif /* THREADPOOL_H */

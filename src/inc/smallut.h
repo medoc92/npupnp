@@ -244,7 +244,7 @@ public:
     
     class Internal;
 private:
-    Internal *m;
+    std::unique_ptr<Internal> m;
 };
 #endif // SMALLUT_NO_REGEX
 
