@@ -824,11 +824,15 @@ static const Interface* interfaceForAddress4(
             if (addresses.first[i].family() == IPAddr::Family::IPV4) {
                 addresses.first[i].copyToStorage(&sbuf);
                 addresses.second[i].copyToStorage(&mbuf);
-                uint32_t addr = reinterpret_cast<struct sockaddr_in*>(
-                    &sbuf)->sin_addr.s_addr;
-                uint32_t mask = reinterpret_cast<struct sockaddr_in*>(
-                    &mbuf)->sin_addr.s_addr;
-                if ((peeraddr & mask) == (addr & mask)) {
+                uint32_t addr = reinterpret_cast<struct sockaddr_in*>(&sbuf)->sin_addr.s_addr;
+                uint32_t mask = reinterpret_cast<struct sockaddr_in*>(&mbuf)->sin_addr.s_addr;
+                if (
+                    // Special case for having a single interface with a netmask of ffffffff, which
+                    // is apparently common from FreeBSD jails. Just return it, there is no way we
+                    // can check anything.
+                    ((vifs.size() == 1) && (mask == 0xffffffff)) ||
+                    // Normal subnet check
+                    ((peeraddr & mask) == (addr & mask)) ) {
                     hostaddr = addresses.first[i];
                     return &netif;
                 }
