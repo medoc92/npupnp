@@ -21,6 +21,7 @@
 #include "assert.h"
 #endif
 #include <string>
+#include <cstdint>
 
 /** 
  * A small helper class to iterate over utf8 strings. This is not an
