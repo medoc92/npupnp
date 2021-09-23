@@ -60,7 +60,7 @@ public:
     /** "Direct" access. Awfully inefficient as we skip from start or current
      * position at best. This can only be useful for a lookahead from the
      * current position */
-    unsigned int operator[](std::string::size_type charpos) const {
+    uint32_t operator[](std::string::size_type charpos) const {
         std::string::size_type mypos = 0;
         unsigned int mycp = 0;
         if (charpos >= m_charpos) {
@@ -71,7 +71,7 @@ public:
         while (mypos < m_sp->length() && mycp != charpos) {
             l = get_cl(mypos);
             if (l <= 0 || !poslok(mypos, l) || !checkvalidat(mypos, l))
-                return (unsigned int)-1;
+                return uint32_t(-1);
             mypos += l;
             ++mycp;
         }
@@ -80,7 +80,7 @@ public:
             if (poslok(mypos, l) && checkvalidat(mypos, l))
                 return getvalueat(mypos, l);
         }
-        return (unsigned int)-1;
+        return uint32_t(-1);
     }
 
     /** Increment current position to next utf-8 char */
@@ -100,11 +100,11 @@ public:
     }
 
     /** operator* returns the ucs4 value as a machine integer*/
-    unsigned int operator*() {
+    uint32_t operator*() {
 #ifdef UTF8ITER_CHECK
         assert(m_cl > 0);
 #endif
-        return m_cl == 0 ? (unsigned int)-1 : getvalueat(m_pos, m_cl);
+        return m_cl == 0 ? uint32_t(-1) : getvalueat(m_pos, m_cl);
     }
 
     /** Append current utf-8 possibly multi-byte character to string param.
@@ -186,20 +186,20 @@ private:
     inline bool checkvalidat(std::string::size_type p, int l) const {
         switch (l) {
         case 1: 
-            return (unsigned char)(*m_sp)[p] < 128;
+            return uint8_t((*m_sp)[p]) < 128;
         case 2: 
-            return (((unsigned char)(*m_sp)[p]) & 224) == 192
-                                               && (((unsigned char)(*m_sp)[p+1]) & 192) == 128;
+            return uint8_t((*m_sp)[p] & 224) == 192
+                                               && uint8_t((*m_sp)[p+1] & 192) == 128;
         case 3: 
-            return (((unsigned char)(*m_sp)[p]) & 240) == 224
-                                               && (((unsigned char)(*m_sp)[p+1]) & 192) ==  128
-                                               && (((unsigned char)(*m_sp)[p+2]) & 192) ==  128
+            return uint8_t((*m_sp)[p] & 240) == 224
+                                               && uint8_t((*m_sp)[p+1] & 192) ==  128
+                                               && uint8_t((*m_sp)[p+2] & 192) ==  128
                                                ;
         case 4: 
-            return (((unsigned char)(*m_sp)[p]) & 248) == 240
-                                               && (((unsigned char)(*m_sp)[p+1]) & 192) ==  128
-                                               && (((unsigned char)(*m_sp)[p+2]) & 192) ==  128
-                                               && (((unsigned char)(*m_sp)[p+3]) & 192) ==  128
+            return uint8_t((*m_sp)[p] & 248) == 240
+                                               && uint8_t((*m_sp)[p+1] & 192) ==  128
+                                               && uint8_t((*m_sp)[p+2] & 192) ==  128
+                                               && uint8_t((*m_sp)[p+3] & 192) ==  128
                                                ;
         default:
             return false;
@@ -208,7 +208,7 @@ private:
 
     // Get character byte length at specified position. Returns 0 for error.
     inline int get_cl(std::string::size_type p) const {
-        unsigned int z = (unsigned char)(*m_sp)[p];
+        unsigned int z = uint8_t((*m_sp)[p]);
         if (z <= 127) {
             return 1;
         } else if ((z & 224) == 192) {
@@ -232,16 +232,16 @@ private:
 #ifdef UTF8ITER_CHECK
             assert((unsigned char)(*m_sp)[p] < 128);
 #endif
-            return (unsigned char)(*m_sp)[p];
+            return uint8_t((*m_sp)[p]);
         case 2: 
 #ifdef UTF8ITER_CHECK
             assert(
-                ((unsigned char)(*m_sp)[p] & 224) == 192
+                uint8_t((*m_sp)[p] & 224) == 192
                 && ((unsigned char)(*m_sp)[p+1] & 192) ==  128
                 );
 #endif
-            return ((unsigned char)(*m_sp)[p] - 192) * 64 + 
-                (unsigned char)(*m_sp)[p+1] - 128 ;
+            return uint8_t((*m_sp)[p] - 192) * 64 + 
+                uint8_t((*m_sp)[p+1] - 128);
         case 3: 
 #ifdef UTF8ITER_CHECK
             assert(
@@ -251,29 +251,29 @@ private:
                 );
 #endif
 
-            return ((unsigned char)(*m_sp)[p] - 224) * 4096 + 
-                ((unsigned char)(*m_sp)[p+1] - 128) * 64 + 
-                (unsigned char)(*m_sp)[p+2] - 128;
+            return uint8_t((*m_sp)[p] - 224) * 4096 + 
+                uint8_t((*m_sp)[p+1] - 128) * 64 + 
+                uint8_t((*m_sp)[p+2] - 128);
         case 4: 
 #ifdef UTF8ITER_CHECK
             assert(
-                (((unsigned char)(*m_sp)[p]) & 248) == 240
-                && (((unsigned char)(*m_sp)[p+1]) & 192) ==  128
-                && (((unsigned char)(*m_sp)[p+2]) & 192) ==  128
-                && (((unsigned char)(*m_sp)[p+3]) & 192) ==  128
+                uint8_t((*m_sp)[p] & 248) == 240
+                && uint8_t((*m_sp)[p+1] & 192) ==  128
+                && uint8_t((*m_sp)[p+2] & 192) ==  128
+                && uint8_t((*m_sp)[p+3] & 192) ==  128
                 );
 #endif
 
-            return ((unsigned char)(*m_sp)[p]-240)*262144 + 
-                ((unsigned char)(*m_sp)[p+1]-128)*4096 + 
-                ((unsigned char)(*m_sp)[p+2]-128)*64 + 
-                (unsigned char)(*m_sp)[p+3]-128;
+            return uint8_t((*m_sp)[p]-240)*262144 + 
+                uint8_t((*m_sp)[p+1]-128)*4096 + 
+                uint8_t((*m_sp)[p+2]-128)*64 + 
+                uint8_t((*m_sp)[p+3]-128);
 
         default:
 #ifdef UTF8ITER_CHECK
             assert(l <= 4);
 #endif
-            return (unsigned int)-1;
+            return uint32_t(-1);
         }
     }
 

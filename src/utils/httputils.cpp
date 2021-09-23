@@ -454,8 +454,8 @@ std::string query_encode(const std::string& qs)
             out += *cp;
         } else {
             out += '%';
-            out += h[(((unsigned int)*cp) >> 4) & 0xf];
-            out += h[((unsigned int)*cp) & 0xf];
+            out += h[((uint32_t(*cp)) >> 4) & 0xf];
+            out += h[uint32_t(*cp) & 0xf];
         }
         cp++;
     }

@@ -47,9 +47,9 @@
 #include "UpnpGlobal.h"
 
 /** Array size for some fixed sized character arrays in API structures */
-#define LINE_SIZE  (size_t)180
+#define LINE_SIZE  size_t(180)
 /** Array size for some fixed sized character arrays in API structures */
-#define NAME_SIZE  (size_t)256
+#define NAME_SIZE  size_t(256)
 /** Value indicating a non-limited specification in some calls (e.g. timeout) */
 #define UPNP_INFINITE        -1
 /** This can be set in the file_length field of a File_Info structure
