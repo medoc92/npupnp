@@ -37,6 +37,10 @@
 #include <cstdio>
 #include <cstdlib>
 
+#if defined(__OSX__) || defined(__APPLE__) || defined(__NetBSD__)
+#include <sys/resource.h>
+#endif
+
 #include <chrono>
 #include <thread>
 #include <mutex>
