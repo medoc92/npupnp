@@ -12,19 +12,17 @@ One principal objective of the evolution was to make the transition as easy
 as possible for a program currently using libupnp. The structure of the C
 API is conserved.
 
-Beyond issues of reliability and maintability, the main evolution in the
-new library is the support for multiple network interfaces. Also, helper
-code for parsing an UPnP device description document and for accessing the
-machine network interfaces is now exposed.
+Beyond issues of reliability and maintability, the main evolution in the new library is the support
+for multiple network interfaces. Also, the library exposes helper code for parsing an UPnP device
+description document and for accessing the machine network interfaces.
 
-libnupnp implements a low level interface to the UPnP protocol. It has a
-separate set of functions for client and device implementations, with a few
-common functions, mostly for initialization and termination.
+libnupnp implements a low level interface to the UPnP protocol. It has a separate set of functions
+for client and device implementations, with a few common functions, mostly for initialization and
+termination.
 
-This document is a high level overview, with references to the detailed
-documentation. It largely supposes that you have a working knowledge of
-UPnP concepts, and you will probably also need to read parts of the UPnP
-architecture standard.
+This document is a high level overview, with references to the detailed documentation. It largely
+supposes that you have a working knowledge of UPnP concepts, and you will probably also need to read
+parts of the UPnP architecture standard.
 
 We present the programming interface in three sections:
 
@@ -32,14 +30,14 @@ We present the programming interface in three sections:
 - Client interface.
 - Device interface.
 
-It is possible, but uncommon, to use both the client and device interfaces
-in the same instance.
+It is possible, but uncommon, to use both the client and device interfaces in the same instance.
 
-Some code examples are present in the document. In addition, it may be
-useful to clone the [npupnp samples
-repository](https://framagit.org/medoc92/npupnp-samples/-/tree/master),
-which contain buildable and runnable examples, and will also referenced
-further down.
+You will find a tar archive of the current released version on the [upmpdcli downloads
+page](https://www.lesbonscomptes.com/upmpdcli/pages/downloads.html).
+
+Some code examples are present in the document. In addition, it may be useful to clone the [npupnp
+samples repository](https://framagit.org/medoc92/npupnp-samples/-/tree/master), which contain
+buildable and runnable examples, and will also referenced further down.
 
 # Common functions
 

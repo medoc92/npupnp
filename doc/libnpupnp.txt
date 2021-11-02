@@ -47,6 +47,11 @@ changes, and upmpdcli and upplay can still be built with libupnpp 0.17.x and
 libupnp. But the default is now to build the packages with libupnpp 0.18.x
 and libnpupnp.
 
+== Downloads
+
+You will find a tar archive of the current released version on the
+link:https://www.lesbonscomptes.com/upmpdcli/pages/downloads.html[upmpdcli downloads page].
+
 == New features
 
 - Support for providing service on multiple network interfaces. 
