@@ -14,7 +14,7 @@ Have a look at the
 [DOC](https://www.lesbonscomptes.com/upmpdcli/npupnp-doc/libnpupnp.html) !
 
 Tar archives for the releases are stored on the [upmpdcli downloads
-page](https://www.lesbonscomptes.com/upmpdcli/download.html)
+page](https://www.lesbonscomptes.com/upmpdcli/pages/downloads.html)
 
 Main modifications:
 
