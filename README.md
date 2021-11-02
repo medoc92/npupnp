@@ -3,7 +3,7 @@
 Copyright (c) 2000-2003 Intel Corporation - All Rights Reserved.  
 Copyright (c) 2005-2006 Rémi Turboult <r3mi@users.sourceforge.net>  
 Copyright (c) 2006 Michel Pfeiffer and others <virtual_worlds@gmx.de>  
-Copyright (c) 2020 Jean-Francois Dockes <jf@dockes.org>  
+Copyright (c) 2020-2021 Jean-Francois Dockes <jf@dockes.org>  
 See COPYING for details.
 
 npupnp (new pupnp or not pupnp ?) is an UPnP library derived from the
@@ -12,6 +12,9 @@ branch (around 1.6.25).
 
 Have a look at the
 [DOC](https://www.lesbonscomptes.com/upmpdcli/npupnp-doc/libnpupnp.html) !
+
+Tar archives for the releases are stored on the [upmpdcli downloads
+page](https://www.lesbonscomptes.com/upmpdcli/downloads.html)
 
 Main modifications:
 
