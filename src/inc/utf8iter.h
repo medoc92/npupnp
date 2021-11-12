@@ -295,6 +295,20 @@ void utf8truncate(std::string& s, int maxlen, int flags = 0,
 /** Compute length in characters of utf-8 string */
 size_t utf8len(const std::string& s);
 
+/** Return number of bytes for Unicode character */
+inline int utf8codepointsize(uint32_t codepoint)
+{
+    if (codepoint <= 0x7F) {
+        return 1;
+    } else if (codepoint <= 0x7FF) {
+        return 2;
+    } else if (codepoint < 0xFFFF) {
+        return 3;
+    } else {
+        return 4;
+    }
+}
+
 /** @brief Check and possibly fix string by replacing badly encoded
  * characters with the standard question mark replacement character.
  *
