@@ -1432,11 +1432,13 @@ int UpnpSendAdvertisement(UpnpDevice_Handle Hnd, int Exp)
     return UpnpSendAdvertisementLowPower(Hnd, Exp, -1, -1, -1);
 }
 
-void thread_autoadvertise(void *input)
+void* thread_autoadvertise(void *input)
 {
     auto event = static_cast<upnp_timeout *>(input);
 
     UpnpSendAdvertisement(event->handle, *(static_cast<int *>(event->Event)));
+
+    return nullptr;
 }
 
 int UpnpSendAdvertisementLowPower(
