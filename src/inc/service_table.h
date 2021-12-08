@@ -211,9 +211,6 @@ static UPNP_INLINE void printService(
     Dbg_Module module)
 {
     return;
-    service = service;
-    level = level;
-    module = module;
 }
 #endif
 
@@ -236,9 +233,6 @@ static UPNP_INLINE void printServiceList(
     Dbg_Module module)
 {
     return;
-    service = service;
-    level = level;
-    module = module;
 }
 #endif
 
@@ -261,9 +255,6 @@ static UPNP_INLINE void printServiceTable(
     Dbg_Module module)
 {
     return;
-    table = table;
-    level = level;
-    module = module;
 }
 #endif
 
