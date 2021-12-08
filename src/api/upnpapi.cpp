@@ -1492,19 +1492,14 @@ int UpnpSendAdvertisementLowPower(
     }
 
 #ifdef SSDP_PACKET_DISTRIBUTE
-    retVal = gTimerThread->schedule(
-        TimerThread::SHORT_TERM, TimerThread::REL_SEC,
-        ((Exp / 2) - (AUTO_ADVERTISEMENT_TIME)),
-         &(adEvent->eventId),
-        reinterpret_cast<start_routine>(thread_autoadvertise), adEvent,
-        reinterpret_cast<ThreadPool::free_routine>(free_upnp_timeout));
+    time_t thetime = ((Exp / 2) - (AUTO_ADVERTISEMENT_TIME));
 #else
-    retVal = gTimerThread->schedule(
-        TimerThread::SHORT_TERM, TimerThread::REL_SEC,
-        Exp - AUTO_ADVERTISEMENT_TIME, &(adEvent->eventId),
-        (start_routine)thread_autoadvertise, adEvent,
-        (ThreadPool::free_routine)free_upnp_timeout);
+    time_t thetime = Exp - AUTO_ADVERTISEMENT_TIME;
 #endif
+
+    retVal = gTimerThread->schedule(
+        TimerThread::SHORT_TERM, TimerThread::REL_SEC, thetime, &adEvent->eventId,
+        thread_autoadvertise, adEvent,reinterpret_cast<ThreadPool::free_routine>(free_upnp_timeout));
     if (retVal != UPNP_E_SUCCESS) {
         HandleUnlock();
         free_upnp_timeout(adEvent);
