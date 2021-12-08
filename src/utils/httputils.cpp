@@ -376,7 +376,7 @@ static const std::string& get_sdk_common_info()
     if (sdk_common_info.empty()) {
         std::ostringstream ostr;
 #ifdef UPNP_ENABLE_UNSPECIFIED_SERVER
-        ostr << "Unspecified UPnP/1.0 Unspecified"
+        ostr << "Unspecified UPnP/1.0 Unspecified";
 #else /* UPNP_ENABLE_UNSPECIFIED_SERVER */
 #ifdef _WIN32
             OSVERSIONINFO versioninfo;
@@ -405,7 +405,7 @@ const std::string get_sdk_device_info(const std::string& customvalue)
 {
     return get_sdk_common_info() +
         (!customvalue.empty() ? customvalue :
-         std::string("Portable SDK for UPnP devices/" PACKAGE_VERSION));
+         std::string("Portable SDK for UPnP devices/" NPUPNP_VERSION_STRING));
 }
 
 const std::string& get_sdk_client_info(const std::string& newvalue)
@@ -415,7 +415,7 @@ const std::string& get_sdk_client_info(const std::string& newvalue)
         // If this was never set, or the client wants to set its name, compute
         sdk_client_info = get_sdk_common_info() +
             (!newvalue.empty() ? newvalue : 
-             std::string("Portable SDK for UPnP devices/" PACKAGE_VERSION));
+             std::string("Portable SDK for UPnP devices/" NPUPNP_VERSION_STRING));
     }
     
     return sdk_client_info;
