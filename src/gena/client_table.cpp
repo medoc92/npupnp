@@ -59,7 +59,6 @@ ClientSubscription *GetClientSubClientSID(
     return nullptr;
 }
 
-#include <iostream>
 
 ClientSubscription *GetClientSubActualSID(
     std::list<ClientSubscription>& lst, const std::string& sid)

@@ -60,7 +60,22 @@
 #define XMLPARSERTP PicoXMLParser
 #endif
 
+#define UPNP_NOPE (Upnp_LogLevel)(UPNP_ALL+1)
+
 extern TimerThread *gTimerThread;
+
+#define SubscribeLock() do {                                            \
+    UpnpPrintf(UPNP_NOPE, GENA, __FILE__, __LINE__, "Trying Subscribe Lock\n"); \
+    GlobalClientSubscribeMutex.lock();                                  \
+    UpnpPrintf(UPNP_NOPE, GENA, __FILE__, __LINE__, "Subscribe Lock\n"); \
+    } while(0)
+
+
+#define SubscribeUnlock() do {                                          \
+    UpnpPrintf(UPNP_NOPE, GENA, __FILE__,__LINE__, "Trying Subscribe UnLock\n"); \
+    GlobalClientSubscribeMutex.unlock();                                \
+    UpnpPrintf(UPNP_NOPE, GENA, __FILE__, __LINE__, "Subscribe UnLock\n"); \
+    } while(0)
 
 static void clientCancelRenew(ClientSubscription *sub)
 {
@@ -199,8 +214,7 @@ end_function:
 
 
 /*!
- * \brief Sends the UNSUBCRIBE gena request and recieves the response from the
- *     device and returns it as a parameter.
+ * \brief Sends the UNSUBCRIBE gena request
  *
  * \returns 0 if successful, otherwise returns the appropriate error code.
  */
@@ -212,6 +226,9 @@ static int gena_unsubscribe(
 {
     int return_code;
     uri_type dest_url;
+
+    UpnpPrintf(UPNP_ALL,GENA,__FILE__,__LINE__, "gena_unsubscribe: SID [%s] url [%s]\n",
+               sid.c_str(), url.c_str());
 
     /* parse url */
     return_code = http_FixStrUrl(url, &dest_url);
@@ -335,14 +352,14 @@ static int gena_subscribe(
                    "Could not find the interface for the destination address\n");
         return UPNP_E_SOCKET_CONNECT;
     }
-        
+       
     CurlGuard hdls;
     std::map<std::string, std::string> http_headers;
     char curlerrormessage[CURL_ERROR_SIZE];
     
     hdls.htalk = curl_easy_init();
     curl_easy_setopt(hdls.htalk, CURLOPT_ERRORBUFFER, curlerrormessage);
-    curl_easy_setopt(hdls.htalk, CURLOPT_WRITEFUNCTION,write_callback_null_curl);
+    curl_easy_setopt(hdls.htalk, CURLOPT_WRITEFUNCTION, write_callback_null_curl);
     curl_easy_setopt(hdls.htalk, CURLOPT_CUSTOMREQUEST, "SUBSCRIBE");
     curl_easy_setopt(hdls.htalk, CURLOPT_URL, urlforcurl.c_str());
     curl_easy_setopt(hdls.htalk, CURLOPT_TIMEOUT, HTTP_DEFAULT_TIMEOUT);
@@ -352,12 +369,16 @@ static int gena_subscribe(
         std::string cbheader{"CALLBACK: <"};
         cbheader += myCallbackUrl(myaddr) + "/>";
         hdls.hlist = curl_slist_append(hdls.hlist, cbheader.c_str());
-        UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
-                   "gena_subscribe: callback: %s\n", cbheader.c_str());
         hdls.hlist = curl_slist_append(hdls.hlist, "NT: upnp:event");
+        UpnpPrintf(UPNP_ALL,GENA,__FILE__,__LINE__,
+                   "gena_subscribe(init.): url [%s] cb [%s] timeout [%s]\n",
+                   urlforcurl.c_str(), myCallbackUrl(myaddr).c_str(), timostr.str().c_str());
     } else {
         hdls.hlist = curl_slist_append(
             hdls.hlist, (std::string("SID: ") + renewal_sid).c_str());
+        UpnpPrintf(UPNP_ALL,GENA,__FILE__,__LINE__,
+                   "gena_subscribe(renew): SID [%s] url [%s] timeout [%s]\n",
+                   renewal_sid.c_str(), urlforcurl.c_str(), timostr.str().c_str());
     }
     hdls.hlist = curl_slist_append(
         hdls.hlist, (std::string("TIMEOUT: Second-") + timostr.str()).c_str());
@@ -375,6 +396,8 @@ static int gena_subscribe(
     long http_status;
     curl_easy_getinfo (hdls.htalk, CURLINFO_RESPONSE_CODE, &http_status);
     if (http_status != HTTP_OK) {
+        UpnpPrintf(UPNP_DEBUG,GENA,__FILE__,__LINE__, "gena_subscribe: HTTP status %d\n",
+                   int(http_status));
         return UPNP_E_SUBSCRIBE_UNACCEPTED;
     }
 
@@ -382,16 +405,20 @@ static int gena_subscribe(
     const auto itsid = http_headers.find("sid");
     const auto ittimeout = http_headers.find("timeout");
     if (itsid == http_headers.end() || ittimeout == http_headers.end()) {
+        UpnpPrintf(UPNP_DEBUG,GENA,__FILE__,__LINE__, "Subscribe error: no SID in answer\n");
         return UPNP_E_BAD_RESPONSE;
     }
 
     /* save timeout */
     if (!timeout_header_value(http_headers, timeout)) {
+        UpnpPrintf(UPNP_DEBUG,GENA,__FILE__,__LINE__, "Subscribe error: no timeout in answer\n");
         return UPNP_E_BAD_RESPONSE;
     }
 
     /* save SID */
     *sid = itsid->second;
+    UpnpPrintf(UPNP_ALL,GENA,__FILE__,__LINE__, "gena_subscribe ok: SID [%s] timeout %d\n",
+               itsid->second.c_str(), *timeout);
     
     return UPNP_E_SUCCESS;
 }
@@ -483,8 +510,6 @@ int genaSubscribe(
     std::string EventURL;
     struct Handle_Info *handle_info;
 
-    UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__, "genaSubscribe\n");
-
     out_sid->clear();
 
     HandleReadLock();
@@ -498,11 +523,11 @@ int genaSubscribe(
 
     /* subscribe */
     SubscribeLock();
-    return_code = gena_subscribe(PublisherURL,TimeOut,std::string(), &ActualSID);
+    return_code = gena_subscribe(PublisherURL, TimeOut, std::string(), &ActualSID);
     HandleLock();
     if (return_code != UPNP_E_SUCCESS) {
         UpnpPrintf(UPNP_ERROR, GENA, __FILE__, __LINE__,
-                   "genSubscribe: subscribe error, return %d\n", return_code);
+                   "genaSubscribe: subscribe error, return %d\n", return_code);
         goto error_handler;
     }
 
@@ -513,6 +538,8 @@ int genaSubscribe(
 
     /* generate client SID */
     out_sid->assign(std::string("uuid:") + gena_sid_uuid());
+    UpnpPrintf(UPNP_ALL, GENA, __FILE__, __LINE__,
+               "genaSubscribe: CLIENT SID [%s]\n", out_sid->c_str());
 
     /* create event url */
     EventURL = PublisherURL;
@@ -655,8 +682,7 @@ void gena_process_notification_event(MHDTransaction *mhdt)
     UpnpClient_Handle client_handle;
     std::string tmpSID;
 
-    UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
-               "gena_process_notification_event\n");
+    UpnpPrintf(UPNP_ALL, GENA, __FILE__, __LINE__, "gena_process_notification_event\n");
     
     auto itsid = mhdt->headers.find("sid");
     /* get SID */
@@ -757,6 +783,9 @@ void gena_process_notification_event(MHDTransaction *mhdt)
 
             SubscribeUnlock();
         } else {
+            UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
+                       "gena_process_notification_event: could not find subscription but event key not 0 (%d)\n", eventKey);
+            
             http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
             HandleUnlock();
             return;
