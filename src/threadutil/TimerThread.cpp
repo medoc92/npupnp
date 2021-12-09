@@ -128,7 +128,8 @@ static void *thread_timer(void *arg)
             continue;
         }
         if (nextEvent) {
-            timer->condition.wait_until(lck, nextEvent->eventTime);
+            auto tm = nextEvent->eventTime;
+            timer->condition.wait_until(lck, tm);
         } else {
             timer->condition.wait(lck);
         }
