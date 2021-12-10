@@ -305,7 +305,7 @@ static SOCKET createReplySocket6(
 {
     return INVALID_SOCKET;
 }
-#endif // ! ENABLE_IPV6
+#endif // UPNP_ENABLE_IPV6
 
 // Set the UPnP predefined multicast destination addresses
 static bool ssdpMcastAddr(struct sockaddr_storage& ss, int AddressFamily)

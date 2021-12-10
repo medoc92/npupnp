@@ -46,7 +46,7 @@
 #if __FreeBSD_version < 601103
 #include <lwres/netdb.h>
 #endif
-#endif /* freebsd */
+#endif /* __FreeBSD__ */
 
 #ifndef _WIN32
 #include <sys/types.h>

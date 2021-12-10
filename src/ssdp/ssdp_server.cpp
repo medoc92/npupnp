@@ -585,7 +585,7 @@ int get_ssdp_sockets(MiniServerSockArray *out)
             gSsdpReqSocket6 = out->ssdpReqSock6;
         }
     }
-#endif /* IPv6 */
+#endif /* UPNP_ENABLE_IPV6 */
 #ifdef INCLUDE_CLIENT_APIS
     /* Create the IPv4 socket for SSDP REQUESTS */
     if (hasIPV4) {
