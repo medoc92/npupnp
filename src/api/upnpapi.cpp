@@ -747,7 +747,6 @@ void PrintThreadPoolStats(
 static UPNP_INLINE void PrintThreadPoolStats(
     ThreadPool *, const char *, int, const char *)
 {
-    return;
 }
 #endif /* DEBUG */
 

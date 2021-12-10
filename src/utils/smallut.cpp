@@ -318,7 +318,7 @@ template <class T> void stringsToCSV(const T& tokens, string& s, char sep)
         s.append(1, sep);
     }
     // Remove last separator.
-    if (s.size())
+    if (!s.empty())
         s.pop_back();
 }
 

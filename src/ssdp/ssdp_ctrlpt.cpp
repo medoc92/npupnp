@@ -315,7 +315,7 @@ static int CreateClientRequestPacketUlaGua(
 {
     return CreateClientRequestPacket(RqstBuf, Mx, SearchTarget, addrfam, true);
 }
-#endif /* UPNP_ENABLE_IPV6 */
+#endif /* UPNP_ENABLE_IPV6_AND_ULAGUA */
 
 static void* thread_searchexpired(void *arg)
 {
@@ -458,7 +458,7 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
             std::this_thread::sleep_for(std::chrono::milliseconds(SSDP_PAUSE));
         }
     }
-#endif /* IPv6 */
+#endif /* UPNP_ENABLE_IPV6 */
 
     if (gSsdpReqSocket4 != INVALID_SOCKET && FD_ISSET(gSsdpReqSocket4, &wrSet)) {
         struct sockaddr_storage ssv4 = {};
