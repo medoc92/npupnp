@@ -74,7 +74,7 @@ struct SsdpSearchArg;
 /* Data to be stored in handle table for */
 struct Handle_Info
 {
-    Handle_Info() {}
+    Handle_Info() = default;
     /*! . */
     Upnp_Handle_Type HType{Upnp_Handle_Type(0)};
     /*! Callback function pointer. */
