@@ -160,7 +160,7 @@ IPAddr::IPAddr(const struct sockaddr *sa, bool unmapv4)
             const uint8_t *bytes =
                 reinterpret_cast<const struct sockaddr_in6 *>(sa)->sin6_addr.s6_addr;
             if (!memcmp(bytes, ipv4mappedprefix, 12)) {
-                struct sockaddr_in *a = reinterpret_cast<struct sockaddr_in*>(m->saddr);
+                auto a = reinterpret_cast<struct sockaddr_in*>(m->saddr);
                 memset(a, 0, sizeof(*a));
                 a->sin_family = AF_INET;
                 memcpy(&a->sin_addr.s_addr, bytes+12, 4);
@@ -265,8 +265,8 @@ bool IPAddr::setScopeIdx(const IPAddr& other)
         scopetype() != Scope::LINK || other.scopetype() != Scope::LINK) {
         return false;
     }
-    struct sockaddr_in6 *msa6 = reinterpret_cast<struct sockaddr_in6*>(m->saddr);
-    struct sockaddr_in6 *osa6 = reinterpret_cast<struct sockaddr_in6*>(other.m->saddr);
+    auto msa6 = reinterpret_cast<struct sockaddr_in6*>(m->saddr);
+    auto osa6 = reinterpret_cast<struct sockaddr_in6*>(other.m->saddr);
     msa6->sin6_scope_id = osa6->sin6_scope_id;
     return true;
 }
@@ -279,7 +279,7 @@ std::string IPAddr::straddr() const
 std::string IPAddr::straddr(bool setscope, bool forurl) const
 {
     if (!ok())
-        return std::string();
+        return {};
     
     char buf[200];
     buf[0] = 0;
@@ -290,7 +290,7 @@ std::string IPAddr::straddr(bool setscope, bool forurl) const
     break;
     case AF_INET6:
     {
-        struct sockaddr_in6 *sa6 = reinterpret_cast<struct sockaddr_in6*>(m->saddr);
+        auto sa6 = reinterpret_cast<struct sockaddr_in6*>(m->saddr);
         inet_ntop(m->saddr->sa_family, &sa6->sin6_addr, buf, 200);
         if (!setscope || scopetype() != Scope::LINK) {
             return buf;

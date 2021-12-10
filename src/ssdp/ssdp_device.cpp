@@ -155,7 +155,7 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
         UpnpPrintf(UPNP_DEBUG, API, __FILE__, __LINE__,
                    "ServiceType =  %s\n", event.ServiceType.c_str());
 
-        SsdpSearchReply *threadArg = new SsdpSearchReply;
+        auto threadArg = new SsdpSearchReply;
         if (threadArg == nullptr)
             return;
         threadArg->handle = handle;
