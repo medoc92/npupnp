@@ -297,7 +297,7 @@ static std::string rebuild_url_from_mhdt(
     }
     aurl += hostport;
     aurl += path;
-    if (mhdt->queryvalues.size()) {
+    if (!mhdt->queryvalues.empty()) {
         aurl += "?";
         for (const auto& entry: mhdt->queryvalues) {
             aurl += query_encode(entry.first) + "=" + query_encode(entry.second) + "&";
