@@ -88,7 +88,7 @@ public:
     void StatsAccountLQ(int64_t diffTime);
     void StatsAccountMQ(int64_t diffTime);
     void StatsAccountHQ(int64_t diffTime);
-    void CalcWaitTime(ThreadPriority p, ThreadPoolJob *job);
+    void CalcWaitTime(ThreadPriority p, const std::unique_ptr<ThreadPoolJob>& job);
     void bumpPriority();
     void WorkerThread();
     int shutdown();
@@ -113,13 +113,13 @@ public:
     /*! number of persistent threads */
     int persistentThreads;
     /*! low priority job Q */
-    std::deque<ThreadPoolJob*> lowJobQ;
+    std::deque<std::unique_ptr<ThreadPoolJob>> lowJobQ;
     /*! med priority job Q */
-    std::deque<ThreadPoolJob*> medJobQ;
+    std::deque<std::unique_ptr<ThreadPoolJob>> medJobQ;
     /*! high priority job Q */
-    std::deque<ThreadPoolJob*> highJobQ;
+    std::deque<std::unique_ptr<ThreadPoolJob>> highJobQ;
     /*! persistent job */
-    ThreadPoolJob *persistentJob;
+    std::unique_ptr<ThreadPoolJob> persistentJob;
     /*! thread pool attributes */
     ThreadPoolAttr attr;
     /*! statistics */
@@ -186,7 +186,7 @@ void ThreadPool::Internal::StatsAccountHQ(int64_t diffTime)
  *
  * \internal
  */
-void ThreadPool::Internal::CalcWaitTime(ThreadPriority p, ThreadPoolJob *job)
+void ThreadPool::Internal::CalcWaitTime(ThreadPriority p, const std::unique_ptr<ThreadPoolJob>& job)
 {
     assert(job != nullptr);
 
@@ -312,33 +312,34 @@ exit_function:
 void ThreadPool::Internal::bumpPriority()
 {
     int done = 0;
-    ThreadPoolJob *tempJob = nullptr;
-
     auto now = steady_clock::now();
+
     while (!done) {
         if (!this->medJobQ.empty()) {
-            tempJob = this->medJobQ.front();
             auto diffTime = duration_cast<milliseconds>(
-                now - tempJob->requestTime).count();
+                now - this->medJobQ.front()->requestTime)
+                                .count();
             if (diffTime >= this->attr.starvationTime) {
                 /* If job has waited longer than the starvation time
                  * bump priority (add to higher priority Q) */
                 StatsAccountMQ(diffTime);
+                auto bump = std::move(this->medJobQ.front());
                 this->medJobQ.pop_front();
-                this->highJobQ.push_back(tempJob);
+                this->highJobQ.push_back(std::move(bump));
                 continue;
             }
         }
         if (!this->lowJobQ.empty()) {
-            tempJob = this->lowJobQ.front();
             auto diffTime = duration_cast<milliseconds>(
-                now - tempJob->requestTime).count();
+                now - this->lowJobQ.front()->requestTime)
+                                .count();
             if (diffTime >= this->attr.maxIdleTime) {
                 /* If job has waited longer than the starvation time
                  * bump priority (add to higher priority Q) */
                 StatsAccountLQ(diffTime);
+                auto bump = std::move(this->lowJobQ.front());
                 this->lowJobQ.pop_front();
-                this->medJobQ.push_back(tempJob);
+                this->medJobQ.push_back(std::move(bump));
                 continue;
             }
         }
@@ -369,7 +370,7 @@ static void SetSeed()
  */
 void ThreadPool::Internal::WorkerThread() {
     time_t start = 0;
-    ThreadPoolJob *job = nullptr;
+    std::unique_ptr<ThreadPoolJob> job;
     std::cv_status retCode;
     int persistent = -1;
 
@@ -389,7 +390,6 @@ void ThreadPool::Internal::WorkerThread() {
         lck.lock();
         if (job) {
             busyThreads--;
-            delete job;
             job = nullptr;
         }
         stats.idleThreads++;
@@ -437,8 +437,7 @@ void ThreadPool::Internal::WorkerThread() {
         } else {
             /* Pick up persistent job if available */
             if (persistentJob) {
-                job = persistentJob;
-                persistentJob = nullptr;
+                job = std::move(persistentJob);
                 persistentThreads++;
                 persistent = 1;
                 start_and_shutdown.notify_all();
@@ -447,15 +446,15 @@ void ThreadPool::Internal::WorkerThread() {
                 persistent = 0;
                 /* Pick the highest priority job */
                 if (!highJobQ.empty()) {
-                    job = highJobQ.front();
+                    job = std::move(highJobQ.front());
                     highJobQ.pop_front();
                     CalcWaitTime(ThreadPool::HIGH_PRIORITY, job);
                 } else if (!medJobQ.empty()) {
-                    job = medJobQ.front();
+                    job = std::move(medJobQ.front());
                     medJobQ.pop_front();
                     CalcWaitTime(ThreadPool::MED_PRIORITY, job);
                 } else if (!lowJobQ.empty()) {
-                    job = lowJobQ.front();
+                    job = std::move(lowJobQ.front());
                     lowJobQ.pop_front();
                     CalcWaitTime(ThreadPool::LOW_PRIORITY, job);
                 } else {
@@ -593,9 +592,6 @@ int ThreadPool::addPersistent(start_routine func, void *arg,
                               free_routine free_func,
                               ThreadPriority priority)
 {
-    int ret = 0;
-    ThreadPoolJob *job = nullptr;
-
     std::unique_lock<std::mutex> lck(m->mutex);
 
     /* Create A worker if less than max threads running */
@@ -604,20 +600,14 @@ int ThreadPool::addPersistent(start_routine func, void *arg,
     } else {
         /* if there is more than one worker thread
          * available then schedule job, otherwise fail */
-        if (m->totalThreads - m->persistentThreads - 1 == 0) {
-            ret = EMAXTHREADS;
-            goto exit_function;
-        }
+        if (m->totalThreads - m->persistentThreads - 1 == 0)
+            return -EMAXTHREADS;
     }
-    
-    job = new ThreadPoolJob(func, arg, free_func, priority);
-    if (!job) {
-        ret = EOUTOFMEM;
-        goto exit_function;
-    }
+
+    auto job = std::make_unique<ThreadPoolJob>(std::move(func), arg, std::move(free_func), priority);
     job->jobId = m->lastJobId;
     job->requestTime = steady_clock::now();
-    m->persistentJob = job;
+    m->persistentJob = std::move(job);
 
     /* Notify a waiting thread */
     m->condition.notify_one();
@@ -627,37 +617,32 @@ int ThreadPool::addPersistent(start_routine func, void *arg,
         m->start_and_shutdown.wait(lck);
     m->lastJobId++;
 
-exit_function:
-    return ret;
+    return 0;
 }
 
 int ThreadPool::addJob(
     start_routine func, void *arg, free_routine free_func, ThreadPriority prio)
 {
-    ThreadPoolJob *job{nullptr};
-
     std::unique_lock<std::mutex> lck(m->mutex);
 
     int totalJobs = m->highJobQ.size() + m->lowJobQ.size() + m->medJobQ.size();
     if (totalJobs >= m->attr.maxJobsTotal) {
         LOGERR("ThreadPool::addJob: too many jobs: " << totalJobs << "\n");
-        goto exit_function;
+        return 0;
     }
 
-    job = new ThreadPoolJob(func, arg, free_func, prio);
-    if (!job)
-        goto exit_function;
+    auto job = std::make_unique<ThreadPoolJob>(std::move(func), arg, std::move(free_func), prio);
     job->jobId =  m->lastJobId;
     job->requestTime = steady_clock::now();
     switch (job->priority) {
     case HIGH_PRIORITY:
-        m->highJobQ.push_back(job);
+        m->highJobQ.push_back(std::move(job));
         break;
     case MED_PRIORITY:
-        m->medJobQ.push_back(job);
+        m->medJobQ.push_back(std::move(job));
         break;
     default:
-        m->lowJobQ.push_back(job);
+        m->lowJobQ.push_back(std::move(job));
     }
     /* AddWorker if appropriate */
     m->addWorker(lck);
@@ -665,7 +650,6 @@ int ThreadPool::addJob(
     m->condition.notify_one();
     m->lastJobId++;
 
-exit_function:
     return 0;
 }
 
@@ -725,32 +709,14 @@ int ThreadPool::shutdown()
 
 int ThreadPool::Internal::shutdown()
 {
-    ThreadPoolJob *temp = nullptr;
-
     std::unique_lock<std::mutex> lck(mutex);
 
-    while (!this->highJobQ.empty()) {
-        temp = this->highJobQ.front();
-        this->highJobQ.pop_front();
-        delete temp;
-    }
+    this->highJobQ.clear();
+    this->medJobQ.clear();
+    this->lowJobQ.clear();
 
-    while (!this->medJobQ.empty()) {
-        temp = this->medJobQ.front();
-        this->medJobQ.pop_front();
-        delete temp;
-    }
-
-    while (!this->lowJobQ.empty()) {
-        temp = this->lowJobQ.front();
-        this->lowJobQ.pop_front();
-        delete temp;
-    }
-    
     /* clean up long term job */
     if (this->persistentJob) {
-        temp = this->persistentJob;
-        delete temp;
         this->persistentJob = nullptr;
     }
     /* signal shutdown */
