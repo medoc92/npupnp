@@ -656,7 +656,6 @@ static int process_request(
 
 class VFileReaderCtxt {
 public:
-    ~VFileReaderCtxt() = default;
     UpnpWebFileHandle fp{nullptr};
     const void *cookie;
     const void *request_cookie;

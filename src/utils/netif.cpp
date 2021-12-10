@@ -492,7 +492,6 @@ std::ostream& Interface::print(std::ostream& out) const
 class Interfaces::Internal {
 public:
     Internal();
-    ~Internal() = default;
     std::vector<Interface> interfaces;
 };
 
