@@ -158,8 +158,8 @@ static int ScheduleGenaAutoRenew(
     /*! [in] Subscription being renewed. */
     ClientSubscription *sub)
 {
-    struct Upnp_Event_Subscribe *RenewEventStruct = nullptr;
-    upnp_timeout *RenewEvent = nullptr;
+    struct Upnp_Event_Subscribe *RenewEventStruct;
+    upnp_timeout *RenewEvent;
     int return_code = GENA_SUCCESS;
     const std::string& tmpSID = sub->SID;
     const std::string& tmpEventURL = sub->eventURL;
@@ -177,11 +177,6 @@ static int ScheduleGenaAutoRenew(
     }
 
     RenewEvent =  new upnp_timeout;
-    if (nullptr == RenewEvent) {
-        free(RenewEventStruct);
-        return_code = UPNP_E_OUTOF_MEMORY;
-        goto end_function;
-    }
 
     /* schedule expire event */
     *RenewEventStruct = {};
@@ -675,7 +670,7 @@ void gena_process_notification_event(MHDTransaction *mhdt)
 {
     struct Upnp_Event event_struct;
     int eventKey;
-    ClientSubscription *subscription = nullptr;
+    ClientSubscription *subscription;
     struct Handle_Info *handle_info;
     void *cookie;
     Upnp_FunPtr callback;
