@@ -951,7 +951,7 @@ bool parsedateinterval(const string& s, DateInterval *dip)
         return false;
     }
 
-    vector<string>::const_iterator it = vs.begin();
+    auto it = vs.cbegin();
     if (*it == "P" || *it == "p") {
         it++;
         if (!parseperiod(it, vs.end(), &p1)) {
