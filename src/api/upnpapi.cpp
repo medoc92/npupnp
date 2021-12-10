@@ -176,19 +176,19 @@ Upnp_SID gUpnpSdkNLSuuid;
 std::string apiFirstIPV4Str()
 {
     if (g_netifs.empty())
-        return std::string();
+        return {};
     const auto a = g_netifs.begin()->firstipv4addr();
     if (nullptr == a)
-        return std::string();
+        return {};
     return a->straddr();
 }
 std::string apiFirstIPV6Str()
 {
     if (g_netifs.empty())
-        return std::string();
+        return {};
     const auto a = g_netifs.begin()->firstipv6addr();
     if (nullptr == a)
-        return std::string();
+        return {};
     return a->straddr();
 }
 int apiFirstIPV6Index()
@@ -814,7 +814,7 @@ EXPORT_SPEC std::string UpnpGetUrlHostPortForClient(const struct sockaddr_storag
     const NetIF::Interface *itf =
         NetIF::Interfaces::interfaceForAddress(claddr, g_netifs, hostaddr);
     if (nullptr == itf) {
-        return std::string();
+        return {};
     }
     int port = 0;
     std::string prefix;
@@ -827,7 +827,7 @@ EXPORT_SPEC std::string UpnpGetUrlHostPortForClient(const struct sockaddr_storag
         port = UpnpGetServerPort6();
             break;
     default:
-        return std::string();
+        return {};
     }
 
     return prefix + hostaddr.straddr() + (prefix.empty() ? "" : "]") + ":" + lltodecstr(port);

@@ -293,7 +293,7 @@ static std::string rebuild_url_from_mhdt(
         UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
                    "answer_to_connection: got empty hostport for connection from %s\n",
                    claddr.straddr().c_str());
-        return std::string();
+        return {};
     }
     aurl += hostport;
     aurl += path;

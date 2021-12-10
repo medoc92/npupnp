@@ -431,7 +431,7 @@ std::string make_date_string(time_t thetime)
     struct tm date_storage;
     struct tm *date = http_gmtime_r(&curr_time, &date_storage);
     if (date == nullptr)
-        return std::string();
+        return {};
     char tempbuf[200];
     snprintf(tempbuf, sizeof(tempbuf),
              "%s, %02d %s %d %02d:%02d:%02d GMT",

@@ -314,7 +314,7 @@ std::string remove_dots(const std::string& in)
         } else if (elt == "..") {
             if (vpath.empty()) {
                 // This is an error: trying to go behind /
-                return std::string();
+                return {};
             }
             vpath.pop_back();
         } else {
@@ -340,17 +340,17 @@ std::string resolve_rel_url(
 
     // Base can't be empty, it needs at least a scheme.
     if (base_url.empty()) {
-        return std::string();
+        return {};
     }
     if ((parse_uri(base_url, &base) != UPNP_E_SUCCESS)
         || (base.type != URITP_ABSOLUTE)) {
-        return std::string();
+        return {};
     }
     if (rel_url.empty())
         return base_url;
 
     if (parse_uri(rel_url, &rel) != UPNP_E_SUCCESS) {
-        return std::string();
+        return {};
     }
 
     rel.path = remove_dots(rel.path);
@@ -483,7 +483,7 @@ std::string maybeScopeUrlAddr(const char *inurl, const struct sockaddr_storage *
 {
     uri_type prsduri;
     if (parse_uri(inurl, &prsduri) != UPNP_E_SUCCESS || prsduri.hostport.text.empty()) {
-        return std::string();
+        return {};
     }
     return maybeScopeUrlAddr(inurl, prsduri, remoteaddr);
 }

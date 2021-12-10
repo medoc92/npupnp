@@ -279,7 +279,7 @@ std::string IPAddr::straddr() const
 std::string IPAddr::straddr(bool setscope, bool forurl) const
 {
     if (!ok())
-        return std::string();
+        return {};
     
     char buf[200];
     buf[0] = 0;

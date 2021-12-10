@@ -1221,7 +1221,7 @@ std::string SimpleRegexp::simpleSub(
     const std::string& in, const std::string& repl)
 {
     if (!ok()) {
-        return std::string();
+        return {};
     }
 
     int err;
@@ -1256,7 +1256,7 @@ bool SimpleRegexp::simpleMatch(const string& val) const
 string SimpleRegexp::getMatch(const string& val, int i) const
 {
     if (i > m->nmatch) {
-        return string();
+        return {};
     }
     return val.substr(m->matches[i].rm_so,
                       m->matches[i].rm_eo - m->matches[i].rm_so);
