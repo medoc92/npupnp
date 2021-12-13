@@ -42,6 +42,7 @@
 #endif
 
 #include <chrono>
+#include <deque>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
@@ -111,11 +112,11 @@ public:
     /*! number of persistent threads */
     int persistentThreads;
     /*! low priority job Q */
-    std::list<ThreadPoolJob*> lowJobQ;
+    std::deque<ThreadPoolJob*> lowJobQ;
     /*! med priority job Q */
-    std::list<ThreadPoolJob*> medJobQ;
+    std::deque<ThreadPoolJob*> medJobQ;
     /*! high priority job Q */
-    std::list<ThreadPoolJob*> highJobQ;
+    std::deque<ThreadPoolJob*> highJobQ;
     /*! persistent job */
     ThreadPoolJob *persistentJob;
     /*! thread pool attributes */
