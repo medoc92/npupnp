@@ -150,13 +150,10 @@ TimerThread::TimerThread(ThreadPool *tp)
     if (tp == nullptr ) {
         return;
     }
-    m = new Internal(tp);
+    m.reset(new Internal(tp));
 }
 
-TimerThread::~TimerThread()
-{
-    delete m;
-}
+TimerThread::~TimerThread() = default;
 
 int TimerThread::schedule(
     Duration persistence, std::chrono::system_clock::time_point when, int *id,

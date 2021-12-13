@@ -125,10 +125,7 @@ public:
 };
 
 
-ThreadPool::ThreadPool()
-    : m{nullptr}
-{
-}
+ThreadPool::ThreadPool() = default;
 
 ThreadPool::~ThreadPool()
 #if 0
@@ -152,7 +149,7 @@ ThreadPool::~ThreadPool()
 
 int ThreadPool::start(ThreadPoolAttr *attr)
 {
-    m = new Internal(attr);
+    m.reset(new Internal(attr));
     if (m && m->ok) {
         return 0;
     }

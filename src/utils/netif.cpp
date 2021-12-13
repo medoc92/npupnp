@@ -104,13 +104,13 @@ public:
 
 IPAddr::IPAddr()
 {
-    m = new Internal;
+    m.reset(new Internal);
     m->saddr = reinterpret_cast<struct sockaddr*>(&m->address);
 }
 
 IPAddr::IPAddr(const IPAddr& o)
 {
-    m = new Internal;
+    m.reset(new Internal);
     *m = *(o.m);
     m->saddr = reinterpret_cast<struct sockaddr*>(&m->address);
 }
@@ -118,8 +118,7 @@ IPAddr::IPAddr(const IPAddr& o)
 IPAddr& IPAddr::operator=(const IPAddr& o)
 {
     if (&o != this) {
-        delete m;
-        m = new Internal;
+        m.reset(new Internal);
         *m = *(o.m);
         m->saddr = reinterpret_cast<struct sockaddr*>(&m->address);
     }
@@ -178,10 +177,7 @@ IPAddr::IPAddr(const struct sockaddr *sa, bool unmapv4)
     }
 }
 
-IPAddr::~IPAddr()
-{
-    delete m;
-}
+IPAddr::~IPAddr() = default;
 
 bool IPAddr::ok() const
 {
@@ -333,18 +329,17 @@ public:
 
 Interface::Interface()
 {
-    m = new Internal;
+    m.reset(new Internal);
 }
 Interface::Interface(const Interface& o)
 {
-    m = new Internal;
+    m.reset(new Internal);
     *m = *(o.m);
 }
 Interface& Interface::operator=(const Interface& o)
 {
     if (&o != this) {
-        delete m;
-        m = new Internal;
+        m.reset(new Internal);
         *m = *(o.m);
     }
     return *this;
@@ -360,10 +355,7 @@ Interface::Interface(const std::string& nm)
 {
     m->name = nm;
 }
-Interface::~Interface()
-{
-    delete m;
-}
+Interface::~Interface() = default;
 
 void Interface::Internal::setflag(Interface::Flags f)
 {
@@ -745,18 +737,14 @@ out:
 
 Interfaces::Interfaces()
 {
-    m = new Internal();
+    m.reset(new Internal);
 }
 
-Interfaces::~Interfaces()
-{
-    delete m;
-}
+Interfaces::~Interfaces() = default;
 
 bool Interfaces::refresh()
 {
-    delete m;
-    m = new Internal();
+    m.reset(new Internal);
     return true;
 }
 

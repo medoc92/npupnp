@@ -35,11 +35,13 @@
 #define UPNPAPI_H
 
 #include <list>
+#include <memory>
 #include <string>
 #include <vector>
 #include <mutex>
 
 #include "service_table.h"
+#include "ssdplib.h"
 #include "upnp.h"
 #include "VirtualDir.h"        /* for struct VirtualDirCallbacks */
 #include "TimerThread.h"
@@ -116,7 +118,7 @@ struct Handle_Info
     /*! Client subscription list. */
     std::list<ClientSubscription> ClientSubList;
     /*! Active SSDP searches. */
-    std::list<SsdpSearchArg*> SsdpSearchList;
+    std::list<std::unique_ptr<SsdpSearchArg>> SsdpSearchList;
 #endif
 
     // Forbid copy construction and assignment

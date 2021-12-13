@@ -214,7 +214,7 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
             return;
         }
         size_t stlen = strlen(parser.st);
-        for (auto searchArg : ctrlpt_info->SsdpSearchList) {
+        for (auto&& searchArg : ctrlpt_info->SsdpSearchList) {
             /* check for match of ST header and search target */
             switch (searchArg->requestType) {
             case SSDP_ALL:
@@ -334,16 +334,11 @@ static void* thread_searchexpired(void *arg)
         return nullptr;
     }
     ctrlpt_callback = ctrlpt_info->Callback;
-    for (auto it = ctrlpt_info->SsdpSearchList.begin();
-         it != ctrlpt_info->SsdpSearchList.end(); it++) {
-        SsdpSearchArg *item = *it;
-        if (item->timeoutEventId == *id) {
-            cookie = item->cookie;
-            found = 1;
-            delete item;
-            ctrlpt_info->SsdpSearchList.erase(it);
-            break;
-        }
+    auto it = std::find_if(ctrlpt_info->SsdpSearchList.begin(), ctrlpt_info->SsdpSearchList.end(), [id](const std::unique_ptr<SsdpSearchArg>& item) { return item->timeoutEventId == *id; });
+    if (it != ctrlpt_info->SsdpSearchList.end()) {
+        cookie = (*it)->cookie;
+        found = 1;
+        ctrlpt_info->SsdpSearchList.erase(it);
     }
     HandleUnlock();
 
@@ -384,7 +379,7 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
         HandleUnlock();
         return UPNP_E_INTERNAL_ERROR;
     }
-    auto newArg = new SsdpSearchArg(St, Cookie, requestType);
+    auto newArg = std::unique_ptr<SsdpSearchArg>(new SsdpSearchArg(St, Cookie, requestType));
     auto id = static_cast<int *>(malloc(sizeof(int)));
 
     /* Schedule a timeout event to remove search Arg */
@@ -393,7 +388,7 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
         thread_searchexpired, id, static_cast<ThreadPool::free_routine>(free));
 
     newArg->timeoutEventId = *id;
-    ctrlpt_info->SsdpSearchList.push_back(newArg);
+    ctrlpt_info->SsdpSearchList.push_back(std::move(newArg));
 
     HandleUnlock();
 
