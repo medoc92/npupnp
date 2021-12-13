@@ -57,7 +57,6 @@ libnpupnp_la_SOURCES = \
 	src/inc/ThreadPool.h \
 	src/inc/TimerThread.h \
 	src/inc/VirtualDir.h \
-	src/inc/client_table.h \
 	src/inc/config.h \
 	src/inc/upnpdescription.h \
 	src/inc/expatmm.hxx \
@@ -126,7 +125,6 @@ libnpupnp_la_SOURCES += \
 	src/gena/gena_ctrlpt.cpp \
 	src/gena/gena_sids.cpp \
 	src/gena/service_table.cpp \
-	src/gena/client_table.cpp \
 	src/gena/gena_callback2.cpp
 endif
 

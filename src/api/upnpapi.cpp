@@ -79,11 +79,6 @@
 /*! This structure is for virtual directory callbacks */
 struct VirtualDirCallbacks virtualDirCallback;
 
-#ifdef INCLUDE_CLIENT_APIS
-/* Mutex to synchronize the subscription handling at the client side. */
-std::mutex GlobalClientSubscribeMutex;
-#endif /* INCLUDE_CLIENT_APIS */
-
 // Mutex to synchronize handles (root device or control point
 // handle). This used to be an rwlock but this was probably not worth
 // the trouble given the small expected contention level

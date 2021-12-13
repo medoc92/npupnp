@@ -28,11 +28,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  ******************************************************************************/
-
-
 #ifndef GENA_H
 #define GENA_H
-
 
 #include "config.h"
 
@@ -42,34 +39,11 @@
 #include <string.h>
 #include <time.h>
 
-
-#include "client_table.h"
 #include "httputils.h"
 #include "miniserver.h"
 #include "service_table.h"
-#include "ThreadPool.h"
 #include "upnp.h"
-
 #include "uri.h"
-
-
-#define UNABLE_MEMORY "HTTP/1.1 500 Internal Server Error\r\n\r\n"
-#define UNABLE_SERVICE_UNKNOWN "HTTP/1.1 404 Not Found\r\n\r\n"
-#define UNABLE_SERVICE_NOT_ACCEPT "HTTP/1.1 503 Service Not Available\r\n\r\n"
-
-
-#define NOT_IMPLEMENTED "HTTP/1.1 501 Not Implemented\r\n\r\n"
-#define BAD_REQUEST "HTTP/1.1 400 Bad Request\r\n\r\n"
-#define INVALID_NT BAD_CALLBACK
-#define BAD_CALLBACK "HTTP/1.1 412 Precondition Failed\r\n\r\n" 
-#define HTTP_OK_CRLF "HTTP/1.1 200 OK\r\n\r\n"
-#define HTTP_OK_STR "HTTP/1.1 200 OK\r\n"
-#define INVALID_SID BAD_CALLBACK
-#define MISSING_SID BAD_CALLBACK
-#define MAX_CONTENT_LENGTH 20
-#define MAX_SECONDS 10
-#define MAX_EVENTS 20
-#define MAX_PORT_SIZE 10
 
 
 #define GENA_E_BAD_RESPONSE UPNP_E_BAD_RESPONSE
@@ -85,12 +59,7 @@
 
 #define GENA_DEFAULT_TIMEOUT 1801
 
-extern std::mutex GlobalClientSubscribeMutex;
-
-/*!
- * \brief This is the callback function called by the miniserver to handle
- *    incoming GENA requests.
- */
+/** miniserver incoming GENA request callback function. */
 extern void genaCallback(MHDTransaction *);
  
 /*!
@@ -264,4 +233,3 @@ extern int genaInitNotifyVars(
 
 
 #endif /* GENA_H */
-

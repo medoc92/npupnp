@@ -32,11 +32,30 @@
 #ifndef GENA_CTRLPT_H
 #define GENA_CTRLPT_H
 
-struct MHDTransaction;
+#include <string>
 
-/*!
- * \brief This function processes NOTIFY events that are sent by devices.
- */
+struct ClientSubscription {
+    int renewEventId{-1};
+    std::string SID;
+    std::string actualSID;
+    std::string eventURL;
+    ClientSubscription() = default;
+    ClientSubscription(const ClientSubscription& other) = default;
+    ClientSubscription& operator=(const ClientSubscription& other) {
+        if (this != &other) {
+            SID = other.SID;
+            actualSID = other.actualSID;
+            eventURL = other.eventURL;
+            this->renewEventId = -1;
+        }
+        return *this;
+    }
+};
+
+extern std::mutex GlobalClientSubscribeMutex;
+
+struct MHDTransaction;
+/** Processes NOTIFY events that are sent by devices. */
 void gena_process_notification_event(MHDTransaction *);
 
 #endif /* GENA_CTRLPT_H */

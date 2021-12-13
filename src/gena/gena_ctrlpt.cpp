@@ -64,6 +64,9 @@
 
 extern TimerThread *gTimerThread;
 
+/* Mutex to synchronize client subscription processing */
+std::mutex GlobalClientSubscribeMutex;
+
 #define SubscribeLock() do {                                            \
     UpnpPrintf(UPNP_NOPE, GENA, __FILE__, __LINE__, "Trying Subscribe Lock\n"); \
     GlobalClientSubscribeMutex.lock();                                  \
@@ -76,6 +79,39 @@ extern TimerThread *gTimerThread;
     GlobalClientSubscribeMutex.unlock();                                \
     UpnpPrintf(UPNP_NOPE, GENA, __FILE__, __LINE__, "Subscribe UnLock\n"); \
     } while(0)
+
+void RemoveClientSubClientSID(std::list<ClientSubscription>& lst,
+                              const std::string& sid)
+{
+    for (auto it = lst.begin(); it != lst.end();) {
+        if (it->SID == sid) {
+            it = lst.erase(it);
+        } else {
+            it++;
+        }
+    }
+}
+
+ClientSubscription *GetClientSubClientSID(
+    std::list<ClientSubscription>& lst, const std::string& sid)
+{
+    for (auto& entry : lst)
+        if (entry.SID == sid)
+            return &entry;
+
+    return nullptr;
+}
+
+
+ClientSubscription *GetClientSubActualSID(
+    std::list<ClientSubscription>& lst, const std::string& sid)
+{
+    for (auto& entry : lst)
+        if (entry.actualSID == sid)
+            return &entry;
+
+    return nullptr;
+}
 
 static void clientCancelRenew(ClientSubscription *sub)
 {

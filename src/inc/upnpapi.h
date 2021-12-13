@@ -46,12 +46,10 @@
 #include "VirtualDir.h"        /* for struct VirtualDirCallbacks */
 #include "TimerThread.h"
 #include "upnpdescription.h"
-#include "client_table.h"
+#include "gena_ctrlpt.h"
 #include "netif.h"
 
 #define MAX_INTERFACES 256
-
-#define DEFAULT_INTERFACE 1
 
 #define DEV_LIMIT 200
 

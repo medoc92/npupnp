@@ -317,24 +317,29 @@ static int CreateClientRequestPacketUlaGua(
 }
 #endif /* UPNP_ENABLE_IPV6_AND_ULAGUA */
 
-static void* thread_searchexpired(void *arg)
+static void *thread_searchexpired(void *arg)
 {
     int *id = static_cast<int *>(arg);
-    int handle = -1;
-    struct Handle_Info *ctrlpt_info = nullptr;
-    Upnp_FunPtr ctrlpt_callback;
-    void *cookie = nullptr;
-    int found = 0;
 
     HandleLock();
 
+    int handle;
+    struct Handle_Info *ctrlpt_info;
     if (GetClientHandleInfo(&handle, &ctrlpt_info) != HND_CLIENT) {
         free(id);
         HandleUnlock();
         return nullptr;
     }
-    ctrlpt_callback = ctrlpt_info->Callback;
-    auto it = std::find_if(ctrlpt_info->SsdpSearchList.begin(), ctrlpt_info->SsdpSearchList.end(), [id](const std::unique_ptr<SsdpSearchArg>& item) { return item->timeoutEventId == *id; });
+
+    Upnp_FunPtr ctrlpt_callback = ctrlpt_info->Callback;
+    void *cookie;
+    int found = 0;
+
+    auto it = std::find_if(
+        ctrlpt_info->SsdpSearchList.begin(),
+        ctrlpt_info->SsdpSearchList.end(),
+        [id](const std::unique_ptr<SsdpSearchArg>& item) { return item->timeoutEventId == *id; });
+
     if (it != ctrlpt_info->SsdpSearchList.end()) {
         cookie = (*it)->cookie;
         found = 1;
