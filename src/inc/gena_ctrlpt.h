@@ -37,14 +37,12 @@
 struct ClientSubscription {
     int renewEventId{-1};
     std::string SID;
-    std::string actualSID;
     std::string eventURL;
     ClientSubscription() = default;
     ClientSubscription(const ClientSubscription& other) = default;
     ClientSubscription& operator=(const ClientSubscription& other) {
         if (this != &other) {
             SID = other.SID;
-            actualSID = other.actualSID;
             eventURL = other.eventURL;
             this->renewEventId = -1;
         }
@@ -55,8 +53,83 @@ struct ClientSubscription {
 extern std::mutex GlobalClientSubscribeMutex;
 
 struct MHDTransaction;
+
 /** Processes NOTIFY events that are sent by devices. */
 void gena_process_notification_event(MHDTransaction *);
+
+/*!
+ * \brief This function subscribes to a PublisherURL (also mentioned as EventURL
+ * in some places).
+ *
+ * It sends SUBSCRIBE http request to service processes request. Finally adds a
+ * Subscription to the clients subscription list, if service responds with OK.
+ *
+ * \return UPNP_E_SUCCESS if service response is OK, otherwise returns the 
+ *    appropriate error code
+ */
+#ifdef INCLUDE_CLIENT_APIS
+extern int genaSubscribe(
+    /*! [in] The client handle. */
+    UpnpClient_Handle client_handle,
+    /*! [in] Of the form: "http://134.134.156.80:4000/RedBulb/Event */
+    const std::string& PublisherURL,
+    /*! [in,out] requested Duration:
+     * \li if -1, then "infinite".
+     * \li in the OUT case: actual Duration granted by Service,
+     *     -1 for infinite. */
+    int *TimeOut,
+    /*! [out] sid of subscription, memory passed in by caller. */
+    std::string *out_sid);
+
+/*!
+ * \brief Unsubscribes a SID.
+ *
+ * It first validates the SID and client_handle,copies the subscription, sends
+ * UNSUBSCRIBE http request to service processes request and finally removes
+ * the subscription.
+ *
+ * \return UPNP_E_SUCCESS if service response is OK, otherwise returns the
+ *     appropriate error code.
+ */
+extern int genaUnSubscribe(
+    /*! [in] UPnP client handle. */
+    UpnpClient_Handle client_handle,
+    /*! [in] The subscription ID. */
+    const std::string& in_sid);
+
+
+/*!
+ * \brief Unsubcribes all the outstanding subscriptions and cleans the
+ *     subscription list.
+ *
+ * This function is called when control point unregisters.
+ *
+ * \returns UPNP_E_SUCCESS if successful, otherwise returns the appropriate
+ *     error code.
+ */
+extern int genaUnregisterClient(
+    /*! [in] Handle containing all the control point related information. */
+    UpnpClient_Handle client_handle);
+
+/*!
+ * \brief Renews a SID.
+ *
+ * It first validates the SID and client_handle and copies the subscription.
+ * It sends RENEW (modified SUBSCRIBE) http request to service and processes
+ * the response.
+ *
+ * \return UPNP_E_SUCCESS if service response is OK, otherwise the
+ *     appropriate error code.
+ */
+extern int genaRenewSubscription(
+    /*! [in] Client handle. */
+    UpnpClient_Handle client_handle,
+    /*! [in] Subscription ID. */
+    const std::string& in_sid,
+    /*! [in,out] requested Duration, if -1, then "infinite". In the OUT case:
+     * actual Duration granted by Service, -1 for infinite. */
+    int *TimeOut);
+#endif /* INCLUDE_CLIENT_APIS */
 
 #endif /* GENA_CTRLPT_H */
 

@@ -54,6 +54,8 @@
 
 /* Needed for GENA */
 #include "gena.h"
+#include "gena_ctrlpt.h"
+#include "gena_device.h"
 #include "gena_sids.h"
 #include "miniserver.h"
 #include "service_table.h"

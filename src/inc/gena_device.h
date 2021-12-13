@@ -32,6 +32,85 @@
 #ifndef GENA_DEVICE_H
 #define GENA_DEVICE_H
 
+#ifdef INCLUDE_DEVICE_APIS
+/*!
+ * \brief Cleans the service table of the device.
+ *
+ * \return UPNP_E_SUCCESS if successful, otherwise returns GENA_E_BAD_HANDLE
+ */
+extern int genaUnregisterDevice(
+     /*! [in] Handle of the root device */
+    UpnpDevice_Handle device_handle);
+
+/*!
+ * \brief Sends a notification to all the subscribed control points.
+ *
+ * \return int
+ *
+ * \note This function is similar to the genaNotifyAllExt. The only difference
+ *    is it takes event variable array instead of xml document.
+ */
+extern int genaNotifyAll(
+    /*! [in] Device handle. */
+    UpnpDevice_Handle device_handle,
+    /*! [in] Device udn. */
+    char *UDN,
+    /*! [in] Service ID. */
+    char *servId,
+    /*! [in] Array of varible names. */
+    char **VarNames,
+    /*! [in] Array of variable values. */
+    char **VarValues,
+    /*! [in] Number of variables. */
+    int var_count);
+extern int genaNotifyAllXML(
+    /*! [in] Device handle. */
+    UpnpDevice_Handle device_handle,
+    /*! [in] Device udn. */
+    char *UDN,
+    /*! [in] Service ID. */
+    char *servId,
+    const std::string& propertySet);
+
+
+/*!
+ * \brief Sends the intial state table dump to newly subscribed control point.
+ *
+ * \return GENA_E_SUCCESS if successful, otherwise the appropriate error code.
+ * 
+ * \note  No other event will be sent to this control point before the 
+ *    intial state table dump.
+ */
+extern int genaInitNotifyXML(
+    /*! [in] Device handle. */
+    UpnpDevice_Handle device_handle,
+    /*! [in] Device udn. */
+    char *UDN,
+    /*! [in] Service ID. */
+    char *servId,
+    const std::string& propertyset,
+    /*! [in] Subscription ID. */
+    const Upnp_SID sid);
+
+extern int genaInitNotifyVars(
+    /*! [in] Device handle. */
+    UpnpDevice_Handle device_handle,
+    /*! [in] Device udn. */
+    char *UDN,
+    /*! [in] Service ID. */
+    char *servId,
+    /*! [in] Array of variable names. */
+    char **VarNames,
+    /*! [in] Array of variable values. */
+    char **VarValues,
+    /*! [in] Array size. */
+    int var_count,
+    /*! [in] Subscription ID. */
+    const Upnp_SID sid);
+
+#endif /* INCLUDE_DEVICE_APIS */
+
+
 struct MHDTransaction;
 
 /*!
