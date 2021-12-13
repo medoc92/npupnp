@@ -127,7 +127,7 @@ public:
 
     class Internal;
 private:
-    std::unique_ptr<Internal> m;
+    Internal *m;
 };
 
 #endif /* TIMER_THREAD_H */
