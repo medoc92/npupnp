@@ -131,8 +131,8 @@ ThreadPool::ThreadPool()
 {
 }
 
-ThreadPool::~ThreadPool()
 #if 0
+ThreadPool::~ThreadPool()
 {
     // JFD: Doing a proper shutdown does not work at the moment. One
     // of the threads does not exit. I suspect it's the timer thread
@@ -147,8 +147,6 @@ ThreadPool::~ThreadPool()
     shutdown();
     delete m;
 }
-#else
-= default;
 #endif
 
 int ThreadPool::start(ThreadPoolAttr *attr)
