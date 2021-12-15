@@ -1,12 +1,7 @@
 BasedOnStyle: WebKit
 AlignAfterOpenBracket: Align
-AlignEscapedNewlines: DontAlign
-BreakBeforeBinaryOperators: None
-BreakBeforeBraces: Custom
 BreakConstructorInitializers: BeforeColon
 Cpp11BracedListStyle: true
-MaxEmptyLinesToKeep: 2
-PointerAlignment: Left
 SortIncludes: false
 SpaceBeforeCpp11BracedList: false
 SpaceInEmptyBlock: false
