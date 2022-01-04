@@ -802,6 +802,12 @@ EXPORT_SPEC int UpnpSetWebRequestHostValidateCallback(
     g_hostvalidatecookie = cookie;
     return UPNP_E_SUCCESS;
 }
+EXPORT_SPEC int UpnpSetHostValidateCallback(
+    WebCallback_HostValidate callback, void *cookie)
+{
+    return UpnpSetWebRequestHostValidateCallback(callback, cookie);
+}
+
 
 EXPORT_SPEC std::string UpnpGetUrlHostPortForClient(const struct sockaddr_storage* clsock)
 {
