@@ -1,119 +1,120 @@
-UpnpCloseLog
-UpnpGetDebugFile
-UpnpGetErrorMessage
-UpnpInitLog
-UpnpPrintf
-UpnpResolveURL
-UpnpResolveURL2
-UpnpSetLogFileNames
-UpnpSetLogLevel
-UpnpFinish()
-UpnpNotify(int,
-UpnpNotifyXML(int,
-UpnpSubscribe(int,
-UpnpSendAction(int,
-UpnpSearchAsync(int,
-UpnpUnSubscribe(int,
-UpnpAddVirtualDir(char
-UpnpGetServerPort()
-UpnpGetServerPort6()
-UpnpRegisterClient(int
-UpnpDownloadUrlItem(char
-UpnpDownloadUrlItem(std::__cxx11::basic_string<char,
-UpnpEnableWebserver(int)
-UpnpInitWithOptions(char
-UpnpClientSetProduct(int,
-UpnpDeviceSetProduct(int,
-UpnpRemoveVirtualDir(char
-UpnpUnRegisterClient(int)
-UpnpRenewSubscription(int,
-UpnpSendAdvertisement(int,
-UpnpAcceptSubscription(int,
-UpnpGetServerIpAddress()
-UpnpIsWebserverEnabled()
-UpnpRegisterRootDevice(char
-UpnpGetServerIp6Address()
-UpnpRegisterRootDevice2(Upnp_DescType_e,
-UpnpRegisterRootDevice4(char
-UpnpSetMaxContentLength(unsigned
-UpnpSetMaxSubscriptions(int,
-UpnpSetWebServerRootDir(char
-UpnpGetServerUlaGuaPort6()
-UpnpRemoveAllVirtualDirs()
-UpnpUnRegisterRootDevice(int)
-UpnpAcceptSubscriptionXML(int,
-UpnpSetVirtualDirCallbacks(UpnpVirtualDirCallbacks*)
-UpnpGetUrlHostPortForClient[abi:cxx11](sockaddr_storage
-UpnpGetServerUlaGuaIp6Address()
-UpnpSendAdvertisementLowPower(int,
-UpnpSetMaxSubscriptionTimeOut(int,
-UpnpVirtualDir_set_OpenCallback(void*
-UpnpVirtualDir_set_ReadCallback(int
-UpnpVirtualDir_set_SeekCallback(int
-UpnpUnRegisterRootDeviceLowPower(int,
-UpnpVirtualDir_set_CloseCallback(int
-UpnpVirtualDir_set_WriteCallback(int
-UpnpVirtualDir_set_GetInfoCallback(int
-UpnpSetWebRequestHostValidateCallback(int
-UpnpInit(char
-UpnpInit2(char
-UpnpInit2(std::vector<std::__cxx11::basic_string<char,
-UPnPDeviceDesc::UPnPDeviceDesc(std::__cxx11::basic_string<char,
-UPnPDeviceDesc::UPnPDeviceDesc(std::__cxx11::basic_string<char,
-NetIF::Interfaces::theInterfaces()
-NetIF::Interfaces::interfaceForAddress(NetIF::IPAddr
-NetIF::Interfaces::interfaceForAddress(NetIF::IPAddr
-NetIF::Interfaces::print(std::ostream&)
-NetIF::Interfaces::refresh()
-NetIF::Interfaces::Internal::Internal()
-NetIF::Interfaces::Internal::Internal()
-NetIF::Interfaces::setlogfp(_IO_FILE*)
-NetIF::Interfaces::Interfaces()
-NetIF::Interfaces::Interfaces()
-NetIF::Interfaces::~Interfaces()
-NetIF::Interfaces::~Interfaces()
-NetIF::IPAddr::setScopeIdx(NetIF::IPAddr
-NetIF::IPAddr::operator=(NetIF::IPAddr
-NetIF::IPAddr::IPAddr(sockaddr
-NetIF::IPAddr::IPAddr(char
-NetIF::IPAddr::IPAddr(NetIF::IPAddr
-NetIF::IPAddr::IPAddr()
-NetIF::IPAddr::IPAddr(sockaddr
-NetIF::IPAddr::IPAddr(char
-NetIF::IPAddr::IPAddr(NetIF::IPAddr
-NetIF::IPAddr::IPAddr()
-NetIF::IPAddr::~IPAddr()
-NetIF::IPAddr::~IPAddr()
-NetIF::Interface::trimto(std::vector<NetIF::IPAddr,
-NetIF::Interface::Internal::setflag(NetIF::Interface::Flags)
-NetIF::Interface::operator=(NetIF::Interface
-NetIF::Interface::Interface(char
-NetIF::Interface::Interface(std::__cxx11::basic_string<char,
-NetIF::Interface::Interface(NetIF::Interface
-NetIF::Interface::Interface()
-NetIF::Interface::Interface(char
-NetIF::Interface::Interface(std::__cxx11::basic_string<char,
-NetIF::Interface::Interface(NetIF::Interface
-NetIF::Interface::Interface()
-NetIF::Interface::~Interface()
-NetIF::Interface::~Interface()
-NetIF::Interfaces::findByName(char
-NetIF::Interfaces::select(NetIF::Interfaces::Filter
-NetIF::IPAddr::copyToAddr(sockaddr*)
-NetIF::IPAddr::copyToStorage(sockaddr_storage*)
-NetIF::IPAddr::ok()
-NetIF::IPAddr::family()
-NetIF::IPAddr::getaddr()
-NetIF::IPAddr::straddr[abi:cxx11](bool,
-NetIF::IPAddr::straddr[abi:cxx11]()
-NetIF::IPAddr::scopetype()
-NetIF::Interface::getaddresses()
-NetIF::Interface::gethexhwaddr[abi:cxx11]()
-NetIF::Interface::firstipv4addr()
-NetIF::Interface::firstipv6addr(NetIF::IPAddr::Scope)
-NetIF::Interface::getfriendlyname[abi:cxx11]()
-NetIF::Interface::print(std::ostream&)
-NetIF::Interface::getname[abi:cxx11]()
-NetIF::Interface::hasflag(NetIF::Interface::Flags)
-NetIF::Interface::getindex()
-NetIF::Interface::gethwaddr[abi:cxx11]()
+  UpnpCloseLog
+  UpnpGetDebugFile
+  UpnpGetErrorMessage
+  UpnpInitLog
+  UpnpPrintf
+  UpnpResolveURL
+  UpnpResolveURL2
+  UpnpSetLogFileNames
+  UpnpSetLogLevel
+  UpnpFinish()
+  UpnpNotify(int, char const*, char const*, char const**, char const**, int)
+  UpnpNotifyXML(int, char const*, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+  UpnpSubscribe(int, char const*, int*, char*)
+  UpnpSendAction(int, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::vector<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > > const&, std::vector<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >&, int*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&)
+  UpnpSearchAsync(int, int, char const*, void const*)
+  UpnpUnSubscribe(int, char const*)
+  UpnpAddVirtualDir(char const*, void const*, void const**)
+  UpnpGetServerPort()
+  UpnpGetServerPort6()
+  UpnpRegisterClient(int (*)(Upnp_EventType_e, void const*, void*), void const*, int*)
+  UpnpDownloadUrlItem(char const*, char**, char*)
+  UpnpDownloadUrlItem(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&)
+  UpnpEnableWebserver(int)
+  UpnpInitWithOptions(char const*, unsigned short, unsigned int, ...)
+  UpnpClientSetProduct(int, char const*, char const*)
+  UpnpDeviceSetProduct(int, char const*, char const*)
+  UpnpRemoveVirtualDir(char const*)
+  UpnpUnRegisterClient(int)
+  UpnpRenewSubscription(int, int*, char const*)
+  UpnpSendAdvertisement(int, int)
+  UpnpAcceptSubscription(int, char const*, char const*, char const**, char const**, int, char const*)
+  UpnpGetServerIpAddress()
+  UpnpIsWebserverEnabled()
+  UpnpRegisterRootDevice(char const*, int (*)(Upnp_EventType_e, void const*, void*), void const*, int*)
+  UpnpGetServerIp6Address()
+  UpnpRegisterRootDevice2(Upnp_DescType_e, char const*, unsigned long, int, int (*)(Upnp_EventType_e, void const*, void*), void const*, int*)
+  UpnpRegisterRootDevice4(char const*, int (*)(Upnp_EventType_e, void const*, void*), void const*, int*, int, char const*)
+  UpnpSetMaxContentLength(unsigned long)
+  UpnpSetMaxSubscriptions(int, int)
+  UpnpSetWebServerRootDir(char const*)
+  UpnpGetServerUlaGuaPort6()
+  UpnpRemoveAllVirtualDirs()
+  UpnpUnRegisterRootDevice(int)
+  UpnpAcceptSubscriptionXML(int, char const*, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const*)
+  UpnpSetVirtualDirCallbacks(UpnpVirtualDirCallbacks*)
+  UpnpGetUrlHostPortForClient[abi:cxx11](sockaddr_storage const*)
+  UpnpSetHostValidateCallback(int (*)(char const*, void*), void*)
+  UpnpGetServerUlaGuaIp6Address()
+  UpnpSendAdvertisementLowPower(int, int, int, int, int)
+  UpnpSetMaxSubscriptionTimeOut(int, int)
+  UpnpVirtualDir_set_OpenCallback(void* (*)(char const*, UpnpOpenFileMode, void const*, void const*))
+  UpnpVirtualDir_set_ReadCallback(int (*)(void*, char*, unsigned long, void const*, void const*))
+  UpnpVirtualDir_set_SeekCallback(int (*)(void*, long, int, void const*, void const*))
+  UpnpUnRegisterRootDeviceLowPower(int, int, int, int)
+  UpnpVirtualDir_set_CloseCallback(int (*)(void*, void const*, void const*))
+  UpnpVirtualDir_set_WriteCallback(int (*)(void*, char*, unsigned long, void const*, void const*))
+  UpnpVirtualDir_set_GetInfoCallback(int (*)(char const*, File_Info*, void const*, void const**))
+  UpnpSetWebRequestHostValidateCallback(int (*)(char const*, void*), void*)
+  UpnpInit(char const*, unsigned short)
+  UpnpInit2(char const*, unsigned short)
+  UpnpInit2(std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > const&, unsigned short)
+  UPnPDeviceDesc::UPnPDeviceDesc(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+  UPnPDeviceDesc::UPnPDeviceDesc(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+  NetIF::Interfaces::theInterfaces()
+  NetIF::Interfaces::interfaceForAddress(NetIF::IPAddr const&, std::vector<NetIF::Interface, std::allocator<NetIF::Interface> > const&, NetIF::IPAddr&)
+  NetIF::Interfaces::interfaceForAddress(NetIF::IPAddr const&, NetIF::IPAddr&)
+  NetIF::Interfaces::print(std::ostream&)
+  NetIF::Interfaces::refresh()
+  NetIF::Interfaces::Internal::Internal()
+  NetIF::Interfaces::Internal::Internal()
+  NetIF::Interfaces::setlogfp(_IO_FILE*)
+  NetIF::Interfaces::Interfaces()
+  NetIF::Interfaces::Interfaces()
+  NetIF::Interfaces::~Interfaces()
+  NetIF::Interfaces::~Interfaces()
+  NetIF::IPAddr::setScopeIdx(NetIF::IPAddr const&)
+  NetIF::IPAddr::operator=(NetIF::IPAddr const&)
+  NetIF::IPAddr::IPAddr(sockaddr const*, bool)
+  NetIF::IPAddr::IPAddr(char const*)
+  NetIF::IPAddr::IPAddr(NetIF::IPAddr const&)
+  NetIF::IPAddr::IPAddr()
+  NetIF::IPAddr::IPAddr(sockaddr const*, bool)
+  NetIF::IPAddr::IPAddr(char const*)
+  NetIF::IPAddr::IPAddr(NetIF::IPAddr const&)
+  NetIF::IPAddr::IPAddr()
+  NetIF::IPAddr::~IPAddr()
+  NetIF::IPAddr::~IPAddr()
+  NetIF::Interface::trimto(std::vector<NetIF::IPAddr, std::allocator<NetIF::IPAddr> > const&)
+  NetIF::Interface::Internal::setflag(NetIF::Interface::Flags)
+  NetIF::Interface::operator=(NetIF::Interface const&)
+  NetIF::Interface::Interface(char const*)
+  NetIF::Interface::Interface(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+  NetIF::Interface::Interface(NetIF::Interface const&)
+  NetIF::Interface::Interface()
+  NetIF::Interface::Interface(char const*)
+  NetIF::Interface::Interface(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+  NetIF::Interface::Interface(NetIF::Interface const&)
+  NetIF::Interface::Interface()
+  NetIF::Interface::~Interface()
+  NetIF::Interface::~Interface()
+  NetIF::Interfaces::findByName(char const*) const
+  NetIF::Interfaces::select(NetIF::Interfaces::Filter const&) const
+  NetIF::IPAddr::copyToAddr(sockaddr*) const
+  NetIF::IPAddr::copyToStorage(sockaddr_storage*) const
+  NetIF::IPAddr::ok() const
+  NetIF::IPAddr::family() const
+  NetIF::IPAddr::getaddr() const
+  NetIF::IPAddr::straddr[abi:cxx11](bool, bool) const
+  NetIF::IPAddr::straddr[abi:cxx11]() const
+  NetIF::IPAddr::scopetype() const
+  NetIF::Interface::getaddresses() const
+  NetIF::Interface::gethexhwaddr[abi:cxx11]() const
+  NetIF::Interface::firstipv4addr() const
+  NetIF::Interface::firstipv6addr(NetIF::IPAddr::Scope) const
+  NetIF::Interface::getfriendlyname[abi:cxx11]() const
+  NetIF::Interface::print(std::ostream&) const
+  NetIF::Interface::getname[abi:cxx11]() const
+  NetIF::Interface::hasflag(NetIF::Interface::Flags) const
+  NetIF::Interface::getindex() const
+  NetIF::Interface::gethwaddr[abi:cxx11]() const
