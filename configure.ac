@@ -16,7 +16,7 @@ AC_INIT([libnpupnp],[4.2.0],[jfd@recoll.org])
 # npupnp packages will be named libupnpX at some point, where X is the .so
 # major number (c-a). This will allow packages for multiple incompatible ABIs
 # to be installed. Not necessary for now.
-AC_SUBST([LT_VERSION_NPUPNP],       [7:0:2])
+AC_SUBST([LT_VERSION_NPUPNP],       [7:0:3])
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
