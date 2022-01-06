@@ -1,3 +1,9 @@
+libnpupnp1 (4.2.1-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Fix shared lib version  oops
+  
+ -- Jean-Francois Dockes <jf@dockes.org>  Thi, 06 Jan 2022 13:44:00 +0100
+
 libnpupnp1 (4.2.0-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Add UpnpSetHostValidateCallback alias to
