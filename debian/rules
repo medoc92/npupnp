@@ -11,21 +11,3 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
 override_dh_auto_configure:
 	dh_auto_configure -- --enable-ipv6
-
-override_dh_auto_build:
-	dh_auto_build
-
-override_dh_auto_clean:
-	dh_auto_clean
-	find -name "Makefile.in" -print0 | xargs -0r $(RM)
-	$(RM) aclocal.m4 configure autoconfig.h.in
-
-override_dh_install:
-	dh_install --remaining-packages -X.la --list-missing
-
-override_dh_strip:
-	dh_strip --dbg-package=libnpupnp1-dbg
-
-override_dh_compress:
-	dh_compress -Xhtml -X.pdf
-
