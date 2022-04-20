@@ -41,7 +41,6 @@ SOURCES += \
 ../../src/api/upnpdebug.cpp \
 ../../src/api/upnptools.cpp \
 ../../src/dispatcher/miniserver.cpp \
-../../src/gena/client_table.cpp \
 ../../src/gena/gena_callback2.cpp \
 ../../src/gena/gena_ctrlpt.cpp \
 ../../src/gena/gena_device.cpp \
