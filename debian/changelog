@@ -1,3 +1,9 @@
+libnpupnp1 (4.2.2-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Clean up a bit static library object name space pollution 
+  
+ -- Jean-Francois Dockes <jf@dockes.org>  Sun, 24 Apr 2022 09:53:00 +0200
+
 libnpupnp1 (4.2.1-2~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Fix shared lib version  oops
