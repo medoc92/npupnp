@@ -28,6 +28,8 @@
 #include <cstring>
 #include <cstdint>
 
+namespace MedocUtils {
+
 #define PUT_BIT_LE(i, cp, value) do {                   \
         (cp)[i] = uint8_t(((value) >> 8 * i) & 0xFF); \
     } while (0)
@@ -306,3 +308,5 @@ string& MD5HexScan(const string& xdigest, string& digest)
     }
     return digest;
 }
+
+} // End namespace MedocUtils

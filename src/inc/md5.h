@@ -17,6 +17,9 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <string>
+
+namespace MedocUtils {
 
 #define    MD5_BLOCK_LENGTH        64
 #define    MD5_DIGEST_LENGTH        16
@@ -33,10 +36,14 @@ void     MD5Final(uint8_t [MD5_DIGEST_LENGTH], MD5_CTX *);
 void     MD5Transform(uint32_t [4], const uint8_t [MD5_BLOCK_LENGTH]);
 
 /** md5 c++ utility wrappers */
-#include <string>
 extern void MD5Final(std::string& digest, MD5_CTX *);
 extern std::string& MD5String(const std::string& data, std::string& digest);
 extern std::string& MD5HexPrint(const std::string& digest, std::string& out);
 extern std::string& MD5HexScan(const std::string& xdigest, std::string& digest);
 extern std::string MD5Hex(const std::string& data);
+
+} // End namespace MedocUtils
+
+using namespace MedocUtils;
+
 #endif /* _MD5_H_ */
