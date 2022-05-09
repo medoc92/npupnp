@@ -1,5 +1,3 @@
-diff --git a/Makefile.am b/Makefile.am
-index c3fa014..858ff91 100644
 --- a/Makefile.am
 +++ b/Makefile.am
 @@ -27,7 +27,7 @@ lib_LTLIBRARIES = libnpupnp.la
@@ -7,7 +5,7 @@ index c3fa014..858ff91 100644
  libnpupnp_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/src/inc 
  if LINUX
 -libnpupnp_la_CXXFLAGS = -fvisibility=hidden
-+libnpupnp_la_CXXFLAGS = -fvisibility=hidden -std=c++11
++libnpupnp_la_CXXFLAGS = -fvisibility=hidden -std=c++14
  endif
  
  
