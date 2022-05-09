@@ -125,6 +125,16 @@ IPAddr& IPAddr::operator=(const IPAddr& o)
     return *this;
 }
 
+IPAddr& IPAddr::operator=(IPAddr&& o)
+{
+    if (&o != this) {
+        m.reset(new Internal);
+        *m = std::move(*(o.m));
+        m->saddr = reinterpret_cast<struct sockaddr*>(&m->address);
+    }
+    return *this;
+}
+
 IPAddr::IPAddr(const char *caddr)
     : IPAddr()
 {

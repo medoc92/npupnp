@@ -72,6 +72,7 @@ public:
 
     IPAddr(const IPAddr&);
     IPAddr& operator=(const IPAddr&);
+    IPAddr& operator=(IPAddr&&);
     ~IPAddr();
 
     /** @brief Check constructor success */
