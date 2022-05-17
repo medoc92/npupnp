@@ -58,20 +58,18 @@ libnpupnp_la_SOURCES = \
 	src/inc/TimerThread.h \
 	src/inc/VirtualDir.h \
 	src/inc/config.h \
-	src/inc/upnpdescription.h \
 	src/inc/expatmm.hxx \
 	src/inc/gena.h \
 	src/inc/gena_ctrlpt.h \
 	src/inc/gena_device.h \
 	src/inc/gena_sids.h \
+	src/inc/genut.h \
 	src/inc/httputils.h \
 	src/inc/inet_pton.h \
 	src/inc/md5.h \
 	src/inc/miniserver.h \
-	src/inc/netif.h \
 	src/inc/picoxml.h \
 	src/inc/service_table.h \
-	src/inc/genut.h \
 	src/inc/smallut.h \
 	src/inc/smallut_instantiate.h \
 	src/inc/soaplib.h \
@@ -81,8 +79,8 @@ libnpupnp_la_SOURCES = \
 	src/inc/upnp_timeout.h \
 	src/inc/upnpapi.h \
 	src/inc/uri.h \
-        src/inc/utf8iter.h \
-	src/inc/webserver.h
+	src/inc/webserver.h \
+        src/inc/utf8iter.h
 
 # ssdp
 if ENABLE_SSDP
