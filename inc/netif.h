@@ -116,9 +116,9 @@ public:
                       UP=8, MULTICAST=0x10, HASHWADDR=0x20};
     Interface();
     /** @brief Construct empty interface with just the name set */
-    Interface(const char *nm);
+    explicit Interface(const char *nm);
     /** @brief Construct empty interface with just the name set */
-    Interface(const std::string &nm);
+    explicit Interface(const std::string &nm);
     ~Interface();
     Interface(const Interface&);
     Interface& operator=(const Interface&);

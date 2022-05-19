@@ -51,7 +51,7 @@ struct TimerEvent;
  */
 class TimerThread {
 public:
-    TimerThread(ThreadPool *tp);
+    explicit TimerThread(ThreadPool *tp);
     ~TimerThread();
 
     /*! Timeout Types. */

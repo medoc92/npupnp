@@ -62,7 +62,7 @@ extern int stringicmp(const std::string& s1, const std::string& s2);
 
 // For find_if etc.
 struct StringIcmpPred {
-    StringIcmpPred(const std::string& s1)
+    explicit StringIcmpPred(const std::string& s1)
         : m_s1(s1) {
     }
     bool operator()(const std::string& s2) {

@@ -34,7 +34,7 @@
 class SSDPPacketParser {
 public:
     // We take ownership of the argument, will modify and free it.
-    SSDPPacketParser(char *packet) : m_packet(packet) {}
+    explicit SSDPPacketParser(char *packet) : m_packet(packet) {}
 
     ~SSDPPacketParser() {
         free(m_packet);

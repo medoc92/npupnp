@@ -32,7 +32,7 @@
  */
 class Utf8Iter {
 public:
-    Utf8Iter(const std::string &in) 
+    explicit Utf8Iter(const std::string &in) 
         : m_sp(&in) {
         update_cl();
     }
@@ -119,7 +119,7 @@ public:
     }
 
     /** Return current character as string */
-    operator std::string() {
+    explicit operator std::string() {
 #ifdef UTF8ITER_CHECK
         assert(m_cl != 0);
 #endif
