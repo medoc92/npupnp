@@ -184,7 +184,7 @@ cfile = configure_file(
 )
 
 pkg = import('pkgconfig')
-pkg.generate(libnpupnp)
+pkg.generate(libnpupnp, name: 'libnpupnp')
 
 install_headers(
   'inc/netif.h',
