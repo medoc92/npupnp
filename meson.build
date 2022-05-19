@@ -187,6 +187,7 @@ pkg = import('pkgconfig')
 pkg.generate(libnpupnp)
 
 install_headers(
+  'inc/netif.h',
   'inc/upnpdebug.h',
   'inc/UpnpGlobal.h',
   'inc/upnp.h',
@@ -202,7 +203,6 @@ install_headers(
   'src/inc/httputils.h',
   'src/inc/md5.h',
   'src/inc/miniserver.h',
-  'src/inc/netif.h',
   'src/inc/picoxml.h',
   'src/inc/service_table.h',
   ufile,
