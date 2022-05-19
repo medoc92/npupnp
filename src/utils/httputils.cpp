@@ -57,7 +57,6 @@
 #include "upnp.h"
 #include "upnpdebug.h"
 #include "uri.h"
-#include "genut.h"
 #include "upnpapi.h"
 
 static const std::string bogus_soap_post{"SMPOST"};
