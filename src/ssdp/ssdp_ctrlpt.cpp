@@ -384,7 +384,7 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
         HandleUnlock();
         return UPNP_E_INTERNAL_ERROR;
     }
-    auto newArg = std::unique_ptr<SsdpSearchArg>(new SsdpSearchArg(St, Cookie, requestType));
+    auto newArg = std::make_unique<SsdpSearchArg>(St, Cookie, requestType);
     auto id = static_cast<int *>(malloc(sizeof(int)));
 
     /* Schedule a timeout event to remove search Arg */
