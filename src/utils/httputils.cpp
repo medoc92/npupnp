@@ -401,7 +401,7 @@ static const std::string& get_sdk_common_info()
     return sdk_common_info;
 }
 
-const std::string get_sdk_device_info(const std::string& customvalue)
+std::string get_sdk_device_info(const std::string& customvalue)
 {
     return get_sdk_common_info() +
         (!customvalue.empty() ? customvalue :
