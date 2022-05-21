@@ -184,7 +184,7 @@ cfile = configure_file(
 )
 
 pkg = import('pkgconfig')
-pkg.generate(libnpupnp, name: 'libnpupnp')
+pkg.generate(libnpupnp, name: 'libnpupnp', subdirs: 'npupnp')
 
 install_headers(
   'inc/netif.h',
@@ -206,6 +206,7 @@ install_headers(
   'src/inc/picoxml.h',
   'src/inc/service_table.h',
   ufile,
+  subdir: 'npupnp'
 )
 
 libnpupnp_dep = declare_dependency(
