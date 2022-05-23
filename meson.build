@@ -184,28 +184,18 @@ cfile = configure_file(
 )
 
 pkg = import('pkgconfig')
-pkg.generate(libnpupnp)
+pkg.generate(libnpupnp, name: 'libnpupnp', subdirs: 'npupnp')
 
 install_headers(
+  'inc/netif.h',
   'inc/upnpdebug.h',
+  'inc/upnpdescription.h',
   'inc/UpnpGlobal.h',
   'inc/upnp.h',
   'inc/UpnpInet.h',
   'inc/upnptools.h',
-  'src/inc/config.h',
-  'src/inc/expatmm.hxx',
-  'src/inc/gena_ctrlpt.h',
-  'src/inc/gena_device.h',
-  'src/inc/gena.h',
-  'src/inc/gena_sids.h',
-  'src/inc/genut.h',
-  'src/inc/httputils.h',
-  'src/inc/md5.h',
-  'src/inc/miniserver.h',
-  'src/inc/netif.h',
-  'src/inc/picoxml.h',
-  'src/inc/service_table.h',
   ufile,
+  subdir: 'npupnp'
 )
 
 libnpupnp_dep = declare_dependency(
