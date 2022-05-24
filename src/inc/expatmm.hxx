@@ -241,7 +241,7 @@ private:
                                        const XML_Char **atts) {
         auto me = static_cast<ExpatXMLParser*>(userData);
         if(me != nullptr) {
-            me->m_path.push_back(StackEl(name));
+            me->m_path.emplace_back(name);
             StackEl& lastelt = me->m_path.back();
             lastelt.start_index = XML_GetCurrentByteIndex(me->expat_parser);
             for (int i = 0; atts[i] != nullptr; i += 2) {

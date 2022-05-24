@@ -366,7 +366,7 @@ static int getmyipv4(const char *inipv4 = nullptr)
                        "No appropriate network adapter found.\n");
             return UPNP_E_INVALID_INTERFACE;
         }
-        netifp = &selected[0];
+        netifp = selected.data();
     }
 
     // If an IP was specified, trim the addresses from the found adapter
