@@ -44,10 +44,6 @@
 #define EOUTOFMEM -1
 #define EMAXTHREADS -2
 #define INVALID_POLICY -3
-#define INVALID_JOB_ID -4
-
-/*! Size of job free list */
-#define JOBFREELISTSIZE 100
 
 typedef void *(*start_routine)(void*);
 
