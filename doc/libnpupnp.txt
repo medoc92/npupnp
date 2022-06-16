@@ -1,5 +1,18 @@
 = libnpupnp : replacing the venerable pupnp/libupnp
 
+== Documentation / User Guide
+
+The link:refdoc/html/index.html[libnpupnp documentation].
+
+Help for link:porting-from-pupnp.html[converting a pupnp application to npupnp].
+
+== Source and Downloads
+
+Tar archive of the current released version on the
+link:https://www.lesbonscomptes.com/upmpdcli/pages/downloads.html[upmpdcli downloads page].
+
+https://framagit.org/medoc92/npupnp[Git source repository].
+
 == Rationale
 
 The libupnpp library, which provides the C++ interface for upmpdcli and
@@ -47,11 +60,6 @@ changes, and upmpdcli and upplay can still be built with libupnpp 0.17.x and
 libupnp. But the default is now to build the packages with libupnpp 0.18.x
 and libnpupnp.
 
-== Downloads
-
-You will find a tar archive of the current released version on the
-link:https://www.lesbonscomptes.com/upmpdcli/pages/downloads.html[upmpdcli downloads page].
-
 == New features
 
 - Support for providing service on multiple network interfaces. 
@@ -59,9 +67,4 @@ link:https://www.lesbonscomptes.com/upmpdcli/pages/downloads.html[upmpdcli downl
   use C++ data structure.
 - Helper interface for accessing the machine network interfaces.
 
-== Documentation
-
-You will find more details in a link:porting-from-pupnp.html[small document
-about porting a pupnp application to npupnp] and the
-link:refdoc/html/index.html[the libnpupnp documentation].
 
