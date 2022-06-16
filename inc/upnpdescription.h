@@ -58,7 +58,7 @@ public:
 class EXPORT_SPEC UPnPDeviceDesc {
 public:
     UPnPDeviceDesc(const std::string& url, const std::string& description);
-    UPnPDeviceDesc() {}
+    UPnPDeviceDesc() = default;
 
     /// Parse success status.
     bool ok{false};

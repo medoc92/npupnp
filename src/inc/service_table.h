@@ -83,7 +83,7 @@ struct service_info {
     int        TotalSubscriptions{0};
     std::list<subscription>    subscriptionList;
 
-    service_info() {}
+    service_info() = default;
     service_info& operator=(const service_info&) = delete;
     service_info(const service_info& rhs)  = delete;
 };
@@ -91,7 +91,7 @@ struct service_info {
 struct service_table {
     std::list<service_info> serviceList;
 
-    service_table() {}
+    service_table() = default;
     service_table& operator=(const service_table&) = delete;
     service_table(const service_table& rhs)  = delete;
 };

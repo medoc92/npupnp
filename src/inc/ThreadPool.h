@@ -121,7 +121,9 @@ public:
     typedef void (*free_routine)(void *arg);
 
     ThreadPool();
+#if 0
     ~ThreadPool();
+#endif
     /* Initialize things and start up returns 0 if ok */
     int start(ThreadPoolAttr *attr = nullptr);
 
