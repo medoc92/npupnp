@@ -90,6 +90,7 @@ public:
     void StatsAccountHQ(int64_t diffTime);
     void CalcWaitTime(ThreadPriority p, ThreadPoolJob *job);
     void bumpPriority();
+    void WorkerThread();
     int shutdown();
     
     /*! Mutex to protect job qs. */
@@ -304,10 +305,10 @@ exit_function:
  * \brief Determines whether any jobs need to be bumped to a higher priority Q
  * and bumps them.
  *
- * tp->mutex must be locked.
+ * mutex must be locked.
  *
  * \internal
- * 
+ *
  * \return
  */
 void ThreadPool::Internal::bumpPriority()
@@ -367,25 +368,21 @@ static void SetSeed()
  * med priority, then low priority.
  *
  * If worker remains idle for more than specified max, the worker is released.
- *
- *! arg -> is cast to (ThreadPool::Internal *).
  */
-static void *WorkerThread(void *arg)
-{
-    auto tp = static_cast<ThreadPool::Internal *>(arg);
+void ThreadPool::Internal::WorkerThread() {
     time_t start = 0;
     ThreadPoolJob *job = nullptr;
     std::cv_status retCode;
     int persistent = -1;
 
-    std::unique_lock<std::mutex> lck(tp->mutex, std::defer_lock);
-    auto idlemillis = std::chrono::milliseconds(tp->attr.maxIdleTime);
+    std::unique_lock<std::mutex> lck(mutex, std::defer_lock);
+    auto idlemillis = std::chrono::milliseconds(attr.maxIdleTime);
 
     /* Increment total thread count */
     lck.lock();
-    tp->totalThreads++;
-    tp->pendingWorkerThreadStart = 0;
-    tp->start_and_shutdown.notify_all();
+    totalThreads++;
+    pendingWorkerThreadStart = 0;
+    start_and_shutdown.notify_all();
     lck.unlock();
     
     SetSeed();
@@ -393,85 +390,85 @@ static void *WorkerThread(void *arg)
     while (true) {
         lck.lock();
         if (job) {
-            tp->busyThreads--;
+            busyThreads--;
             delete job;
             job = nullptr;
         }
-        tp->stats.idleThreads++;
-        tp->stats.totalWorkTime += static_cast<double>(time(nullptr)) - static_cast<double>(start);
+        stats.idleThreads++;
+        stats.totalWorkTime += static_cast<double>(time(nullptr)) - static_cast<double>(start);
         start = time(nullptr);
         if (persistent == 0) {
-            tp->stats.workerThreads--;
+            stats.workerThreads--;
         } else if (persistent == 1) {
             /* Persistent thread becomes a regular thread */
-            tp->persistentThreads--;
+            persistentThreads--;
         }
 
         /* Check for a job or shutdown */
         retCode = std::cv_status::no_timeout;
-        while (tp->lowJobQ.empty() &&
-               tp->medJobQ.empty() &&
-               tp->highJobQ.empty() &&
-               !tp->persistentJob && !tp->shuttingdown) {
+        while (lowJobQ.empty() &&
+               medJobQ.empty() &&
+               highJobQ.empty() &&
+               !persistentJob && !shuttingdown) {
             /* If wait timed out and we currently have more than the
              * min threads, or if we have more than the max threads
              * (only possible if the attributes have been reset)
              * let this thread die. */
             if ((retCode == std::cv_status::timeout &&
-                 tp->totalThreads > tp->attr.minThreads) ||
-                (tp->attr.maxThreads != -1 &&
-                 tp->totalThreads > tp->attr.maxThreads)) {
-                tp->stats.idleThreads--;
+                 totalThreads > attr.minThreads) ||
+                (attr.maxThreads != -1 &&
+                 totalThreads > attr.maxThreads)) {
+                stats.idleThreads--;
                 goto exit_function;
             }
 
             /* wait for a job up to the specified max time */
-            retCode = tp->condition.wait_for(lck, idlemillis);
+            retCode = condition.wait_for(lck, idlemillis);
         }
 
-        tp->stats.idleThreads--;
+        stats.idleThreads--;
         /* idle time */
-        tp->stats.totalIdleTime += static_cast<double>(time(nullptr)) - static_cast<double>(start);
+        stats.totalIdleTime += static_cast<double>(time(nullptr)) - static_cast<double>(start);
         /* work time */
         start = time(nullptr);
         /* bump priority of starved jobs */
-        tp->bumpPriority();
+        bumpPriority();
         /* if shutdown then stop */
-        if (tp->shuttingdown) {
+        if (shuttingdown) {
             goto exit_function;
         } else {
             /* Pick up persistent job if available */
-            if (tp->persistentJob) {
-                job = tp->persistentJob;
-                tp->persistentJob = nullptr;
-                tp->persistentThreads++;
+            if (persistentJob) {
+                job = persistentJob;
+                persistentJob = nullptr;
+                persistentThreads++;
                 persistent = 1;
-                tp->start_and_shutdown.notify_all();
+                start_and_shutdown.notify_all();
             } else {
-                tp->stats.workerThreads++;
+                stats.workerThreads++;
                 persistent = 0;
                 /* Pick the highest priority job */
-                if (!tp->highJobQ.empty()) {
-                    job = tp->highJobQ.front();
-                    tp->highJobQ.pop_front();
-                    tp->CalcWaitTime(ThreadPool::HIGH_PRIORITY, job);
-                } else if (!tp->medJobQ.empty()) {
-                    job = tp->medJobQ.front();
-                    tp->medJobQ.pop_front();
-                    tp->CalcWaitTime(ThreadPool::MED_PRIORITY, job);
-                } else if (!tp->lowJobQ.empty()) {
-                    job = tp->lowJobQ.front();
-                    tp->lowJobQ.pop_front();
-                    tp->CalcWaitTime(ThreadPool::LOW_PRIORITY, job);
+                if (!highJobQ.empty()) {
+                    job = highJobQ.front();
+                    highJobQ.pop_front();
+                    CalcWaitTime(ThreadPool::HIGH_PRIORITY, job);
+                } else if (!medJobQ.empty()) {
+                    job = medJobQ.front();
+                    medJobQ.pop_front();
+                    CalcWaitTime(ThreadPool::MED_PRIORITY, job);
+                } else if (!lowJobQ.empty()) {
+                    job = lowJobQ.front();
+                    lowJobQ.pop_front();
+                    CalcWaitTime(ThreadPool::LOW_PRIORITY, job);
                 } else {
                     /* Should never get here */
-                    tp->stats.workerThreads--;
+                    stats.workerThreads--;
                     goto exit_function;
                 }
             }
         }
 
-        tp->busyThreads++;
+        busyThreads++;
         lck.unlock();
 
         SetPriority(job->priority);
@@ -483,9 +480,9 @@ static void *WorkerThread(void *arg)
 
 exit_function:
     LOGDEB("ThreadWorker: thread exiting\n");
-    tp->totalThreads--;
-    tp->start_and_shutdown.notify_all();
-    return nullptr;
+    totalThreads--;
+    start_and_shutdown.notify_all();
+    return;
 }
 
 /*!
@@ -515,7 +512,7 @@ int ThreadPool::Internal::createWorker(std::unique_lock<std::mutex>& lck)
         return EMAXTHREADS;
     }
     LOGDEB("ThreadPool::createWorker: creating thread\n");
-    std::thread nthread(WorkerThread, this);
+    auto nthread = std::thread([this] { WorkerThread(); });
     nthread.detach();
 
     /* wait until the new worker thread starts. We can set the flag
