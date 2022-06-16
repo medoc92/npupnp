@@ -121,9 +121,9 @@ public:
     typedef void (*free_routine)(void *arg);
 
     ThreadPool();
-#if 0
-    ~ThreadPool();
-#endif
+    // See comments in undef'd out destructor in ThreadPool.cpp
+    ~ThreadPool() = default;
+
     /* Initialize things and start up returns 0 if ok */
     int start(ThreadPoolAttr *attr = nullptr);
 
