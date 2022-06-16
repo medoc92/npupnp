@@ -78,6 +78,9 @@
 #include <sys/types.h>
 #endif
 
+// Default advertisement expiration time used if the exp parameter to UpnpSendAdvertisement() is <=0
+#define DEFAULT_MAXAGE 1800
+
 /*! This structure is for virtual directory callbacks */
 struct VirtualDirCallbacks virtualDirCallback;
 
@@ -1456,6 +1459,7 @@ int UpnpSendAdvertisementLowPower(
     if (checkLockHandle(HND_DEVICE, Hnd, &SInfo) == HND_INVALID) {
         return UPNP_E_INVALID_HANDLE;
     }
+    Exp = 90;
     if(Exp < 1)
         Exp = DEFAULT_MAXAGE;
     if(Exp <= AUTO_ADVERTISEMENT_TIME * 2)
@@ -1495,7 +1499,7 @@ int UpnpSendAdvertisementLowPower(
 #else
     time_t thetime = Exp - AUTO_ADVERTISEMENT_TIME;
 #endif
-
+    std::cerr << "SendAdv: thetime: " << thetime << "\n";
     retVal = gTimerThread->schedule(
         TimerThread::SHORT_TERM, TimerThread::REL_SEC, thetime, &adEvent->eventId,
         thread_autoadvertise, adEvent,reinterpret_cast<ThreadPool::free_routine>(free_upnp_timeout));
