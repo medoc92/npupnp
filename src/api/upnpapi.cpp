@@ -1499,7 +1499,6 @@ int UpnpSendAdvertisementLowPower(
 #else
     time_t thetime = Exp - AUTO_ADVERTISEMENT_TIME;
 #endif
-    std::cerr << "SendAdv: thetime: " << thetime << "\n";
     retVal = gTimerThread->schedule(
         TimerThread::SHORT_TERM, TimerThread::REL_SEC, thetime, &adEvent->eventId,
         thread_autoadvertise, adEvent,reinterpret_cast<ThreadPool::free_routine>(free_upnp_timeout));
