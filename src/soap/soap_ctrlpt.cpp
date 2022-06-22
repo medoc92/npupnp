@@ -106,12 +106,17 @@ private:
 #define SOAP_ACTION_RESP    1
 #define SOAP_ACTION_RESP_ERROR    2
 
-// Returns: < 0: local or network error
-// SOAP_ACTION_RESP : got normal soap response
-// SOAP_ACTION_RESP_ERROR: action failed, got explanation in error response
+// @param payload the action response body.
+// @param rspname the response name: tag in the response holding the response parameters.
+// @param[out] rspdata a dictionary holding the response name/value pairs.
+// @param[out] errcodep if non-zero on output holds the error code from a resp. error document.
+// @param[out] errdesc if errcodep is set may contain the corresponding error message.
+// @return < 0: local or network error
+//      SOAP_ACTION_RESP : got normal soap response
+//      SOAP_ACTION_RESP_ERROR: action failed, see errcodep and errdesc for details
 static int
 get_response_value(
-    const std::string& payload, long http_status,  const std::string& cttype,
+    const std::string& payload, long http_status, const std::string& cttype,
     const std::string& rspname, 
     std::vector<std::pair<std::string, std::string>>& rspdata,
     int *errcodep, std::string& errdesc)
@@ -139,8 +144,7 @@ get_response_value(
         UPnPResponseParser mparser1(fixed, rspname, rspdata, errcodep, errdesc);
         if (!mparser1.Parse()) {
             UpnpPrintf(UPNP_INFO, SOAP, __FILE__, __LINE__,
-                       "soap:get_response_value: parse failed for [%s]\n",
-                       payload.c_str());
+                       "soap:get_response_value: parse failed for [%s]\n", payload.c_str());
             return UPNP_E_BAD_RESPONSE;
         }
     }
@@ -162,8 +166,6 @@ int SoapSendAction(
     const static std::string xml_header_end{"</s:Header>\r\n"};
     const static std::string xml_body_start{"<s:Body>"};
     const static std::string xml_end{"</s:Body>\r\n</s:Envelope>\r\n"};
-
-    int retvalue = UPNP_E_OUTOF_MEMORY;
 
     /* Action: name and namespace (servicetype) */
     std::ostringstream act;
@@ -214,8 +216,7 @@ int SoapSendAction(
         curl_easy_setopt(easy, CURLOPT_POST, long(1));
         curl_easy_setopt(easy, CURLOPT_POSTFIELDS, payload.c_str()); 
         struct curl_slist *list = nullptr;
-        list = curl_slist_append(list,
-                                 R"(Content-Type: text/xml; charset="utf-8")");
+        list = curl_slist_append(list, R"(Content-Type: text/xml; charset="utf-8")");
         list = curl_slist_append(list, soapaction.c_str());
         list = curl_slist_append(list, "Accept:");
         list = curl_slist_append(list, "Expect:");
@@ -226,7 +227,7 @@ int SoapSendAction(
         curl_easy_setopt(easy, CURLOPT_URL, surl.c_str());
         CURLcode code = curl_easy_perform(easy);
         if (code == CURLE_OK) {
-            curl_easy_getinfo (easy, CURLINFO_RESPONSE_CODE, &http_status);
+            curl_easy_getinfo(easy, CURLINFO_RESPONSE_CODE, &http_status);
             ret_code = UPNP_E_SUCCESS;
         } else {
             UpnpPrintf(UPNP_ERROR, GENA, __FILE__, __LINE__,
@@ -255,21 +256,18 @@ int SoapSendAction(
 
     /* get action node from the response */
     ret_code = get_response_value(
-        responsestr, http_status, content_type,
-        responsename, respdata, errcodep, errdesc);
+        responsestr, http_status, content_type, responsename, respdata, errcodep, errdesc);
 
     UpnpPrintf(UPNP_DEBUG, SOAP, __FILE__, __LINE__,
                "soapSendAction: http_stt [%ld] errcode %d errdesc[%s]\n",
                http_status, *errcodep, errdesc.c_str());
 
     if (ret_code == SOAP_ACTION_RESP) {
-        retvalue = UPNP_E_SUCCESS;
+        return UPNP_E_SUCCESS;
     } else if (ret_code == SOAP_ACTION_RESP_ERROR ) {
-        retvalue = *errcodep;
-    } else {
-        retvalue = ret_code;
+        return *errcodep;
     }
-    return retvalue;
+    return ret_code;
 }
 
 #endif /* EXCLUDE_SOAP */

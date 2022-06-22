@@ -1411,18 +1411,10 @@ EXPORT_SPEC int UpnpSendAdvertisementLowPower(
  *
  * @return An integer representing one of the following:
  *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
- *     \li \c UPNP_E_INVALID_HANDLE: The handle is not a valid control 
- *             point handle.
- *     \li \c UPNP_E_INVALID_URL: \b ActionUrl is not a valid URL.
- *     \li \c UPNP_E_INVALID_ACTION: This action is not valid.
- *     \li \c UPNP_E_INVALID_DEVICE: \b DevUDN is not a 
- *             valid device.
- *     \li \c UPNP_E_INVALID_PARAM: \b ServiceType, \b Action, 
- *             \b ActionUrl, or 
- *             \b RespNode is not a valid pointer.
- *     \li \c UPNP_E_OUTOF_MEMORY: Insufficient resources exist to 
- *             complete this operation.
+ *     \li \c Negative values are UPNP_E_... UPnP library errors (system error)
  *
+ *     \li \c Positive values are UPnP action error codes (the dialog completed successfully, 
+ *     but we received an error response from the device).
  *  @param Hnd client handle
  *  @param headerString SOAP header. This may be empty if no header
  *     header is not required. e.g. <soapns:Header>xxx</soapns:Header>
@@ -1433,7 +1425,7 @@ EXPORT_SPEC int UpnpSendAdvertisementLowPower(
  *  @param actionParams the action name/value argument pairs, in order.
  *  @param[out] responseData the return values
  *  @param[out] errorCodep pointer to an integer to store the UPNP error code
- *   if we got an error response document
+ *   if we got an error response document. Same as the return value if set.
  *  @param[out] errorDescr A place to store an error description (if we got 
  *     an error response document).
  */
