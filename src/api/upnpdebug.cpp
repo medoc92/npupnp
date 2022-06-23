@@ -78,18 +78,16 @@ int UpnpInitLog(void)
             fileName = envfn;
         }
     }
-    if (fp) {
-        if (is_stderr == 0) {
-            fclose(fp);
-            fp = nullptr;
-        }
+    if (fp && !is_stderr) {
+        fclose(fp);
+        fp = nullptr;
+        is_stderr = 0;
     }
-    is_stderr = 0;
     if (!fileName.empty()) {
         if ((fp = fopen(fileName.c_str(), "a")) == nullptr) {
-            std::cerr << "UpnpDebug: failed to open [" << fileName << "] : " <<
-                strerror(errno) << "\n";
+            std::cerr<<"UpnpDebug: failed to open ["<< fileName << "] : " << strerror(errno) << "\n";
         }
+        is_stderr = 0;
     }
     if (fp == nullptr) {
         fp = stderr;
