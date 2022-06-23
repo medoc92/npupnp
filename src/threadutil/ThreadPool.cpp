@@ -315,31 +315,27 @@ void ThreadPool::Internal::bumpPriority()
     auto now = steady_clock::now();
 
     while (!done) {
-        if (!this->medJobQ.empty()) {
+        if (!medJobQ.empty()) {
             auto diffTime = duration_cast<milliseconds>(
-                now - this->medJobQ.front()->requestTime)
-                                .count();
-            if (diffTime >= this->attr.starvationTime) {
+                now - medJobQ.front()->requestTime).count();
+            if (diffTime >= attr.starvationTime) {
                 /* If job has waited longer than the starvation time
                  * bump priority (add to higher priority Q) */
                 StatsAccountMQ(diffTime);
-                auto bump = std::move(this->medJobQ.front());
-                this->medJobQ.pop_front();
-                this->highJobQ.push_back(std::move(bump));
+                highJobQ.push_back(std::move(medJobQ.front()));
+                medJobQ.pop_front();
                 continue;
             }
         }
-        if (!this->lowJobQ.empty()) {
+        if (!lowJobQ.empty()) {
             auto diffTime = duration_cast<milliseconds>(
-                now - this->lowJobQ.front()->requestTime)
-                                .count();
-            if (diffTime >= this->attr.maxIdleTime) {
+                now - lowJobQ.front()->requestTime).count();
+            if (diffTime >= attr.maxIdleTime) {
                 /* If job has waited longer than the starvation time
                  * bump priority (add to higher priority Q) */
                 StatsAccountLQ(diffTime);
-                auto bump = std::move(this->lowJobQ.front());
-                this->lowJobQ.pop_front();
-                this->medJobQ.push_back(std::move(bump));
+                medJobQ.push_back(std::move(lowJobQ.front()));
+                lowJobQ.pop_front();
                 continue;
             }
         }
@@ -601,7 +597,7 @@ int ThreadPool::addPersistent(start_routine func, void *arg,
         /* if there is more than one worker thread
          * available then schedule job, otherwise fail */
         if (m->totalThreads - m->persistentThreads - 1 == 0)
-            return -EMAXTHREADS;
+            return EMAXTHREADS;
     }
 
     auto job = std::make_unique<ThreadPoolJob>(std::move(func), arg, std::move(free_func), priority);
