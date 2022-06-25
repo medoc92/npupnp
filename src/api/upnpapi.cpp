@@ -301,7 +301,7 @@ static int getIfInfo(const char *IfNames)
         return UPNP_E_INVALID_INTERFACE;
     }
 
-    g_netifs = selected;
+    g_netifs = std::move(selected);
 
     if (!using_ipv6()) {
         // Trim the ipv6 addresses

@@ -72,6 +72,7 @@ public:
 
     IPAddr(const IPAddr&);
     IPAddr& operator=(const IPAddr&);
+    IPAddr(IPAddr&&);
     IPAddr& operator=(IPAddr&&);
     ~IPAddr();
 
@@ -121,6 +122,8 @@ public:
     ~Interface();
     Interface(const Interface&);
     Interface& operator=(const Interface&);
+    Interface(Interface&&);
+    Interface& operator=(Interface&&);
 
     /** @brief Return the interface name */
     const std::string& getname() const;
