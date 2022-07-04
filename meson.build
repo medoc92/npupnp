@@ -81,8 +81,9 @@ if get_option('tools')
   ]
 endif
 
-libnpupnp = library('npupnp',
+libnpupnp = library('libnpupnp',
   npupnp_sources,
+  name_prefix: '',
   include_directories : libnpupnp_incdir,
   gnu_symbol_visibility : 'hidden',
   version : '4.2.2',
@@ -123,7 +124,11 @@ cfile = configure_file(
 )
 
 pkg = import('pkgconfig')
-pkg.generate(libnpupnp, name: 'libnpupnp', subdirs: 'npupnp')
+pkg.generate(
+  libnpupnp,
+  description: 'Another SDK for UPnP Devices',
+  subdirs: 'npupnp',
+)
 
 install_headers(
   'inc/netif.h',
