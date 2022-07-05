@@ -167,9 +167,12 @@ CLEANFILES =
 dist-hook:
 if LINUX
 	nm -g --defined-only --demangle .libs/libnpupnp.so | grep ' T ' | \
-           awk '{$$1=$$2="";print $$0}' | diff - $(top_srcdir)/symbols-reference
+           awk '{$$1=$$2="";print $$0}' | diff $(top_srcdir)/symbols-reference -
 endif
-	test ! -d $(top_srcdir)/.git || cd $(top_srcdir) && \
-			git diff-index --quiet HEAD
-	vers=`echo $(VERSION) | sed -e 's/~/_/g'`;\
-			git tag -a libnpupnp-v$$vers -m "version $$vers"
+	if test -z "$(NOTAG)";then \
+	    test ! -d $(top_srcdir)/.git||cd $(top_srcdir) && git diff-index --quiet HEAD; \
+	fi 
+	if test -z "$(NOTAG)";then \
+	    vers=`echo $(VERSION) | sed -e 's/~/_/g'`; \
+		git tag -a libnpupnp-v$$vers -m "version $$vers"; \
+	fi

@@ -74,6 +74,7 @@
   NetIF::Interfaces::~Interfaces()
   NetIF::Interfaces::~Interfaces()
   NetIF::IPAddr::setScopeIdx(NetIF::IPAddr const&)
+  NetIF::IPAddr::operator=(NetIF::IPAddr&&)
   NetIF::IPAddr::operator=(NetIF::IPAddr const&)
   NetIF::IPAddr::IPAddr(sockaddr const*, bool)
   NetIF::IPAddr::IPAddr(char const*)

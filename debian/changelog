@@ -1,3 +1,10 @@
+libnpupnp1 (4.2.3-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Fix bug which could close stderr when changing the log level.
+  * Miscellaneous mostly stylistic changes.
+  
+ -- Jean-Francois Dockes <jf@dockes.org>  Tue, 05 Jul 2022 16:50:00 +0200
+
 libnpupnp1 (4.2.2-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Clean up a bit static library object name space pollution 
