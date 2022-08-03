@@ -140,6 +140,8 @@ endif
 
 
 EXTRA_DIST = \
+	meson.build \
+	meson_options.txt \
 	libnpupnp.pc.in \
 	README.md \
 	autogen.sh \
