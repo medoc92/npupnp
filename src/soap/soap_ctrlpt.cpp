@@ -125,6 +125,8 @@ get_response_value(
     if ((http_status != HTTP_OK &&
          http_status != HTTP_INTERNAL_SERVER_ERROR) ||
         cttype.find("text/xml") != 0) {
+        UpnpPrintf(UPNP_ERROR, SOAP, __FILE__, __LINE__,
+                   "response not text/xml: [%s]\n", cttype.c_str());
         return UPNP_E_BAD_RESPONSE;
     }
     *errcodep = 0;
@@ -232,6 +234,9 @@ int SoapSendAction(
         } else {
             UpnpPrintf(UPNP_ERROR, GENA, __FILE__, __LINE__,
                        "CURL ERROR MESSAGE %s\n", curlerrormessage);
+            // Temp debug: try to log the response string anyway:
+            UpnpPrintf(UPNP_ERROR, GENA, __FILE__, __LINE__,
+                       "   data before CURL ERROR: [%s]\n", responsestr.c_str());
             ret_code = UPNP_E_BAD_RESPONSE;
         }
         /* Clean-up. */
