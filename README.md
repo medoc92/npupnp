@@ -3,18 +3,29 @@
 Copyright (c) 2000-2003 Intel Corporation - All Rights Reserved.  
 Copyright (c) 2005-2006 Rémi Turboult <r3mi@users.sourceforge.net>  
 Copyright (c) 2006 Michel Pfeiffer and others <virtual_worlds@gmx.de>  
-Copyright (c) 2020-2021 Jean-Francois Dockes <jf@dockes.org>  
+Copyright (c) 2020-2022 Jean-Francois Dockes <jf@dockes.org>  
 See COPYING for details.
 
 npupnp (new pupnp or not pupnp ?) is an UPnP library derived from the
 venerable pupnp (https://github.com/pupnp/pupnp), based on its 1.6.x
 branch (around 1.6.25).
 
-Have a look at the
-[DOC](https://www.lesbonscomptes.com/upmpdcli/npupnp-doc/libnpupnp.html) !
-
 Tar archives for the releases are stored on the [upmpdcli downloads
 page](https://www.lesbonscomptes.com/upmpdcli/pages/downloads.html)
+
+Building:
+
+    cd [top source directory]
+    ./autogen.sh # Only for a git clone, no need for a tar release file
+    configure --prefix=/usr
+    make
+    sudo make install
+
+Build dependancies (as Debian package name, you may need to translate): pkg-config libexpat1-dev
+libmicrohttpd-dev libcurl4-gnutls-dev 
+
+Only for git code: autoconf automake libtool
+
 
 Main modifications:
 
@@ -36,4 +47,5 @@ by either XML string documents or C++ STL structures.
 At this point the API is C++. It would not be impossible to add a pure C
 API if this was needed.
 
-
+Have a look at the
+[DOC](https://www.lesbonscomptes.com/upmpdcli/npupnp-doc/libnpupnp.html) !
