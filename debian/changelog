@@ -1,3 +1,12 @@
+libnpupnp2 (5.0.0-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Changed the API to avoid truncation of some long subscription IDs. Upnp_SID is now an
+    std::string instead of a fixed size array. This change should be source-compatible for programs
+    which used the UpnpEvent_get_SID_cstr() macro for accessing the value, but the ABI changes,
+    hence the major version, package, and shared lib version changes.
+  
+ -- Jean-Francois Dockes <jf@dockes.org>  Fri, 12 Aug 2022 11:50:00 +0200
+
 libnpupnp1 (4.2.3-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Fix bug which could close stderr when changing the log level.

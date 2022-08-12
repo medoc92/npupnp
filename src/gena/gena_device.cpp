@@ -353,7 +353,7 @@ int genaInitNotifyXML(
     thread_struct->servId = servId;
     thread_struct->UDN = UDN;
     thread_struct->propertySet = propertySet;
-    upnp_strlcpy(thread_struct->sid, sid, sizeof(thread_struct->sid));
+    thread_struct->sid = sid;
     thread_struct->ctime = time(nullptr);
     thread_struct->device_handle = device_handle;
 
@@ -502,8 +502,7 @@ int genaNotifyAllXML(
         thread_struct->propertySet = propertySet;
         thread_struct->ctime = time(nullptr);
         thread_struct->device_handle = device_handle;
-        upnp_strlcpy(
-            thread_struct->sid, finger->sid, sizeof(thread_struct->sid));
+        thread_struct->sid = finger->sid;
 
         maybeDiscardEvents(finger->outgoing);
         finger->outgoing.push_back(thread_struct);
@@ -581,7 +580,7 @@ static int respond_ok(MHDTransaction *mhdt, int time_out, subscription *sub,
     mhdt->httpstatus = HTTP_OK;
     mhdt->response =
         MHD_create_response_from_buffer(0, nullptr, MHD_RESPMEM_PERSISTENT);
-    MHD_add_response_header(mhdt->response,    "SID", sub->sid);
+    MHD_add_response_header(mhdt->response,    "SID", sub->sid.c_str());
     MHD_add_response_header(mhdt->response,    "TIMEOUT", ts.str().c_str());
     MHD_add_response_header(mhdt->response,
                             "SERVER", get_sdk_device_info(prodvers).c_str());
@@ -725,7 +724,6 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
     void *cookie;
     Upnp_FunPtr callback_fun;
     UpnpDevice_Handle device_handle;
-    int rc = 0;
     std::list<subscription>::iterator sub;
 
     UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
@@ -824,12 +822,10 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
     }
 
     /* generate SID */
-    rc = snprintf(sub->sid, sizeof(sub->sid),"uuid:%s", gena_sid_uuid().c_str());
+    sub->sid = std::string("uuid:") + gena_sid_uuid();
 
     /* respond OK */
-    if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(sub->sid) ||
-        respond_ok(mhdt, time_out, &(*sub), handle_info->productversion)
-        != UPNP_E_SUCCESS) {
+    if (respond_ok(mhdt, time_out, &(*sub), handle_info->productversion) != UPNP_E_SUCCESS) {
         service->subscriptionList.pop_back();
         HandleUnlock();
         return;
@@ -841,7 +837,7 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
     /* finally generate callback for init table dump */
     request_struct.ServiceId = service->serviceId.c_str();
     request_struct.UDN = service->UDN.c_str();
-    upnp_strlcpy(request_struct.Sid, sub->sid, sizeof(request_struct.Sid));
+    request_struct.Sid = sub->sid;
 
     /* copy callback */
     callback_fun = handle_info->Callback;
@@ -878,9 +874,7 @@ void gena_process_subscription_renewal_request(MHDTransaction *mhdt)
         return;
     }
 
-    Upnp_SID sid;
-    memcpy(sid, itsid->second.c_str(), itsid->second.size());
-    sid[itsid->second.size()] = '\0';
+    Upnp_SID sid = itsid->second;
 
     HandleLock();
     
@@ -960,9 +954,7 @@ void gena_process_unsubscribe_request(MHDTransaction *mhdt)
         http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
         return;
     }
-    Upnp_SID sid;
-    memcpy(sid, itsid->second.c_str(), itsid->second.size());
-    sid[itsid->second.size()] = '\0';
+    Upnp_SID sid = itsid->second;
 
     HandleLock();
 
@@ -974,8 +966,7 @@ void gena_process_unsubscribe_request(MHDTransaction *mhdt)
     }
 
     /* validate service */
-    if (service == nullptr ||
-        !service->active || GetSubscriptionSID(sid, service) == nullptr) {
+    if (service == nullptr || !service->active || GetSubscriptionSID(sid, service) == nullptr) {
         http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
         HandleUnlock();
         return;

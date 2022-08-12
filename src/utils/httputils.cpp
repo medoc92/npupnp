@@ -265,13 +265,10 @@ int http_Download(const char *_surl, int timeout_secs,
     if (http_status == HTTP_OK) {
         /* extract doc from msg */
         if (!data.empty()) {
-            *document = nullptr;
-            *document = static_cast<char *>(malloc(data.size() + 1));
-            if (*document == nullptr) {
+            *document = strdup(data.c_str());
+            if (nullptr == *document) {
                 return UPNP_E_OUTOF_MEMORY;
             }
-            memcpy(*document, data.c_str(), data.size());
-            (*document)[data.size()] = 0;
         }
         return 0;
     }

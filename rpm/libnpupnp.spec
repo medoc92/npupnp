@@ -1,14 +1,18 @@
 Summary: UPnP base library
 Name: libnpupnp
-Version: 4.1.4
+Version: 5.0.0
 Release: 1%{?dist}
 License: BSD
 Group: Application/Multimedia
 URL: http://www.lesbonscomptes.com/upmpdcli/
 Source: http://www.lesbonscomptes.com/upmpdcli/downloads/%{name}-%{version}.tar.gz
-BuildRequires:  expat-devel
 BuildRequires:  libcurl-devel
 BuildRequires:  libmicrohttpd-devel
+# Opensuse:
+#BuildRequires:  libexpat-devel
+# Fedora
+BuildRequires:  expat-devel
+
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 %description

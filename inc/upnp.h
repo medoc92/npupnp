@@ -393,7 +393,7 @@ typedef enum Upnp_EventType_e {
 
 
 /** @brief Holds a service subscription unique identifier. */
-typedef char Upnp_SID[44];
+typedef std::string Upnp_SID;
 
 /** @brief Specifies the type of description passed to 
  * @ref UpnpRegisterRootDevice2. */
@@ -511,7 +511,7 @@ struct Upnp_Event {
 
 /* compat code for libupnp-1.8 */
 typedef struct Upnp_Event UpnpEvent;
-#define UpnpEvent_get_SID_cstr(x) ((x)->Sid)
+#define UpnpEvent_get_SID_cstr(x) ((x)->Sid.c_str())
 #define UpnpEvent_get_EventKey(x) ((x)->EventKey)
 #define UpnpEvent_get_ChangedVariables(x) ((x)->ChangedVariables)
 
@@ -588,7 +588,7 @@ struct Upnp_Event_Subscribe {
 
 /* compat code for libupnp-1.8 */
 typedef struct Upnp_Event_Subscribe UpnpEventSubscribe;
-#define UpnpEventSubscribe_get_SID_cstr(x) ((x)->Sid)
+#define UpnpEventSubscribe_get_SID_cstr(x) ((x)->Sid.c_str())
 #define UpnpEventSubscribe_get_ErrCode(x) ((x)->ErrCode)
 #define UpnpEventSubscribe_get_PublisherUrl_cstr(x) ((x)->PublisherUrl)
 #define UpnpEventSubscribe_get_TimeOut(x) ((x)->TimeOut)
@@ -609,7 +609,7 @@ struct Upnp_Subscription_Request {
 typedef struct Upnp_Subscription_Request UpnpSubscriptionRequest;
 #define UpnpSubscriptionRequest_get_ServiceId_cstr(x) ((x)->ServiceId)
 #define UpnpSubscriptionRequest_get_UDN_cstr(x) ((x)->UDN)
-#define UpnpSubscriptionRequest_get_SID_cstr(x) ((x)->Sid)
+#define UpnpSubscriptionRequest_get_SID_cstr(x) ((x)->Sid.c_str())
 
 /** Information return structure for the GetInfo virtual directory callback */
 struct File_Info {
@@ -1491,7 +1491,7 @@ EXPORT_SPEC int UpnpAcceptSubscription(
     /** [in] The number of event variables in \b VarName. */
     int cVariables,
     /** [in] The subscription ID of the newly registered control point. */
-    const Upnp_SID SubsId);
+    const Upnp_SID& SubsId);
 
 EXPORT_SPEC int UpnpAcceptSubscriptionXML(
     /** [in] The handle of the device. */
@@ -1503,7 +1503,7 @@ EXPORT_SPEC int UpnpAcceptSubscriptionXML(
     /** [in] Initial property set (all state variables) as XML string. */
     const std::string& propertyset,
     /** [in] The subscription ID of the newly registered control point. */
-    const Upnp_SID SubsId);
+    const Upnp_SID& SubsId);
 
 /**
  * @brief Sends out an event change notification to all control points
@@ -1615,7 +1615,7 @@ EXPORT_SPEC int UpnpSubscribe(
      * the service. */
     int *TimeOut,
     /** [out] Pointer to a variable to receive the subscription ID (SID). */
-    Upnp_SID SubsId);
+    Upnp_SID& SubsId);
 
 /**
  * @brief Renews a subscription that is about to expire.
@@ -1654,7 +1654,7 @@ EXPORT_SPEC int UpnpRenewSubscription(
      * Upon return, it contains the actual renewal time. */
     int *TimeOut,
     /** [in] The ID for the subscription to renew. */
-    const Upnp_SID SubsId);
+    const Upnp_SID& SubsId);
 
 /**
  * @brief Removes the subscription of a control point from a service previously
@@ -1689,7 +1689,7 @@ EXPORT_SPEC int UpnpUnSubscribe(
     /** [in] The handle of the subscribed control point. */
     UpnpClient_Handle Hnd,
     /** [in] The ID returned when the control point subscribed to the service. */
-    const Upnp_SID SubsId);
+    const Upnp_SID& SubsId);
 
 /**
  * @brief Sets the maximum time-out accepted for a subscription request or

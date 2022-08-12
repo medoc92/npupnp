@@ -474,8 +474,7 @@ static int UpnpInitPreamble()
 #ifdef UPNP_HAVE_OPTSSDP
     /* Create the NLS uuid. */
     // The gena sid generator is quite ok for this.
-    snprintf(gUpnpSdkNLSuuid, sizeof(gUpnpSdkNLSuuid),
-             "uuid:%s", gena_sid_uuid().c_str());
+    gUpnpSdkNLSuuid = std::string("uuid:") + gena_sid_uuid();
 #endif /* UPNP_HAVE_OPTSSDP */
 
     /* Initializes the handle list. */
@@ -1434,12 +1433,15 @@ int UpnpSendAdvertisement(UpnpDevice_Handle Hnd, int Exp)
     return UpnpSendAdvertisementLowPower(Hnd, Exp, -1, -1, -1);
 }
 
+struct upnp_timeout_data_int : public upnp_timeout_data {
+    int exp;
+};
+    
 void* thread_autoadvertise(void *input)
 {
     auto event = static_cast<upnp_timeout *>(input);
-
-    UpnpSendAdvertisement(event->handle, *(static_cast<int *>(event->Event)));
-
+    int exp = dynamic_cast<upnp_timeout_data_int*>(event->Event)->exp;
+    UpnpSendAdvertisement(event->handle, exp);
     return nullptr;
 }
 
@@ -1448,9 +1450,6 @@ int UpnpSendAdvertisementLowPower(
     int PowerState, int SleepPeriod, int RegistrationState)
 {
     struct Handle_Info *SInfo = nullptr;
-    int retVal = 0,
-        *ptrMx;
-    upnp_timeout *adEvent;
 
     if(UpnpSdkInit != 1) {
         return UPNP_E_FINISH;
@@ -1472,22 +1471,16 @@ int UpnpSendAdvertisementLowPower(
     SInfo->RegistrationState = RegistrationState;
     HandleUnlock();
     SsdpEntity sd;
-    retVal = AdvertiseAndReply(Hnd, MSGTYPE_ADVERTISEMENT, Exp, nullptr, sd);
+    int retVal = AdvertiseAndReply(Hnd, MSGTYPE_ADVERTISEMENT, Exp, nullptr, sd);
 
     if(retVal != UPNP_E_SUCCESS)
         return retVal;
-    ptrMx = static_cast<int *>(malloc(sizeof(int)));
-    if(ptrMx == nullptr)
-        return UPNP_E_OUTOF_MEMORY;
 
-    adEvent = new upnp_timeout;
-    if(adEvent == nullptr) {
-        free(ptrMx);
-        return UPNP_E_OUTOF_MEMORY;
-    }
-    *ptrMx = Exp;
+    upnp_timeout *adEvent = new upnp_timeout;
+    auto adEventData = new upnp_timeout_data_int;
+    adEventData->exp = Exp;
+    adEvent->Event = adEventData;
     adEvent->handle = Hnd;
-    adEvent->Event = ptrMx;
 
     if (checkLockHandle(HND_DEVICE, Hnd, &SInfo) == HND_INVALID) {
         free_upnp_timeout(adEvent);
@@ -1609,11 +1602,10 @@ int UpnpSetMaxSubscriptionTimeOut(UpnpDevice_Handle Hnd,
 
 #ifdef INCLUDE_CLIENT_APIS
 int UpnpSubscribe(
-    UpnpClient_Handle Hnd, const char *EvtUrl, int *TimeOut, Upnp_SID SubsId)
+    UpnpClient_Handle Hnd, const char *EvtUrl, int *TimeOut, Upnp_SID& SubsId)
 {
     int retVal;
     struct Handle_Info *SInfo = nullptr;
-    std::string SubsIdTmp;
     
     UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "UpnpSubscribe\n");
 
@@ -1622,7 +1614,7 @@ int UpnpSubscribe(
         goto exit_function;
     }
 
-    if (EvtUrl == nullptr || SubsId == nullptr || TimeOut == nullptr) {
+    if (EvtUrl == nullptr || TimeOut == nullptr) {
         retVal = UPNP_E_INVALID_PARAM;
         goto exit_function;
     }
@@ -1633,19 +1625,17 @@ int UpnpSubscribe(
     }
     HandleUnlock();
 
-    retVal = genaSubscribe(Hnd, EvtUrl, TimeOut, &SubsIdTmp);
-    upnp_strlcpy(SubsId, SubsIdTmp, sizeof(Upnp_SID));
+    retVal = genaSubscribe(Hnd, EvtUrl, TimeOut, &SubsId);
 
 exit_function:
-    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-               "UpnpSubscribe: retVal=%d\n", retVal);
+    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "UpnpSubscribe: retVal=%d\n", retVal);
     return retVal;
 }
 #endif /* INCLUDE_CLIENT_APIS */
 
 
 #ifdef INCLUDE_CLIENT_APIS
-int UpnpUnSubscribe(UpnpClient_Handle Hnd, const Upnp_SID SubsId)
+int UpnpUnSubscribe(UpnpClient_Handle Hnd, const Upnp_SID& SubsId)
 {
     struct Handle_Info *SInfo = nullptr;
     int retVal;
@@ -1658,10 +1648,6 @@ int UpnpUnSubscribe(UpnpClient_Handle Hnd, const Upnp_SID SubsId)
         goto exit_function;
     }
 
-    if (SubsId == nullptr) {
-        retVal = UPNP_E_INVALID_PARAM;
-        goto exit_function;
-    }
     SubsIdTmp = SubsId;
 
     if (checkLockHandle(HND_CLIENT, Hnd, &SInfo, true) == HND_INVALID) {
@@ -1673,9 +1659,7 @@ int UpnpUnSubscribe(UpnpClient_Handle Hnd, const Upnp_SID SubsId)
     retVal = genaUnSubscribe(Hnd, SubsIdTmp);
 
 exit_function:
-    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-               "UpnpUnSubscribe, retVal=%d\n", retVal);
-
+    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "UpnpUnSubscribe, retVal=%d\n", retVal);
     return retVal;
 }
 #endif /* INCLUDE_CLIENT_APIS */
@@ -1683,7 +1667,7 @@ exit_function:
 
 #ifdef INCLUDE_CLIENT_APIS
 int UpnpRenewSubscription(UpnpClient_Handle Hnd, int *TimeOut,
-                          const Upnp_SID SubsId)
+                          const Upnp_SID& SubsId)
 {
     struct Handle_Info *SInfo = nullptr;
     int retVal;
@@ -1696,7 +1680,7 @@ int UpnpRenewSubscription(UpnpClient_Handle Hnd, int *TimeOut,
         goto exit_function;
     }
 
-    if (SubsId == nullptr || TimeOut == nullptr) {
+    if (TimeOut == nullptr) {
         retVal = UPNP_E_INVALID_PARAM;
         goto exit_function;
     }
@@ -1776,7 +1760,7 @@ int UpnpNotifyXML(UpnpDevice_Handle Hnd, const char *DevID,
 int UpnpAcceptSubscription(
     UpnpDevice_Handle Hnd, const char *DevID, const char *ServName,
     const char **VarName, const char **NewVal, int cVariables,
-    const Upnp_SID SubsId)
+    const Upnp_SID& SubsId)
 {
     int ret = 0;
     struct Handle_Info *SInfo = nullptr;
@@ -1786,7 +1770,7 @@ int UpnpAcceptSubscription(
     if (UpnpSdkInit != 1) {
         return UPNP_E_FINISH;
     }
-    if (DevID == nullptr || ServName == nullptr || SubsId == nullptr) {
+    if (DevID == nullptr || ServName == nullptr) {
         return UPNP_E_INVALID_PARAM;
     }
 
@@ -1806,7 +1790,7 @@ int UpnpAcceptSubscription(
 int UpnpAcceptSubscriptionXML(
     UpnpDevice_Handle Hnd, const char *DevID, const char *ServName,
     const std::string& propertyset,
-    const Upnp_SID SubsId)
+    const Upnp_SID& SubsId)
 {
     int ret = 0;
     struct Handle_Info *SInfo = nullptr;
@@ -1816,7 +1800,7 @@ int UpnpAcceptSubscriptionXML(
     if (UpnpSdkInit != 1) {
         return UPNP_E_FINISH;
     }
-    if (DevID == nullptr || ServName == nullptr || SubsId == nullptr) {
+    if (DevID == nullptr || ServName == nullptr) {
         return UPNP_E_INVALID_PARAM;
     }
 

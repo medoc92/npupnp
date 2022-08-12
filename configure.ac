@@ -1,6 +1,6 @@
 AC_PREREQ([2.60])
 
-AC_INIT([libnpupnp],[4.2.3],[jfd@recoll.org])
+AC_INIT([libnpupnp],[5.0.0],[jfd@recoll.org])
 
 # - Start with version information of ‘0:0:0’ for each libtool library.
 # - Update the version information only immediately before a public release
@@ -13,10 +13,7 @@ AC_INIT([libnpupnp],[4.2.3],[jfd@recoll.org])
 # - If any interfaces have been removed or changed since the last public
 #   release, then set age to 0. Change package name if it is needed to have
 #   several installed versions of the lib. 
-# npupnp packages will be named libupnpX at some point, where X is the .so
-# major number (c-a). This will allow packages for multiple incompatible ABIs
-# to be installed. Not necessary for now.
-AC_SUBST([LT_VERSION_NPUPNP],       [8:0:4])
+AC_SUBST([LT_VERSION_NPUPNP],       [9:0:0])
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])

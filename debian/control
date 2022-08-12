@@ -1,4 +1,4 @@
-Source: libnpupnp1
+Source: libnpupnp2
 Section: net
 Priority: optional
 Homepage: http://www.lesbonscomptes.com/upmpdcli/
@@ -9,7 +9,7 @@ Build-Depends: debhelper (>= 9~),
  libexpat1-dev, libmicrohttpd-dev, libcurl4-gnutls-dev
 Standards-Version: 4.3.0
 
-Package: libnpupnp1
+Package: libnpupnp2
 Architecture: any
 Section: libs
 Depends: ${shlibs:Depends}, ${misc:Depends}
@@ -22,10 +22,11 @@ Description: UPnP library, based on Pupnp code, but extensively
  Play Device Architecture Specification - see http://www.upnp.org/ for
  specifications.
 
-Package: libnpupnp1-dev
+Package: libnpupnp2-dev
 Architecture: any
 Section: libdevel
-Depends: libnpupnp1 (= ${binary:Version}), ${misc:Depends}
+Depends: libnpupnp2 (= ${binary:Version}), ${misc:Depends}
+Conflicts: libnpupnp1-dev
 Multi-Arch: same
 Description: Development package for the npupnp UPnP library,
  based on Pupnp code, but extensively rewritten. As its predecessor, it

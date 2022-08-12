@@ -64,8 +64,7 @@
  ************************************************************************/
 int copy_subscription(subscription *in, subscription *out)
 {
-    memcpy(out->sid, in->sid, SID_SIZE);
-    out->sid[SID_SIZE] = 0;
+    out->sid = in->sid;
     out->ToSendEventKey = in->ToSendEventKey;
     out->expireTime = in->expireTime;
     out->active = in->active;
@@ -94,9 +93,8 @@ void RemoveSubscriptionSID(Upnp_SID sid, service_info *service)
     UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__, "RemoveSubscriptionSID\n");
     auto& sublist(service->subscriptionList);
     for (auto it = sublist.begin(); it != sublist.end(); ) {
-        if (!strcmp(sid, it->sid)) {
-            UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
-                       "RemoveSubscriptionSID: found\n");
+        if (sid == it->sid) {
+            UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__, "RemoveSubscriptionSID: found\n");
             it = sublist.erase(it);
             service->TotalSubscriptions--;
         } else {
@@ -111,7 +109,7 @@ subscription *GetSubscriptionSID(const Upnp_SID sid, service_info *service)
     auto& sublist(service->subscriptionList);
     auto found = find_if(sublist.begin(), sublist.end(),
                          [sid](const subscription& s)->bool{
-                             return !strcmp(sid, s.sid);});
+                             return sid == s.sid;});
     if (found == sublist.end()) {
         return nullptr;
     }

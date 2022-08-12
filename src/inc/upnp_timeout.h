@@ -1,6 +1,7 @@
 /*******************************************************************************
  *
  * Copyright (c) 2000-2003 Intel Corporation 
+ * Copyright (c) 2022 J.F. Dockes
  * All rights reserved. 
  *
  * Redistribution and use in source and binary forms, with or without 
@@ -28,27 +29,28 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  ******************************************************************************/
-
-
 #ifndef UPNPTIMEOUT_H
 #define UPNPTIMEOUT_H
 
+// upnp_timeout payload base class
+struct upnp_timeout_data {
+    virtual ~upnp_timeout_data() {};
+};
+
 
 /*!
- * \file
- */
-
-
-/*!
- * The upnp_timeout structure definition.
+ * The upnp_timeout structure holds context data for our ThreadPool events.
+ *
+ * At least because we reuse the Upnp_Event_Subscribe structure as payload, and this has an
+ * std::string member, we need to use a virtual base class member (the initial code just 
+ * had void* payload on which it called free())
  */
 struct upnp_timeout {
     int handle{-1};
     int eventId{0};
-    void *Event{nullptr};
+    upnp_timeout_data *Event{nullptr};
     ~upnp_timeout() {
-        if (Event)
-            free(Event);
+        delete Event;
     }
 };
 

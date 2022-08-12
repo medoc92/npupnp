@@ -96,6 +96,10 @@ static void clientCancelRenew(ClientSubscription *sub)
     }
 }
 
+struct upnp_timeout_data_subscribe : public upnp_timeout_data {
+    struct Upnp_Event_Subscribe sub;
+};
+
 /*!
  * \brief This is a thread function to send the renewal just before the
  * subscription times out.
@@ -105,7 +109,7 @@ static void *thread_autorenewsubscription(
     void *input)
 {
     auto event = static_cast<upnp_timeout *>(input);
-    auto sub_struct = static_cast<struct Upnp_Event_Subscribe *>(event->Event);
+    auto sub_struct = &(dynamic_cast<upnp_timeout_data_subscribe*>(event->Event)->sub);
     int send_callback = 0;
     Upnp_EventType eventType = UPNP_EVENT_AUTORENEWAL_FAILED;
 
@@ -118,8 +122,7 @@ static void *thread_autorenewsubscription(
     } else {
         UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__, "GENA AUTO RENEW\n");
         int timeout = sub_struct->TimeOut;
-        std::string tmpSID = sub_struct->Sid;
-        int errCode = genaRenewSubscription(event->handle, tmpSID, &timeout);
+        int errCode = genaRenewSubscription(event->handle, sub_struct->Sid, &timeout);
         sub_struct->ErrCode = errCode;
         sub_struct->TimeOut = timeout;
         if (errCode != UPNP_E_SUCCESS &&
@@ -141,7 +144,7 @@ static void *thread_autorenewsubscription(
         /* make callback */
         Upnp_FunPtr callback_fun = handle_info->Callback;
         HandleUnlock();
-        callback_fun(eventType, event->Event, handle_info->Cookie);
+        callback_fun(eventType, sub_struct, handle_info->Cookie);
     }
     return nullptr;
 }
@@ -161,27 +164,18 @@ static int ScheduleGenaAutoRenew(
     /*! [in] Subscription being renewed. */
     ClientSubscription *sub)
 {
-    const std::string& tmpSID = sub->SID;
-    const std::string& tmpEventURL = sub->eventURL;
-
     if (TimeOut == UPNP_INFINITE) {
         return GENA_SUCCESS;
     }
 
-    auto RenewEventStruct =
-        static_cast<struct Upnp_Event_Subscribe *>(malloc(sizeof(struct Upnp_Event_Subscribe)));
-    if (RenewEventStruct == nullptr) {
-        return UPNP_E_OUTOF_MEMORY;
-    }
-
+    auto RenewEventStruct = new upnp_timeout_data_subscribe;
     auto RenewEvent =  new upnp_timeout;
 
     /* schedule expire event */
-    *RenewEventStruct = {};
-    RenewEventStruct->ErrCode = UPNP_E_SUCCESS;
-    RenewEventStruct->TimeOut = TimeOut;
-    upnp_strlcpy(RenewEventStruct->Sid, tmpSID, sizeof(RenewEventStruct->Sid));
-    upnp_strlcpy(RenewEventStruct->PublisherUrl, tmpEventURL, NAME_SIZE);
+    RenewEventStruct->sub.Sid = sub->SID;
+    RenewEventStruct->sub.ErrCode = UPNP_E_SUCCESS;
+    upnp_strlcpy(RenewEventStruct->sub.PublisherUrl, sub->eventURL, NAME_SIZE);
+    RenewEventStruct->sub.TimeOut = TimeOut;
 
     RenewEvent->handle = client_handle;
     RenewEvent->Event = RenewEventStruct;
@@ -767,10 +761,8 @@ void gena_process_notification_event(MHDTransaction *mhdt)
     http_SendStatusResponse(mhdt, HTTP_OK);
 
     /* fill event struct */
-    auto tmpSID = subscription->SID;
     struct Upnp_Event event_struct;
-    memset(event_struct.Sid, 0, sizeof(event_struct.Sid));
-    upnp_strlcpy(event_struct.Sid, tmpSID, sizeof(event_struct.Sid));
+    event_struct.Sid = subscription->SID;
     event_struct.EventKey = eventKey;
     event_struct.ChangedVariables = propset;
 
