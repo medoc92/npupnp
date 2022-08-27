@@ -31,15 +31,8 @@
 
 #include "genut.h"
 
-#include <cctype>
-#include <list>
-#include <numeric>
-#include <vector>
-#include <set>
-#include <unordered_set>
-
-using namespace std;
-
+#include <string>
+#include <string.h>
 
 size_t upnp_strlcpy(char *dst, const char *src, size_t dsize)
 {
@@ -68,9 +61,9 @@ size_t upnp_strlcpy(char *dst, const char *src, size_t dsize)
     return dsize - cnt + 1;
 }
 
-string xmlQuote(const string& in)
+std::string xmlQuote(const std::string& in)
 {
-    string out;
+    std::string out;
     out.reserve(in.size());
     for (char i : in) {
         switch (i) {
