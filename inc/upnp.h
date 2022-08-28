@@ -797,8 +797,9 @@ EXPORT_SPEC int UpnpInit2(
  *
  * This call is synchronous.
  *
- * @param ifnames The interface name(s) as a as a vector of 
- * strings, to avoid any quoting headaches.
+ * @param ifnames The interface name(s) as a as a vector of strings, to avoid any quoting
+ * headaches. Leave empty for using the first found interface. Set a single "*" element for using
+ * all interfaces.
  * @param DestPort local port to listen on for incoming connections.
  * \c 0 will pick the first free port at or above the configured default.
  *
@@ -820,7 +821,7 @@ EXPORT_SPEC int UpnpInit2(
     const std::vector<std::string>& ifnames, unsigned short DestPort);
 
 /** 
- * @brief Initializes the library, passing the interface spec as a vector.
+ * @brief Initializes the library, passing the interface spec as a string.
  *
  * This function must be called before any other API function can be called, 
  * except for a possible initialisation of the log output file and level.
@@ -836,7 +837,11 @@ EXPORT_SPEC int UpnpInit2(
  *
  * This call is synchronous.
  *
- * @param ifnames The interface name(s) as a quoted space-separated list.
+ * @param ifnames The interface name(s) to use by the UPnP SDK operations, as a
+ * quoted space-separated list. Use double quotes or backslashes escapes
+ * if there are space characters inside the interface name. Use a
+ * single "*" character to use all available interfaces.
+ * \c NULL or empty to use the first suitable interface.
  * @param DestPort local port to listen on for incoming connections.
  * \c 0 will pick the first free port at or above the configured default.
  * @param flags A bitfield of @ref Upnp_InitFlag values.
