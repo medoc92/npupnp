@@ -325,8 +325,12 @@ static int gena_subscribe(
         return return_code;
     }
     std::string urlforcurl = uri_asurlstr(dest_url);
-    NetIF::IPAddr destaddr(
-        reinterpret_cast<struct sockaddr*>(&dest_url.hostport.IPaddress));
+    NetIF::IPAddr destaddr(reinterpret_cast<struct sockaddr*>(&dest_url.hostport.IPaddress));
+
+    // Determine a suitable address for the callback. We choose one on the interface for the
+    // destination address. Another possible approach would be to actually connect to the URL and
+    // use getsockname(), which would let the routing code do the main job, at the cost of a
+    // supplementary connection.
     NetIF::IPAddr myaddr;
     const NetIF::Interface *ifp =
         NetIF::Interfaces::theInterfaces()->interfaceForAddress(destaddr,myaddr);
