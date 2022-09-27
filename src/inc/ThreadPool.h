@@ -38,6 +38,9 @@
 #include <string>
 
 #include <errno.h>
+#ifdef __MINGW32__
+#include <sched.h>
+#endif
 
 /* Errors. The old code had a bizarre expression which resulted in practise
  *  in all errors having the same value */

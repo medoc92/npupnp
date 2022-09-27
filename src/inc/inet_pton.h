@@ -5,7 +5,7 @@
 
 #ifndef HAVE_INET_PTON
 
-#include <Winsock2.h>
+#include <winsock2.h>
 
 /*!
  * \file
