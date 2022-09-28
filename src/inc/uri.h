@@ -42,7 +42,7 @@
 #include <sys/types.h>
 
 #ifdef _WIN32
-#include <Winsock2.h>
+#include <winsock2.h>
 #else
 #include <sys/socket.h>
 #endif
