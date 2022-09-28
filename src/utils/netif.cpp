@@ -115,6 +115,12 @@ IPAddr::IPAddr(const IPAddr& o)
     m->saddr = reinterpret_cast<struct sockaddr*>(&m->address);
 }
 
+IPAddr::IPAddr(IPAddr&& o)
+{
+    m = std::move(o.m);
+    m->saddr = reinterpret_cast<struct sockaddr*>(&m->address);
+}
+
 IPAddr& IPAddr::operator=(const IPAddr& o)
 {
     if (&o != this) {
@@ -128,8 +134,7 @@ IPAddr& IPAddr::operator=(const IPAddr& o)
 IPAddr& IPAddr::operator=(IPAddr&& o)
 {
     if (&o != this) {
-        m = std::make_unique<Internal>();
-        *m = std::move(*(o.m));
+        m = std::move(o.m);
         m->saddr = reinterpret_cast<struct sockaddr*>(&m->address);
     }
     return *this;
@@ -341,16 +346,31 @@ Interface::Interface()
 {
     m = std::make_unique<Internal>();
 }
+
 Interface::Interface(const Interface& o)
 {
     m = std::make_unique<Internal>();
     *m = *(o.m);
 }
+
+Interface::Interface(Interface&& o)
+{
+    m = std::move(o.m);
+}
+
 Interface& Interface::operator=(const Interface& o)
 {
     if (&o != this) {
         m = std::make_unique<Internal>();
         *m = *(o.m);
+    }
+    return *this;
+}
+
+Interface& Interface::operator=(Interface&& o)
+{
+    if (&o != this) {
+        m = std::move(o.m);
     }
     return *this;
 }
