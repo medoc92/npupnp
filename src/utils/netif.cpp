@@ -99,34 +99,30 @@ class IPAddr::Internal {
 public:
     bool ok{false};
     struct sockaddr_storage address{};
-    struct sockaddr *saddr{nullptr};
+    struct sockaddr *saddr() {
+        return reinterpret_cast<struct sockaddr*>(&address);
+    }
 };
 
 IPAddr::IPAddr()
 {
     m = std::make_unique<Internal>();
-    m->saddr = reinterpret_cast<struct sockaddr*>(&m->address);
 }
 
 IPAddr::IPAddr(const IPAddr& o)
 {
-    m = std::make_unique<Internal>();
-    *m = *(o.m);
-    m->saddr = reinterpret_cast<struct sockaddr*>(&m->address);
+    m = std::make_unique<Internal>(*o.m);
 }
 
 IPAddr::IPAddr(IPAddr&& o)
 {
     m = std::move(o.m);
-    m->saddr = reinterpret_cast<struct sockaddr*>(&m->address);
 }
 
 IPAddr& IPAddr::operator=(const IPAddr& o)
 {
     if (&o != this) {
-        m = std::make_unique<Internal>();
-        *m = *(o.m);
-        m->saddr = reinterpret_cast<struct sockaddr*>(&m->address);
+        m = std::make_unique<Internal>(*o.m);
     }
     return *this;
 }
@@ -135,7 +131,6 @@ IPAddr& IPAddr::operator=(IPAddr&& o)
 {
     if (&o != this) {
         m = std::move(o.m);
-        m->saddr = reinterpret_cast<struct sockaddr*>(&m->address);
     }
     return *this;
 }
@@ -145,14 +140,14 @@ IPAddr::IPAddr(const char *caddr)
 {
     if (nullptr != std::strchr(caddr, ':')) {
         if (inet_pton(AF_INET6, caddr,
-                      &reinterpret_cast<struct sockaddr_in6*>(m->saddr)->sin6_addr) == 1) {
-            m->saddr->sa_family = AF_INET6;
+                      &reinterpret_cast<struct sockaddr_in6*>(m->saddr())->sin6_addr) == 1) {
+            m->saddr()->sa_family = AF_INET6;
             m->ok = true;
         }
     } else {
         if (inet_pton(AF_INET, caddr,
-                      &reinterpret_cast<struct sockaddr_in*>(m->saddr)->sin_addr) == 1) {
-            m->saddr->sa_family = AF_INET;
+                      &reinterpret_cast<struct sockaddr_in*>(m->saddr())->sin_addr) == 1) {
+            m->saddr()->sa_family = AF_INET;
             m->ok = true;
         }
     }
@@ -165,7 +160,7 @@ IPAddr::IPAddr(const struct sockaddr *sa, bool unmapv4)
 {
     switch (sa->sa_family) {
     case AF_INET:
-        memcpy(m->saddr, sa, sizeof(struct sockaddr_in));
+        memcpy(m->saddr(), sa, sizeof(struct sockaddr_in));
         m->ok = true;
         break;
     case AF_INET6:
@@ -174,7 +169,7 @@ IPAddr::IPAddr(const struct sockaddr *sa, bool unmapv4)
             const uint8_t *bytes =
                 reinterpret_cast<const struct sockaddr_in6 *>(sa)->sin6_addr.s6_addr;
             if (!memcmp(bytes, ipv4mappedprefix, 12)) {
-                auto a = reinterpret_cast<struct sockaddr_in*>(m->saddr);
+                auto a = reinterpret_cast<struct sockaddr_in*>(m->saddr());
                 memset(a, 0, sizeof(*a));
                 a->sin_family = AF_INET;
                 memcpy(&a->sin_addr.s_addr, bytes+12, 4);
@@ -183,7 +178,7 @@ IPAddr::IPAddr(const struct sockaddr *sa, bool unmapv4)
             }
         }
         // unmapv4==false or not a v4 mapped address, copy v6 address
-        memcpy(m->saddr, sa, sizeof(struct sockaddr_in6));
+        memcpy(m->saddr(), sa, sizeof(struct sockaddr_in6));
         m->ok = true;
     }
     break;
@@ -214,12 +209,12 @@ bool IPAddr::copyToAddr(struct sockaddr *dest) const
     if (!m->ok) {
         return false;
     }
-    switch (m->saddr->sa_family) {
+    switch (m->saddr()->sa_family) {
     case AF_INET:
-        memcpy(dest, m->saddr, sizeof(struct sockaddr_in));
+        memcpy(dest, m->saddr(), sizeof(struct sockaddr_in));
         break;
     case AF_INET6:
-        memcpy(dest, m->saddr, sizeof(struct sockaddr_in6));
+        memcpy(dest, m->saddr(), sizeof(struct sockaddr_in6));
         break;
     default:
         return false;
@@ -235,7 +230,7 @@ const struct sockaddr_storage& IPAddr::getaddr() const
 IPAddr::Family IPAddr::family() const
 {
     if (m->ok) {
-        return static_cast<IPAddr::Family>(m->saddr->sa_family);
+        return static_cast<IPAddr::Family>(m->saddr()->sa_family);
     }
     return Family::Invalid;
 }
@@ -253,7 +248,7 @@ IPAddr::Scope IPAddr::scopetype() const
     // e.g. fe80::1 could exist on both eth0 and eth1, and needs
     // scopeid 0/1 for complete determination
     if (IN6_IS_ADDR_LINKLOCAL(
-            &(reinterpret_cast<struct sockaddr_in6*>(m->saddr))->sin6_addr)) {
+            &(reinterpret_cast<struct sockaddr_in6*>(m->saddr()))->sin6_addr)) {
         return Scope::LINK;
     }
 
@@ -262,7 +257,7 @@ IPAddr::Scope IPAddr::scopetype() const
     // site. They also need a site/scope ID, always 1 if there is only
     // one site defined.
     if (IN6_IS_ADDR_SITELOCAL(
-            &(reinterpret_cast<struct sockaddr_in6*>(m->saddr))->sin6_addr)) {
+            &(reinterpret_cast<struct sockaddr_in6*>(m->saddr()))->sin6_addr)) {
         return Scope::SITE;
     }
 
@@ -276,8 +271,8 @@ bool IPAddr::setScopeIdx(const IPAddr& other)
         scopetype() != Scope::LINK || other.scopetype() != Scope::LINK) {
         return false;
     }
-    auto msa6 = reinterpret_cast<struct sockaddr_in6*>(m->saddr);
-    auto osa6 = reinterpret_cast<struct sockaddr_in6*>(other.m->saddr);
+    auto msa6 = reinterpret_cast<struct sockaddr_in6*>(m->saddr());
+    auto osa6 = reinterpret_cast<struct sockaddr_in6*>(other.m->saddr());
     msa6->sin6_scope_id = osa6->sin6_scope_id;
     return true;
 }
@@ -294,15 +289,15 @@ std::string IPAddr::straddr(bool setscope, bool forurl) const
     
     char buf[200];
     buf[0] = 0;
-    switch(m->saddr->sa_family) {
+    switch(m->saddr()->sa_family) {
     case AF_INET:
-        inet_ntop(m->saddr->sa_family,
-                  &reinterpret_cast<struct sockaddr_in*>(m->saddr)->sin_addr, buf, 200);
+        inet_ntop(m->saddr()->sa_family,
+                  &reinterpret_cast<struct sockaddr_in*>(m->saddr())->sin_addr, buf, 200);
     break;
     case AF_INET6:
     {
-        auto sa6 = reinterpret_cast<struct sockaddr_in6*>(m->saddr);
-        inet_ntop(m->saddr->sa_family, &sa6->sin6_addr, buf, 200);
+        auto sa6 = reinterpret_cast<struct sockaddr_in6*>(m->saddr());
+        inet_ntop(m->saddr()->sa_family, &sa6->sin6_addr, buf, 200);
         if (!setscope || scopetype() != Scope::LINK) {
             return buf;
         }
@@ -349,8 +344,7 @@ Interface::Interface()
 
 Interface::Interface(const Interface& o)
 {
-    m = std::make_unique<Internal>();
-    *m = *(o.m);
+    m = std::make_unique<Internal>(*o.m);
 }
 
 Interface::Interface(Interface&& o)
@@ -361,8 +355,7 @@ Interface::Interface(Interface&& o)
 Interface& Interface::operator=(const Interface& o)
 {
     if (&o != this) {
-        m = std::make_unique<Internal>();
-        *m = *(o.m);
+        m = std::make_unique<Internal>(*o.m);
     }
     return *this;
 }
@@ -472,7 +465,7 @@ const IPAddr *Interface::firstipv6addr(IPAddr::Scope scope) const
         if (entry.family() == IPAddr::Family::IPV6 &&
             (scope != IPAddr::Scope::LINK ||
              IN6_IS_ADDR_LINKLOCAL(
-                 &(reinterpret_cast<struct sockaddr_in6*>(entry.m->saddr))->sin6_addr))) {
+                 &(reinterpret_cast<struct sockaddr_in6*>(entry.m->saddr()))->sin6_addr))) {
             return &entry;
         }
     }
