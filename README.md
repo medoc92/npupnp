@@ -1,31 +1,8 @@
 # libnpupnp
 
-Copyright (c) 2000-2003 Intel Corporation - All Rights Reserved.  
-Copyright (c) 2005-2006 Rémi Turboult <r3mi@users.sourceforge.net>  
-Copyright (c) 2006 Michel Pfeiffer and others <virtual_worlds@gmx.de>  
-Copyright (c) 2020-2022 Jean-Francois Dockes <jf@dockes.org>  
-See COPYING for details.
-
-npupnp (new pupnp or not pupnp ?) is an UPnP library derived from the
-venerable pupnp (https://github.com/pupnp/pupnp), based on its 1.6.x
-branch (around 1.6.25).
-
-Tar archives for the releases are stored on the [upmpdcli downloads
-page](https://www.lesbonscomptes.com/upmpdcli/pages/downloads.html)
-
-Building:
-
-    cd [top source directory]
-    ./autogen.sh # Only for a git clone, no need for a tar release file
-    configure --prefix=/usr
-    make
-    sudo make install
-
-Build dependancies (as Debian package name, you may need to translate): pkg-config libexpat1-dev
-libmicrohttpd-dev libcurl4-gnutls-dev 
-
-Only for git code: autoconf automake libtool
-
+npupnp (new pupnp or not pupnp ?) is a base UPnP library derived from the venerable pupnp
+(https://github.com/pupnp/pupnp), based on its 1.6.x branch (around 1.6.25). It provides the
+fundamental layer for implementing UPnP devices or Control Points.
 
 Main modifications:
 
@@ -33,8 +10,8 @@ Main modifications:
  - Support multiple root devices (already in the late pupnp versions).
  - Use libcurl for HTTP client functions.
  - Use libmicrohttpd for HTTP server functions (GENA, SOAP, and WEB server).
- - Vastly cleaned-up code. Use C++ STL as needed to eliminate locally-grown
-   data structures.
+ - Vastly cleaned-up code, moved from C to C++, using the C++ STL to eliminate
+   locally-grown data structures.
 
 The changes reduce the library from around 40000 lines of code to around
 20000, replacing difficult to maintain (and sometimes weird) code with well
@@ -49,3 +26,22 @@ API if this was needed.
 
 Have a look at the
 [DOC](https://www.lesbonscomptes.com/upmpdcli/npupnp-doc/libnpupnp.html) !
+
+
+Tar archives for the releases are stored on the [upmpdcli downloads
+page](https://www.lesbonscomptes.com/upmpdcli/pages/downloads.html)
+
+Building:
+
+    cd [top source directory]
+    ./autogen.sh # Only for a git clone, no need for a tar release file
+    configure --prefix=/usr
+    make
+    sudo make install
+
+Build dependancies (as Debian package names, you may need to translate): `pkg-config`,
+`libexpat1-dev`, `libmicrohttpd-dev`, `libcurl4-gnutls-dev`.
+
+Only for git code: `autoconf`, `automake`, `libtool`.
+
+
