@@ -166,6 +166,8 @@ private:
 /** @brief Represent the system's network interfaces. Singleton class. */
 class EXPORT_SPEC Interfaces {
 public:
+    Interfaces(const Interfaces&) = delete;
+    Interfaces& operator=(const Interfaces&) = delete;
     /** @brief Return the Interfaces singleton after possibly building
      * it by querying the system */
     static Interfaces *theInterfaces();
@@ -215,8 +217,6 @@ public:
     static void setlogfp(FILE *fp);
     
 private:
-    Interfaces(const Interfaces &) = delete;
-    Interfaces& operator=(const Interfaces &) = delete;
     Interfaces();
     ~Interfaces();
 
