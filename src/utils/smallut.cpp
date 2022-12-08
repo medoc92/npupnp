@@ -329,7 +329,7 @@ template <class T> void stringsToCSV(const T& tokens, string& s, char sep)
 template <class T> std::string commonprefix(const T& values)
 {
     if (values.empty())
-        return std::string();
+        return {};
     if (values.size() == 1)
         return *values.begin();
     unsigned int i = 0;
