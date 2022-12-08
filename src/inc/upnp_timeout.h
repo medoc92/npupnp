@@ -34,7 +34,7 @@
 
 // upnp_timeout payload base class
 struct upnp_timeout_data {
-    virtual ~upnp_timeout_data() {};
+    virtual ~upnp_timeout_data() = default;
 };
 
 
