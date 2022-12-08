@@ -72,8 +72,8 @@ public:
 
     IPAddr(const IPAddr&);
     IPAddr& operator=(const IPAddr&);
-    IPAddr(IPAddr&&);
-    IPAddr& operator=(IPAddr&&);
+    IPAddr(IPAddr&&) noexcept;
+    IPAddr& operator=(IPAddr&&) noexcept;
     ~IPAddr();
 
     /** @brief Check constructor success */
@@ -122,8 +122,8 @@ public:
     ~Interface();
     Interface(const Interface&);
     Interface& operator=(const Interface&);
-    Interface(Interface&&);
-    Interface& operator=(Interface&&);
+    Interface(Interface&&) noexcept;
+    Interface& operator=(Interface&&) noexcept;
 
     /** @brief Return the interface name */
     const std::string& getname() const;
