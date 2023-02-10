@@ -4,7 +4,7 @@
  * Author: Coleman Kane <ckane@intellitree.com>
  *
  * Mutilated and forced into single-file solution by <jf@dockes.org>
- * Copyright (c) 2013-2018 J.F. Dockes
+ * Copyright (c) 2013-2023 J.F. Dockes
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -77,8 +77,7 @@ public:
         while((bytes_read = read_block()) >= 0) {
             if(bytes_read > 0) {
                 XML_Status local_status =
-                    XML_Parse(expat_parser, getReadBuffer(), int(bytes_read),
-                              XML_FALSE);
+                    XML_Parse(expat_parser, getReadBuffer(), int(bytes_read), XML_FALSE);
 
                 if(local_status != XML_STATUS_OK) {
                     set_status(local_status);
@@ -92,10 +91,8 @@ public:
         }
 
         /* Finalize the parser */
-        if((getStatus() == XML_STATUS_OK) ||
-                (getLastError() == XML_ERROR_FINISHED)) {
-            XML_Status local_status =
-                XML_Parse(expat_parser, getBuffer(), 0, XML_TRUE);
+        if((getStatus() == XML_STATUS_OK) || (getLastError() == XML_ERROR_FINISHED)) {
+            XML_Status local_status = XML_Parse(expat_parser, getReadBuffer(), 0, XML_TRUE);
             if(local_status != XML_STATUS_OK) {
                 set_status(local_status);
                 return false;
@@ -139,9 +136,6 @@ protected:
     };
     std::vector<StackEl> m_path;
 
-    virtual XML_Char *getBuffer(void) {
-        return xml_buffer;
-    }
     virtual const char *getReadBuffer(void) {
         return xml_buffer;
     }
@@ -171,7 +165,7 @@ protected:
      * ever called. and should be overridden by the derived class.
      *
      * Note that, as the actual parser only uses
-     * getBuffer()/getBlockSize()/read_block() (no direct access
+     * getReadBuffer()/getBlockSize()/read_block() (no direct access
      * to the buffer), you are free to use an entirely different
      * I/O mechanism, like what does the inputRefXMLParser below.
      */
@@ -318,7 +312,7 @@ private:
 
         /* Set the "ready" flag on this parser */
         valid_parser = true;
-        XML_SetUserData(expat_parser, reinterpret_cast<void*>(this));
+        XML_SetUserData(expat_parser,this);
         register_default_handlers();
     }
 };

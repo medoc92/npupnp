@@ -57,7 +57,7 @@ libnpupnp_la_SOURCES = \
 	src/inc/TimerThread.h \
 	src/inc/VirtualDir.h \
 	src/inc/config.h \
-	src/inc/expatmm.hxx \
+	src/inc/expatmm.h \
 	src/inc/gena.h \
 	src/inc/gena_ctrlpt.h \
 	src/inc/gena_device.h \

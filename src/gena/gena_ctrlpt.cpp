@@ -54,7 +54,7 @@
 #include "netif.h"
 
 #ifdef USE_EXPAT
-#include "expatmm.hxx"
+#include "expatmm.h"
 #define XMLPARSERTP inputRefXMLParser
 #else
 #include "picoxml.h"
