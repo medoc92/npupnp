@@ -63,9 +63,15 @@
 #ifdef INTERNAL_WEB_SERVER
 #include "VirtualDir.h"
 #include "webserver.h"
-#endif /* INTERNAL_WEB_SERVER */
-
 #include <sys/stat.h>
+#include <fcntl.h>
+#ifndef _WIN32
+# ifndef O_BINARY
+#  define O_BINARY 0
+# endif
+#endif
+
+#endif /* INTERNAL_WEB_SERVER */
 
 #include <cassert>
 #include <csignal>
@@ -986,7 +992,7 @@ static int registerRootDeviceAllForms(
         goto exit_function;
     }
 
-    HInfo = new Handle_Info;
+    HInfo = new(std::nothrow) Handle_Info;
     if (HInfo == nullptr) {
         retVal = UPNP_E_OUTOF_MEMORY;
         goto exit_function;
@@ -1131,8 +1137,7 @@ EXPORT_SPEC int UpnpUnRegisterRootDeviceLowPower(UpnpDevice_Handle Hnd, int Powe
 #endif /* INCLUDE_DEVICE_APIS */
 
 #ifdef INCLUDE_CLIENT_APIS
-int UpnpRegisterClient(Upnp_FunPtr Fun, const void *Cookie,
-                       UpnpClient_Handle *Hnd)
+int UpnpRegisterClient(Upnp_FunPtr Fun, const void *Cookie, UpnpClient_Handle *Hnd)
 {
     struct Handle_Info *HInfo;
 
@@ -1151,7 +1156,7 @@ int UpnpRegisterClient(Upnp_FunPtr Fun, const void *Cookie,
         HandleUnlock();
         return UPNP_E_OUTOF_MEMORY;
     }
-    HInfo = new Handle_Info;
+    HInfo = new(std::nothrow) Handle_Info;
     if (HInfo == nullptr) {
         HandleUnlock();
         return UPNP_E_OUTOF_MEMORY;
@@ -1225,41 +1230,37 @@ static std::string basename(const std::string& name)
     }
 
     return name.substr(slash+1);
-
-
 }
-/* Read file contents to allocated buffer (caller must free) */
-static int readFile(const char *path, char **data, time_t *modtime)
-{
-    struct stat st;
-    char *buffer{nullptr};
-    int ret = UPNP_E_SUCCESS;
-    size_t num_read;
 
-    *data = nullptr;
-    if (stat(path, &st) != 0) {
+/* Read file contents into std::string */
+static int readFile(const char *path, std::string& outstr, time_t *modtime)
+{
+    int ret = UPNP_E_SUCCESS;
+    char *buffer = nullptr;
+
+    int fd = open(path, O_RDONLY|O_BINARY);
+    if (fd < 0)
         return UPNP_E_FILE_NOT_FOUND;
+    struct stat st;
+    if (fstat(fd, &st) != 0) {
+        ret = UPNP_E_FILE_NOT_FOUND;
+        goto out;
     }
     *modtime = st.st_mtime;
-    FILE *fp = fopen(path, "rb");
-    if (nullptr == fp)
-        return UPNP_E_FILE_NOT_FOUND;
-    buffer = static_cast<char *>(malloc(st.st_size+1));
+    buffer = static_cast<char *>(malloc(st.st_size));
     if (nullptr == buffer) {
         ret = UPNP_E_OUTOF_MEMORY;
         goto out;
     }
-    num_read = fread(buffer, 1, st.st_size, fp);
-    if (num_read != static_cast<size_t>(st.st_size)) {
+    if (read(fd, buffer, st.st_size) != static_cast<ssize_t>(st.st_size)) {
         ret = UPNP_E_FILE_READ_ERROR;
         goto out;
     }
-    buffer[st.st_size + 1] = 0;
-    *data = buffer;
+    outstr = std::string(buffer, st.st_size);
 out:
-    if (fp)
-        fclose(fp);
-    if (ret != UPNP_E_SUCCESS && buffer) {
+    if (fd >= 0)
+        close(fd);
+    if (nullptr != buffer) {
         free(buffer);
     }
     return ret;
@@ -1334,13 +1335,10 @@ static int GetDescDocumentAndURL(
     break;
     case UPNPREG_FILENAME_DESC:
     {
-        char *descstr{nullptr};
-        retVal = readFile(description, &descstr, &modtime);
+        retVal = readFile(description, descdata, &modtime);
         if (retVal != UPNP_E_SUCCESS) {
             return retVal;
         }
-        descdata = descstr;
-        free(descstr);
         simplename = basename(std::string(description));
         localurl = descurl(AddressFamily, simplename);
     }
