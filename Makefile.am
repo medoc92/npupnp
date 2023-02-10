@@ -53,7 +53,6 @@ libnpupnp_la_LDFLAGS = \
 	$(LIBNPUPNP_LIBS)
 
 libnpupnp_la_SOURCES = \
-	src/inc/FreeList.h \
 	src/inc/ThreadPool.h \
 	src/inc/TimerThread.h \
 	src/inc/VirtualDir.h \
