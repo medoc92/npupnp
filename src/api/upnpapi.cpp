@@ -1236,8 +1236,6 @@ static std::string basename(const std::string& name)
 static int readFile(const char *path, std::string& outstr, time_t *modtime)
 {
     int ret = UPNP_E_SUCCESS;
-    char *buffer = nullptr;
-
     int fd = open(path, O_RDONLY|O_BINARY);
     if (fd < 0)
         return UPNP_E_FILE_NOT_FOUND;
@@ -1247,22 +1245,17 @@ static int readFile(const char *path, std::string& outstr, time_t *modtime)
         goto out;
     }
     *modtime = st.st_mtime;
-    buffer = static_cast<char *>(malloc(st.st_size));
-    if (nullptr == buffer) {
-        ret = UPNP_E_OUTOF_MEMORY;
-        goto out;
+    {
+        DirtySmartBuf buffer(st.st_size);
+        if (read(fd, buffer.buf(), st.st_size) != static_cast<ssize_t>(st.st_size)) {
+            ret = UPNP_E_FILE_READ_ERROR;
+            goto out;
+        }
+        outstr = std::string(buffer.buf(), st.st_size);
     }
-    if (read(fd, buffer, st.st_size) != static_cast<ssize_t>(st.st_size)) {
-        ret = UPNP_E_FILE_READ_ERROR;
-        goto out;
-    }
-    outstr = std::string(buffer, st.st_size);
 out:
     if (fd >= 0)
         close(fd);
-    if (nullptr != buffer) {
-        free(buffer);
-    }
     return ret;
 }
 
@@ -1434,14 +1427,21 @@ int UpnpSendAdvertisement(UpnpDevice_Handle Hnd, int Exp)
 struct upnp_timeout_data_int : public upnp_timeout_data {
     int exp;
 };
-    
-void* thread_autoadvertise(void *input)
-{
-    auto event = static_cast<upnp_timeout *>(input);
-    int exp = dynamic_cast<upnp_timeout_data_int*>(event->Event)->exp;
-    UpnpSendAdvertisement(event->handle, exp);
-    return nullptr;
-}
+
+class AutoAdvertiseJobWorker : public JobWorker {
+public:
+    AutoAdvertiseJobWorker(upnp_timeout *ev)
+        : m_event(ev) {}
+    ~AutoAdvertiseJobWorker() {
+        deleteZ(m_event);
+    }
+    void work() {
+        int exp = dynamic_cast<upnp_timeout_data_int*>(m_event->Event)->exp;
+        UpnpSendAdvertisement(m_event->handle, exp);
+    }
+    upnp_timeout *m_event;
+};
+
 
 int UpnpSendAdvertisementLowPower(
     UpnpDevice_Handle Hnd, int Exp,
@@ -1481,7 +1481,7 @@ int UpnpSendAdvertisementLowPower(
     adEvent->handle = Hnd;
 
     if (checkLockHandle(HND_DEVICE, Hnd, &SInfo) == HND_INVALID) {
-        free_upnp_timeout(adEvent);
+        delete adEvent;
         return UPNP_E_INVALID_HANDLE;
     }
 
@@ -1490,15 +1490,9 @@ int UpnpSendAdvertisementLowPower(
 #else
     time_t thetime = Exp - AUTO_ADVERTISEMENT_TIME;
 #endif
-    retVal = gTimerThread->schedule(
-        TimerThread::SHORT_TERM, TimerThread::REL_SEC, thetime, &adEvent->eventId,
-        thread_autoadvertise, adEvent,reinterpret_cast<ThreadPool::free_routine>(free_upnp_timeout));
-    if (retVal != UPNP_E_SUCCESS) {
-        HandleUnlock();
-        free_upnp_timeout(adEvent);
-        return retVal;
-    }
-
+    auto worker = std::make_unique<AutoAdvertiseJobWorker>(adEvent);
+    retVal = gTimerThread->schedule(TimerThread::SHORT_TERM, TimerThread::REL_SEC, thetime,
+                                    &adEvent->eventId, std::move(worker));
     HandleUnlock();
     return retVal;
 

@@ -210,12 +210,16 @@ struct Notification {
     time_t ctime;        // Age
 };
 
-/* free_func set when creating the ThreadPool job. Always called by
-   the ThreadPool when deleting the job after done or error. */
-static void free_notify_struct(Notification *input)
-{
-    delete input;
-}
+class GenaNotifyJobWorker : public JobWorker {
+public:
+    GenaNotifyJobWorker(Notification *in)
+        : m_input(in) {}
+    virtual ~GenaNotifyJobWorker() {
+        delete m_input;
+    }
+    void work();
+    Notification *m_input;
+};
 
 /*!
  * \brief Thread job to Notify a control point.
@@ -223,9 +227,8 @@ static void free_notify_struct(Notification *input)
  * It validates and copies the subscription so that the lock can be
  * released during the actual network transfer (done by genaNotify())
  */
-static void *thread_genanotify(void *input)
+void GenaNotifyJobWorker::work()
 {
-    auto in = static_cast<Notification *>(input);
     subscription *sub;
     service_info *service;
     subscription sub_copy;
@@ -240,36 +243,36 @@ static void *thread_genanotify(void *input)
     HandleLock();
     /* validate context */
 
-    if (GetHandleInfo(in->device_handle, &handle_info) != HND_DEVICE) {
+    if (GetHandleInfo(m_input->device_handle, &handle_info) != HND_DEVICE) {
         HandleUnlock();
-        return nullptr;
+        return;
     }
 
     if (!(service = FindServiceId(&handle_info->ServiceTable,
-                                  in->servId, in->UDN)) ||
+                                  m_input->servId, m_input->UDN)) ||
         !service->active ||
-        !(sub = GetSubscriptionSID(in->sid, service)) ||
+        !(sub = GetSubscriptionSID(m_input->sid, service)) ||
         copy_subscription(sub, &sub_copy) != UPNP_E_SUCCESS) {
         HandleUnlock();
-        return nullptr;
+        return;
     }
 
     HandleUnlock();
 
     /* send the notify */
-    return_code = genaNotify(in->propertySet, &sub_copy);
+    return_code = genaNotify(m_input->propertySet, &sub_copy);
     HandleLock();
-    if (GetHandleInfo(in->device_handle, &handle_info) != HND_DEVICE) {
+    if (GetHandleInfo(m_input->device_handle, &handle_info) != HND_DEVICE) {
         HandleUnlock();
-        return nullptr;
+        return;
     }
     /* validate context */
     if (!(service = FindServiceId(&handle_info->ServiceTable,
-                                  in->servId, in->UDN)) ||
+                                  m_input->servId, m_input->UDN)) ||
         !service->active ||
-        !(sub = GetSubscriptionSID(in->sid, service))) {
+        !(sub = GetSubscriptionSID(m_input->sid, service))) {
         HandleUnlock();
-        return nullptr;
+        return;
     }
     sub->ToSendEventKey++;
     if (sub->ToSendEventKey < 0)
@@ -284,8 +287,8 @@ static void *thread_genanotify(void *input)
     /* Possibly activate next */
     if (!sub->outgoing.empty()) {
         auto notif = sub->outgoing.begin();
-        gSendThreadPool.addJob(thread_genanotify, *notif,
-                               reinterpret_cast<ThreadPool::free_routine>(free_notify_struct));
+        auto worker = std::make_unique<GenaNotifyJobWorker>(*notif);
+        gSendThreadPool.addJob(std::move(worker));
     }
 
     // No idea why we do this after sending one more event. Was the
@@ -294,10 +297,10 @@ static void *thread_genanotify(void *input)
     // the first Notif then, because it's the only case where it's not
     // managed by a ThreadPool Job (potentially creating a mem leak).
     if (return_code == GENA_E_NOTIFY_UNACCEPTED_REMOVE_SUB)
-        RemoveSubscriptionSID(in->sid, service);
+        RemoveSubscriptionSID(m_input->sid, service);
 
     HandleUnlock();
-    return nullptr;
+    return;
 }
 
 
@@ -357,8 +360,10 @@ int genaInitNotifyXML(
     thread_struct->ctime = time(nullptr);
     thread_struct->device_handle = device_handle;
 
-    ret = gSendThreadPool.addJob(thread_genanotify, thread_struct,
-                                 reinterpret_cast<ThreadPool::free_routine>(free_notify_struct));
+    {
+        auto worker = std::make_unique<GenaNotifyJobWorker>(thread_struct);
+        ret = gSendThreadPool.addJob(std::move(worker));
+    }
     if (ret != 0) {
         line = __LINE__;
         ret = UPNP_E_OUTOF_MEMORY;
@@ -510,9 +515,8 @@ int genaNotifyAllXML(
         /* If there is only one element on the list (which we just
            added), need to kickstart the threadpool */
         if (finger->outgoing.size() == 1) {
-            ret = gSendThreadPool.addJob(
-                thread_genanotify, thread_struct,
-                reinterpret_cast<ThreadPool::free_routine>(free_notify_struct));
+            auto worker = std::make_unique<GenaNotifyJobWorker>(thread_struct);
+            ret = gSendThreadPool.addJob(std::move(worker));
             if (ret != 0) {
                 line = __LINE__;
                 if (ret == EOUTOFMEM) {

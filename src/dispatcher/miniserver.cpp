@@ -466,6 +466,12 @@ static int receive_from_stopSock(SOCKET ssock, fd_set *set)
     return 0;
 }
 
+class MiniServerJobWorker : public JobWorker {
+public:
+    MiniServerJobWorker() = default;
+    virtual ~MiniServerJobWorker() = default;
+    virtual void work();
+};
 /*!
  * \brief Run the miniserver.
  *
@@ -473,7 +479,7 @@ static int receive_from_stopSock(SOCKET ssock, fd_set *set)
  * new request. Checks for socket state and invokes appropriate read and
  * shutdown actions for the Miniserver and SSDP sockets.
  */
-static void *thread_miniserver(void *)
+void MiniServerJobWorker::work()
 {
     char errorBuffer[ERROR_BUFFER_LEN];
     fd_set expSet;
@@ -548,7 +554,7 @@ static void *thread_miniserver(void *)
     miniSocket = nullptr;
     gMServState = MSERV_IDLE;
     gMServStateCV.notify_all();
-    return nullptr;
+    return;
 }
 
 /*!
@@ -737,7 +743,8 @@ int StartMiniServer(uint16_t *listen_port4, uint16_t *listen_port6)
 
     {
         std::unique_lock<std::mutex> lck(gMServStateMutex);
-        ret_code = gMiniServerThreadPool.addPersistent(thread_miniserver, miniSocket);
+        auto worker = std::make_unique<MiniServerJobWorker>();
+        ret_code = gMiniServerThreadPool.addPersistent(std::move(worker));
         if (ret_code != 0) {
             ret_code = UPNP_E_OUTOF_MEMORY;
             goto out;

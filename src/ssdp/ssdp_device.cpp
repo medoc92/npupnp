@@ -80,21 +80,21 @@ struct SSDPCommonData {
     std::string prodvers;
 };
 
-static void del_ssdpsearchreply(void *p)
-{
-    delete static_cast<SsdpSearchReply *>(p);
-}
-
-static void *thread_advertiseandreply(void *data)
-{
-    auto arg = static_cast<SsdpSearchReply *>(data);
-
-    AdvertiseAndReply(arg->handle, MSGTYPE_REPLY, 
-                      arg->MaxAge,
-                      reinterpret_cast<struct sockaddr *>(&arg->dest_addr),
-                      arg->event);
-    return nullptr;
-}
+class SSDPSearchJobWorker : public JobWorker {
+public:
+    SSDPSearchJobWorker(SsdpSearchReply *reply)
+        : m_reply(reply) {}
+    virtual ~SSDPSearchJobWorker() {
+        delete m_reply;
+    }
+    virtual void work() {
+        AdvertiseAndReply(m_reply->handle, MSGTYPE_REPLY, 
+                          m_reply->MaxAge,
+                          reinterpret_cast<struct sockaddr *>(&m_reply->dest_addr),
+                          m_reply->event);
+    }
+    SsdpSearchReply *m_reply;
+};
 
 void ssdp_handle_device_request(SSDPPacketParser& parser,
                                 struct sockaddr_storage *dest_addr)
@@ -156,8 +156,6 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
                    "ServiceType =  %s\n", event.ServiceType.c_str());
 
         auto threadArg = new SsdpSearchReply;
-        if (threadArg == nullptr)
-            return;
         threadArg->handle = handle;
         memcpy(&threadArg->dest_addr, dest_addr, sizeof(threadArg->dest_addr));
         threadArg->event = event;
@@ -168,9 +166,9 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
         int delayms = rand() %    (mx * 1000 - 100);
         UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
                    "ssdp_handle_device_req: scheduling resp in %d ms\n",delayms);
-        gTimerThread->schedule(
-            TimerThread::SHORT_TERM, std::chrono::milliseconds(delayms),
-            nullptr, thread_advertiseandreply, threadArg, del_ssdpsearchreply);
+        auto worker = std::make_unique<SSDPSearchJobWorker>(threadArg);
+        gTimerThread->schedule(TimerThread::SHORT_TERM, std::chrono::milliseconds(delayms),
+                               nullptr, std::move(worker));
         start = handle;
     }
 }

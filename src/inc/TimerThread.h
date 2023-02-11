@@ -83,25 +83,19 @@ public:
         time_t time, 
         /* [out] Id of timer event. (can be null). */
         int *id,
-        start_routine func,
-        void *arg = nullptr, 
-        ThreadPool::free_routine free_func = nullptr,
+        std::unique_ptr<JobWorker> worker,
         ThreadPool::ThreadPriority priority = ThreadPool::MED_PRIORITY);
 
     int schedule(Duration persistence, std::chrono::system_clock::time_point when, 
         /* [out] Id of timer event. (can be null). */
         int *id,
-        start_routine func,
-        void *arg = nullptr, 
-        ThreadPool::free_routine free_func = nullptr,
+        std::unique_ptr<JobWorker> worker,
         ThreadPool::ThreadPriority priority = ThreadPool::MED_PRIORITY);
 
     int schedule(Duration persistence, std::chrono::milliseconds delay, 
         /* [out] Id of timer event. (can be null). */
         int *id,
-        start_routine func,
-        void *arg = nullptr, 
-        ThreadPool::free_routine free_func = nullptr,
+        std::unique_ptr<JobWorker> worker,
         ThreadPool::ThreadPriority priority = ThreadPool::MED_PRIORITY);
 
     /*!

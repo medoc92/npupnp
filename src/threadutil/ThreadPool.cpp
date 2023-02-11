@@ -62,18 +62,12 @@ using namespace std::chrono;
 
 /*! Internal ThreadPool Job. */
 struct ThreadPoolJob {
-    ThreadPoolJob(start_routine _func,
-                  void *_arg, ThreadPool::free_routine _frfunc,
-                  ThreadPool::ThreadPriority _prio)
-        : func(_func), arg(_arg), free_func(_frfunc), priority(_prio) {
+    ThreadPoolJob(std::unique_ptr<JobWorker> worker, ThreadPool::ThreadPriority _prio)
+        : priority(_prio) {
+        m_worker = std::move(worker);
     }
-    ~ThreadPoolJob() {
-        if (free_func)
-            free_func(arg);
-    }
-    start_routine func;
-    void *arg;
-    ThreadPool::free_routine free_func;
+    ~ThreadPoolJob() = default;
+    std::unique_ptr<JobWorker> m_worker;
     ThreadPool::ThreadPriority priority;
     steady_clock::time_point requestTime;
     int jobId;
@@ -316,8 +310,7 @@ void ThreadPool::Internal::bumpPriority()
 
     while (!done) {
         if (!medJobQ.empty()) {
-            auto diffTime = duration_cast<milliseconds>(
-                now - medJobQ.front()->requestTime).count();
+            auto diffTime = duration_cast<milliseconds>(now - medJobQ.front()->requestTime).count();
             if (diffTime >= attr.starvationTime) {
                 /* If job has waited longer than the starvation time
                  * bump priority (add to higher priority Q) */
@@ -328,8 +321,7 @@ void ThreadPool::Internal::bumpPriority()
             }
         }
         if (!lowJobQ.empty()) {
-            auto diffTime = duration_cast<milliseconds>(
-                now - lowJobQ.front()->requestTime).count();
+            auto diffTime = duration_cast<milliseconds>(now - lowJobQ.front()->requestTime).count();
             if (diffTime >= attr.maxIdleTime) {
                 /* If job has waited longer than the starvation time
                  * bump priority (add to higher priority Q) */
@@ -466,7 +458,7 @@ void ThreadPool::Internal::WorkerThread() {
 
         SetPriority(job->priority);
         /* run the job */
-        job->func(job->arg);
+        job->m_worker->work();
         /* return to Normal */
         SetPriority(ThreadPool::MED_PRIORITY);
     }
@@ -584,9 +576,7 @@ ThreadPool::Internal::Internal(ThreadPoolAttr *attr)
     }
 }
 
-int ThreadPool::addPersistent(start_routine func, void *arg, 
-                              free_routine free_func,
-                              ThreadPriority priority)
+int ThreadPool::addPersistent(std::unique_ptr<JobWorker> worker, ThreadPriority priority)
 {
     std::unique_lock<std::mutex> lck(m->mutex);
 
@@ -600,7 +590,7 @@ int ThreadPool::addPersistent(start_routine func, void *arg,
             return EMAXTHREADS;
     }
 
-    auto job = std::make_unique<ThreadPoolJob>(std::move(func), arg, std::move(free_func), priority);
+    auto job = std::make_unique<ThreadPoolJob>(std::move(worker), priority);
     job->jobId = m->lastJobId;
     job->requestTime = steady_clock::now();
     m->persistentJob = std::move(job);
@@ -616,8 +606,7 @@ int ThreadPool::addPersistent(start_routine func, void *arg,
     return 0;
 }
 
-int ThreadPool::addJob(
-    start_routine func, void *arg, free_routine free_func, ThreadPriority prio)
+int ThreadPool::addJob(std::unique_ptr<JobWorker> worker, ThreadPriority prio)
 {
     std::unique_lock<std::mutex> lck(m->mutex);
 
@@ -627,7 +616,7 @@ int ThreadPool::addJob(
         return 0;
     }
 
-    auto job = std::make_unique<ThreadPoolJob>(std::move(func), arg, std::move(free_func), prio);
+    auto job = std::make_unique<ThreadPoolJob>(std::move(worker), prio);
     job->jobId =  m->lastJobId;
     job->requestTime = steady_clock::now();
     switch (job->priority) {

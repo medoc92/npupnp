@@ -46,7 +46,6 @@ nnn * Redistribution and use in source and binary forms, with or without
 #include "upnp.h"
 #include "ssdpparser.h"
 #include "httputils.h"
-#include "ssdp_ResultData.h"
 #include "ssdplib.h"
 #include "statcodes.h"
 #include "upnpapi.h"
@@ -55,17 +54,31 @@ nnn * Redistribution and use in source and binary forms, with or without
 #include "genut.h"
 #include "inet_pton.h"
 
+/*! Structure to contain Discovery response. */
+struct ResultData {
+    struct Upnp_Discovery param;
+    void *cookie;
+    Upnp_FunPtr ctrlpt_callback;
+};
+
 /*!
  * \brief Sends a callback to the control point application with a SEARCH
  * result.
  */
-static void* thread_cb_search_result(void *data)
-{
-    auto temp = static_cast<ResultData *>(data);
-    temp->ctrlpt_callback(UPNP_DISCOVERY_SEARCH_RESULT, &temp->param,
-                          temp->cookie);
-    return nullptr;
-}
+class SearchResultJobWorker : public JobWorker {
+public:
+    SearchResultJobWorker(ResultData *res)
+        : m_resultdata(res) {}
+    virtual ~SearchResultJobWorker() {
+        delete m_resultdata;
+    }
+    void work() {
+        m_resultdata->ctrlpt_callback(UPNP_DISCOVERY_SEARCH_RESULT, &m_resultdata->param,
+                                      m_resultdata->cookie);
+        return;
+    }
+    ResultData *m_resultdata;
+};
 
 void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
                             struct sockaddr_storage *dest_addr,
@@ -83,7 +96,6 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
     Upnp_FunPtr ctrlpt_callback;
     void *ctrlpt_cookie;
     int matched = 0;
-    ResultData *threadData = nullptr;
 
     /* Get client info. We are assuming that there can be only one
        client supported at a time */
@@ -244,17 +256,12 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
             }
             if (matched) {
                 /* schedule call back */
-                threadData = static_cast<ResultData *>(malloc(sizeof(ResultData)));
-                if (threadData != nullptr) {
-                    threadData->param = param;
-                    threadData->cookie = searchArg->cookie;
-                    threadData->ctrlpt_callback = ctrlpt_callback;
-                    if (gRecvThreadPool.addJob(
-                            thread_cb_search_result, threadData,
-                            static_cast<ThreadPool::free_routine>(free)) != 0) {
-                        free(threadData);
-                    }
-                }
+                ResultData *threadData = new ResultData;
+                threadData->param = param;
+                threadData->cookie = searchArg->cookie;
+                threadData->ctrlpt_callback = ctrlpt_callback;
+                auto worker = std::make_unique<SearchResultJobWorker>(threadData);
+                gRecvThreadPool.addJob(std::move(worker));
             }
         }
 
@@ -317,28 +324,33 @@ static int CreateClientRequestPacketUlaGua(
 }
 #endif /* UPNP_ENABLE_IPV6_AND_ULAGUA */
 
-static void *thread_searchexpired(void *arg)
-{
-    int *id = static_cast<int *>(arg);
+class SearchExpiredJobWorker : public JobWorker {
+public:
+    SearchExpiredJobWorker() = default;
+    virtual ~SearchExpiredJobWorker() = default;
+    void work();
+    int m_id;
+};
 
+void SearchExpiredJobWorker::work()
+{
     HandleLock();
 
     int handle;
     struct Handle_Info *ctrlpt_info;
     if (GetClientHandleInfo(&handle, &ctrlpt_info) != HND_CLIENT) {
-        free(id);
         HandleUnlock();
-        return nullptr;
+        return;
     }
 
     Upnp_FunPtr ctrlpt_callback = ctrlpt_info->Callback;
     void *cookie;
     int found = 0;
-
+    int id = m_id;
     auto it = std::find_if(
         ctrlpt_info->SsdpSearchList.begin(),
         ctrlpt_info->SsdpSearchList.end(),
-        [id](const std::unique_ptr<SsdpSearchArg>& item) { return item->timeoutEventId == *id; });
+        [id](const std::unique_ptr<SsdpSearchArg>& item) {return item->timeoutEventId == id;});
 
     if (it != ctrlpt_info->SsdpSearchList.end()) {
         cookie = (*it)->cookie;
@@ -349,7 +361,7 @@ static void *thread_searchexpired(void *arg)
 
     if (found)
         ctrlpt_callback(UPNP_DISCOVERY_SEARCH_TIMEOUT, nullptr, cookie);
-    return nullptr;
+    return;
 }
 
 int SearchByTarget(int Mx, char *St, void *Cookie)
@@ -385,14 +397,12 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
         return UPNP_E_INTERNAL_ERROR;
     }
     auto newArg = std::make_unique<SsdpSearchArg>(St, Cookie, requestType);
-    auto id = static_cast<int *>(malloc(sizeof(int)));
-
     /* Schedule a timeout event to remove search Arg */
-    gTimerThread->schedule(
-        TimerThread::SHORT_TERM, TimerThread::REL_SEC, timeTillRead,  id,
-        thread_searchexpired, id, static_cast<ThreadPool::free_routine>(free));
-
-    newArg->timeoutEventId = *id;
+    auto worker = std::make_unique<SearchExpiredJobWorker>();
+    int *idp = &(worker->m_id);
+    gTimerThread->schedule(TimerThread::SHORT_TERM, TimerThread::REL_SEC, timeTillRead,
+                           idp, std::move(worker));
+    newArg->timeoutEventId = *idp;
     ctrlpt_info->SsdpSearchList.push_back(std::move(newArg));
 
     HandleUnlock();

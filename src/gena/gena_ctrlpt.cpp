@@ -100,15 +100,24 @@ struct upnp_timeout_data_subscribe : public upnp_timeout_data {
     struct Upnp_Event_Subscribe sub;
 };
 
+class AutoRenewSubscriptionJobWorker : public JobWorker {
+public:
+    AutoRenewSubscriptionJobWorker(upnp_timeout *ev)
+        : m_event(ev) {}
+    ~AutoRenewSubscriptionJobWorker() {
+        deleteZ(m_event);
+    }
+    void work();
+    upnp_timeout *m_event;
+};
+    
 /*!
  * \brief This is a thread function to send the renewal just before the
  * subscription times out.
  */
-static void *thread_autorenewsubscription(
-    /*! [in] Thread data(upnp_timeout *) needed to send the renewal. */
-    void *input)
+void AutoRenewSubscriptionJobWorker::work()
 {
-    auto event = static_cast<upnp_timeout *>(input);
+    auto event = m_event;
     auto sub_struct = &(dynamic_cast<upnp_timeout_data_subscribe*>(event->Event)->sub);
     int send_callback = 0;
     Upnp_EventType eventType = UPNP_EVENT_AUTORENEWAL_FAILED;
@@ -137,8 +146,7 @@ static void *thread_autorenewsubscription(
         struct Handle_Info *handle_info;
         if (GetHandleInfo(event->handle, &handle_info) != HND_CLIENT) {
             HandleUnlock();
-            free_upnp_timeout(event);
-            return nullptr;
+            return;
         }
 
         /* make callback */
@@ -146,7 +154,7 @@ static void *thread_autorenewsubscription(
         HandleUnlock();
         callback_fun(eventType, sub_struct, handle_info->Cookie);
     }
-    return nullptr;
+    return;
 }
 
 
@@ -181,13 +189,12 @@ static int ScheduleGenaAutoRenew(
     RenewEvent->Event = RenewEventStruct;
 
     /* Schedule the job */
+    auto worker = std::make_unique<AutoRenewSubscriptionJobWorker>(RenewEvent);
     int return_code = gTimerThread->schedule(
         TimerThread::SHORT_TERM, TimerThread::REL_SEC, TimeOut - AUTO_RENEW_TIME,
-        &(RenewEvent->eventId), thread_autorenewsubscription, RenewEvent,
-        reinterpret_cast<ThreadPool::free_routine>(free_upnp_timeout));
+        &(RenewEvent->eventId), std::move(worker));
 
     if (return_code != UPNP_E_SUCCESS) {
-        free_upnp_timeout(RenewEvent);
         return return_code;
     }
 

@@ -36,6 +36,7 @@
 
 #include <list>
 #include <string>
+#include <memory>
 
 #include <errno.h>
 #ifdef __MINGW32__
@@ -48,7 +49,11 @@
 #define EMAXTHREADS -2
 #define INVALID_POLICY -3
 
-typedef void *(*start_routine)(void*);
+class JobWorker {
+public:
+    virtual ~JobWorker() = default;
+    virtual void work() = 0;
+};
 
 /* Attributes for thread pool. Used to set and change parameters. */
 #ifndef SCHED_OTHER
@@ -120,8 +125,6 @@ struct ThreadPoolStats {
 class ThreadPool {
 public:
     enum ThreadPriority {LOW_PRIORITY, MED_PRIORITY, HIGH_PRIORITY};
-    /* Function for freeing a thread argument. */
-    typedef void (*free_routine)(void *arg);
 
     ThreadPool();
     // See comments in undef'd out destructor in ThreadPool.cpp
@@ -131,9 +134,7 @@ public:
     int start(ThreadPoolAttr *attr = nullptr);
 
     /* Add regular job. To be scheduled asap, we don't wait for it to start */
-    int addJob(start_routine func,
-               void *arg = nullptr, free_routine free_func = nullptr, 
-               ThreadPriority priority = MED_PRIORITY);
+    int addJob(std::unique_ptr<JobWorker> worker, ThreadPriority priority = MED_PRIORITY);
 
     /*!
      * \brief Adds a persistent job to the thread pool.
@@ -145,9 +146,7 @@ public:
      *    \li \c EOUTOFMEM not enough memory to add job.
      *    \li \c EMAXTHREADS not enough threads to add persistent job.
      */
-    int addPersistent(start_routine func, void *arg = nullptr, 
-                      free_routine free_func = nullptr,
-                      ThreadPriority priority = MED_PRIORITY);
+    int addPersistent(std::unique_ptr<JobWorker> worker, ThreadPriority priority = MED_PRIORITY);
 
     /*!
      * \brief Gets the current set of attributes associated with the

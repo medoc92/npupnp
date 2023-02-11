@@ -138,30 +138,6 @@ int ssdp_request_type(const char *cmd, SsdpEntity *Evt)
 }
 
 
-#define BUFSIZE   size_t(2500)
-struct ssdp_thread_data {
-    // The data packet is transferred to the parser, keep as pointer
-    char *packet{nullptr};
-    struct sockaddr_storage dest_addr;
-};
-
-/*!
- * \brief Frees the ssdp request.
- * arg is cast to *ssdp_thread_data pointer
- */
-static void free_ssdp_event_handler_data(void *arg)
-{
-    auto data = static_cast<ssdp_thread_data *>(arg);
-
-    if (nullptr == data) {
-        return;
-    }
-    if (data->packet) {
-        free(data->packet);
-    }
-    free(data);
-}
-
 /*!
  * \brief Does some quick checking of an ssdp request msg.
  *
@@ -207,71 +183,91 @@ static http_method_t valid_ssdp_msg(SSDPPacketParser& parser)
     return method;
 }
 
-/* Thread routine to process one received SSDP message */
-static void *thread_ssdp_event_handler(void *the_data)
-{
-    auto data = static_cast<ssdp_thread_data *>(the_data);
+#define BUFSIZE   size_t(2500)
+struct ssdp_thread_data {
+    ssdp_thread_data() {
+        m_packet = static_cast<char*>(malloc(BUFSIZE));
+        if (nullptr == m_packet) {
+            std::cerr << "Out of memory in readFromSSDPSocket\n";
+            abort();
+        }
+    }        
+    ~ssdp_thread_data() {
+        if (m_packet) {
+            free(m_packet);
+        }
+    }
+    size_t size() {return BUFSIZE;}
+    char *packet() { return m_packet; }
+    // For transferring the data packet ownership to the parser.
+    char *giveuppacket() {
+        auto p = m_packet;
+        m_packet = nullptr;
+        return p;
+    }
+    struct sockaddr_storage dest_addr;
+private:
+    char *m_packet{nullptr};
+};
 
+class SSDPEventHandlerJobWorker : public JobWorker {
+public:
+    SSDPEventHandlerJobWorker(ssdp_thread_data *data)
+        : m_data(data) {}
+    virtual ~SSDPEventHandlerJobWorker() {
+        delete m_data;
+    }
+    void work();
+    ssdp_thread_data *m_data;
+};
+
+/* Thread routine to process one received SSDP message */
+void SSDPEventHandlerJobWorker::work()
+{
     // The parser takes ownership of the buffer
-    SSDPPacketParser parser(data->packet);
-    data->packet = nullptr;
+    SSDPPacketParser parser(m_data->giveuppacket());
     if (!parser.parse()) {
         UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,    "SSDP parser error\n");
-        return nullptr;
+        return;
     }
 
     http_method_t method = valid_ssdp_msg(parser);
     if (method == HTTPMETHOD_UNKNOWN) {
         UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,    "SSDP unknown method\n");
-        return nullptr;
+        return;
     }
 
     /* Dispatch message to device or ctrlpt */
     if (method == HTTPMETHOD_NOTIFY ||
         (parser.isresponse && method == HTTPMETHOD_MSEARCH)) {
 #ifdef INCLUDE_CLIENT_APIS
-        ssdp_handle_ctrlpt_msg(parser, &data->dest_addr, nullptr);
+        ssdp_handle_ctrlpt_msg(parser, &m_data->dest_addr, nullptr);
 #endif /* INCLUDE_CLIENT_APIS */
     } else {
-        ssdp_handle_device_request(parser, &data->dest_addr);
+        ssdp_handle_device_request(parser, &m_data->dest_addr);
     }
-    return nullptr;
+    return;
 }
 
 void readFromSSDPSocket(SOCKET socket)
 {
-    auto data =
-        static_cast<ssdp_thread_data*>(malloc(sizeof(ssdp_thread_data)));
-    if (!data) {
-        std::cerr << "Out of memory in readFromSSDPSocket\n";
-        abort();
-    }
-    data->packet = static_cast<char*>(malloc(BUFSIZE));
-    if (!data->packet) {
-        std::cerr << "Out of memory in readFromSSDPSocket\n";
-        abort();
-    }
-    
-    struct sockaddr_storage saddr;
-    auto sap = reinterpret_cast<struct sockaddr *>(&saddr);
-    socklen_t socklen = sizeof(saddr);
-    ssize_t cnt = recvfrom(socket, data->packet, BUFSIZE - 1, 0, sap, &socklen);
+    auto data = new ssdp_thread_data;
+    auto sap = reinterpret_cast<struct sockaddr *>(&data->dest_addr);
+    socklen_t socklen = sizeof(data->dest_addr);
+    ssize_t cnt = recvfrom(socket, data->packet(), data->size() - 1, 0, sap, &socklen);
     if (cnt > 0) {
-        data->packet[cnt] = '\0';
+        data->packet()[cnt] = '\0';
         NetIF::IPAddr nipa(sap);
         UpnpPrintf(UPNP_ALL, SSDP, __FILE__, __LINE__,
                    "\nSSDP message from host %s --------------------\n"
                    "%s\n"
                    "End of received data -----------------------------\n",
-                   nipa.straddr().c_str(), data->packet);
+                   nipa.straddr().c_str(), data->packet());
         /* add thread pool job to handle request */
-        memcpy(&data->dest_addr, &saddr, sizeof(saddr));
-        if (gRecvThreadPool.addJob(thread_ssdp_event_handler, data,
-                                   free_ssdp_event_handler_data) != 0) {
-            free_ssdp_event_handler_data(data);
-        }
+        auto worker = std::make_unique<SSDPEventHandlerJobWorker>(data);
+        gRecvThreadPool.addJob(std::move(worker));
     } else {
-        free_ssdp_event_handler_data(data);
+        delete data;
     }
 }
 

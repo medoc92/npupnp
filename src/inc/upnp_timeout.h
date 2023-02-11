@@ -54,11 +54,5 @@ struct upnp_timeout {
     }
 };
 
-
-inline void free_upnp_timeout(upnp_timeout *event) {
-    delete event;
-}
-
-
 #endif /* UPNPTIMEOUT_H */
 
