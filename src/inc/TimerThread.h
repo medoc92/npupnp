@@ -33,8 +33,9 @@
 #ifndef TIMERTHREAD_H
 #define TIMERTHREAD_H
 
-#include <list>
 #include <chrono>
+#include <list>
+#include <memory>
 
 #include "ThreadPool.h"
 
@@ -121,7 +122,7 @@ public:
 
     class Internal;
 private:
-    Internal *m;
+    std::unique_ptr<Internal> m;
 };
 
 #endif /* TIMER_THREAD_H */

@@ -35,6 +35,7 @@
 #define THREADPOOL_H
 
 #include <list>
+#include <memory>
 #include <string>
 #include <memory>
 
@@ -128,7 +129,7 @@ public:
 
     ThreadPool();
     // See comments in undef'd out destructor in ThreadPool.cpp
-    ~ThreadPool() = default;
+    ~ThreadPool();
 
     /* Initialize things and start up returns 0 if ok */
     int start(ThreadPoolAttr *attr = nullptr);
@@ -185,7 +186,7 @@ public:
 
     class Internal;
 private:
-    Internal *m;
+    std::unique_ptr<Internal> m;
 };
 
 #endif /* THREADPOOL_H */

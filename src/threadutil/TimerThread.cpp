@@ -145,13 +145,10 @@ TimerThread::TimerThread(ThreadPool *tp)
     if (nullptr == tp) {
         return;
     }
-    m = new Internal(tp);
+    m = std::make_unique<Internal>(tp);
 }
 
-TimerThread::~TimerThread()
-{
-    delete m;
-}
+TimerThread::~TimerThread() = default;
 
 int TimerThread::schedule(
     Duration persistence, std::chrono::system_clock::time_point when, int *id,
