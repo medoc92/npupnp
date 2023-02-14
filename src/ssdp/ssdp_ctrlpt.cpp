@@ -257,7 +257,7 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
             }
             if (matched) {
                 /* schedule call back */
-                ResultData *threadData = new ResultData;
+                auto threadData = new ResultData;
                 threadData->param = param;
                 threadData->cookie = searchArg->cookie;
                 threadData->ctrlpt_callback = ctrlpt_callback;

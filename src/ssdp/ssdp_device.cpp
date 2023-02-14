@@ -480,7 +480,7 @@ static int SendReply(
     char Mil_Usn[LINE_SIZE];
     int i;
     int rc = 0;
-    int family = static_cast<int>(sscd.DestAddr->sa_family);
+    auto family = static_cast<int>(sscd.DestAddr->sa_family);
 
     if (RootDev) {
         /* one msg for root device */
@@ -527,7 +527,7 @@ static int DeviceReply(
     std::string szReq[3];
     char Mil_Nt[LINE_SIZE], Mil_Usn[LINE_SIZE];
     int rc = 0;
-    int family = static_cast<int>(sscd.DestAddr->sa_family);
+    auto family = static_cast<int>(sscd.DestAddr->sa_family);
 
     /* create 2 or 3 msgs */
     if (RootDev) {

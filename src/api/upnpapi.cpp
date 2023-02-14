@@ -969,7 +969,7 @@ static int registerRootDeviceAllForms(
 #if EXCLUDE_GENA == 0
     int hasServiceTable = 0;
 #endif /* EXCLUDE_GENA */
-    char *description = const_cast<char *>(description_const);
+    auto description = const_cast<char *>(description_const);
 
     HandleLock();
 
@@ -1476,7 +1476,7 @@ int UpnpSendAdvertisementLowPower(
     if(retVal != UPNP_E_SUCCESS)
         return retVal;
 
-    upnp_timeout *adEvent = new upnp_timeout;
+    auto adEvent = new upnp_timeout;
     auto adEventData = new upnp_timeout_data_int;
     adEventData->exp = Exp;
     adEvent->Event = adEventData;
