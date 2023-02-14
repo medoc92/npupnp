@@ -1,31 +1,31 @@
 /*******************************************************************************
  *
- * Copyright (c) 2000-2003 Intel Corporation 
- * All rights reserved. 
- * Copyright (c) 2012 France Telecom All rights reserved. 
+ * Copyright (c) 2000-2003 Intel Corporation
+ * All rights reserved.
+ * Copyright (c) 2012 France Telecom All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
- * modification, are permitted provided that the following conditions are met: 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- * - Redistributions of source code must retain the above copyright notice, 
- * this list of conditions and the following disclaimer. 
- * - Redistributions in binary form must reproduce the above copyright notice, 
- * this list of conditions and the following disclaimer in the documentation 
- * and/or other materials provided with the distribution. 
- * - Neither name of Intel Corporation nor the names of its contributors 
- * may be used to endorse or promote products derived from this software 
+ * - Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * - Neither name of Intel Corporation nor the names of its contributors
+ * may be used to endorse or promote products derived from this software
  * without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL INTEL OR 
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL INTEL OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  ******************************************************************************/
@@ -107,10 +107,12 @@ public:
     ~AutoRenewSubscriptionJobWorker() override {
         deleteZ(m_event);
     }
+    AutoRenewSubscriptionJobWorker(const AutoRenewSubscriptionJobWorker&) = delete;
+    AutoRenewSubscriptionJobWorker& operator=(const AutoRenewSubscriptionJobWorker&) = delete;
     void work() override;
     upnp_timeout *m_event;
 };
-    
+
 /*!
  * \brief This is a thread function to send the renewal just before the
  * subscription times out.
@@ -280,8 +282,7 @@ static std::string myCallbackUrl(NetIF::IPAddr& netaddr)
 }
 
 struct CurlGuard {
-    CURL *htalk{nullptr};
-    struct curl_slist *hlist{nullptr};
+    CurlGuard() = default;
     ~CurlGuard() {
         if (htalk) {
             curl_easy_cleanup(htalk);
@@ -290,6 +291,10 @@ struct CurlGuard {
             curl_slist_free_all(hlist);
         }
     }
+    CurlGuard(const CurlGuard&) = delete;
+    CurlGuard& operator=(const CurlGuard&) = delete;
+    CURL *htalk{nullptr};
+    struct curl_slist *hlist{nullptr};
 };
 
 /*!
@@ -324,7 +329,7 @@ static int gena_subscribe(
     } else {
         timostr << *timeout;
     }
-    
+
     /* parse url */
     uri_type dest_url;
     int return_code = http_FixStrUrl(url, &dest_url);
@@ -346,11 +351,11 @@ static int gena_subscribe(
                    "Could not find the interface for the destination address\n");
         return UPNP_E_SOCKET_CONNECT;
     }
-       
+
     CurlGuard hdls;
     std::map<std::string, std::string> http_headers;
     char curlerrormessage[CURL_ERROR_SIZE];
-    
+
     hdls.htalk = curl_easy_init();
     curl_easy_setopt(hdls.htalk, CURLOPT_ERRORBUFFER, curlerrormessage);
     curl_easy_setopt(hdls.htalk, CURLOPT_WRITEFUNCTION, write_callback_null_curl);
@@ -413,7 +418,7 @@ static int gena_subscribe(
     *sid = itsid->second;
     UpnpPrintf(UPNP_ALL,GENA,__FILE__,__LINE__, "gena_subscribe ok: SID [%s] timeout %d\n",
                itsid->second.c_str(), *timeout);
-    
+
     return UPNP_E_SUCCESS;
 }
 
@@ -620,7 +625,7 @@ public:
     UPnPPropertysetParser(
         // XML to be parsed
         const std::string& input,
-        // Output data 
+        // Output data
         std::unordered_map<std::string, std::string>& propd)
         : XMLPARSERTP(input),  propdata(propd) {
     }
@@ -651,7 +656,7 @@ private:
 void gena_process_notification_event(MHDTransaction *mhdt)
 {
     UpnpPrintf(UPNP_ALL, GENA, __FILE__, __LINE__, "gena_process_notification_event\n");
-    
+
     auto itsid = mhdt->headers.find("sid");
     /* get SID */
     if (itsid == mhdt->headers.end()) {
@@ -761,7 +766,7 @@ void gena_process_notification_event(MHDTransaction *mhdt)
             UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
                        "gena_process_notification_event: could not find subscription "
                        "but event key not 0 (%d)\n", eventKey);
-            
+
             http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
             HandleUnlock();
             return;

@@ -1,32 +1,32 @@
 /*******************************************************************************
  *
- * Copyright (c) 2000-2003 Intel Corporation 
- * All rights reserved. 
- * Copyright (c) 2012 France Telecom All rights reserved. 
+ * Copyright (c) 2000-2003 Intel Corporation
+ * All rights reserved.
+ * Copyright (c) 2012 France Telecom All rights reserved.
  * Copyright (c) 2020 J.F. Dockes <jf@dockes.org>
  *
- * Redistribution and use in source and binary forms, with or without 
- * modification, are permitted provided that the following conditions are met: 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- * - Redistributions of source code must retain the above copyright notice, 
- * this list of conditions and the following disclaimer. 
- * - Redistributions in binary form must reproduce the above copyright notice, 
- * this list of conditions and the following disclaimer in the documentation 
- * and/or other materials provided with the distribution. 
- * - Neither name of Intel Corporation nor the names of its contributors 
- * may be used to endorse or promote products derived from this software 
+ * - Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * - Neither name of Intel Corporation nor the names of its contributors
+ * may be used to endorse or promote products derived from this software
  * without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL INTEL OR 
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL INTEL OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  ******************************************************************************/
@@ -120,9 +120,9 @@ static int GeneratePropertySet(
  *     appropriate error code.
  *
  * The only code which has specific processing is
- * GENA_E_NOTIFY_UNACCEPTED_REMOVE_SUB which results in clearing the 
+ * GENA_E_NOTIFY_UNACCEPTED_REMOVE_SUB which results in clearing the
  * subscription. This can only happen if the HTTP transaction is
- * network-successful but has an HTTP status of 412, which results in 
+ * network-successful but has an HTTP status of 412, which results in
  * clearing the subscription (else, subscriptions are only removed
  * when they time-out).
  * The previous version had more detailed error codes, but all other
@@ -146,8 +146,8 @@ static int genaNotify(const std::string& propertySet, const subscription *sub)
                          long(GENA_NOTIFICATION_SENDING_TIMEOUT +
                               GENA_NOTIFICATION_ANSWERING_TIMEOUT)/2);
         curl_easy_setopt(easy, CURLOPT_POST, long(1));
-        curl_easy_setopt(easy, CURLOPT_POSTFIELDS, propertySet.c_str()); 
-        curl_easy_setopt(easy, CURLOPT_CUSTOMREQUEST, "NOTIFY"); 
+        curl_easy_setopt(easy, CURLOPT_POSTFIELDS, propertySet.c_str());
+        curl_easy_setopt(easy, CURLOPT_CUSTOMREQUEST, "NOTIFY");
 
         struct curl_slist *list = nullptr;
         list = curl_slist_append(list, "NT: upnp:event");
@@ -156,7 +156,7 @@ static int genaNotify(const std::string& propertySet, const subscription *sub)
         char buff[100];
         snprintf(buff, 100, "%d", sub->ToSendEventKey);
         list = curl_slist_append(list, (std::string("SEQ: ") + buff).c_str());
-        
+
         list = curl_slist_append(list, "Accept:");
         list = curl_slist_append(list, "Expect:");
         list = curl_slist_append(list, R"(Content-Type: text/xml; charset="utf-8")");
@@ -217,6 +217,8 @@ public:
     ~GenaNotifyJobWorker() override {
         delete m_input;
     }
+    GenaNotifyJobWorker(const GenaNotifyJobWorker&) = delete;
+    GenaNotifyJobWorker& operator=(const GenaNotifyJobWorker&) = delete;
     void work() override;
     Notification *m_input;
 };
@@ -280,7 +282,7 @@ void GenaNotifyJobWorker::work()
         sub->ToSendEventKey = 1;
 
     /* Remove head of event queue. Do not delete it, the ThreadJob free_func
-       will do it */ 
+       will do it */
     if (!sub->outgoing.empty()) {
         sub->outgoing.pop_front();
     }
@@ -470,7 +472,7 @@ int genaNotifyAllXML(
     int ret = GENA_SUCCESS;
     int line = 0;
     std::list<subscription>::iterator finger;
-    
+
     Notification *thread_struct = nullptr;
 
     service_info *service = nullptr;
@@ -485,7 +487,7 @@ int genaNotifyAllXML(
         line = __LINE__;
         ret = GENA_E_BAD_HANDLE;
         goto ExitFunction;
-    } 
+    }
 
     service = FindServiceId(&handle_info->ServiceTable, servId, UDN);
     if (service == nullptr) {
@@ -493,7 +495,7 @@ int genaNotifyAllXML(
         ret = GENA_E_BAD_SERVICE;
         goto ExitFunction;
     }
-    
+
     finger = GetFirstSubscription(service);
     while (finger != service->subscriptionList.end()) {
         thread_struct = new Notification;
@@ -657,7 +659,7 @@ static int create_url_list(
         UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
                    "create_url_list: can't determine client addr\n");
         return UPNP_E_INVALID_INTERFACE;
-    }        
+    }
     UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
                "create_url_list: client address: %s\n",claddr.straddr().c_str());
     NetIF::IPAddr hostaddr;
@@ -811,7 +813,7 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
     if (!timeout_header_value(mhdt->headers, &time_out)) {
         time_out = GENA_DEFAULT_TIMEOUT;
     }
-    
+
     /* replace infinite timeout with max timeout, if possible */
     if (handle_info->MaxSubscriptionTimeOut != -1) {
         if (time_out == -1 || time_out > handle_info->MaxSubscriptionTimeOut) {
@@ -881,7 +883,7 @@ void gena_process_subscription_renewal_request(MHDTransaction *mhdt)
     Upnp_SID sid = itsid->second;
 
     HandleLock();
-    
+
     if (GetDeviceHandleInfoForPath(
             mhdt->url, &device_handle, &handle_info, &service) != HND_DEVICE ) {
         http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
@@ -941,7 +943,7 @@ void gena_process_unsubscribe_request(MHDTransaction *mhdt)
 {
     UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
                    "gena_process_unsubscribe_request\n");
-    
+
     service_info *service;
     struct Handle_Info *handle_info;
     UpnpDevice_Handle device_handle;

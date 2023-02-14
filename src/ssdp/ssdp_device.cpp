@@ -2,7 +2,7 @@
  *
  * Copyright (c) 2000-2003 Intel Corporation
  * All rights reserved.
- * Copyright (C) 2011-2012 France Telecom All rights reserved. 
+ * Copyright (C) 2011-2012 France Telecom All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -86,8 +86,10 @@ public:
     ~SSDPSearchJobWorker() override {
         delete m_reply;
     }
+    SSDPSearchJobWorker(const SSDPSearchJobWorker&) = delete;
+    SSDPSearchJobWorker& operator=(const SSDPSearchJobWorker&) = delete;
     void work() override {
-        AdvertiseAndReply(m_reply->handle, MSGTYPE_REPLY, 
+        AdvertiseAndReply(m_reply->handle, MSGTYPE_REPLY,
                           m_reply->MaxAge,
                           reinterpret_cast<struct sockaddr *>(&m_reply->dest_addr),
                           m_reply->event);
@@ -260,7 +262,7 @@ static SOCKET createMulticastSocket6(int index, std::string& lochost)
             if (ipaddr) {
                 lochost = strInBrackets(ipaddr->straddr());
                 break;
-            } 
+            }
         }
     }
     if (lochost.empty()) {
@@ -288,7 +290,7 @@ static SOCKET createReplySocket6(
             if (ipaddr) {
                 lochost = strInBrackets(ipaddr->straddr());
                 break;
-            } 
+            }
         }
     }
     if (lochost.empty()) {
@@ -342,7 +344,7 @@ static int sendPackets(SOCKET sock, struct sockaddr *daddr, int cnt, std::string
         UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__, ">>> SSDP SEND to %s >>>\n%s\n",
                    destip.straddr().c_str(), pckts[i].c_str());
         rc = sendto(sock, pckts[i].c_str(), pckts[i].size(), 0, daddr, socklen);
-                    
+
         if (rc == -1) {
             char errorBuffer[ERROR_BUFFER_LEN];
             posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
@@ -353,7 +355,7 @@ static int sendPackets(SOCKET sock, struct sockaddr *daddr, int cnt, std::string
     return UPNP_E_SUCCESS;
 }
 
- 
+
 /* Creates a device notify or search reply packet. */
 static void CreateServicePacket(
     SSDPDevMessageType msg_type, const char *nt, const char *usn,
@@ -526,7 +528,7 @@ static int DeviceReply(
     char Mil_Nt[LINE_SIZE], Mil_Usn[LINE_SIZE];
     int rc = 0;
     int family = static_cast<int>(sscd.DestAddr->sa_family);
-    
+
     /* create 2 or 3 msgs */
     if (RootDev) {
         /* 3 replies for root device */
@@ -581,7 +583,7 @@ static int ServiceSend(
         return UPNP_E_OUTOF_MEMORY;
 
     }
-    
+
     return sendPackets(sscd.sock, sscd.DestAddr, 1, szReq);
 }
 
@@ -620,14 +622,14 @@ static bool sameServOrDevNoVers(const char *his, const char *mine)
 // be subdevices
 static int AdvertiseAndReplyOneDest(
     UpnpDevice_Handle Hnd, SSDPDevMessageType tp, int Exp,
-    struct sockaddr *DestAddr, const SsdpEntity& sdata, SOCKET sock, 
+    struct sockaddr *DestAddr, const SsdpEntity& sdata, SOCKET sock,
     const std::string& lochost)
 {
     int retVal = UPNP_E_SUCCESS;
     int NumCopy = 0;
     std::vector<const UPnPDeviceDesc*> alldevices;
     bool isNotify = (tp == MSGTYPE_ADVERTISEMENT || tp == MSGTYPE_SHUTDOWN);
-    
+
     /* Use a read lock */
     HandleReadLock();
     struct Handle_Info *SInfo = nullptr;
@@ -644,7 +646,7 @@ static int AdvertiseAndReplyOneDest(
     sscd.pwr = SSDPPwrState{SInfo->PowerState, SInfo->SleepPeriod, SInfo->RegistrationState};
     sscd.prodvers = SInfo->productversion;
 
-    
+
     std::string location{SInfo->DescURL};
     replaceLochost(location, lochost);
     std::string lowerloc{SInfo->LowerDescURL};
@@ -690,7 +692,7 @@ static int AdvertiseAndReplyOneDest(
                         UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
                                    "DeviceUDN=%s/search UDN=%s NOMATCH\n",
                                    UDNstr, sdata.UDN.c_str());
-                    }                            
+                    }
                     break;
 
                 case SSDP_DEVICETYPE: {
@@ -822,7 +824,7 @@ int AdvertiseAndReply(UpnpDevice_Handle Hnd, SSDPDevMessageType tp, int Exp,
 
                 ret = AdvertiseAndReplyOneDest(
                     Hnd, tp, Exp, destaddr, sdata, sock, lochost);
-                
+
                 if (ret != UPNP_E_SUCCESS) {
                     UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
                                "SSDP dev: IPV6 SEND failed for %s\n", netif.getname().c_str());
@@ -864,7 +866,7 @@ int AdvertiseAndReply(UpnpDevice_Handle Hnd, SSDPDevMessageType tp, int Exp,
             goto exitfunc;
         }
         ret = AdvertiseAndReplyOneDest(
-            Hnd, tp, Exp, repDestAddr, sdata, sock, lochost);            
+            Hnd, tp, Exp, repDestAddr, sdata, sock, lochost);
     }
 
 exitfunc:
@@ -875,7 +877,7 @@ exitfunc:
                    "sendPackets: %s\n", errorBuffer);
         return UPNP_E_NETWORK_ERROR;
     }
-    if (sock != INVALID_SOCKET) 
+    if (sock != INVALID_SOCKET)
         UpnpCloseSocket(sock);
     return ret;
 }

@@ -54,6 +54,7 @@ struct MiniServerSockArray {
     SOCKET ssdpReqSock6{INVALID_SOCKET};
 #endif /* INCLUDE_CLIENT_APIS */
 
+    MiniServerSockArray() = default;
     ~MiniServerSockArray() {
         maybeClose(miniServerStopSock);
         maybeClose(ssdpSock4);
@@ -64,7 +65,10 @@ struct MiniServerSockArray {
         maybeClose(ssdpReqSock6);
 #endif /* INCLUDE_CLIENT_APIS */
     }
-    
+
+    MiniServerSockArray(const MiniServerSockArray&) = delete;
+    MiniServerSockArray& operator=(const MiniServerSockArray&) = delete;
+
 private:
     void maybeClose(SOCKET s) {
         if (s != INVALID_SOCKET) {
@@ -109,7 +113,7 @@ void SetGenaCallback(
  *
  * If listen port is 0, port is dynamically picked.
  *
- * Use timer mechanism to start the MiniServer, failure to meet the 
+ * Use timer mechanism to start the MiniServer, failure to meet the
  * allowed delay aborts the attempt to launch the MiniServer.
  *
  * \return

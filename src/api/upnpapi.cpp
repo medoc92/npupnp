@@ -1,31 +1,31 @@
 /*******************************************************************************
  *
- * Copyright (c) 2000-2003 Intel Corporation 
- * All rights reserved. 
- * Copyright (C) 2011-2012 France Telecom All rights reserved. 
+ * Copyright (c) 2000-2003 Intel Corporation
+ * All rights reserved.
+ * Copyright (C) 2011-2012 France Telecom All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
- * modification, are permitted provided that the following conditions are met: 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- * - Redistributions of source code must retain the above copyright notice, 
- * this list of conditions and the following disclaimer. 
- * - Redistributions in binary form must reproduce the above copyright notice, 
- * this list of conditions and the following disclaimer in the documentation 
- * and/or other materials provided with the distribution. 
- * - Neither name of Intel Corporation nor the names of its contributors 
- * may be used to endorse or promote products derived from this software 
+ * - Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * - Neither name of Intel Corporation nor the names of its contributors
+ * may be used to endorse or promote products derived from this software
  * without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL INTEL OR 
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL INTEL OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  ******************************************************************************/
@@ -154,13 +154,13 @@ size_t g_maxContentLength = DEFAULT_SOAP_CONTENT_LENGTH;
  *    non-responding subscribed entity. */
 int g_UpnpSdkEQMaxLen = MAX_SUBSCRIPTION_QUEUED_EVENTS;
 
-/*! Global variable to determine the maximum number of 
- *    seconds which an event can spend on a subscription queue (waiting for the 
- *    event at the head of the queue to be communicated). This parameter will 
- *    have no effect in most situations with the default (low) value of 
- *    MAX_SUBSCRIPTION_QUEUED_EVENTS. However, if MAX_SUBSCRIPTION_QUEUED_EVENTS 
- *    is set to a high value, the AGE parameter will allow pruning the queue in 
- *    good conformance with the UPnP Device Architecture standard, at the 
+/*! Global variable to determine the maximum number of
+ *    seconds which an event can spend on a subscription queue (waiting for the
+ *    event at the head of the queue to be communicated). This parameter will
+ *    have no effect in most situations with the default (low) value of
+ *    MAX_SUBSCRIPTION_QUEUED_EVENTS. However, if MAX_SUBSCRIPTION_QUEUED_EVENTS
+ *    is set to a high value, the AGE parameter will allow pruning the queue in
+ *    good conformance with the UPnP Device Architecture standard, at the
  *    price of higher potential memory use. */
 int g_UpnpSdkEQMaxAge = MAX_SUBSCRIPTION_EVENT_AGE;
 
@@ -217,7 +217,7 @@ static int getIfInfo(const char *IfNames)
 {
     UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
                "getIfInfo: IfNames: [%s]\n", (IfNames?IfNames:"null"));
-    
+
     g_use_all_interfaces = (IfNames && std::string("*") == IfNames);
     bool ifnamespecified = IfNames && *IfNames;
     NetIF::Interfaces *ifs = NetIF::Interfaces::theInterfaces();
@@ -253,7 +253,7 @@ static int getIfInfo(const char *IfNames)
     } else {
         // No interface specified. Use first appropriate one, or all.
         std::vector<NetIF::Interface::Flags>
-            needed{NetIF::Interface::Flags::HASIPV4, 
+            needed{NetIF::Interface::Flags::HASIPV4,
                    NetIF::Interface::Flags::UP,
                    NetIF::Interface::Flags::MULTICAST};
         if (0 != (g_optionFlags & UPNP_FLAG_IPV6_REQUIRED)) {
@@ -288,19 +288,19 @@ static int getIfInfo(const char *IfNames)
                 netif.firstipv6addr(NetIF::IPAddr::Scope::LINK);
             if (nullptr != addr) {
                 v6addr += addr->straddr() + " ";
-            } 
+            }
         }
         actifnames += netif.getname() + " ";
     }
 
-    /* If IPV6_REQUIRED was not set, maybe we have no IPV6 address. In this 
+    /* If IPV6_REQUIRED was not set, maybe we have no IPV6 address. In this
      * case, turn off all ipv6 operation */
     if (v6addr.empty()) {
         UpnpPrintf(UPNP_DEBUG, API, __FILE__, __LINE__, "No IPV6 address on "
                    "selected interface(s): turning off IPV6 operation\n");
         g_optionFlags &= ~UPNP_FLAG_IPV6;
     }
-    
+
     if (v4addr.empty() && v6addr.empty()) {
         UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,
                    "No usable IP addresses were found.\n");
@@ -339,7 +339,7 @@ static int getmyipv4(const char *inipv4 = nullptr)
     NetIF::Interfaces *ifs = NetIF::Interfaces::theInterfaces();
     NetIF::Interface *netifp{nullptr};
     NetIF::Interfaces::Filter filt;
-    filt.needs = {NetIF::Interface::Flags::HASIPV4, 
+    filt.needs = {NetIF::Interface::Flags::HASIPV4,
                        NetIF::Interface::Flags::UP,
                   NetIF::Interface::Flags::MULTICAST};
     filt.rejects = {NetIF::Interface::Flags::LOOPBACK};
@@ -411,7 +411,7 @@ static int WinsockInit(void)
      * 2.2 in wVersion since that is the version we requested. */
     if (LOBYTE(wsaData.wVersion) != 2 || HIBYTE(wsaData.wVersion) != 2) {
         WSACleanup();
-        return UPNP_E_INIT_FAILED; 
+        return UPNP_E_INIT_FAILED;
     }
     return UPNP_E_SUCCESS;
 }
@@ -465,7 +465,7 @@ static int UpnpInitPreamble()
 #endif
     NetIF::Interfaces::setlogfp(UpnpGetDebugFile(UPNP_DEBUG, API));
     curl_global_init(CURL_GLOBAL_ALL);
-    
+
     /* needed by SSDP or other parts. */
     srand(static_cast<unsigned int>(time(nullptr)));
 
@@ -523,7 +523,7 @@ static int UpnpInitPreamble()
  * \brief Finishes initializing the UPnP SDK.
  *    \li The MiniServer is started, if enabled.
  *    \li The WebServer is started, if enabled.
- * 
+ *
  * \return UPNP_E_SUCCESS on success or     UPNP_E_INIT_FAILED if a mutex could not
  *    be initialized.
  */
@@ -609,7 +609,7 @@ static int upnpInitCommon(const char *hostIP, const char *ifName,
         goto exit_function;
     }
     UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-               "UpnpInit: hostIP=%s, ifName=%s, DestPort=%d.\n", 
+               "UpnpInit: hostIP=%s, ifName=%s, DestPort=%d.\n",
                hostIP ? hostIP : "",ifName?ifName:"",static_cast<int>(DestPort));
 
     retVal = waitForNetwork(hostIP, ifName);
@@ -627,7 +627,7 @@ static int upnpInitCommon(const char *hostIP, const char *ifName,
                    o_networkWaitSeconds);
         goto exit_function;
     }
-    
+
     /* Finish initializing the SDK. Webserver start
        UpnpEnableWebServer() is part of the API for some reasons and
        tests UpnpSdkInit==1, so this must be set before the call */
@@ -1266,7 +1266,7 @@ static std::string descurl(int family, const std::string& nm)
         (family == AF_INET ? LOCAL_PORT_V4 : LOCAL_PORT_V6) << "/" << nm;
     return url.str();
 }
-    
+
 /* We do not support an URLBase set inside the description document.
    This was advised against in upnp 1.0 and forbidden in 1.1. */
 static int GetDescDocumentAndURL(
@@ -1435,6 +1435,8 @@ public:
     ~AutoAdvertiseJobWorker() override {
         deleteZ(m_event);
     }
+    AutoAdvertiseJobWorker(const AutoAdvertiseJobWorker&) = delete;
+    AutoAdvertiseJobWorker& operator=(const AutoAdvertiseJobWorker&) = delete;
     void work() override {
         int exp = dynamic_cast<upnp_timeout_data_int*>(m_event->Event)->exp;
         UpnpSendAdvertisement(m_event->handle, exp);
@@ -1598,7 +1600,7 @@ int UpnpSubscribe(
 {
     int retVal;
     struct Handle_Info *SInfo = nullptr;
-    
+
     UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "UpnpSubscribe\n");
 
     if (UpnpSdkInit != 1) {
@@ -1920,7 +1922,7 @@ Upnp_Handle_Type GetClientHandleInfo(
 
 
 Upnp_Handle_Type GetDeviceHandleInfo(
-    UpnpDevice_Handle start, 
+    UpnpDevice_Handle start,
     UpnpDevice_Handle *device_handle_out,
     struct Handle_Info **HndInfo)
 {
@@ -2089,7 +2091,7 @@ int UpnpEnableWebserver(int enable)
 
 
 /*!
- * \brief Checks if the webserver is enabled or disabled. 
+ * \brief Checks if the webserver is enabled or disabled.
  *
  * \return 1, if webserver is enabled or 0, if webserver is disabled.
  */

@@ -1,32 +1,32 @@
 /**************************************************************************
  *
- * Copyright (c) 2000-2003 Intel Corporation 
- * All rights reserved. 
- * Copyright (C) 2011-2012 France Telecom All rights reserved. 
+ * Copyright (c) 2000-2003 Intel Corporation
+ * All rights reserved.
+ * Copyright (C) 2011-2012 France Telecom All rights reserved.
  * Copyright (c) 2020 J.F. Dockes
  *
- * Redistribution and use in source and binary forms, with or without 
- * modification, are permitted provided that the following conditions are met: 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- * - Redistributions of source code must retain the above copyright notice, 
- * this list of conditions and the following disclaimer. 
- * - Redistributions in binary form must reproduce the above copyright notice, 
- * this list of conditions and the following disclaimer in the documentation 
- * and/or other materials provided with the distribution. 
- * - Neither name of Intel Corporation nor the names of its contributors 
- * may be used to endorse or promote products derived from this software 
+ * - Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * - Neither name of Intel Corporation nor the names of its contributors
+ * may be used to endorse or promote products derived from this software
  * without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL INTEL OR 
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL INTEL OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  **************************************************************************/
@@ -60,7 +60,7 @@ SOCKET gSsdpReqSocket6 = INVALID_SOCKET;
 
 // Extract criteria from ssdp packet. Cmd can come from either an USN,
 // NT, or ST field. The possible forms are:
-// 
+//
 // ST
 //     ssdp:all
 // ST, NT
@@ -191,12 +191,14 @@ struct ssdp_thread_data {
             std::cerr << "Out of memory in readFromSSDPSocket\n";
             abort();
         }
-    }        
+    }
     ~ssdp_thread_data() {
         if (m_packet) {
             free(m_packet);
         }
     }
+    ssdp_thread_data(const ssdp_thread_data&) = delete;
+    ssdp_thread_data& operator=(const ssdp_thread_data&) = delete;
     size_t size() {return BUFSIZE;}
     char *packet() { return m_packet; }
     // For transferring the data packet ownership to the parser.
@@ -207,7 +209,7 @@ struct ssdp_thread_data {
     }
     struct sockaddr_storage dest_addr;
 private:
-    char *m_packet{nullptr};
+    char *m_packet;
 };
 
 class SSDPEventHandlerJobWorker : public JobWorker {
@@ -217,6 +219,8 @@ public:
     ~SSDPEventHandlerJobWorker() override {
         delete m_data;
     }
+    SSDPEventHandlerJobWorker(const SSDPEventHandlerJobWorker&) = delete;
+    SSDPEventHandlerJobWorker& operator=(const SSDPEventHandlerJobWorker&) = delete;
     void work() override;
     ssdp_thread_data *m_data;
 };
@@ -278,7 +282,7 @@ static int create_ssdp_sock_v4(SOCKET *ssdpSock)
     auto ssdpAddr4 = reinterpret_cast<struct sockaddr_in *>(&ss);
     int ret = UPNP_E_SOCKET_ERROR;
     std::string errorcause;
-    
+
     *ssdpSock = socket(AF_INET, SOCK_DGRAM, 0);
     if (*ssdpSock == INVALID_SOCKET) {
         errorcause = "socket()";
@@ -364,7 +368,7 @@ static int create_ssdp_sock_reqv4(SOCKET *ssdpReqSock)
     int ret = UPNP_E_SOCKET_ERROR;
 
     *ssdpReqSock = -1;
-    
+
     std::string sadrv4 = apiFirstIPV4Str();
     if (sadrv4.empty()) {
         UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
@@ -415,7 +419,7 @@ static int create_ssdp_sock_v6(bool isulagua, SOCKET *ssdpSock)
     int onOff;
     int ret = UPNP_E_SOCKET_ERROR;
     std::string errorcause;
-    
+
     *ssdpSock = socket(AF_INET6, SOCK_DGRAM, 0);
     if (*ssdpSock == INVALID_SOCKET) {
         errorcause = "socket()";
@@ -557,7 +561,7 @@ static void closeSockets(MiniServerSockArray *out, int doclose)
 #ifdef INCLUDE_CLIENT_APIS
     maybeCLoseAndInvalidate(&out->ssdpReqSock4, doclose);
     maybeCLoseAndInvalidate(&out->ssdpReqSock6, doclose);
-#endif    
+#endif
     maybeCLoseAndInvalidate(&out->ssdpSock4, doclose);
     maybeCLoseAndInvalidate(&out->ssdpSock6, doclose);
     maybeCLoseAndInvalidate(&out->ssdpSock6UlaGua, doclose);

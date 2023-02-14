@@ -62,6 +62,9 @@ public:
         }
     }
 
+    ExpatXMLParser(const ExpatXMLParser&) = delete;
+    ExpatXMLParser& operator=(const ExpatXMLParser&) = delete;
+
     /*
       Generic Parser. Most derivations will simply call this, rather
       than implement their own. This will loop, processing XML data
@@ -124,7 +127,7 @@ public:
     virtual std::string getLastErrorMessage(void) const {
         return last_error_message;
     }
-    
+
 protected:
     class StackEl {
     public:
@@ -219,13 +222,13 @@ private:
             last_error_column;
         last_error_message = oss.str();
     }
-    
+
     XML_Status status;
     XML_Error last_error;
     XML_Size last_error_line{0};
     XML_Size last_error_column{0};
     std::string last_error_message;
-    
+
     /* Expat callbacks.
      * The expatmm protocol is to pass (this) as the userData argument
      * in the XML_Parser structure. These static methods will convert

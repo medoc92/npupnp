@@ -105,7 +105,7 @@ extern bool parsedateinterval(const std::string& s, DateInterval *di);
 extern int monthdays(int mon, int year);
 
 
-/** Note for all templated functions: 
+/** Note for all templated functions:
  * By default, smallut.cpp has explicit instantiations for common
  * containers (list, vector, set, etc.). If this is not enough, or
  * conversely, if you want to minimize the module size, you can chose
@@ -210,6 +210,8 @@ class DirtySmartBuf {
 public:
     DirtySmartBuf(size_t sz) { m_buf = new char[sz]; }
     ~DirtySmartBuf() { delete [] m_buf; }
+    DirtySmartBuf(const DirtySmartBuf&) = delete;
+    DirtySmartBuf& operator=(const DirtySmartBuf&) = delete;
     char *buf() { return m_buf; }
   private:
     char *m_buf;
@@ -252,7 +254,7 @@ public:
     /// Calls simpleMatch()
     bool operator() (const std::string& val) const;
 
-    /// Replace the first occurrence of regexp. 
+    /// Replace the first occurrence of regexp.
     std::string simpleSub(const std::string& input, const std::string& repl);
 
     /// Check after construction
