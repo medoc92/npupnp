@@ -214,10 +214,10 @@ class SSDPEventHandlerJobWorker : public JobWorker {
 public:
     SSDPEventHandlerJobWorker(ssdp_thread_data *data)
         : m_data(data) {}
-    virtual ~SSDPEventHandlerJobWorker() {
+    ~SSDPEventHandlerJobWorker() override {
         delete m_data;
     }
-    void work();
+    void work() override;
     ssdp_thread_data *m_data;
 };
 

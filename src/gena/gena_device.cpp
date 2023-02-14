@@ -214,10 +214,10 @@ class GenaNotifyJobWorker : public JobWorker {
 public:
     GenaNotifyJobWorker(Notification *in)
         : m_input(in) {}
-    virtual ~GenaNotifyJobWorker() {
+    ~GenaNotifyJobWorker() override {
         delete m_input;
     }
-    void work();
+    void work() override;
     Notification *m_input;
 };
 

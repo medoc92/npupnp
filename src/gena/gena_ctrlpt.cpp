@@ -104,10 +104,10 @@ class AutoRenewSubscriptionJobWorker : public JobWorker {
 public:
     AutoRenewSubscriptionJobWorker(upnp_timeout *ev)
         : m_event(ev) {}
-    ~AutoRenewSubscriptionJobWorker() {
+    ~AutoRenewSubscriptionJobWorker() override {
         deleteZ(m_event);
     }
-    void work();
+    void work() override;
     upnp_timeout *m_event;
 };
     

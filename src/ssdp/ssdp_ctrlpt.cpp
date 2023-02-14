@@ -69,10 +69,10 @@ class SearchResultJobWorker : public JobWorker {
 public:
     SearchResultJobWorker(ResultData *res)
         : m_resultdata(res) {}
-    virtual ~SearchResultJobWorker() {
+    ~SearchResultJobWorker() override {
         delete m_resultdata;
     }
-    void work() {
+    void work() override {
         m_resultdata->ctrlpt_callback(UPNP_DISCOVERY_SEARCH_RESULT, &m_resultdata->param,
                                       m_resultdata->cookie);
         return;
@@ -327,8 +327,8 @@ static int CreateClientRequestPacketUlaGua(
 class SearchExpiredJobWorker : public JobWorker {
 public:
     SearchExpiredJobWorker() = default;
-    virtual ~SearchExpiredJobWorker() = default;
-    void work();
+    ~SearchExpiredJobWorker() override = default;
+    void work() override;
     int m_id;
 };
 

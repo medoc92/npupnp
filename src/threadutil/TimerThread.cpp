@@ -63,7 +63,7 @@ class TimerJobWorker : public JobWorker {
 public:
     TimerJobWorker(TimerThread::Internal* parent)
         : m_parent(parent) {}
-    virtual void work();
+    void work() override;
     TimerThread::Internal *m_parent;
 };
 

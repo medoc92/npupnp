@@ -340,7 +340,7 @@ protected:
     const char *getReadBuffer() override {
         return m_input.c_str();
     }
-    virtual size_t getBlockSize(void) override {
+    size_t getBlockSize(void) override {
         return m_input.size();
     }
 protected:

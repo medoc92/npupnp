@@ -469,8 +469,8 @@ static int receive_from_stopSock(SOCKET ssock, fd_set *set)
 class MiniServerJobWorker : public JobWorker {
 public:
     MiniServerJobWorker() = default;
-    virtual ~MiniServerJobWorker() = default;
-    virtual void work();
+    ~MiniServerJobWorker() override = default;
+    void work() override;
 };
 /*!
  * \brief Run the miniserver.

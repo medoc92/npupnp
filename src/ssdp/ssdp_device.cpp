@@ -83,10 +83,10 @@ class SSDPSearchJobWorker : public JobWorker {
 public:
     SSDPSearchJobWorker(SsdpSearchReply *reply)
         : m_reply(reply) {}
-    virtual ~SSDPSearchJobWorker() {
+    ~SSDPSearchJobWorker() override {
         delete m_reply;
     }
-    virtual void work() {
+    void work() override {
         AdvertiseAndReply(m_reply->handle, MSGTYPE_REPLY, 
                           m_reply->MaxAge,
                           reinterpret_cast<struct sockaddr *>(&m_reply->dest_addr),

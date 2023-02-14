@@ -1432,10 +1432,10 @@ class AutoAdvertiseJobWorker : public JobWorker {
 public:
     AutoAdvertiseJobWorker(upnp_timeout *ev)
         : m_event(ev) {}
-    ~AutoAdvertiseJobWorker() {
+    ~AutoAdvertiseJobWorker() override {
         deleteZ(m_event);
     }
-    void work() {
+    void work() override {
         int exp = dynamic_cast<upnp_timeout_data_int*>(m_event->Event)->exp;
         UpnpSendAdvertisement(m_event->handle, exp);
     }
