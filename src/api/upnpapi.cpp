@@ -1430,7 +1430,7 @@ struct upnp_timeout_data_int : public upnp_timeout_data {
 
 class AutoAdvertiseJobWorker : public JobWorker {
 public:
-    AutoAdvertiseJobWorker(upnp_timeout *ev)
+    explicit AutoAdvertiseJobWorker(upnp_timeout *ev)
         : m_event(ev) {}
     ~AutoAdvertiseJobWorker() override {
         deleteZ(m_event);

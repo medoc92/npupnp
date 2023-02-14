@@ -81,7 +81,7 @@ struct SSDPCommonData {
 
 class SSDPSearchJobWorker : public JobWorker {
 public:
-    SSDPSearchJobWorker(SsdpSearchReply *reply)
+    explicit SSDPSearchJobWorker(SsdpSearchReply *reply)
         : m_reply(reply) {}
     ~SSDPSearchJobWorker() override {
         delete m_reply;

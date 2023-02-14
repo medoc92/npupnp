@@ -214,7 +214,7 @@ private:
 
 class SSDPEventHandlerJobWorker : public JobWorker {
 public:
-    SSDPEventHandlerJobWorker(ssdp_thread_data *data)
+    explicit SSDPEventHandlerJobWorker(ssdp_thread_data *data)
         : m_data(data) {}
     ~SSDPEventHandlerJobWorker() override {
         delete m_data;

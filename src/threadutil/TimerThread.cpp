@@ -61,7 +61,7 @@ struct TimerEvent {
 
 class TimerJobWorker : public JobWorker {
 public:
-    TimerJobWorker(TimerThread::Internal* parent)
+    explicit TimerJobWorker(TimerThread::Internal* parent)
         : m_parent(parent) {}
     void work() override;
     TimerThread::Internal *m_parent;

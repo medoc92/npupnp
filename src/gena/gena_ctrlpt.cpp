@@ -102,7 +102,7 @@ struct upnp_timeout_data_subscribe : public upnp_timeout_data {
 
 class AutoRenewSubscriptionJobWorker : public JobWorker {
 public:
-    AutoRenewSubscriptionJobWorker(upnp_timeout *ev)
+    explicit AutoRenewSubscriptionJobWorker(upnp_timeout *ev)
         : m_event(ev) {}
     ~AutoRenewSubscriptionJobWorker() override {
         deleteZ(m_event);

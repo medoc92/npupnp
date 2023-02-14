@@ -67,7 +67,7 @@ struct ResultData {
  */
 class SearchResultJobWorker : public JobWorker {
 public:
-    SearchResultJobWorker(ResultData *res)
+    explicit SearchResultJobWorker(ResultData *res)
         : m_resultdata(res) {}
     ~SearchResultJobWorker() override {
         delete m_resultdata;

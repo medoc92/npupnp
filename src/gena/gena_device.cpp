@@ -212,7 +212,7 @@ struct Notification {
 
 class GenaNotifyJobWorker : public JobWorker {
 public:
-    GenaNotifyJobWorker(Notification *in)
+    explicit GenaNotifyJobWorker(Notification *in)
         : m_input(in) {}
     ~GenaNotifyJobWorker() override {
         delete m_input;

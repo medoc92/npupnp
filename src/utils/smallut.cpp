@@ -668,7 +668,7 @@ bool pcSubst(const std::string& in, std::string& out,
 
 class PcSubstMapMapper {
 public:
-    PcSubstMapMapper(const std::map<std::string, std::string>& subs)
+    explicit PcSubstMapMapper(const std::map<std::string, std::string>& subs)
         : m_subs(subs) {}
     std::string domap(const std::string& key) {
         auto it = m_subs.find(key);
