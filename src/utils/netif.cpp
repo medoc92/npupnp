@@ -114,8 +114,8 @@ IPAddr::IPAddr(const IPAddr& o)
     m = std::make_unique<Internal>(*o.m);
 }
 
-IPAddr::IPAddr(IPAddr&& o) noexcept {
-    m = std::move(o.m);
+IPAddr::IPAddr(IPAddr&& o) noexcept : m(std::move(o.m)) {
+
 }
 
 IPAddr& IPAddr::operator=(const IPAddr& o)
@@ -345,8 +345,8 @@ Interface::Interface(const Interface& o)
     m = std::make_unique<Internal>(*o.m);
 }
 
-Interface::Interface(Interface&& o) noexcept {
-    m = std::move(o.m);
+Interface::Interface(Interface&& o) noexcept : m(std::move(o.m)) {
+
 }
 
 Interface& Interface::operator=(const Interface& o)

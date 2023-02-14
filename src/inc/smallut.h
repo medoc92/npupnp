@@ -208,7 +208,7 @@ bool pcSubst(const std::string& i, std::string& o, const std::function<std::stri
     as read buffer **/
 class DirtySmartBuf {
 public:
-    explicit DirtySmartBuf(size_t sz) { m_buf = new char[sz]; }
+    explicit DirtySmartBuf(size_t sz) : m_buf(new char[sz]) {}
     ~DirtySmartBuf() { delete [] m_buf; }
     DirtySmartBuf(const DirtySmartBuf&) = delete;
     DirtySmartBuf& operator=(const DirtySmartBuf&) = delete;

@@ -1,32 +1,32 @@
 /*******************************************************************************
  *
- * Copyright (c) 2000-2003 Intel Corporation 
- * All rights reserved. 
- * Copyright (c) 2012 France Telecom All rights reserved. 
+ * Copyright (c) 2000-2003 Intel Corporation
+ * All rights reserved.
+ * Copyright (c) 2012 France Telecom All rights reserved.
  * Copyright (c) 2020 J.F. Dockes <jf@dockes.org>
  *
- * Redistribution and use in source and binary forms, with or without 
- * modification, are permitted provided that the following conditions are met: 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- * - Redistributions of source code must retain the above copyright notice, 
- * this list of conditions and the following disclaimer. 
- * - Redistributions in binary form must reproduce the above copyright notice, 
- * this list of conditions and the following disclaimer in the documentation 
- * and/or other materials provided with the distribution. 
- * - Neither name of Intel Corporation nor the names of its contributors 
- * may be used to endorse or promote products derived from this software 
+ * - Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * - Neither name of Intel Corporation nor the names of its contributors
+ * may be used to endorse or promote products derived from this software
  * without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL INTEL OR 
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL INTEL OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  ******************************************************************************/
@@ -63,9 +63,7 @@ using namespace std::chrono;
 /*! Internal ThreadPool Job. */
 struct ThreadPoolJob {
     ThreadPoolJob(std::unique_ptr<JobWorker> worker, ThreadPool::ThreadPriority _prio)
-        : priority(_prio) {
-        m_worker = std::move(worker);
-    }
+        : m_worker(std::move(worker)), priority(_prio) {}
     ~ThreadPoolJob() = default;
     std::unique_ptr<JobWorker> m_worker;
     ThreadPool::ThreadPriority priority;
@@ -86,7 +84,7 @@ public:
     void bumpPriority();
     void WorkerThread();
     int shutdown();
-    
+
     /*! Mutex to protect job qs. */
     std::mutex mutex;
     /*! Condition variable to signal Q. */
@@ -204,7 +202,7 @@ void ThreadPool::Internal::CalcWaitTime(ThreadPriority p, const std::unique_ptr<
  * \brief Sets the scheduling policy of the current process.
  *
  * \internal
- * 
+ *
  * \return
  *     \li \c 0 on success.
  *      \li \c result of GetLastError() on failure.
@@ -214,7 +212,7 @@ static int SetPolicyType(ThreadPoolAttr::PolicyType in)
 {
     int retVal = 0;
     ((void)(in));
-    
+
 #ifdef __CYGWIN__
     /* TODO not currently working... */
     retVal = 0;
@@ -368,7 +366,7 @@ void ThreadPool::Internal::WorkerThread() {
     pendingWorkerThreadStart = 0;
     start_and_shutdown.notify_all();
     lck.unlock();
-    
+
     SetSeed();
     start = time(nullptr);
     while (true) {
