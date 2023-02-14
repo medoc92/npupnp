@@ -77,7 +77,6 @@ public:
     void work() override {
         m_resultdata->ctrlpt_callback(UPNP_DISCOVERY_SEARCH_RESULT, &m_resultdata->param,
                                       m_resultdata->cookie);
-        return;
     }
     ResultData *m_resultdata;
 };
@@ -363,7 +362,6 @@ void SearchExpiredJobWorker::work()
 
     if (found)
         ctrlpt_callback(UPNP_DISCOVERY_SEARCH_TIMEOUT, nullptr, cookie);
-    return;
 }
 
 int SearchByTarget(int Mx, char *St, void *Cookie)

@@ -156,7 +156,6 @@ void AutoRenewSubscriptionJobWorker::work()
         HandleUnlock();
         callback_fun(eventType, sub_struct, handle_info->Cookie);
     }
-    return;
 }
 
 

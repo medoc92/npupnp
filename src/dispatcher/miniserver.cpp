@@ -554,7 +554,6 @@ void MiniServerJobWorker::work()
     miniSocket = nullptr;
     gMServState = MSERV_IDLE;
     gMServStateCV.notify_all();
-    return;
 }
 
 /*!

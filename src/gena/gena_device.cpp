@@ -302,7 +302,6 @@ void GenaNotifyJobWorker::work()
         RemoveSubscriptionSID(m_input->sid, service);
 
     HandleUnlock();
-    return;
 }
 
 

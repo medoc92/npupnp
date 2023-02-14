@@ -250,7 +250,6 @@ void SSDPEventHandlerJobWorker::work()
     } else {
         ssdp_handle_device_request(parser, &m_data->dest_addr);
     }
-    return;
 }
 
 void readFromSSDPSocket(SOCKET socket)
