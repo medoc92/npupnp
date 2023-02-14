@@ -143,13 +143,13 @@ int http_Download(const char *url, int timeout_secs, char** document,
                   size_t *doc_length, char* content_type);
 
 /** CURL: callback function to accumulate curl response headers in a map<s:s> */
-extern size_t header_callback_curl(char *buf, size_t size, size_t nitems, void *s);
+extern size_t header_callback_curl(char *buf, size_t size, size_t nitems, std::map<std::string, std::string> *s);
 
 /** CURL: null write callback to avoid curl sending stuff to stdout */
-size_t write_callback_null_curl(char *buf, size_t size, size_t nitems, void *);
+size_t write_callback_null_curl(char *buf, size_t size, size_t nitems, std::string *s);
 
 /* CURL: callback to accumulate data in an std::string */
-size_t write_callback_str_curl(char *buf, size_t sz, size_t nits, void *s);
+size_t write_callback_str_curl(char *buf, size_t sz, size_t nits, std::string *s);
 
 /* Generate and send a status response message (response with status +
    bit of explanatory HTML) */

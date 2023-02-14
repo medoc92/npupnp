@@ -1,31 +1,31 @@
 /*******************************************************************************
  *
- * Copyright (c) 2000-2003 Intel Corporation 
- * All rights reserved. 
- * Copyright (c) 2012 France Telecom All rights reserved. 
+ * Copyright (c) 2000-2003 Intel Corporation
+ * All rights reserved.
+ * Copyright (c) 2012 France Telecom All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
- * modification, are permitted provided that the following conditions are met: 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- * - Redistributions of source code must retain the above copyright notice, 
- * this list of conditions and the following disclaimer. 
- * - Redistributions in binary form must reproduce the above copyright notice, 
- * this list of conditions and the following disclaimer in the documentation 
- * and/or other materials provided with the distribution. 
- * - Neither name of Intel Corporation nor the names of its contributors 
- * may be used to endorse or promote products derived from this software 
+ * - Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * - Neither name of Intel Corporation nor the names of its contributors
+ * may be used to endorse or promote products derived from this software
  * without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL INTEL OR 
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL INTEL OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  ******************************************************************************/
@@ -67,7 +67,7 @@ struct subscription {
     subscription() = default;
     ~subscription();
     subscription& operator=(const subscription&) = delete;
-    subscription(const subscription& rhs)  = delete;
+    subscription(const subscription&) = delete;
 };
 
 extern void freeSubscriptionQueuedEvents(subscription *sub);
@@ -84,16 +84,18 @@ struct service_info {
     std::list<subscription>    subscriptionList;
 
     service_info() = default;
+    ~service_info() = default;
     service_info& operator=(const service_info&) = delete;
-    service_info(const service_info& rhs)  = delete;
+    service_info(const service_info& rhs) = delete;
 };
 
 struct service_table {
     std::list<service_info> serviceList;
 
     service_table() = default;
+    ~service_table() = default;
     service_table& operator=(const service_table&) = delete;
-    service_table(const service_table& rhs)  = delete;
+    service_table(const service_table&) = delete;
 };
 
 /* Functions for Subscriptions */
@@ -115,7 +117,7 @@ int copy_subscription(
  */
 void RemoveSubscriptionSID(
     /*! [in] Subscription ID. */
-    Upnp_SID sid,
+    const Upnp_SID& sid,
     /*! [in] Service object providing the list of subscriptions. */
     service_info *service);
 
@@ -127,9 +129,9 @@ void RemoveSubscriptionSID(
  */
 subscription *GetSubscriptionSID(
     /*! [in] Subscription ID. */
-    const Upnp_SID sid,
+    const Upnp_SID& sid,
     /*! [in] Service object providing the list of subscriptions. */
-    service_info *service); 
+    service_info *service);
 
 /*!
  * \brief Gets pointer to the first subscription node in the service table.
@@ -158,7 +160,7 @@ std::list<subscription>::iterator GetNextSubscription(
  */
 service_info *FindServiceId(
     /*! [in] Service table. */
-    service_table *table, 
+    service_table *table,
     /*! [in] String representing the service id to be found among those
      * in the table. */
     const std::string& serviceId,

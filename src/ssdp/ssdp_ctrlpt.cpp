@@ -1,31 +1,31 @@
 /**************************************************************************
  *
- * Copyright (c) 2000-2003 Intel Corporation 
- * All rights reserved. 
+ * Copyright (c) 2000-2003 Intel Corporation
+ * All rights reserved.
  * Copyright (C) 2012 France Telecom All rights reserved.
  *
-nnn * Redistribution and use in source and binary forms, with or without 
- * modification, are permitted provided that the following conditions are met: 
+nnn * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- * - Redistributions of source code must retain the above copyright notice, 
- * this list of conditions and the following disclaimer. 
- * - Redistributions in binary form must reproduce the above copyright notice, 
- * this list of conditions and the following disclaimer in the documentation 
- * and/or other materials provided with the distribution. 
- * - Neither name of Intel Corporation nor the names of its contributors 
- * may be used to endorse or promote products derived from this software 
+ * - Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * - Neither name of Intel Corporation nor the names of its contributors
+ * may be used to endorse or promote products derived from this software
  * without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL INTEL OR 
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL INTEL OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  **************************************************************************/
@@ -67,15 +67,16 @@ struct ResultData {
  */
 class SearchResultJobWorker : public JobWorker {
 public:
-    SearchResultJobWorker(ResultData *res)
+    explicit SearchResultJobWorker(ResultData *res)
         : m_resultdata(res) {}
-    virtual ~SearchResultJobWorker() {
+    ~SearchResultJobWorker() override {
         delete m_resultdata;
     }
-    void work() {
+    SearchResultJobWorker(const SearchResultJobWorker&) = delete;
+    SearchResultJobWorker& operator=(const SearchResultJobWorker&) = delete;
+    void work() override {
         m_resultdata->ctrlpt_callback(UPNP_DISCOVERY_SEARCH_RESULT, &m_resultdata->param,
                                       m_resultdata->cookie);
-        return;
     }
     ResultData *m_resultdata;
 };
@@ -256,7 +257,7 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
             }
             if (matched) {
                 /* schedule call back */
-                ResultData *threadData = new ResultData;
+                auto threadData = new ResultData;
                 threadData->param = param;
                 threadData->cookie = searchArg->cookie;
                 threadData->ctrlpt_callback = ctrlpt_callback;
@@ -292,7 +293,7 @@ static int CreateClientRequestPacket(
         break;
     case AF_INET6:
         str << "HOST: [" <<
-            (sitelocal?SSDP_IPV6_SITELOCAL:SSDP_IPV6_LINKLOCAL) << 
+            (sitelocal?SSDP_IPV6_SITELOCAL:SSDP_IPV6_LINKLOCAL) <<
             "]:" << SSDP_PORT << "\r\n";
         break;
     default:
@@ -327,8 +328,8 @@ static int CreateClientRequestPacketUlaGua(
 class SearchExpiredJobWorker : public JobWorker {
 public:
     SearchExpiredJobWorker() = default;
-    virtual ~SearchExpiredJobWorker() = default;
-    void work();
+    ~SearchExpiredJobWorker() override = default;
+    void work() override;
     int m_id;
 };
 
@@ -361,7 +362,6 @@ void SearchExpiredJobWorker::work()
 
     if (found)
         ctrlpt_callback(UPNP_DISCOVERY_SEARCH_TIMEOUT, nullptr, cookie);
-    return;
 }
 
 int SearchByTarget(int Mx, char *St, void *Cookie)

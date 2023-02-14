@@ -459,10 +459,9 @@ std::string query_encode(const std::string& qs)
     return out;
 }
 
-size_t header_callback_curl(char *buffer, size_t size, size_t nitems, void *s)
+size_t header_callback_curl(char *buffer, size_t size, size_t nitems, std::map<std::string, std::string> *headers)
 {
     size_t bufsize = size * nitems;
-    auto headers = static_cast<std::map<std::string, std::string>*>(s);
     const char *colon = std::strchr(buffer, ':');
     if (nullptr != colon) {
         size_t colpos = colon - buffer;
@@ -480,7 +479,7 @@ size_t header_callback_curl(char *buffer, size_t size, size_t nitems, void *s)
     return bufsize;
 }
 
-size_t write_callback_null_curl(char *buffer, size_t size, size_t nitems, void *)
+size_t write_callback_null_curl(char *buffer, size_t size, size_t nitems, std::string *)
 {
     (void)buffer;
 #if 0
@@ -492,8 +491,8 @@ size_t write_callback_null_curl(char *buffer, size_t size, size_t nitems, void *
     return size*nitems;
 }
 
-size_t write_callback_str_curl(char *buf, size_t sz, size_t nits, void *s)
+size_t write_callback_str_curl(char *buf, size_t sz, size_t nits, std::string *s)
 {
-    (static_cast<std::string*>(s))->append(buf, sz * nits);
+    s->append(buf, sz * nits);
     return sz * nits;
 }

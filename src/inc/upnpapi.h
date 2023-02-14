@@ -1,31 +1,31 @@
 /*******************************************************************************
  *
- * Copyright (c) 2000-2003 Intel Corporation 
- * All rights reserved. 
- * Copyright (C) 2011-2012 France Telecom All rights reserved. 
+ * Copyright (c) 2000-2003 Intel Corporation
+ * All rights reserved.
+ * Copyright (C) 2011-2012 France Telecom All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
- * modification, are permitted provided that the following conditions are met: 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- * * Redistributions of source code must retain the above copyright notice, 
- * this list of conditions and the following disclaimer. 
- * * Redistributions in binary form must reproduce the above copyright notice, 
- * this list of conditions and the following disclaimer in the documentation 
- * and/or other materials provided with the distribution. 
- * * Neither name of Intel Corporation nor the names of its contributors 
- * may be used to endorse or promote products derived from this software 
+ * * Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ * * Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * * Neither name of Intel Corporation nor the names of its contributors
+ * may be used to endorse or promote products derived from this software
  * without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL INTEL OR 
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL INTEL OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  ******************************************************************************/
@@ -73,6 +73,7 @@ struct SsdpSearchArg;
 struct Handle_Info
 {
     Handle_Info() = default;
+    ~Handle_Info() = default;
     /*! . */
     Upnp_Handle_Type HType{Upnp_Handle_Type(0)};
     /*! Callback function pointer. */
@@ -133,7 +134,7 @@ Upnp_Handle_Type GetHandleInfo(
     /*! handle pointer (key for the client handle structure). */
     int Hnd,
     /*! handle structure passed by this function. */
-    struct Handle_Info **HndInfo); 
+    struct Handle_Info **HndInfo);
 
 
 #define HandleLock() HandleWriteLock()
@@ -169,7 +170,7 @@ Upnp_Handle_Type GetHandleInfo(
  */
 Upnp_Handle_Type GetClientHandleInfo(
     /*! [in] client handle pointer (key for the client handle structure). */
-    int *client_handle_out, 
+    int *client_handle_out,
     /*! [out] Client handle structure passed by this function. */
     struct Handle_Info **HndInfo);
 
@@ -183,9 +184,9 @@ Upnp_Handle_Type GetClientHandleInfo(
  */
 Upnp_Handle_Type GetDeviceHandleInfo(
     /*! [in] place to start the search (i.e. last value returned). */
-    UpnpDevice_Handle start, 
+    UpnpDevice_Handle start,
     /*! [out] Device handle pointer. */
-    int *device_handle_out, 
+    int *device_handle_out,
     /*! [out] Device handle structure passed by this function. */
     struct Handle_Info **HndInfo);
 
@@ -198,9 +199,9 @@ Upnp_Handle_Type GetDeviceHandleInfo(
  */
 Upnp_Handle_Type GetDeviceHandleInfoForPath(
     /*! The Uri path. */
-    const std::string& path, 
+    const std::string& path,
     /*! [out] Device handle pointer. */
-    int *devhdl, 
+    int *devhdl,
     /*! [out] Device handle structure passed by this function. */
     struct Handle_Info **HndInfo,
     /*! [out] Service info for found path. */

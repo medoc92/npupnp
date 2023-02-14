@@ -88,7 +88,7 @@ int copy_subscription(subscription *in, subscription *out)
  *
  *    Note :
  ************************************************************************/
-void RemoveSubscriptionSID(Upnp_SID sid, service_info *service)
+void RemoveSubscriptionSID(const Upnp_SID& sid, service_info *service)
 {
     UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__, "RemoveSubscriptionSID\n");
     auto& sublist(service->subscriptionList);
@@ -104,7 +104,7 @@ void RemoveSubscriptionSID(Upnp_SID sid, service_info *service)
 }
 
 
-subscription *GetSubscriptionSID(const Upnp_SID sid, service_info *service)
+subscription *GetSubscriptionSID(const Upnp_SID& sid, service_info *service)
 {
     auto& sublist(service->subscriptionList);
     auto found = find_if(sublist.begin(), sublist.end(),
