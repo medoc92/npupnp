@@ -235,7 +235,7 @@ static size_t parse_scheme(const std::string& in, std::string& out)
     }
     // Check contents: "[::alphanum::+-.]*:"
     for (size_t i = 0; i < colon; i++) {
-        if (!(isalnum(in[i]) || in[i] == '+' || in[i] == '-' || in[i] == '.'))
+        if (!isalnum(in[i]) && in[i] != '+' && in[i] != '-' && in[i] != '.')
             return 0;
     }
     out = in.substr(0, colon);

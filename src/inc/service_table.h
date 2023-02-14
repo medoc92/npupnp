@@ -207,7 +207,6 @@ void printService(
 #else
 static UPNP_INLINE void printService(service_info *, Upnp_LogLevel, Dbg_Module)
 {
-    return;
 }
 #endif
 
@@ -226,7 +225,6 @@ void printServiceList(
 #else
 static UPNP_INLINE void printServiceList(service_info *, Upnp_LogLevel, Dbg_Module)
 {
-    return;
 }
 #endif
 
@@ -245,7 +243,6 @@ void printServiceTable(
 #else
 static UPNP_INLINE void printServiceTable(service_table *, Upnp_LogLevel, Dbg_Module)
 {
-    return;
 }
 #endif
 

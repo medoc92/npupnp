@@ -72,8 +72,8 @@ public:
 
     IPAddr(const IPAddr&);
     IPAddr& operator=(const IPAddr&);
-    IPAddr(IPAddr&&);
-    IPAddr& operator=(IPAddr&&);
+    IPAddr(IPAddr&&) noexcept;
+    IPAddr& operator=(IPAddr&&) noexcept;
     ~IPAddr();
 
     /** @brief Check constructor success */
@@ -116,14 +116,14 @@ public:
                       UP=8, MULTICAST=0x10, HASHWADDR=0x20};
     Interface();
     /** @brief Construct empty interface with just the name set */
-    Interface(const char *nm);
+    explicit Interface(const char *nm);
     /** @brief Construct empty interface with just the name set */
-    Interface(const std::string &nm);
+    explicit Interface(const std::string &nm);
     ~Interface();
     Interface(const Interface&);
     Interface& operator=(const Interface&);
-    Interface(Interface&&);
-    Interface& operator=(Interface&&);
+    Interface(Interface&&) noexcept;
+    Interface& operator=(Interface&&) noexcept;
 
     /** @brief Return the interface name */
     const std::string& getname() const;
@@ -166,6 +166,8 @@ private:
 /** @brief Represent the system's network interfaces. Singleton class. */
 class EXPORT_SPEC Interfaces {
 public:
+    Interfaces(const Interfaces&) = delete;
+    Interfaces& operator=(const Interfaces&) = delete;
     /** @brief Return the Interfaces singleton after possibly building
      * it by querying the system */
     static Interfaces *theInterfaces();
@@ -215,8 +217,6 @@ public:
     static void setlogfp(FILE *fp);
     
 private:
-    Interfaces(const Interfaces &) = delete;
-    Interfaces& operator=(const Interfaces &) = delete;
     Interfaces();
     ~Interfaces();
 

@@ -362,7 +362,7 @@ static MHD_Result answer_to_connection(
             return MHD_NO;
         }
         UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__, "Redirecting to [%s]\n", aurl.c_str());
-        struct MHD_Response *response = MHD_create_response_from_buffer(0,0,MHD_RESPMEM_PERSISTENT);
+        struct MHD_Response *response = MHD_create_response_from_buffer(0,nullptr,MHD_RESPMEM_PERSISTENT);
         if (nullptr == response ) {
             UpnpPrintf(UPNP_DEBUG, MSERV, __FILE__, __LINE__,
                        "answer_to_connection: can't create redirect\n");

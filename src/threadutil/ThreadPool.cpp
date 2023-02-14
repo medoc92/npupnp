@@ -464,7 +464,6 @@ exit_function:
     LOGDEB("ThreadWorker: thread exiting\n");
     totalThreads--;
     start_and_shutdown.notify_all();
-    return;
 }
 
 /*!

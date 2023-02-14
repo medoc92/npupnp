@@ -46,7 +46,6 @@
 #include "genut.h"
 #include "inet_pton.h"
 #include "netif.h"
-#include "upnpapi.h"
 
 #include <cassert>
 #include <cstdio>

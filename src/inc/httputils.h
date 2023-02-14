@@ -167,7 +167,7 @@ extern std::string make_date_string(time_t thetime);
 
 /* Return the SERVER information to be set in HTTP headers */
 std::string get_sdk_device_info(
-    const std::string& custvalue=std::string());
+    const std::string& customvalue=std::string());
 
 /* Return the USER-AGENT information to be set in HTTP headers */
 const std::string& get_sdk_client_info(

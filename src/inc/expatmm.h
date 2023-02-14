@@ -45,7 +45,7 @@ public:
     }
 
     /* Create a new parser, using a user-supplied chunk size */
-    ExpatXMLParser(size_t chunk_size) {
+    explicit ExpatXMLParser(size_t chunk_size) {
         init(chunk_size);
     }
 
@@ -128,7 +128,7 @@ public:
 protected:
     class StackEl {
     public:
-        StackEl(const char* nm) : name(nm) {}
+        explicit StackEl(const char* nm) : name(nm) {}
         std::string name;
         XML_Size start_index;
         std::map<std::string,std::string> attributes;
@@ -323,7 +323,7 @@ public:
     // Beware: we only use a ref to input to minimize copying. This means
     // that storage for the input parameter must persist until you are done
     // with the parser object !
-    inputRefXMLParser(const std::string& input)
+    explicit inputRefXMLParser(const std::string& input)
         : ExpatXMLParser(1), // Have to allocate a small buf even if not used.
           m_input(input) {
     }

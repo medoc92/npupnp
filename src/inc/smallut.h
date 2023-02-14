@@ -62,7 +62,7 @@ extern int stringicmp(const std::string& s1, const std::string& s2);
 
 // For find_if etc.
 struct StringIcmpPred {
-    StringIcmpPred(const std::string& s1)
+    explicit StringIcmpPred(const std::string& s1)
         : m_s1(s1) {
     }
     bool operator()(const std::string& s2) {
@@ -80,7 +80,7 @@ extern void stringtolower(std::string& io);
 extern std::string stringtolower(const std::string& io);
 extern void stringtoupper(std::string& io);
 extern std::string stringtoupper(const std::string& io);
-extern bool beginswith(const std::string& bg, const std::string& sml);
+extern bool beginswith(const std::string& big, const std::string& small);
 
 // Parse date interval specifier into pair of y,m,d dates.  The format
 // for the time interval is based on a subset of iso 8601 with
