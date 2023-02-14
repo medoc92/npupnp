@@ -115,7 +115,7 @@ int copy_subscription(
  */
 void RemoveSubscriptionSID(
     /*! [in] Subscription ID. */
-    Upnp_SID sid,
+    const Upnp_SID& sid,
     /*! [in] Service object providing the list of subscriptions. */
     service_info *service);
 
@@ -127,7 +127,7 @@ void RemoveSubscriptionSID(
  */
 subscription *GetSubscriptionSID(
     /*! [in] Subscription ID. */
-    const Upnp_SID sid,
+    const Upnp_SID& sid,
     /*! [in] Service object providing the list of subscriptions. */
     service_info *service); 
 

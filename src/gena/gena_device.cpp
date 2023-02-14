@@ -309,7 +309,7 @@ int genaInitNotifyXML(
     char *UDN,
     char *servId,
     const std::string& propertySet,
-    const Upnp_SID sid)
+    const Upnp_SID& sid)
 {
     int ret = GENA_SUCCESS;
     int line = 0;
@@ -390,7 +390,7 @@ int genaInitNotifyVars(
     char **VarNames,
     char **VarValues,
     int var_count,
-    const Upnp_SID sid)
+    const Upnp_SID& sid)
 {
     int ret = GENA_SUCCESS;
     int line = 0;

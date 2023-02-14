@@ -202,7 +202,7 @@ bool pcSubst(const std::string& in, std::string& out, const std::map<char, std::
 bool pcSubst(const std::string& in, std::string& out,
              const std::map<std::string, std::string>& subs);
 /** Substitute printf-like percents and %(nm), using result of function call */
-bool pcSubst(const std::string& i, std::string& o, std::function<std::string(const std::string&)>);
+bool pcSubst(const std::string& i, std::string& o, const std::function<std::string(const std::string&)>&);
 
 /** Stupid little smart buffer handler avoiding value-initialization when not needed (e.g. for using
     as read buffer **/
