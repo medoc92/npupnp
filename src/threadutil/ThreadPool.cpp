@@ -122,16 +122,14 @@ ThreadPool::ThreadPool() = default;
 
 ThreadPool::~ThreadPool()
 {
-    // JFD: Doing a proper shutdown does not work at the moment. One
-    // of the threads does not exit. I suspect it's the timer thread
-    // (not quite sure), but we have no way to signal it. For this
-    // stuff to work, any permanent thread should poll for an exit
-    // event, not the case at this point. I suspect that the original
-    // design is wrong: the persistent threads are probably not
-    // compatible with the shutdown() routine.  This is no big deal,
-    // because I can't think of a process which would want to shutdown
-    // its UPnP service and do something else further on... Going to
-    // exit anyway. Actually calling _exit() might be the smart thing here :)
+    // JFD: Doing real work in the destructor is impossible at the moment.  The main problem is that
+    // the ThreadPools are declared as static objects in upnpapi.c so that the destructors are
+    // called on program exit even if the application did not properly execute an orderly
+    // shutdown. In practise, at least the TimerThread is still running and we have no mechanism to
+    // tell all threads to exit and wait for them. This is no big deal, because I can't think of a
+    // process which would want to shutdown its UPnP service and do something else further on... So
+    // the process is going to exit and the system will take care of the cleanup.
+    // Tl:Dr : I don't know how to clean up without crashing, just exit.
 #if 0
     shutdown();
 #endif
