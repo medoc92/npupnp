@@ -84,7 +84,6 @@ libnpupnp_la_SOURCES = \
 # ssdp
 if ENABLE_SSDP
 libnpupnp_la_SOURCES += \
-	src/ssdp/ssdp_ResultData.h \
 	src/ssdp/ssdp_device.cpp \
 	src/ssdp/ssdp_ctrlpt.cpp \
 	src/ssdp/ssdpparser.cpp \
