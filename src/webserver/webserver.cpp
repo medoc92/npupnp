@@ -99,6 +99,8 @@ struct SendInstruction {
     /*! Cookie associated with the virtualDir. This is set if the path
         matches a VirtualDir entry, and is passed to subsequent
         virtual dir calls. */
+    bool IsPartial{false};
+    int64_t TotalSize{0};
     const void *cookie{nullptr};
     /* Copy of the data if this request is for a localdoc, e.g. the
        description document set by the API if we serve it this way,
@@ -479,14 +481,15 @@ static int process_request(
 
             RespInstr->offset = ranges[0].first;
             if (ranges[0].second >= 0) {
-                RespInstr->ReadSendSize = ranges[0].second -
-                    ranges[0].first + 1;
+                RespInstr->ReadSendSize = ranges[0].second - ranges[0].first + 1;
                 if (RespInstr->ReadSendSize < 0) {
                     RespInstr->ReadSendSize = 0;
                 }
             } else {
                 RespInstr->ReadSendSize = -1;
             }
+            RespInstr->IsPartial = RespInstr->offset > 0 ||
+                (RespInstr->offset == 0 && RespInstr->ReadSendSize >= 0);
         }
     }
 
@@ -528,8 +531,7 @@ static int process_request(
         if (!mhdt->queryvalues.empty()) {
             qs = "?";
             for (const auto& entry : mhdt->queryvalues) {
-                qs += query_encode(entry.first) + "=" +
-                    query_encode(entry.second);
+                qs += query_encode(entry.first) + "=" + query_encode(entry.second);
                 qs += "&";
             }
             qs.pop_back();
@@ -537,9 +539,8 @@ static int process_request(
         std::string bfilename{filename};
         filename += qs;
         /* get file info */
-        if (virtualDirCallback.get_info(
-                filename.c_str(), &finfo, entryp->cookie,
-                &RespInstr->request_cookie) != UPNP_E_SUCCESS) {
+        if (virtualDirCallback.get_info(filename.c_str(), &finfo, entryp->cookie,
+                                        &RespInstr->request_cookie) != UPNP_E_SUCCESS) {
             return HTTP_NOT_FOUND;
         }
         /* try index.html if req is a dir */
@@ -553,9 +554,8 @@ static int process_request(
             bfilename += temp_str;
             filename = bfilename + qs;
             /* get info */
-            if ((virtualDirCallback.get_info(
-                     filename.c_str(), &finfo, entryp->cookie,
-                     &RespInstr->request_cookie) != UPNP_E_SUCCESS) ||
+            if ((virtualDirCallback.get_info(filename.c_str(), &finfo, entryp->cookie,
+                                             &RespInstr->request_cookie) != UPNP_E_SUCCESS) ||
                 finfo.is_directory) {
                 return HTTP_NOT_FOUND;
             }
@@ -616,10 +616,8 @@ static int process_request(
     } else if (RespInstr->offset + RespInstr->ReadSendSize > finfo.file_length) {
         RespInstr->ReadSendSize = finfo.file_length - RespInstr->offset;
     }
+    RespInstr->TotalSize = finfo.file_length;
     
-    //std::cerr << "process_request: offset " << RespInstr->offset <<
-    // " count " << RespInstr->ReadSendSize << "\n";
-        
     int code = CheckOtherHTTPHeaders(mhdt, RespInstr, finfo.file_length);
     if (code != HTTP_OK) {
         return code;
@@ -669,15 +667,6 @@ static ssize_t vFileReaderCallback(void *cls, uint64_t pos, char *buf, size_t ma
         UpnpPrintf(UPNP_ERROR, MSERV, __FILE__, __LINE__, "vFileReaderCallback: fp is null !\n");
         return MHD_CONTENT_READER_END_WITH_ERROR;
     }
-    //std::cerr << "vFileReaderCallback: pos " << pos << " cnt " << max << "\n";
-
-#if LOCKS_UP_GERBERA_DONT_DO_IT
-    if (virtualDirCallback.seek(
-            ctx->fp, pos, SEEK_SET, ctx->cookie, ctx->request_cookie) !=
-        (int64_t)pos) {
-        return MHD_CONTENT_READER_END_WITH_ERROR;
-    }
-#endif
 
     int ret = virtualDirCallback.read(ctx->fp, buf, max, ctx->cookie, ctx->request_cookie);
 
@@ -685,8 +674,9 @@ static ssize_t vFileReaderCallback(void *cls, uint64_t pos, char *buf, size_t ma
        MHD to try again. Thus, returning zero should only be used in
        conjunction with MHD_suspend_connection() to avoid busy
        waiting. */
-    if (ret > 0)
+    if (ret > 0) {
         return ret;
+    }
     return ret < 0 ? MHD_CONTENT_READER_END_WITH_ERROR : MHD_CONTENT_READER_END_OF_STREAM;
 }
 
@@ -750,12 +740,23 @@ static void web_server_callback(MHDTransaction *mhdt)
             ctx->cookie = RespInstr.cookie;
             ctx->request_cookie = RespInstr.request_cookie;
             if (RespInstr.offset) {
-                virtualDirCallback.seek(
+                auto ret = virtualDirCallback.seek(
                     ctx->fp, RespInstr.offset, SEEK_SET, ctx->cookie, ctx->request_cookie);
+                if (ret != UPNP_E_SUCCESS) {
+                    UpnpPrintf(UPNP_ERROR, MSERV, __FILE__, __LINE__, "Seek failed\n");
+                }
             }
             mhdt->response = MHD_create_response_from_callback(
                 RespInstr.ReadSendSize, 4096, vFileReaderCallback, ctx, vFileFreeCallback);
-            mhdt->httpstatus = 200;
+            if (RespInstr.IsPartial) {
+                std::string bytesrange = std::string("bytes ") + lltodecstr(RespInstr.offset) + "-" +
+                    lltodecstr(RespInstr.offset + RespInstr.ReadSendSize -1) + "/" +
+                    lltodecstr(RespInstr.TotalSize);
+                MHD_add_response_header(mhdt->response, "Content-Range", bytesrange.c_str());
+                mhdt->httpstatus = 206;
+            } else {
+                mhdt->httpstatus = 200;
+            }
         }
         break;
 
@@ -779,16 +780,14 @@ static void web_server_callback(MHDTransaction *mhdt)
         if (!stringlowercmp("server", header.first)) {
             serverhfound = true;
         }
-        MHD_add_response_header(mhdt->response, header.first.c_str(),
-                                header.second.c_str());
+        MHD_add_response_header(mhdt->response, header.first.c_str(), header.second.c_str());
     }
     if (!serverhfound) {
-        MHD_add_response_header(mhdt->response, "SERVER",
-                                get_sdk_device_info("").c_str());
+        MHD_add_response_header(mhdt->response, "SERVER", get_sdk_device_info("").c_str());
     }
     MHD_add_response_header(mhdt->response, "Accept-Ranges", "bytes");
     
-    UpnpPrintf(UPNP_DEBUG,HTTP,__FILE__,__LINE__,
+    UpnpPrintf(UPNP_DEBUG, HTTP, __FILE__, __LINE__,
                "webserver: response ready. Status %d\n", mhdt->httpstatus);
 }
 
