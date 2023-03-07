@@ -14,8 +14,10 @@ EXPAT_CPPFLAGS = @EXPAT_CFLAGS@
 AM_CPPFLAGS = $(MICROHTTPD_CPPFLAGS) $(CURL_CPPFLAGS) $(EXPAT_CPPFLAGS) \
 	-I$(srcdir)/inc \
         -DSMALLUT_NO_REGEX -DSMALLUT_EXTERNAL_INSTANTIATIONS
-        
-AM_CXXFLAGS = -std=c++14
+
+CPP_STD=@CPP_STD@
+
+AM_CXXFLAGS = $(CPP_STD)
 
 LIBNPUPNP_LIBS=@LIBNPUPNP_LIBS@
 
@@ -38,7 +40,7 @@ lib_LTLIBRARIES = libnpupnp.la
 
 libnpupnp_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/src/inc 
 if LINUX
-libnpupnp_la_CXXFLAGS = -fvisibility=hidden -std=c++14
+libnpupnp_la_CXXFLAGS = -fvisibility=hidden $(CPP_STD)
 else
 libnpupnp_la_CXXFLAGS = $(AM_CXXFLAGS)
 endif

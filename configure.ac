@@ -40,6 +40,9 @@ AC_DISABLE_STATIC
 LT_INIT
 
 AC_PROG_CXX
+CPP_STD=-std=c++17
+AC_SUBST(CPP_STD)
+
 LT_INIT
 AC_CHECK_PROG([pkg_config], [pkg-config], [yes], [no])
 if test X$pkg_config != Xyes ; then

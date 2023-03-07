@@ -1,6 +1,6 @@
 CXXFLAGS ?= @CXXFLAGS@
 
-AM_CPPFLAGS = -Wall -Wno-unused -std=c++14 \
+AM_CPPFLAGS = -Wall -Wno-unused @CPP_STD@ \
             -I${top_srcdir} -I${top_srcdir}/inc -I ${top_srcdir}/src/inc
 
 
