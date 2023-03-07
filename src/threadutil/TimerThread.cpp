@@ -112,11 +112,10 @@ void TimerJobWorker::work()
         system_clock::time_point currentTime = system_clock::now();
         /* If time has elapsed, schedule job. */
         if (nextEvent && currentTime >= nextEventTime) {
-            int ret = 0;
             if (nextEvent->persistent) {
-                ret = timer->tp->addPersistent(std::move(nextEvent->worker), nextEvent->priority);
+                timer->tp->addPersistent(std::move(nextEvent->worker), nextEvent->priority);
             } else {
-                ret = timer->tp->addJob(std::move(nextEvent->worker), nextEvent->priority);
+                timer->tp->addJob(std::move(nextEvent->worker), nextEvent->priority);
             }
             timer->eventQ.pop_front();
             delete nextEvent;
