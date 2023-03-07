@@ -82,6 +82,8 @@
 #include <unistd.h>
 #include <sys/param.h>
 #include <sys/types.h>
+#else
+#include <io.h>
 #endif
 
 // Default advertisement expiration time used if the exp parameter to UpnpSendAdvertisement() is <=0
