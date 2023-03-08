@@ -18,10 +18,29 @@ elif host_machine.system() == 'sunos'
 endif
 
 deps += dependency('threads')
-deps += dependency('libmicrohttpd')
-deps += dependency('libcurl')
-expat_dep = dependency('expat', required: get_option('expat'))
-deps += expat_dep
+
+if host_machine.system() == 'windows'
+  # Note: only works with: meson configure build --buildtype release --default-library=static
+  # at the moment.
+  use_expat = true
+  add_project_arguments(
+  '-Ic:/Users/bill/Documents/upnp/libmicrohttpd-0.9.65-w32-bin/x86/VS2019/Release-static',
+  '-Ic:/Users/bill/Documents/upnp/curl-7.70.0/include',
+  '-Ic:/Users/bill/Documents/upnp/expat-2.2.9/Source/lib', language: 'cpp')
+  add_project_arguments(
+  '-DNOMINMAX',
+  '-DWIN32_MEAN_AND_LEAN',
+  '-DUPNP_STATIC_LIB',
+  '-DCURL_STATICLIB',
+  '-DPSAPI_VERSION=1',
+    language: 'cpp')
+else
+  deps += dependency('libmicrohttpd')
+  deps += dependency('libcurl')
+  expat_dep = dependency('expat', required: get_option('expat'))
+  deps += expat_dep
+  use_expat = expat_dep.found()
+endif
 
 if get_option('default_library') != 'static'
   add_project_arguments('-DDLL_EXPORT', language: 'cpp')
@@ -94,7 +113,7 @@ auto.set('NPUPNP_VERSION_MINOR', ver[1])
 auto.set('NPUPNP_VERSION_PATCH', ver[2])
 auto.set10('UPNP_HAVE_DEBUG', get_option('debug'))
 auto.set10('UPNP_HAVE_DEVICE', get_option('device'))
-auto.set('USE_EXPAT', expat_dep.found())
+auto.set('USE_EXPAT', use_expat)
 auto.set10('UPNP_HAVE_GENA', get_option('gena'))
 auto.set('UPNP_HAVE_OPTSSDP', get_option('optssdp'))
 auto.set10('UPNP_HAVE_SOAP', get_option('soap'))
