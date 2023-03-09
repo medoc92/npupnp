@@ -1,0 +1,36 @@
+name: meson linux clang
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{github.workflow}}-${{github.head_ref}}
+  cancel-in-progress: true
+
+jobs:
+  Ubuntu:
+    runs-on: ubuntu-20.04
+    name: Linux-Clang${{matrix.cxx}}-${{matrix.deps}}-${{matrix.type}}
+    strategy:
+      matrix:
+        cxx: ['7', '8', '9', '10', '12']
+        deps: ['forcefallback', 'default']
+        type: ['shared', 'static']
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install packages
+        run: |
+          sudo apt update
+          sudo apt install -y libcurl4-gnutls-dev libmicrohttpd-dev
+          sudo apt install -y clang-${{matrix.cxx}} libc++abi-${{matrix.cxx}}-dev libc++-${{matrix.cxx}}-dev lld-${{matrix.cxx}}
+          python3 -m pip install meson ninja
+
+      - name: Compile and Test
+        env:
+          CXX: clang++-${{matrix.cxx}}
+          CXXFLAGS: -stdlib=libc++
+          CXX_LD: lld-${{matrix.cxx}}
+        run: |
+          meson setup "${{github.workspace}}/build" --wrap-mode=${{matrix.deps}} -Ddefault_library=${{matrix.type}} -Dwarning_level=3 -Dcpp_std=c++20
+          meson compile -C "${{github.workspace}}/build" --verbose
+          meson test -C "${{github.workspace}}/build" --verbose
