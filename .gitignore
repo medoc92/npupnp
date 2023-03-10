@@ -26,3 +26,5 @@ stamp-h1
 upnp/Makefile
 windows/build-libnpupnp-Desktop_Qt_5_8_0_MinGW_32bit-Debug/
 windows/qmk/libnpupnp.pro.user
+
+subprojects/packagecache
