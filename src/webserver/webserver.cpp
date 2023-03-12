@@ -330,8 +330,8 @@ int web_server_add_virtual_dir(
 
     std::lock_guard<std::mutex> lock(vdlmutex);
     auto old = std::find_if(virtualDirList.begin(), virtualDirList.end(),
-                            [entry](const VirtualDirListEntry& old) {
-                                return entry.path == old.path;
+                            [entry](const VirtualDirListEntry& o) {
+                                return entry.path == o.path;
                             });
     if (old != virtualDirList.end()) {
         if (oldcookie) {
@@ -740,9 +740,9 @@ static void web_server_callback(MHDTransaction *mhdt)
             ctx->cookie = RespInstr.cookie;
             ctx->request_cookie = RespInstr.request_cookie;
             if (RespInstr.offset) {
-                auto ret = virtualDirCallback.seek(
+                auto r = virtualDirCallback.seek(
                     ctx->fp, RespInstr.offset, SEEK_SET, ctx->cookie, ctx->request_cookie);
-                if (ret != UPNP_E_SUCCESS) {
+                if (r != UPNP_E_SUCCESS) {
                     UpnpPrintf(UPNP_ERROR, MSERV, __FILE__, __LINE__, "Seek failed\n");
                 }
             }
