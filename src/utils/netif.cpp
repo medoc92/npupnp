@@ -597,7 +597,7 @@ Interfaces::Internal::Internal()
 
 #else /* _WIN32 ->*/
 
-bool wchartoutf8(const wchar_t *in, std::string& out, size_t wlen)
+static bool wchartoutf8(const wchar_t* in, std::string& out, size_t wlen)
 {
     out.clear();
     if (nullptr == in) {

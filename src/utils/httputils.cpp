@@ -349,7 +349,7 @@ bool timeout_header_value(std::map<std::string, std::string>& headers,
 }
 
 #ifdef _WIN32
-struct tm *http_gmtime_r(const time_t *clock, struct tm *result)
+static tm* http_gmtime_r(const time_t* clock, tm* result)
 {
     if (clock == NULL || *clock < 0 || result == NULL)
         return NULL;

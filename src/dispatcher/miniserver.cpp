@@ -179,9 +179,9 @@ static const std::map<std::string, int> strmethtometh {
     {"unsubscribe", HTTPMETHOD_UNSUBSCRIBE},
         };
 
-void request_completed_cb(
-    void *, struct MHD_Connection *,
-    void **con_cls, enum MHD_RequestTerminationCode)
+static void request_completed_cb(
+    void*, MHD_Connection*,
+    void** con_cls, MHD_RequestTerminationCode)
 {
     if (nullptr == con_cls)
         return;

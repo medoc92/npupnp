@@ -38,8 +38,8 @@
  *
  * \return UPNP_E_SUCCESS if successful, otherwise returns GENA_E_BAD_HANDLE
  */
-extern int genaUnregisterDevice(
-     /*! [in] Handle of the root device */
+int genaUnregisterDevice(
+    /*! [in] Handle of the root device */
     UpnpDevice_Handle device_handle);
 
 /*!
@@ -50,28 +50,27 @@ extern int genaUnregisterDevice(
  * \note This function is similar to the genaNotifyAllExt. The only difference
  *    is it takes event variable array instead of xml document.
  */
-extern int genaNotifyAll(
+int genaNotifyAll(
     /*! [in] Device handle. */
     UpnpDevice_Handle device_handle,
     /*! [in] Device udn. */
-    char *UDN,
+    char* UDN,
     /*! [in] Service ID. */
-    char *servId,
+    char* servId,
     /*! [in] Array of varible names. */
-    char **VarNames,
+    char** VarNames,
     /*! [in] Array of variable values. */
-    char **VarValues,
+    char** VarValues,
     /*! [in] Number of variables. */
     int var_count);
-extern int genaNotifyAllXML(
+int genaNotifyAllXML(
     /*! [in] Device handle. */
     UpnpDevice_Handle device_handle,
     /*! [in] Device udn. */
-    char *UDN,
+    char* UDN,
     /*! [in] Service ID. */
-    char *servId,
+    char* servId,
     const std::string& propertySet);
-
 
 /*!
  * \brief Sends the intial state table dump to newly subscribed control point.
@@ -81,28 +80,28 @@ extern int genaNotifyAllXML(
  * \note  No other event will be sent to this control point before the
  *    intial state table dump.
  */
-extern int genaInitNotifyXML(
+int genaInitNotifyXML(
     /*! [in] Device handle. */
     UpnpDevice_Handle device_handle,
     /*! [in] Device udn. */
-    char *UDN,
+    char* UDN,
     /*! [in] Service ID. */
-    char *servId,
+    char* servId,
     const std::string& propertyset,
     /*! [in] Subscription ID. */
     const Upnp_SID& sid);
 
-extern int genaInitNotifyVars(
+int genaInitNotifyVars(
     /*! [in] Device handle. */
     UpnpDevice_Handle device_handle,
     /*! [in] Device udn. */
-    char *UDN,
+    char* UDN,
     /*! [in] Service ID. */
-    char *servId,
+    char* servId,
     /*! [in] Array of variable names. */
-    char **VarNames,
+    char** VarNames,
     /*! [in] Array of variable values. */
-    char **VarValues,
+    char** VarValues,
     /*! [in] Array size. */
     int var_count,
     /*! [in] Subscription ID. */
