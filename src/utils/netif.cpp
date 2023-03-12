@@ -305,7 +305,6 @@ std::string IPAddr::straddr(bool setscope, bool forurl) const
         s += std::string(forurl ? "%25" : "%") + scopebuf;
         return s;
     }
-    break;
     }
     return buf;
 }
