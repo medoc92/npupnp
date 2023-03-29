@@ -39,11 +39,11 @@ protected:
         UPnPDeviceDesc* dev = ismain ? &m_device : &m_tdevice;
 
         if (!strcmp(name, "service")) {
-            dev->services.push_back(m_tservice);
+            dev->services.push_back(std::move(m_tservice));
             m_tservice = UPnPServiceDesc();
         } else if (!strcmp(name, "device")) {
             if (!ismain) {
-                m_device.embedded.push_back(m_tdevice);
+                m_device.embedded.push_back(std::move(m_tdevice));
             }
             m_tdevice = UPnPDeviceDesc();
         } else if (!strcmp(name, "controlURL")) {

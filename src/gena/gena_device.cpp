@@ -714,7 +714,7 @@ static int create_url_list(
 
         UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
                    "create_url_list: cb url ok:  %s\n", qsurl.c_str());
-        out->push_back(qsurl);
+        out->push_back(std::move(qsurl));
     }
     return UPNP_E_SUCCESS;
 }
