@@ -43,29 +43,30 @@ void utf8truncate(string& s, int maxlen, int flags, const string& ellipsis,
         maxlen = std::max(0, maxlen - int(ellen));
     }
 
-    Utf8Iter iter(s);
     string::size_type pos = 0;
     string::size_type lastwspos = 0;
-    for (; !iter.eof(); iter++) {
-        unsigned int c = *iter;
-        if (iter.getBpos() < string::size_type(maxlen)) {
-            pos = iter.getBpos() + iter.getBlen();
-            if ((flags & UTF8T_ATWORD) && wss.find(c) != wss.end()) {
-                lastwspos = pos;
+    {
+        Utf8Iter iter(s);
+        for (; !iter.eof(); iter++) {
+            unsigned int c = *iter;
+            if (iter.getBpos() < string::size_type(maxlen)) {
+                pos = iter.getBpos() + iter.getBlen();
+                if ((flags & UTF8T_ATWORD) && wss.find(c) != wss.end()) {
+                    lastwspos = pos;
+                }
+            } else {
+                break;
             }
-        } else {
-            break;
         }
     }
-
     if (flags & UTF8T_ATWORD) {
         s.erase(lastwspos);
         for (;;) {
-            Utf8Iter i(s);
+            Utf8Iter iter(s);
             unsigned int c = 0;
-            for (; !i.eof(); iter++) {
-                c = *i;
-                pos = i.getBpos();
+            for (; !iter.eof(); iter++) {
+                c = *iter;
+                pos = iter.getBpos();
             }
             if (wss.find(c) == wss.end()) {
                 break;
