@@ -1,3 +1,9 @@
+libnpupnp2 (5.0.2-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Minuscule internal changes. Sync with Windows version.
+  
+ -- Jean-Francois Dockes <jf@dockes.org>  Wed, 19 Apr 2023 15:59:00 +0100
+
 libnpupnp2 (5.0.1-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Web server: fixed bad HTTP protocol conformance when handling range requests. Would bother a lot
