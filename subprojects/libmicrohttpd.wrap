@@ -3,11 +3,11 @@ directory = libmicrohttpd-0.9.76
 source_url = https://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-0.9.76.tar.gz
 source_filename = libmicrohttpd-0.9.76.tar.gz
 source_hash = f0b1547b5a42a6c0f724e8e1c1cb5ce9c4c35fb495e7d780b9930d35011ceb4c
-patch_filename = libmicrohttpd_0.9.76-1_patch.zip
-patch_url = https://wrapdb.mesonbuild.com/v2/libmicrohttpd_0.9.76-1/get_patch
-patch_hash = 9c6c09dece2ea8c91421c618d10e0368a1ec7e77f94915013c4ea2d9ab9e4c37
-source_fallback_url = https://github.com/mesonbuild/wrapdb/releases/download/libmicrohttpd_0.9.76-1/libmicrohttpd-0.9.76.tar.gz
-wrapdb_version = 0.9.76-1
+patch_filename = libmicrohttpd_0.9.76-3_patch.zip
+patch_url = https://wrapdb.mesonbuild.com/v2/libmicrohttpd_0.9.76-3/get_patch
+patch_hash = 0954c094a0d4cfe0dd799d8df8a04face6669f7b4d51a7386a9c3e2d37b9c3b3
+source_fallback_url = https://github.com/mesonbuild/wrapdb/releases/download/libmicrohttpd_0.9.76-3/libmicrohttpd-0.9.76.tar.gz
+wrapdb_version = 0.9.76-3
 
 [provide]
 libmicrohttpd = libmicrohttpd_dep
