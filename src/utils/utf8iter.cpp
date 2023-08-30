@@ -21,15 +21,13 @@
 #include <unordered_set>
 #include <iostream>
 
-using namespace std;
-
-void utf8truncate(string& s, int maxlen, int flags, const string& ellipsis,
-                  const string& ws)
+void utf8truncate(std::string& s, int maxlen, int flags, const std::string& ellipsis,
+                  const std::string& ws)
 {
-    if (s.size() <= string::size_type(maxlen)) {
+    if (s.size() <= std::string::size_type(maxlen)) {
         return;
     }
-    unordered_set<int> wss;
+    std::unordered_set<int> wss;
     if (flags & UTF8T_ATWORD) {
         Utf8Iter iter(ws);
         for (; !iter.eof(); iter++) {
@@ -43,13 +41,13 @@ void utf8truncate(string& s, int maxlen, int flags, const string& ellipsis,
         maxlen = std::max(0, maxlen - int(ellen));
     }
 
-    string::size_type pos = 0;
-    string::size_type lastwspos = 0;
+    std::string::size_type pos = 0;
+    std::string::size_type lastwspos = 0;
     {
         Utf8Iter iter(s);
         for (; !iter.eof(); iter++) {
             unsigned int c = *iter;
-            if (iter.getBpos() < string::size_type(maxlen)) {
+            if (iter.getBpos() < std::string::size_type(maxlen)) {
                 pos = iter.getBpos() + iter.getBlen();
                 if ((flags & UTF8T_ATWORD) && wss.find(c) != wss.end()) {
                     lastwspos = pos;
@@ -82,11 +80,11 @@ void utf8truncate(string& s, int maxlen, int flags, const string& ellipsis,
     }
 }
 
-size_t utf8len(const string& s)
+size_t utf8len(const std::string& s)
 {
     size_t len = 0;
     Utf8Iter iter(s);
-    while (iter++ != string::npos) {
+    while (iter++ != std::string::npos) {
         len++;
     }
     return len;
