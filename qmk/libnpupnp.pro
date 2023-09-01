@@ -59,9 +59,9 @@ windows {
     contains(QMAKE_CC, cl){
       QMAKE_CXXFLAGS += /std:c++17
       DEFINES += NOMINMAX
-      INCLUDEPATH += $$PWD/../../expat-2.2.9/Source/lib
+      INCLUDEPATH += $$PWD/../../expat.v140.2.4.1.1/build/native/include
       INCLUDEPATH += $$PWD/../../curl-7.70.0/include
-      INCLUDEPATH += $$PWD/../../libmicrohttpd-0.9.65-w32-bin/x86/VS2017/Release-static/
+      INCLUDEPATH += $$PWD/../../libmicrohttpd-0.9.65-w32-bin/x86_64/VS2019/Release-dll/
     }
     LIBS += -liphlpapi
     LIBS += -lwldap32

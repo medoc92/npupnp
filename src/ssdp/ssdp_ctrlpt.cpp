@@ -409,11 +409,11 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
 
     fd_set wrSet;
     FD_ZERO(&wrSet);
-    SOCKET max_fd = INVALID_SOCKET;
+    int max_fd = -1;
     if (gSsdpReqSocket4 != INVALID_SOCKET) {
         FD_SET(gSsdpReqSocket4, &wrSet);
 #ifdef _WIN32
-        // max_fd is ignored under windows. invalid_socket is not 0
+        // max_fd is ignored under windows. Just set it to not -1.
         max_fd = 0;
 #else
         max_fd = std::max(max_fd, gSsdpReqSocket4);
@@ -423,7 +423,7 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
     if (gSsdpReqSocket6 != INVALID_SOCKET) {
         FD_SET(gSsdpReqSocket6, &wrSet);
 #ifdef _WIN32
-        // max_fd is ignored under windows. invalid_socket is not 0
+        // max_fd is ignored under windows. Just set it to not -1.
         max_fd = 0;
 #else
         max_fd = std::max(max_fd, gSsdpReqSocket6);
@@ -431,7 +431,7 @@ int SearchByTarget(int Mx, char *St, void *Cookie)
     }
 #endif
 
-    if (max_fd == INVALID_SOCKET) {
+    if (max_fd == -1) {
         UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
                    "SSDP_LIB: neither ipv4 nor ipv6 are active !\n");
         return UPNP_E_INTERNAL_ERROR;

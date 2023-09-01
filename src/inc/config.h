@@ -40,7 +40,7 @@
 
 #ifdef _MSC_VER
 /* no ssize_t defined for VC */
-typedef int ssize_t;
+typedef intptr_t ssize_t;
 #define strncasecmp _strnicmp
 #define strcasecmp _stricmp
 #define getpid _getpid

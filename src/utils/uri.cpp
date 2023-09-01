@@ -414,7 +414,7 @@ int parse_uri(const std::string& in, uri_type *out)
         out->path_type = REL_PATH;
     }
 
-    int begin_path = 0;
+    size_t begin_path = 0;
     if (begin_hostport + 1 < in.size() && in[begin_hostport] == '/' &&
         in[begin_hostport + 1] == '/') {
         begin_hostport += 2;
