@@ -784,7 +784,7 @@ int StartMiniServer(uint16_t *listen_port4, uint16_t *listen_port6)
         filter_connections, nullptr, /* Accept policy callback and arg */
         &answer_to_connection, nullptr, /* Request handler and arg */
         MHD_OPTION_NOTIFY_COMPLETED, request_completed_cb, nullptr,
-        MHD_OPTION_CONNECTION_TIMEOUT, static_cast<unsigned int>(UPNP_TIMEOUT),
+        MHD_OPTION_CONNECTION_TIMEOUT, static_cast<unsigned int>(HTTP_DEFAULT_TIMEOUT),
         MHD_OPTION_EXTERNAL_LOGGER, mhdlogger, nullptr, 
         MHD_OPTION_END);
     if (nullptr == mhd) {

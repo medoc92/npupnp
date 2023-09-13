@@ -183,7 +183,7 @@ int SoapSendAction(
 
     UPnPSoapOptParser opts(respdata);
     respdata.clear();
-    long timeoutms = opts.timeoutms >= 0 ? opts.timeoutms : 1000L * UPNP_TIMEOUT;
+    long timeoutms = opts.timeoutms >= 0 ? opts.timeoutms : 1000L * HTTP_DEFAULT_TIMEOUT;
     
     /* Action: name and namespace (servicetype) */
     std::ostringstream act;
