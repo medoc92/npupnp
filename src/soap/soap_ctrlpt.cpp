@@ -153,6 +153,18 @@ get_response_value(
     return (*errcodep) ? SOAP_ACTION_RESP_ERROR : SOAP_ACTION_RESP;
 }
 
+class UPnPSoapOptParser {
+public:
+    UPnPSoapOptParser(std::vector<std::pair<std::string, std::string>>& opts) {
+        for (const auto& opt : opts) {
+            if (opt.first == "timeoutms") {
+                timeoutms = atoi(opt.second.c_str());
+            }
+        }
+    }
+    long timeoutms{-1};
+};
+
 int SoapSendAction(
     const std::string& xml_header_str, const std::string& actionURL,
     const std::string& serviceType,    const std::string& actionName,
@@ -169,6 +181,10 @@ int SoapSendAction(
     const static std::string xml_body_start{"<s:Body>"};
     const static std::string xml_end{"</s:Body>\r\n</s:Envelope>\r\n"};
 
+    UPnPSoapOptParser opts(respdata);
+    respdata.clear();
+    long timeoutms = opts.timeoutms >= 0 ? opts.timeoutms : 1000L * UPNP_TIMEOUT;
+    
     /* Action: name and namespace (servicetype) */
     std::ostringstream act;
     act << "<u:" << actionName << R"( xmlns:u=")" << serviceType << R"(">)" "\n";
@@ -214,7 +230,7 @@ int SoapSendAction(
         curl_easy_setopt(easy, CURLOPT_WRITEDATA, &responsestr);
         curl_easy_setopt(easy, CURLOPT_HEADERFUNCTION, header_callback_curl);
         curl_easy_setopt(easy, CURLOPT_HEADERDATA, &http_headers);
-        curl_easy_setopt(easy, CURLOPT_TIMEOUT, long(UPNP_TIMEOUT));
+        curl_easy_setopt(easy, CURLOPT_TIMEOUT_MS, timeoutms);
         curl_easy_setopt(easy, CURLOPT_POST, long(1));
         curl_easy_setopt(easy, CURLOPT_POSTFIELDS, payload.c_str()); 
         struct curl_slist *list = nullptr;

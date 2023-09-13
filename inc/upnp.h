@@ -1428,7 +1428,10 @@ EXPORT_SPEC int UpnpSendAdvertisementLowPower(
  *  @param serviceType the service type from the device description document
  *  @param actionName the action to perform (from the service description)
  *  @param actionParams the action name/value argument pairs, in order.
- *  @param[out] responseData the return values
+ *  @param[in,out] responseData the return values. On input some additional parameters can be 
+ *    specified. Currently accepted parameters:
+ *      ("timeoutms", milliseconds-string)
+ *    responseData is cleared after using the values, and before further processing.
  *  @param[out] errorCodep pointer to an integer to store the UPNP error code
  *   if we got an error response document. Same as the return value if set.
  *  @param[out] errorDescr A place to store an error description (if we got 
