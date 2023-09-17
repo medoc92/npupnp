@@ -2,7 +2,7 @@ project(
   'libnpupnp',
   'cpp',
   license: 'BSD-3-Clause',
-  version: '5.0.0',
+  version: '5.0.3',
   default_options: 'cpp_std=c++17',
   meson_version: '>=0.48',
 )
@@ -18,8 +18,8 @@ elif host_machine.system() == 'sunos'
 endif
 
 deps += dependency('threads')
-deps += dependency('libmicrohttpd')
 deps += dependency('libcurl')
+deps += dependency('libmicrohttpd')
 expat_dep = dependency('expat', required: get_option('expat'))
 deps += expat_dep
 
@@ -31,6 +31,8 @@ endif
 
 add_project_arguments('-DSMALLUT_NO_REGEX', language: 'cpp')
 add_project_arguments('-DSMALLUT_EXTERNAL_INSTANTIATIONS', language: 'cpp')
+
+add_project_arguments(cpp.get_supported_arguments('-Wno-deprecated-declarations'), language: 'cpp')
 
 libnpupnp_incdir = include_directories('.', 'inc', 'src/inc')
 
@@ -115,7 +117,7 @@ libnpupnp = library(
   gnu_symbol_visibility: 'hidden',
   name_prefix: '',
   version: meson.project_version(),
-  soversion: host_machine.system() == 'windows' ? '' : '4',
+  soversion: host_machine.system() == 'windows' ? '' : [],
   include_directories: libnpupnp_incdir,
   dependencies: deps,
   install: true,
