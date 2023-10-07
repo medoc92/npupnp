@@ -53,6 +53,8 @@
 #else /* _WIN32 -> */
 #undef _WIN32_WINNT
 #define _WIN32_WINNT 0x0600
+#undef WINVER
+#define WINVER 0x0600
 
 #include <winsock2.h>
 #include <iphlpapi.h>
