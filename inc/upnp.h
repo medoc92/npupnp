@@ -1700,12 +1700,13 @@ EXPORT_SPEC int UpnpUnSubscribe(
     const Upnp_SID& SubsId);
 
 /**
- * @brief Sets the maximum time-out accepted for a subscription request or
- * renewal.
+ * @brief Sets the maximum time-out accepted for a subscription request or renewal.
  *
- * The default value accepts the time-out set by the control point.
- * If a control point requests a subscription time-out less than or equal to
- * the maximum, the SDK grants the value requested by the control point. If the
+ * This affects the UPnP Subscription timeout value (the time after which a subscription will
+ * expire).
+ * The default value accepts the time-out set by the control point (no maximum).
+ * If a maximum is set through this call and a control point requests a subscription time-out less
+ * than or equal to the maximum, the SDK grants the value requested by the control point. If the 
  * time-out is greater, the SDK returns the maximum value.
  *
  * @return An integer representing one of the following:
