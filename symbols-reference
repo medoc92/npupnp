@@ -25,6 +25,7 @@
   UpnpClientSetProduct(int, char const*, char const*)
   UpnpDeviceSetProduct(int, char const*, char const*)
   UpnpRemoveVirtualDir(char const*)
+  UpnpSubsOpsTimeoutMs(int, int)
   UpnpUnRegisterClient(int)
   UpnpRenewSubscription(int, int*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
   UpnpSendAdvertisement(int, int)
