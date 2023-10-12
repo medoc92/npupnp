@@ -1721,6 +1721,25 @@ EXPORT_SPEC int UpnpSetMaxSubscriptionTimeOut(
     /** The maximum subscription time-out to be accepted. */
     int MaxSubscriptionTimeOut);
 
+/**
+ * @brief Sets the HTTP timeout for subscription operations. 
+ *
+ * This defines how much time we wait for an answer from a device which might be reachable but
+ * unresponsive. This has nothing to do with the UPnP subscription/renewal durations.
+ *
+ *  The library default is 30S (30000), which much too long in common cases.
+ *
+ * @return An integer representing one of the following:
+ *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
+ *     \li \c UPNP_E_INVALID_HANDLE: The handle is not a valid device 
+ *             handle.
+ *     \li \c UPNP_E_INVALID_PARAM: \b TimeOut is <= 0.
+ */
+EXPORT_SPEC int UpnpSubsOpsTimeoutMs(
+    /** [in] The handle of the control point. */
+    UpnpClient_Handle Hnd,
+    /** [in] Timeout value in milliseconds. */
+    int TimeOutMS);
 
 /** @} Client interface: Eventing */
 

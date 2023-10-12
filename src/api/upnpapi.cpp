@@ -43,8 +43,8 @@
 
 #include <curl/curl.h>
 
-#include "upnpapi.h"
 #include "httputils.h"
+#include "upnpapi.h"
 #include "ssdplib.h"
 #include "soaplib.h"
 #include "ThreadPool.h"
@@ -1571,8 +1571,7 @@ int UpnpSetMaxSubscriptions(UpnpDevice_Handle Hnd, int MaxSubscriptions)
 
 
 #ifdef INCLUDE_DEVICE_APIS
-int UpnpSetMaxSubscriptionTimeOut(UpnpDevice_Handle Hnd,
-                                  int MaxSubscriptionTimeOut)
+int UpnpSetMaxSubscriptionTimeOut(UpnpDevice_Handle Hnd, int MaxSubscriptionTimeOut)
 {
     struct Handle_Info *SInfo = nullptr;
 
@@ -1597,6 +1596,34 @@ int UpnpSetMaxSubscriptionTimeOut(UpnpDevice_Handle Hnd,
 #endif /* INCLUDE_DEVICE_APIS */
 
 #ifdef INCLUDE_CLIENT_APIS
+int UpnpSubsOpsTimeoutMs(UpnpClient_Handle Hnd, int TimeOutMS)
+{
+    int retVal;
+    struct Handle_Info *SInfo = nullptr;
+
+    if (UpnpSdkInit != 1) {
+        retVal = UPNP_E_FINISH;
+        goto exit_function;
+    }
+
+    if (TimeOutMS <= 0) {
+        retVal = UPNP_E_INVALID_PARAM;
+        goto exit_function;
+    }
+
+    if (checkLockHandle(HND_CLIENT, Hnd, &SInfo, true) == HND_INVALID) {
+        retVal = UPNP_E_INVALID_HANDLE;
+        goto exit_function;
+    }
+    SInfo->SubsOpsTimeoutMS = TimeOutMS;
+    HandleUnlock();
+
+    retVal = UPNP_E_SUCCESS;
+
+exit_function:
+    return retVal;
+}
+
 int UpnpSubscribe(
     UpnpClient_Handle Hnd, const char *EvtUrl, int *TimeOut, Upnp_SID& SubsId)
 {

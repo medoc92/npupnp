@@ -213,7 +213,8 @@ static int gena_unsubscribe(
     /*! [in] Event URL of the service. */
     const std::string& url,
     /*! [in] The subcription ID. */
-    const std::string& sid)
+    const std::string& sid,
+    int timeoutms)
 {
     int return_code;
     uri_type dest_url;
@@ -234,7 +235,7 @@ static int gena_unsubscribe(
     curl_easy_setopt(easy, CURLOPT_CUSTOMREQUEST, "UNSUBSCRIBE");
     std::string surl =  uri_asurlstr(dest_url);
     curl_easy_setopt(easy, CURLOPT_URL, surl.c_str());
-    curl_easy_setopt(easy, CURLOPT_TIMEOUT, HTTP_DEFAULT_TIMEOUT);
+    curl_easy_setopt(easy, CURLOPT_TIMEOUT_MS, timeoutms);
 
     struct curl_slist *list = nullptr;
     list = curl_slist_append(list, (std::string("SID: ") + sid).c_str());
@@ -310,7 +311,8 @@ static int gena_subscribe(
      * For first time subscription, this must be empty. */
     const std::string& renewal_sid,
     /*! [out] SID returned by the subscription or renew msg. */
-    std::string *sid)
+    std::string *sid,
+    int timeoutms)
 {
     int local_timeout = CP_MINIMUM_SUBSCRIPTION_TIME;
 
@@ -360,7 +362,7 @@ static int gena_subscribe(
     curl_easy_setopt(hdls.htalk, CURLOPT_WRITEFUNCTION, write_callback_null_curl);
     curl_easy_setopt(hdls.htalk, CURLOPT_CUSTOMREQUEST, "SUBSCRIBE");
     curl_easy_setopt(hdls.htalk, CURLOPT_URL, urlforcurl.c_str());
-    curl_easy_setopt(hdls.htalk, CURLOPT_TIMEOUT, HTTP_DEFAULT_TIMEOUT);
+    curl_easy_setopt(hdls.htalk, CURLOPT_TIMEOUT_MS, timeoutms);
     curl_easy_setopt(hdls.htalk, CURLOPT_HEADERFUNCTION, header_callback_curl);
     curl_easy_setopt(hdls.htalk, CURLOPT_HEADERDATA, &http_headers);
     if (renewal_sid.empty()) {
@@ -442,9 +444,10 @@ int genaUnregisterClient(UpnpClient_Handle client_handle)
         handle_info->ClientSubList.remove_if(
             [sub_copy] (const ClientSubscription& e) {return e.SID == sub_copy.SID;});
 
+        auto timeoutms = handle_info->SubsOpsTimeoutMS;
         HandleUnlock();
 
-        gena_unsubscribe(sub_copy.eventURL, sub_copy.SID);
+        gena_unsubscribe(sub_copy.eventURL, sub_copy.SID, timeoutms);
         clientCancelRenew(&sub_copy);
     }
 
@@ -470,10 +473,10 @@ int genaUnSubscribe(UpnpClient_Handle client_handle, const std::string& in_sid)
         HandleUnlock();
         return GENA_E_BAD_SID;
     }
+    auto timeoutms = handle_info->SubsOpsTimeoutMS;
     auto sub_copy = *sub;
     HandleUnlock();
-
-    gena_unsubscribe(sub_copy.eventURL, sub_copy.SID);
+    gena_unsubscribe(sub_copy.eventURL, sub_copy.SID, timeoutms);
     clientCancelRenew(&sub_copy);
 
     HandleLock();
@@ -500,7 +503,8 @@ int genaSubscribe(
     std::string SID;
     std::string EventURL;
     struct Handle_Info *handle_info;
-
+    int timeoutms;
+    
     out_sid->clear();
 
     HandleReadLock();
@@ -510,11 +514,12 @@ int genaSubscribe(
         SubscribeLock();
         goto error_handler;
     }
+    timeoutms = handle_info->SubsOpsTimeoutMS;
     HandleUnlock();
 
     /* subscribe */
     SubscribeLock();
-    return_code = gena_subscribe(PublisherURL, TimeOut, std::string(), &SID);
+    return_code = gena_subscribe(PublisherURL, TimeOut, std::string(), &SID, timeoutms);
     HandleLock();
     if (return_code != UPNP_E_SUCCESS) {
         UpnpPrintf(UPNP_ERROR, GENA, __FILE__, __LINE__,
@@ -567,6 +572,7 @@ int genaRenewSubscription(
         HandleUnlock();
         return GENA_E_BAD_SID;
     }
+    auto timeoutms = handle_info->SubsOpsTimeoutMS;
 
     /* remove old events */
     gTimerThread->remove(sub->renewEventId);
@@ -577,7 +583,7 @@ int genaRenewSubscription(
     HandleUnlock();
 
     std::string SID;
-    int return_code = gena_subscribe(sub_copy.eventURL, TimeOut, sub_copy.SID, &SID);
+    int return_code = gena_subscribe(sub_copy.eventURL, TimeOut, sub_copy.SID, &SID, timeoutms);
 
     HandleLock();
 
