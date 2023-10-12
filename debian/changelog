@@ -1,15 +1,23 @@
-libnpupnp2 (5.0.3-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+libnpupnp2 (5.1.0-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
-  * Control: add milliseconds timeout option to SoapSendAction(). This is mostly intended to enable
-    polling a device health, and implemented by checking the the responseData previously
-    output-only, now input/output argument for additional parameters given as (nm, value) string
-    pairs. The only parameter checked at the moment is ("timeoutms", "value"). This change is source
-    and ABI compatible except in the quite unlikely case where the existing code called the function
-    with a non-empty output array containing a pair with a "timeoutms" first element. In
-    consequence, and given that upplay/libupnpp is the only know user of the lib, I did not change
-    the package name or shared lib major version. Even upplay will work with the old lib.
+  * Control: add milliseconds timeout option to SoapSendAction(). This is
+    mostly intended to enable polling a device health, and implemented by
+    checking the the responseData previously output-only, now input/output,
+    argument for additional parameters given as (nm, value) string
+    pairs. The only parameter checked at the moment is ("timeoutms",
+    "value"). This change is source and ABI compatible except in the quite
+    unlikely case where the existing code called the function with a
+    non-empty output array containing a pair with a "timeoutms" first
+    element.
+  * Control: added an interface to set an HTTP timeout for the
+    subscribe/unsubscribe operations. The default previous fixed value of
+    30 S is kept, but can now be overridden. The change does not change the
+    ABI for an existing program.
+  * Given that upplay/libupnpp is the only known user of the lib control
+    side, the package name or shared library major version were not
+    changed.
   
- -- Jean-Francois Dockes <jf@dockes.org>  Wed, 11 Oct 2023 09:33:00 +0200
+ -- Jean-Francois Dockes <jf@dockes.org>  Thu, 12 Oct 2023 18:53:00 +0200
 
 libnpupnp2 (5.0.2-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
@@ -19,8 +27,9 @@ libnpupnp2 (5.0.2-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
 libnpupnp2 (5.0.1-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
-  * Web server: fixed bad HTTP protocol conformance when handling range requests. Would bother a lot
-    correct clients which check status codes and headers instead of just using the data, (e.g.: vlc).
+  * Web server: fixed bad HTTP protocol conformance when handling range
+    requests. Would bother a lot correct clients which check status codes
+    and headers instead of just using the data, (e.g.: vlc).
   * New alternate Meson build.
   * Misc small cleanups inspired by clang-tidy and other housekeeping.
   
@@ -28,10 +37,12 @@ libnpupnp2 (5.0.1-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
 libnpupnp2 (5.0.0-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
-  * Changed the API to avoid truncation of some long subscription IDs. Upnp_SID is now an
-    std::string instead of a fixed size array. This change should be source-compatible for programs
-    which used the UpnpEvent_get_SID_cstr() macro for accessing the value, but the ABI changes,
-    hence the major version, package, and shared lib version changes.
+  * Changed the API to avoid truncation of some long subscription
+    IDs. Upnp_SID is now an std::string instead of a fixed size array. This
+    change should be source-compatible for programs which used the
+    UpnpEvent_get_SID_cstr() macro for accessing the value, but the ABI
+    changes, hence the major version, package, and shared lib version
+    changes.
   
  -- Jean-Francois Dockes <jf@dockes.org>  Fri, 12 Aug 2022 11:50:00 +0200
 
