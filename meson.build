@@ -29,6 +29,7 @@ else
   add_project_arguments('-DUPNP_STATIC_LIB', language: 'cpp')
 endif
 
+add_project_arguments('-DNOMINMAX', language: 'cpp')
 add_project_arguments('-DSMALLUT_NO_REGEX', language: 'cpp')
 add_project_arguments('-DSMALLUT_EXTERNAL_INSTANTIATIONS', language: 'cpp')
 
@@ -117,7 +118,7 @@ libnpupnp = library(
   gnu_symbol_visibility: 'hidden',
   name_prefix: '',
   version: meson.project_version(),
-  soversion: host_machine.system() == 'windows' ? '' : [],
+  soversion: host_machine.system() == 'windows' ? '' : '5',
   include_directories: libnpupnp_incdir,
   dependencies: deps,
   install: true,

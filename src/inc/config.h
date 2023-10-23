@@ -40,6 +40,7 @@
 
 #ifdef _MSC_VER
 /* no ssize_t defined for VC */
+#include <cstdint>
 typedef intptr_t ssize_t;
 #define strncasecmp _strnicmp
 #define strcasecmp _stricmp
