@@ -495,8 +495,7 @@ std::ostream& Interface::print(std::ostream& out) const
         out << "hwaddr " << gethexhwaddr() << "\n";
     }
     for (unsigned int i = 0; i < m->addresses.size(); i++) {
-        out << m->addresses[i].straddr() << " " <<
-            m->netmasks[i].straddr() <<"\n";
+        out << m->addresses[i].straddr() << " " << m->netmasks[i].straddr() <<"\n";
     }
     return out;
 }
@@ -635,12 +634,7 @@ static bool wchartoutf8(const wchar_t* in, std::string& out, size_t wlen)
 
 static uint32_t netprefixlentomask(uint8_t pfxlen)
 {
-    uint32_t out{0};
-    pfxlen = std::min(pfxlen, uint8_t(31));
-    for (int i = 0; i < pfxlen; i++) {
-        out |= 1 << (31-i);
-    }
-    return out;
+    return pfxlen ? UINT32_MAX << (32 - pfxlen) : 0;
 }
 
 Interfaces::Internal::Internal()
@@ -714,17 +708,16 @@ Interfaces::Internal::Internal()
         LOGDEB("NetIF::Interfaces: " << tmpnm << " has hwaddr\n");
         uni_addr = adapts_item->FirstUnicastAddress;
         while (uni_addr) {
-            SOCKADDR *ip_addr = 
-                reinterpret_cast<SOCKADDR*>(uni_addr->Address.lpSockaddr);
+            SOCKADDR *ip_addr = reinterpret_cast<SOCKADDR*>(uni_addr->Address.lpSockaddr);
             switch (ip_addr->sa_family) {
             case AF_INET:
             {
                 ifit->m->setflag(Interface::Flags::HASIPV4);
                 LOGDEB("NetIF::Interfaces: " << tmpnm << " has IPV4\n");
                 ifit->m->addresses.emplace_back(ip_addr);
-                uint32_t mask =
-                    netprefixlentomask(uni_addr->OnLinkPrefixLength);
+                uint32_t mask = netprefixlentomask(uni_addr->OnLinkPrefixLength);
                 struct sockaddr_in sa = {};
+                sa.sin_family = AF_INET;
                 sa.sin_addr.s_addr = mask;
                 ifit->m->netmasks.emplace_back((struct sockaddr*)&sa);
             }
@@ -833,6 +826,8 @@ static const Interface* interfaceForAddress4(
                 addresses.second[i].copyToStorage(&mbuf);
                 uint32_t addr = reinterpret_cast<struct sockaddr_in*>(&sbuf)->sin_addr.s_addr;
                 uint32_t mask = reinterpret_cast<struct sockaddr_in*>(&mbuf)->sin_addr.s_addr;
+                if (mask == 0) // ??
+                    continue;
                 if (
                     // Special case for having a single interface with a netmask of ffffffff, which
                     // is apparently common from FreeBSD jails. Just return it, there is no way we
@@ -856,14 +851,12 @@ const Interface *Interfaces::interfaceForAddress(
     addr.copyToStorage(&peerbuf);
 
     if (addr.family() == IPAddr::Family::IPV4) {
-        uint32_t peeraddr = reinterpret_cast<struct sockaddr_in*>(
-            &peerbuf)->sin_addr.s_addr;
+        uint32_t peeraddr = reinterpret_cast<struct sockaddr_in*>(&peerbuf)->sin_addr.s_addr;
         return interfaceForAddress4(peeraddr, vifs, hostaddr);
     }
 
     if (addr.family() == IPAddr::Family::IPV6)    {
-        auto peeraddr =
-            reinterpret_cast<struct sockaddr_in6*>(&peerbuf);
+        auto peeraddr = reinterpret_cast<struct sockaddr_in6*>(&peerbuf);
         if (IN6_IS_ADDR_V4MAPPED(&peeraddr->sin6_addr)) {
             uint32_t addr4;
             memcpy(&addr4, &peeraddr->sin6_addr.s6_addr[12], 4);
@@ -898,8 +891,7 @@ const Interface *Interfaces::interfaceForAddress(
     return nullptr;
 }
 
-const Interface* Interfaces::interfaceForAddress(const IPAddr& addr,
-                                                 IPAddr& hostaddr)
+const Interface* Interfaces::interfaceForAddress(const IPAddr& addr, IPAddr& hostaddr)
 {
     return interfaceForAddress(addr, m->interfaces, hostaddr);
 }
