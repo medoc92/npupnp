@@ -634,7 +634,7 @@ static bool wchartoutf8(const wchar_t* in, std::string& out, size_t wlen)
 
 static uint32_t netprefixlentomask(uint8_t pfxlen)
 {
-    return pfxlen ? UINT32_MAX << (32 - pfxlen) : 0;
+    return pfxlen ? htonl(UINT32_MAX << (32 - pfxlen)) : 0;
 }
 
 Interfaces::Internal::Internal()
