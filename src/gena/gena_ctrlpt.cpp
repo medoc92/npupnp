@@ -346,7 +346,7 @@ static int gena_subscribe(
     // supplementary connection.
     NetIF::IPAddr myaddr;
     const NetIF::Interface *ifp =
-        NetIF::Interfaces::theInterfaces()->interfaceForAddress(destaddr,myaddr);
+        NetIF::Interfaces::theInterfaces()->interfaceForAddress(destaddr, g_netifs, myaddr);
     if (nullptr == ifp) {
         UpnpPrintf(UPNP_ERROR, GENA, __FILE__, __LINE__,
                    "Could not find the interface for the destination address\n");
@@ -365,20 +365,21 @@ static int gena_subscribe(
     curl_easy_setopt(hdls.htalk, CURLOPT_TIMEOUT_MS, timeoutms);
     curl_easy_setopt(hdls.htalk, CURLOPT_HEADERFUNCTION, header_callback_curl);
     curl_easy_setopt(hdls.htalk, CURLOPT_HEADERDATA, &http_headers);
+    std::string descript;
     if (renewal_sid.empty()) {
         std::string cbheader{"CALLBACK: <"};
         cbheader += myCallbackUrl(myaddr) + "/>";
         hdls.hlist = curl_slist_append(hdls.hlist, cbheader.c_str());
         hdls.hlist = curl_slist_append(hdls.hlist, "NT: upnp:event");
-        UpnpPrintf(UPNP_ALL,GENA,__FILE__,__LINE__,
-                   "gena_subscribe(init.): url [%s] cb [%s] timeout [%s]\n",
-                   urlforcurl.c_str(), myCallbackUrl(myaddr).c_str(), timostr.str().c_str());
+        descript = std::string("(init) ") + "url [" + urlforcurl  + "] cb [" +
+            myCallbackUrl(myaddr) + "] timeout [" + timostr.str() + "]";
+        UpnpPrintf(UPNP_ALL,GENA,__FILE__,__LINE__, "gena_subscribe: %s\n", descript.c_str());
     } else {
         hdls.hlist = curl_slist_append(
             hdls.hlist, (std::string("SID: ") + renewal_sid).c_str());
-        UpnpPrintf(UPNP_ALL,GENA,__FILE__,__LINE__,
-                   "gena_subscribe(renew): SID [%s] url [%s] timeout [%s]\n",
-                   renewal_sid.c_str(), urlforcurl.c_str(), timostr.str().c_str());
+        descript = std::string("(renew) ") + "url [" + urlforcurl  + "] SID [" +
+            renewal_sid + "] timeout [" + timostr.str() + "]";
+        UpnpPrintf(UPNP_ALL,GENA,__FILE__,__LINE__, "gena_subscribe: %s\n", descript.c_str());
     }
     hdls.hlist = curl_slist_append(
         hdls.hlist, (std::string("TIMEOUT: Second-") + timostr.str()).c_str());
@@ -389,15 +390,16 @@ static int gena_subscribe(
     CURLcode curlcode = curl_easy_perform(hdls.htalk);
     if (curlcode != CURLE_OK) {
         /* We may want to detail things here, depending on the curl error */
-        UpnpPrintf(UPNP_ERROR,GENA,__FILE__,__LINE__, "CURL ERROR MESSAGE %s\n", curlerrormessage);
+        UpnpPrintf(UPNP_ERROR,GENA,__FILE__,__LINE__,
+                   "gena_subscribe: %s: CURL ERROR MESSAGE %s\n", descript.c_str(),curlerrormessage);
         return UPNP_E_SOCKET_CONNECT;
     }
 
     long http_status;
     curl_easy_getinfo (hdls.htalk, CURLINFO_RESPONSE_CODE, &http_status);
     if (http_status != HTTP_OK) {
-        UpnpPrintf(UPNP_DEBUG,GENA,__FILE__,__LINE__, "gena_subscribe: HTTP status %d\n",
-                   int(http_status));
+        UpnpPrintf(UPNP_DEBUG,GENA,__FILE__,__LINE__,
+                   "gena_subscribe: %s: HTTP status %d\n", descript.c_str(), int(http_status));
         return UPNP_E_SUBSCRIBE_UNACCEPTED;
     }
 
