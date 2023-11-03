@@ -1,3 +1,10 @@
+libnpupnp2 (5.1.1-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Fix choosing interface to use for Gena callback URL: we could sometimes
+    choose an inactive interface.
+  
+ -- Jean-Francois Dockes <jf@dockes.org>  Fri, 03 Nov 2023 18:53:00 +0100
+
 libnpupnp2 (5.1.0-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Control: add milliseconds timeout option to SoapSendAction(). This is
