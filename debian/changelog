@@ -1,5 +1,6 @@
-libnpupnp2 (5.1.1-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+libnpupnp2 (5.1.1-2~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
+  * Rebuilt for rpi 1 (armv6) compatibility
   * Fix choosing interface to use for Gena callback URL: we could sometimes
     choose an inactive interface.
   
