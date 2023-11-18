@@ -1,6 +1,6 @@
 AC_PREREQ([2.60])
 
-AC_INIT([libnpupnp],[5.1.1],[jfd@recoll.org])
+AC_INIT([libnpupnp],[5.1.2],[jfd@recoll.org])
 
 # - Start with version information of ‘0:0:0’ for each libtool library.
 # - Update the version information only immediately before a public release
@@ -13,7 +13,7 @@ AC_INIT([libnpupnp],[5.1.1],[jfd@recoll.org])
 # - If any interfaces have been removed or changed since the last public
 #   release, then set age to 0. Change package name if it is needed to have
 #   several installed versions of the lib. 
-AC_SUBST([LT_VERSION_NPUPNP],       [11:0:2])
+AC_SUBST([LT_VERSION_NPUPNP],       [12:0:0])
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])

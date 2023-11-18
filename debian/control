@@ -1,15 +1,15 @@
-Source: libnpupnp2
+Source: libnpupnp
 Section: net
 Priority: optional
 Homepage: http://www.lesbonscomptes.com/upmpdcli/
 Maintainer: J.F. Dockes <jf@dockes.org>
 # libupnp-dev needed for ixml only
-Build-Depends: debhelper (>= 9~),
- dh-autoreconf, autoconf, automake, libtool, pkg-config,
+Build-Depends: debhelper-compat (= 13),
+ autoconf, automake, libtool, pkg-config,
  libexpat1-dev, libmicrohttpd-dev, libcurl4-gnutls-dev
 Standards-Version: 4.3.0
 
-Package: libnpupnp2
+Package: libnpupnp12
 Architecture: any
 Section: libs
 Depends: ${shlibs:Depends}, ${misc:Depends}
@@ -22,11 +22,11 @@ Description: UPnP library, based on Pupnp code, but extensively
  Play Device Architecture Specification - see http://www.upnp.org/ for
  specifications.
 
-Package: libnpupnp2-dev
+Package: libnpupnp-dev
 Architecture: any
 Section: libdevel
-Depends: libnpupnp2 (= ${binary:Version}), ${misc:Depends}
-Conflicts: libnpupnp1-dev
+Depends: ${misc:Depends}, libnpupnp12 (= ${binary:Version})
+Conflicts: libnpupnp2-dev
 Multi-Arch: same
 Description: Development package for the npupnp UPnP library,
  based on Pupnp code, but extensively rewritten. As its predecessor, it
