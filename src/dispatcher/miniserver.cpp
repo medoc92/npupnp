@@ -711,16 +711,14 @@ int StartMiniServer(uint16_t *listen_port4, uint16_t *listen_port6)
         std::unique_lock<std::mutex> lck(gMServStateMutex);
         if (gMServState != MSERV_IDLE) {
             /* miniserver running. */
-            UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
-                       "miniserver: ALREADY RUNNING !\n");
+            UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__, "miniserver: ALREADY RUNNING !\n");
             return UPNP_E_INTERNAL_ERROR;
         }
     }
 
     miniSocket = new MiniServerSockArray;
     if (nullptr == miniSocket) {
-        UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
-                   "miniserver: OUT OF MEMORY !\n");
+        UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__, "miniserver: OUT OF MEMORY !\n");
         return UPNP_E_OUTOF_MEMORY;
     }
 
@@ -769,9 +767,7 @@ int StartMiniServer(uint16_t *listen_port4, uint16_t *listen_port6)
     *listen_port4 = port;
     *listen_port6 = port;
 
-    mhdflags = MHD_USE_THREAD_PER_CONNECTION |
-        MHD_USE_INTERNAL_POLLING_THREAD |
-        MHD_USE_DEBUG;
+    mhdflags = MHD_USE_THREAD_PER_CONNECTION | MHD_USE_INTERNAL_POLLING_THREAD | MHD_USE_DEBUG;
 
 #ifdef UPNP_ENABLE_IPV6
     if (using_ipv6()) {
@@ -797,8 +793,7 @@ int StartMiniServer(uint16_t *listen_port4, uint16_t *listen_port6)
 
 out:
     if (ret_code != UPNP_E_SUCCESS) {
-        UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
-                   "startminiserver failed\n");
+        UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__, "startminiserver failed\n");
         delete miniSocket;
         miniSocket = nullptr;
     }

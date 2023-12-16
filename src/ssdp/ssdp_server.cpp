@@ -3,7 +3,7 @@
  * Copyright (c) 2000-2003 Intel Corporation
  * All rights reserved.
  * Copyright (C) 2011-2012 France Telecom All rights reserved.
- * Copyright (c) 2020 J.F. Dockes
+ * Copyright (c) 2020-2023 J.F. Dockes
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -30,7 +30,6 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  **************************************************************************/
-
 
 #include "config.h"
 
@@ -148,8 +147,7 @@ static http_method_t valid_ssdp_msg(SSDPPacketParser& parser)
     http_method_t method = HTTPMETHOD_UNKNOWN;
     if (!parser.isresponse) {
         if (!parser.method) {
-            UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__, "NULL method "
-                       "in SSDP request????\n");
+            UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__, "NULL method in SSDP request????\n");
             return HTTPMETHOD_UNKNOWN;
         }
         method = httpmethod_str2enum(parser.method);
@@ -159,10 +157,10 @@ static http_method_t valid_ssdp_msg(SSDPPacketParser& parser)
             return HTTPMETHOD_UNKNOWN;
         }
         /* check PATH == "*" */
-        if (!parser.url || strcmp(parser.url, "*") != 0) {
+        if (!parser.url || strcmp(parser.url, "*")) {
             UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__, "Invalid URI "
                        "in SSDP message NOTIFY or M-SEARCH: [%s] \n",
-                       (parser.url?parser.url:"(null)"));
+                       (parser.url ? parser.url : "(null)"));
             return HTTPMETHOD_UNKNOWN;
         }
         /* check HOST header */
@@ -234,7 +232,7 @@ void SSDPEventHandlerJobWorker::work()
         UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,    "SSDP parser error\n");
         return;
     }
-
+ 
     http_method_t method = valid_ssdp_msg(parser);
     if (method == HTTPMETHOD_UNKNOWN) {
         UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,    "SSDP unknown method\n");
@@ -299,8 +297,7 @@ static int create_ssdp_sock_v4(SOCKET *ssdpSock)
 
 #if (defined(BSD) && !defined(__GNU__)) || defined(__OSX__) || defined(__APPLE__)
     onOff = 1;
-    ret = setsockopt(*ssdpSock, SOL_SOCKET, SO_REUSEPORT,
-                     (char *)&onOff, sizeof(onOff));
+    ret = setsockopt(*ssdpSock, SOL_SOCKET, SO_REUSEPORT, (char *)&onOff, sizeof(onOff));
     if (ret == -1) {
         errorcause = "setsockopt() SO_REUSEPORT";
         goto error_handler;
@@ -310,8 +307,7 @@ static int create_ssdp_sock_v4(SOCKET *ssdpSock)
     ssdpAddr4->sin_family = static_cast<sa_family_t>(AF_INET);
     ssdpAddr4->sin_addr.s_addr = htonl(INADDR_ANY);
     ssdpAddr4->sin_port = htons(SSDP_PORT);
-    ret = bind(*ssdpSock, reinterpret_cast<struct sockaddr *>(ssdpAddr4),
-               sizeof(*ssdpAddr4));
+    ret = bind(*ssdpSock, reinterpret_cast<struct sockaddr *>(ssdpAddr4), sizeof(*ssdpAddr4));
     if (ret == -1) {
         errorcause = "bind(INADDR_ANY)";
         ret = UPNP_E_SOCKET_BIND;
@@ -323,11 +319,10 @@ static int create_ssdp_sock_v4(SOCKET *ssdpSock)
         if (nullptr == ipaddr)
             continue;
         struct ip_mreq ssdpMcastAddr = {};
-        ssdpMcastAddr.imr_interface.s_addr =inet_addr(ipaddr->straddr().c_str());
+        ssdpMcastAddr.imr_interface.s_addr = inet_addr(ipaddr->straddr().c_str());
         ssdpMcastAddr.imr_multiaddr.s_addr = inet_addr(SSDP_IP);
         ret = setsockopt(*ssdpSock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-                         reinterpret_cast<char *>(&ssdpMcastAddr),
-                         sizeof(struct ip_mreq));
+                         reinterpret_cast<char *>(&ssdpMcastAddr), sizeof(struct ip_mreq));
         if (ret == -1) {
             errorcause = "setsockopt() IP_ADD_MEMBERSHIP";
             goto error_handler;
@@ -363,15 +358,14 @@ static int sock_make_no_blocking(SOCKET sock)
 /* Create the SSDP IPv4 socket to be used by the control point. */
 static int create_ssdp_sock_reqv4(SOCKET *ssdpReqSock)
 {
-    char ttl = 4;
+    char ttl = 2;
     int ret = UPNP_E_SOCKET_ERROR;
 
     *ssdpReqSock = -1;
 
     std::string sadrv4 = apiFirstIPV4Str();
     if (sadrv4.empty()) {
-        UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
-                   "create_ssdp_sock_reqv4: no IPV4??\n");
+        UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__, "create_ssdp_sock_reqv4: no IPV4??\n");
         return ret;
     }
 
@@ -384,14 +378,12 @@ static int create_ssdp_sock_reqv4(SOCKET *ssdpReqSock)
         ret = UPNP_E_OUTOF_SOCKET;
         goto error_handler;
     }
-    if (setsockopt(
-            *ssdpReqSock, IPPROTO_IP, IP_MULTICAST_IF,
-            reinterpret_cast<char *>(&hostaddrv4), sizeof(hostaddrv4)) < 0) {
+    if (setsockopt(*ssdpReqSock, IPPROTO_IP, IP_MULTICAST_IF,
+                   reinterpret_cast<char *>(&hostaddrv4), sizeof(hostaddrv4)) < 0) {
         errorcause = "setsockopt(IP_MULTICAST_IF)";
         goto error_handler;
     }
-    if (setsockopt(
-            *ssdpReqSock, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl)) < 0) {
+    if (setsockopt(*ssdpReqSock, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl)) < 0) {
         errorcause = "setsockopt(IP_MULTICAST_TTL)";
         goto error_handler;
     }
@@ -402,8 +394,7 @@ static int create_ssdp_sock_reqv4(SOCKET *ssdpReqSock)
 error_handler:
     char errorBuffer[ERROR_BUFFER_LEN];
     posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-    UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-               "%s: %s\n", errorcause.c_str(), errorBuffer);
+    UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__, "%s: %s\n", errorcause.c_str(), errorBuffer);
     if (*ssdpReqSock != INVALID_SOCKET) {
         UpnpCloseSocket(*ssdpReqSock);
     }
@@ -460,8 +451,7 @@ static int create_ssdp_sock_v6(bool isulagua, SOCKET *ssdpSock)
         ssdpAddr6->sin6_addr = in6addr_any;
         ssdpAddr6->sin6_scope_id = 0;
         ssdpAddr6->sin6_port = htons(SSDP_PORT);
-        ret = bind(*ssdpSock, reinterpret_cast<struct sockaddr *>(ssdpAddr6),
-                   sizeof(*ssdpAddr6));
+        ret = bind(*ssdpSock, reinterpret_cast<struct sockaddr *>(ssdpAddr6), sizeof(*ssdpAddr6));
         if (ret == -1) {
             errorcause = "bind()";
             goto error_handler;
@@ -473,8 +463,7 @@ static int create_ssdp_sock_v6(bool isulagua, SOCKET *ssdpSock)
         memcpy(&ssdpMcastAddr.ipv6mr_multiaddr, &sa6.sin6_addr,
                 sizeof(ssdpMcastAddr.ipv6mr_multiaddr));
         ret = setsockopt(*ssdpSock, IPPROTO_IPV6, IPV6_JOIN_GROUP,
-                         reinterpret_cast<char *>(&ssdpMcastAddr),
-                         sizeof(ssdpMcastAddr));
+                         reinterpret_cast<char *>(&ssdpMcastAddr), sizeof(ssdpMcastAddr));
         if (ret == -1) {
             errorcause = "setsockopt() IPV6_JOIN_GROUP";
             goto error_handler;
@@ -486,8 +475,7 @@ static int create_ssdp_sock_v6(bool isulagua, SOCKET *ssdpSock)
 error_handler:
     char errorBuffer[ERROR_BUFFER_LEN];
     posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-    UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-               "%s: %s\n", errorcause.c_str(), errorBuffer);
+    UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__, "%s: %s\n", errorcause.c_str(), errorBuffer);
     if (*ssdpSock != INVALID_SOCKET) {
         UpnpCloseSocket(*ssdpSock);
     }
@@ -521,9 +509,8 @@ static int create_ssdp_sock_reqv6(SOCKET *ssdpReqSock)
         goto error_handler;
     }
 
-    if (setsockopt(
-            *ssdpReqSock, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
-            reinterpret_cast<char *>(&hops), sizeof(hops)) < 0) {
+    if (setsockopt(*ssdpReqSock, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
+                   reinterpret_cast<char *>(&hops), sizeof(hops)) < 0) {
         errorcause = "setsockopt(IPV6_MULTICAST_HOPS)";
         goto error_handler;
     }
@@ -535,8 +522,7 @@ static int create_ssdp_sock_reqv6(SOCKET *ssdpReqSock)
 error_handler:
     char errorBuffer[ERROR_BUFFER_LEN];
     posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-    UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-               "%s: %s\n", errorcause.c_str(), errorBuffer);
+    UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__, "%s: %s\n", errorcause.c_str(), errorBuffer);
     if (*ssdpReqSock != INVALID_SOCKET) {
         UpnpCloseSocket(*ssdpReqSock);
     }
@@ -569,15 +555,15 @@ static void closeSockets(MiniServerSockArray *out, int doclose)
 int get_ssdp_sockets(MiniServerSockArray *out)
 {
     int retVal = UPNP_E_SOCKET_ERROR;
-
     bool hasIPV4 = !apiFirstIPV4Str().empty();
+
+#ifdef INCLUDE_CLIENT_APIS
 #ifdef UPNP_ENABLE_IPV6
     bool hasIPV6 = !apiFirstIPV6Str().empty();
     if (using_ipv6()) {
         /* Create the IPv6 socket for SSDP REQUESTS */
         if (hasIPV6) {
-            if ((retVal = create_ssdp_sock_reqv6(&out->ssdpReqSock6))
-                != UPNP_E_SUCCESS) {
+            if ((retVal = create_ssdp_sock_reqv6(&out->ssdpReqSock6)) != UPNP_E_SUCCESS) {
                 goto out;
             }
             /* For use by ssdp control point. */
@@ -585,11 +571,9 @@ int get_ssdp_sockets(MiniServerSockArray *out)
         }
     }
 #endif /* UPNP_ENABLE_IPV6 */
-#ifdef INCLUDE_CLIENT_APIS
     /* Create the IPv4 socket for SSDP REQUESTS */
     if (hasIPV4) {
-        if ((retVal = create_ssdp_sock_reqv4(&out->ssdpReqSock4))
-            != UPNP_E_SUCCESS) {
+        if ((retVal = create_ssdp_sock_reqv4(&out->ssdpReqSock4)) != UPNP_E_SUCCESS) {
             goto out;
         }
         /* For use by ssdp control point. */
@@ -608,14 +592,12 @@ int get_ssdp_sockets(MiniServerSockArray *out)
     if (using_ipv6()) {
         /* Create the IPv6 socket for SSDP */
         if (hasIPV6) {
-            if ((retVal = create_ssdp_sock_v6(false, &out->ssdpSock6))
-                != UPNP_E_SUCCESS) {
+            if ((retVal = create_ssdp_sock_v6(false, &out->ssdpSock6)) != UPNP_E_SUCCESS) {
                 goto out;
             }
         }
         if (strlen(""/*gIF_IPV6_ULA_GUA*/) > static_cast<size_t>(0)) {
-            if ((retVal = create_ssdp_sock_v6(true, &out->ssdpSock6UlaGua))
-                != UPNP_E_SUCCESS) {
+            if ((retVal = create_ssdp_sock_v6(true, &out->ssdpSock6UlaGua)) != UPNP_E_SUCCESS) {
                 goto out;
             }
         }
@@ -630,5 +612,3 @@ out:
     return retVal;
 }
 #endif /* EXCLUDE_SSDP */
-
-/* @} SSDPlib */
