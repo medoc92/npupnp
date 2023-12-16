@@ -4,7 +4,7 @@ Priority: optional
 Homepage: http://www.lesbonscomptes.com/upmpdcli/
 Maintainer: J.F. Dockes <jf@dockes.org>
 # libupnp-dev needed for ixml only
-Build-Depends: debhelper-compat (=13),
+Build-Depends: debhelper-compat (=12),
  autoconf, automake, libtool, pkg-config,
  libexpat1-dev, libmicrohttpd-dev, libcurl4-gnutls-dev
 Standards-Version: 4.3.0

@@ -1,4 +1,4 @@
-libnpupnp (5.1.2-2~ppaPPAVERS~SERIES1) SERIES; urgency=low
+libnpupnp (5.1.2-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Debian packaging and sonum update.
   
