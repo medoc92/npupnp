@@ -142,7 +142,7 @@ int ssdp_request_type(const char *cmd, SsdpEntity *Evt)
  *
  * \return HTTPMETHOD_UNKNOWN if packet is invalid, else method.
  */
-static http_method_t valid_ssdp_msg(SSDPPacketParser& parser)
+static http_method_t valid_ssdp_msg(SSDPPacketParser& parser, NetIF::IPAddr& claddr)
 {
     http_method_t method = HTTPMETHOD_UNKNOWN;
     if (!parser.isresponse) {
@@ -163,15 +163,43 @@ static http_method_t valid_ssdp_msg(SSDPPacketParser& parser)
                        (parser.url ? parser.url : "(null)"));
             return HTTPMETHOD_UNKNOWN;
         }
-        /* check HOST header */
-        if (!parser.host ||
-            (strcmp(parser.host, "239.255.255.250:1900") != 0 &&
-             strcasecmp(parser.host, "[FF02::C]:1900") != 0 &&
-             strcasecmp(parser.host, "[FF05::C]:1900") != 0)) {
-            UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__, "Invalid HOST "
-                       "header [%s] from SSDP message\n", parser.host);
+        /* Check HOST header. Not sure that we really do need this? Can't see what harm would come
+         * from a bad HOST (unlike the web server ops where this could indicate mischief) */
+        if (!parser.host) {
+            UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+                       "valid_ssdp_msg: no HOST header in request from %s\n",
+                       claddr.straddr().c_str());
             return HTTPMETHOD_UNKNOWN;
         }
+        // Check the dest to be either one of the well-known multicast addresses or one of our own
+        // interfaces.
+        if (strcmp(parser.host, "239.255.255.250:1900") &&
+            strcasecmp(parser.host, "[FF02::C]:1900") && strcasecmp(parser.host, "[FF05::C]:1900")) {
+            struct hostport_type hostport;
+            if (UPNP_E_INVALID_URL == parse_hostport(parser.host, &hostport, false)) {
+                UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+                           "valid_ssdp_msg: bad HOST header %s in request from %s\n",
+                           parser.host, claddr.straddr().c_str());
+                return HTTPMETHOD_UNKNOWN;
+            }
+            NetIF::IPAddr hostaddr(hostport.strhost);
+            if (!hostaddr.ok()) {
+                UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+                           "valid_ssdp_msg: bad HOST header %s in request from %s\n",
+                           parser.host, claddr.straddr().c_str());
+                return HTTPMETHOD_UNKNOWN;
+            }
+            // IPV6: set the scope idx from the client sockaddr. Does nothing for IPV4
+            hostaddr.setScopeIdx(claddr);
+            NetIF::IPAddr notused;
+            if (nullptr == NetIF::Interfaces::interfaceForAddress(hostaddr, g_netifs, notused)) {
+                UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+                           "valid_ssdp_msg: no interface for address in HOST header %s "
+                           "in request from %s\n", parser.host, claddr.straddr().c_str());
+                return HTTPMETHOD_UNKNOWN;
+            }
+        }
+        //std::cerr << "SSDP packet ok from " << claddr.straddr() << " host " << parser.host << "\n";
     } else {
         // We return HTTPMETHOD_MSEARCH + isresponse for response packets.
         // Analog to what the original code did.
@@ -226,6 +254,7 @@ public:
 /* Thread routine to process one received SSDP message */
 void SSDPEventHandlerJobWorker::work()
 {
+    NetIF::IPAddr claddr(reinterpret_cast<struct sockaddr *>(&m_data->dest_addr));
     // The parser takes ownership of the buffer
     SSDPPacketParser parser(m_data->giveuppacket());
     if (!parser.parse()) {
@@ -233,7 +262,7 @@ void SSDPEventHandlerJobWorker::work()
         return;
     }
  
-    http_method_t method = valid_ssdp_msg(parser);
+    http_method_t method = valid_ssdp_msg(parser, claddr);
     if (method == HTTPMETHOD_UNKNOWN) {
         UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,    "SSDP unknown method\n");
         return;

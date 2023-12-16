@@ -1508,33 +1508,51 @@ int UpnpSendAdvertisementLowPower(
 #if EXCLUDE_SSDP == 0
 #ifdef INCLUDE_CLIENT_APIS
 
-
-int UpnpSearchAsync(
-    UpnpClient_Handle Hnd, int Mx, const char *Target, const void *Cookie)
+// Internal merged multicast / unicast search. This is unicast iff Mx is 0, in which case, saddress
+// and port must be set.
+static int UpnpSearchAsyncUniMulti(
+    UpnpClient_Handle hnd, int mx, const char *target, const char *saddress, int port, void *cookie)
 {
-    struct Handle_Info *SInfo = nullptr;
-    int retVal;
-
     if (UpnpSdkInit != 1) {
         return UPNP_E_FINISH;
     }
-    if (Target == nullptr) {
+    if (nullptr == target) {
         return UPNP_E_INVALID_PARAM;
     }
 
-    if (checkLockHandle(HND_CLIENT, Hnd, &SInfo, true) == HND_INVALID) {
+    struct Handle_Info *SInfo = nullptr;
+    if (checkLockHandle(HND_CLIENT, hnd, &SInfo, true) == HND_INVALID) {
         return UPNP_E_INVALID_HANDLE;
     }
-    if(Mx < 1)
-        Mx = DEFAULT_MX;
+    if (mx == 0) {
+        // unicast. Need address
+        if (nullptr == saddress || saddress[0] == 0) {
+            return UPNP_E_INVALID_PARAM;
+        }
+    } else {
+        // multicast. Don't want address
+        if (nullptr != saddress && saddress[0] != 0) {
+            return UPNP_E_INVALID_PARAM;
+        }
+    }
 
     HandleUnlock();
-    retVal = SearchByTarget(Mx, const_cast<char *>(Target), const_cast<void *>(Cookie));
-    if (retVal != 1)
-        return retVal;
-
-    return UPNP_E_SUCCESS;
+    return SearchByTarget(mx, target, saddress, port, cookie);
 }
+
+int UpnpSearchAsync(UpnpClient_Handle hnd, int mx, const char *target, const void *cookie)
+{
+    if (mx < 1)
+        mx = DEFAULT_MX;
+    return UpnpSearchAsyncUniMulti(hnd, mx, target, "", 0, const_cast<void *>(cookie));
+}
+
+int UpnpSearchAsyncUnicast(
+    UpnpClient_Handle hnd, const char *saddress, int port, const char *target, void *cookie)
+{
+    return UpnpSearchAsyncUniMulti(hnd, 0, target, saddress, port, cookie);
+}
+
 #endif /* INCLUDE_CLIENT_APIS */
 #endif
 

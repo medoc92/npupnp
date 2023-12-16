@@ -78,7 +78,7 @@ typedef enum SsdpSearchType {
 // each incoming search response packet to what is on the list and
 // call the client back if there is a match.
 struct SsdpSearchArg {
-    SsdpSearchArg(char *st, void *ck, SsdpSearchType rt)
+    SsdpSearchArg(const char *st, void *ck, SsdpSearchType rt)
         : requestType(rt), searchTarget(st), cookie(ck) {
     }
     // TimerThread timeout event used to find the search entry when
@@ -229,10 +229,13 @@ void ssdp_handle_ctrlpt_msg(
  * \return 1 if successful else appropriate error.
  */
 int SearchByTarget(
-    /* [in] Number of seconds to wait, to collect all the responses. */
+    /* [in] Number of seconds to wait, to collect all the responses. 0 if this is unicast search */
     int Mx,
     /* [in] Search target. */
-    char *St,
+    const char *St,
+    /* [in] saddress are set iff Mx is 0, meaning that we request a unicast search */
+    const char *saddress,
+    int port,
     /* [in] Cookie provided by control point application. This cokie will
      * be returned to application in the callback. */
     void *Cookie);

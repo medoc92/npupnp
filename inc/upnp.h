@@ -1325,6 +1325,41 @@ EXPORT_SPEC int UpnpSearchAsync(
     /** The user data to pass when the callback function is invoked. */
     const void *cookie); 
 
+/**
+ * @brief Unicast search
+ *
+ * Interrogate specific address for device matching the given search target.
+ * This may allow faster and more reliable verification of the presence of a previously discovered
+ * device.
+ *
+ * The function returns immediately and the SDK calls the default callback
+ * function, registered during the @ref UpnpRegisterClient call, for each
+ * matching response from a root device, device, or service. 
+ * The application specifies the search type by the \b Target parameter.  
+ *
+ * The application will receive multiple callbacks for each search, and some
+ * of the responses may not match the initial search.
+ *
+ * @return An integer representing one of the following:
+ *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
+ *     \li \c UPNP_E_INVALID_HANDLE: The handle is not a valid control 
+ *             point handle.
+ *     \li \c UPNP_E_INVALID_PARAM: \b Target is \c NULL.
+ */
+EXPORT_SPEC int UpnpSearchAsyncUnicast(
+    /** The handle of the client performing the search. */
+    UpnpClient_Handle Hnd,
+    /** The target IP V4 or V6 unicast address in standard string format (e.g. 192.168.1.1,
+     *  2001:db8::1:0) */
+    const char *saddress,
+    /** The target port. This should be 1900 except if found different through a SEARCHPORT.UPNP.ORG
+     *  header from an  earlier discovery packet */
+    int port,
+    /** The search target as defined in the UPnP Device Architecture v1.0 specification. */
+    const char *Target,
+    /** The user data to pass when the callback function is invoked. */
+    void *cookie); 
+
 /** @} Client interface: Discovery */
 
 /** \name Device interface: Discovery 
