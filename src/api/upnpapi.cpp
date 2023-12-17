@@ -686,14 +686,20 @@ EXPORT_SPEC int UpnpInitWithOptions(
         switch (option) {
         case UPNP_OPTION_NETWORK_WAIT:
             o_networkWaitSeconds = va_arg(ap, int);
+            if (o_networkWaitSeconds <= 0)
+                o_networkWaitSeconds = 60;
             break;
         case UPNP_OPTION_BOOTID:
             g_bootidUpnpOrg = va_arg(ap, int);
+            if (g_bootidUpnpOrg <= 0)
+                g_bootidUpnpOrg = 1;
             break;
         case UPNP_OPTION_NEXTBOOTID:
             break;
         case UPNP_OPTION_CONFIGID:
             g_configidUpnpOrg = va_arg(ap, int);
+            if (g_configidUpnpOrg <= 0)
+                g_configidUpnpOrg = 1;
             break;
         default:
             UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,

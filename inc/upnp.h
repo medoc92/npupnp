@@ -424,13 +424,14 @@ typedef enum {
     UPNP_FLAG_REJECT_HOSTNAMES = 0x8,
 } Upnp_InitFlag;
 
-/** Values for the @ref UpnpInitWithOptions vararg options list */
+/** Values for the @ref UpnpInitWithOptions vararg options list. For all the current integer values,
+ *  a value <= 0 will be ignored, leaving the default in place. */
 typedef enum {
     /** @brief Terminate the VARARGs list. */
     UPNP_OPTION_END = 0,
     /** @brief Max wait seconds for an IP address to be found, int arg follows */
     UPNP_OPTION_NETWORK_WAIT,
-    /** @brief BOOTID value to be sent in SSDP messages, int arg follows */
+    /** @brief BOOTID value to be sent in SSDP messages, int arg follows. */
     UPNP_OPTION_BOOTID,
     /** @brief CONFIGID value to be sent in SSDP messages, int arg follows */
     UPNP_OPTION_CONFIGID,

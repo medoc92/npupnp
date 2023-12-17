@@ -93,9 +93,6 @@ void SSDPPacketParser::dump(std::ostream& os) const {
 
 bool SSDPPacketParser::parse()
 {
-    if (strstr(m_packet, "BOOTID") != nullptr) {
-        std::cerr << "SSDPPacketParser:parse: data [" << m_packet << "]\n";
-    }
     protocol = "HTTP";
     version = "1.1";
     char *cp;
