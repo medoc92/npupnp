@@ -129,6 +129,9 @@ bool g_use_all_interfaces;
 
 /* General option flags */
 unsigned int g_optionFlags;
+/* SSDP bootid and configid. These default to 1, but should be managed by our user */
+int g_bootidUpnpOrg{1};
+int g_configidUpnpOrg{1};
 
 /* Local global options, usually set from the options list of initWithOptions */
 static int o_networkWaitSeconds = 60;
@@ -655,8 +658,7 @@ EXPORT_SPEC int UpnpInit(const char *hostIP, unsigned short DestPort)
 
 EXPORT_SPEC int UpnpInit2(const char *IfName, unsigned short DestPort)
 {
-    return UpnpInitWithOptions(IfName, DestPort,
-                               UPNP_FLAG_IPV6, UPNP_OPTION_END);
+    return UpnpInitWithOptions(IfName, DestPort, UPNP_FLAG_IPV6, UPNP_OPTION_END);
 }
 
 EXPORT_SPEC int UpnpInit2(const std::vector<std::string>& ifnames, unsigned short port)
@@ -684,6 +686,14 @@ EXPORT_SPEC int UpnpInitWithOptions(
         switch (option) {
         case UPNP_OPTION_NETWORK_WAIT:
             o_networkWaitSeconds = va_arg(ap, int);
+            break;
+        case UPNP_OPTION_BOOTID:
+            g_bootidUpnpOrg = va_arg(ap, int);
+            break;
+        case UPNP_OPTION_NEXTBOOTID:
+            break;
+        case UPNP_OPTION_CONFIGID:
+            g_configidUpnpOrg = va_arg(ap, int);
             break;
         default:
             UpnpPrintf(UPNP_CRITICAL, API, __FILE__, __LINE__,

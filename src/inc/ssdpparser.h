@@ -50,8 +50,8 @@ public:
     // Results. After parsing, the set fields point into the original buffer.
     bool isresponse{false};
     const char *bootid{nullptr};
-    const char *configid{nullptr};
     const char *cache_control{nullptr};
+    const char *configid{nullptr};
     const char *date{nullptr};
     bool  ext{false};
     const char *host{nullptr};
@@ -59,8 +59,10 @@ public:
     const char *man{nullptr};
     const char *method{nullptr};
     const char *mx{nullptr};
+    const char *nextbootid{nullptr};
     const char *nt{nullptr};
     const char *nts{nullptr};
+    const char *opt{nullptr};
     const char *protocol{nullptr};
     const char *searchport{nullptr};
     const char *server{nullptr};

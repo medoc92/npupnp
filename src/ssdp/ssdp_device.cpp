@@ -421,6 +421,8 @@ static void CreateServicePacket(
             "SleepPeriod: " << pwr.SleepPeriod << "\r\n" <<
             "RegistrationState: " << pwr.RegistrationState << "\r\n";
     }
+    str << "BOOTID.UPNP.ORG: " << g_bootidUpnpOrg << "\r\n" <<
+        "CONFIGID.UPNP.ORG: " << g_configidUpnpOrg << "\r\n";
 
     str << "\r\n";
     packet = str.str();

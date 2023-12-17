@@ -215,6 +215,8 @@ extern std::vector<NetIF::Interface> g_netifs;
 extern bool g_use_all_interfaces;
 
 extern unsigned int g_optionFlags;
+extern int g_bootidUpnpOrg;
+extern int g_configidUpnpOrg;
 
 extern WebCallback_HostValidate g_hostvalidatecallback;
 extern void *g_hostvalidatecookie;

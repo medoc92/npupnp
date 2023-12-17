@@ -66,7 +66,9 @@ void SSDPPacketParser::trimright(char *cp, size_t len) {
 void SSDPPacketParser::dump(std::ostream& os) const {
     os <<
         " bootid " << (bootid ? bootid : "(null)") <<
+        " nextbootid " << (nextbootid ? nextbootid : "(null)") <<
         " configid " << (configid ? configid : "(null)") <<
+        " opt " << (opt ? opt : "(null)") <<
         " cache_control " << (cache_control ? cache_control : "(null)") <<
         " date " << (date ? date : "(null)") <<
         " ext " << (ext ? "true" : "false") <<
@@ -86,11 +88,14 @@ void SSDPPacketParser::dump(std::ostream& os) const {
         " user_agent " << (user_agent ? user_agent : "(null)") <<
         " usn " << (usn ? usn : "(null)") <<
         " version " << (version ? version : "(null)") <<
-        std::endl;
+        "\n";
 }
 
 bool SSDPPacketParser::parse()
 {
+    if (strstr(m_packet, "BOOTID") != nullptr) {
+        std::cerr << "SSDPPacketParser:parse: data [" << m_packet << "]\n";
+    }
     protocol = "HTTP";
     version = "1.1";
     char *cp;
@@ -112,7 +117,6 @@ bool SSDPPacketParser::parse()
         return false;
     }
 
-    
     for (;;) {
         char *nm = cp;
         char *colon = strchr(cp, ':');
@@ -189,6 +193,13 @@ bool SSDPPacketParser::parse()
                 nt = val; known = true;
             } else if (!strcasecmp("NTS", nm)) {
                 nts = val; known = true;
+            } else if (!strcasecmp("NEXTBOOTID.UPNP.ORG", nm)) {
+                nextbootid = val; known = true;
+            }
+            break;
+        case 'o': case 'O':
+            if (!strcasecmp("OPT", nm)) {
+                opt = val; known = true;
             }
             break;
         case 's': case 'S':
@@ -210,23 +221,10 @@ bool SSDPPacketParser::parse()
         default:
             break;
         }
-#if 0
-        {
-            static std::mutex mmut;
-            std::unique_lock<std::mutex> lock(mmut);
-            if (known) {
-                std::cerr << "NM [" << nm << "] VAL [" << val << "]\n";
-            } else { 
-                std::cerr << "Unknown header name [" << nm
-                          << "] in " << saved <<"\n";
-            }
-        }
-#else
         if (!known) {
             UpnpPrintf(UPNP_ALL, SSDP, __FILE__, __LINE__,
                        "SSDP parser: unknown header name [%s]\n", nm);
         }            
-#endif
     }
     return false;
 }

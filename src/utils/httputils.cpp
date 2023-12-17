@@ -372,7 +372,7 @@ static const std::string& get_sdk_common_info()
     if (sdk_common_info.empty()) {
         std::ostringstream ostr;
 #ifdef UPNP_ENABLE_UNSPECIFIED_SERVER
-        ostr << "Unspecified UPnP/1.0 Unspecified";
+        ostr << "Unspecified UPnP/1.1 Unspecified";
 #else /* UPNP_ENABLE_UNSPECIFIED_SERVER */
 #ifdef _WIN32
             OSVERSIONINFO versioninfo;
@@ -391,7 +391,7 @@ static const std::string& get_sdk_common_info()
 #endif
 #endif /* UPNP_ENABLE_UNSPECIFIED_SERVER */
 
-        ostr << " UPnP/1.0 ";
+        ostr << " UPnP/1.1 ";
         sdk_common_info = ostr.str();
     }
     return sdk_common_info;

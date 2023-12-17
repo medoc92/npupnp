@@ -430,6 +430,14 @@ typedef enum {
     UPNP_OPTION_END = 0,
     /** @brief Max wait seconds for an IP address to be found, int arg follows */
     UPNP_OPTION_NETWORK_WAIT,
+    /** @brief BOOTID value to be sent in SSDP messages, int arg follows */
+    UPNP_OPTION_BOOTID,
+    /** @brief CONFIGID value to be sent in SSDP messages, int arg follows */
+    UPNP_OPTION_CONFIGID,
+    /** @brief NEXTBOOTID value to be sent in SSDP messages, int arg follows. Currently ignored */
+    UPNP_OPTION_NEXTBOOTID,
+    /** @brief SEARCHPORT value to be sent in SSDP messages, int arg follows. Currently ignored */
+    UPNP_OPTION_SEARCHPORT,
 } Upnp_InitOption;
 
 /** Used in the device callback API as parameter for
