@@ -1527,7 +1527,7 @@ int UpnpSendAdvertisementLowPower(
 // Internal merged multicast / unicast search. This is unicast iff Mx is 0, in which case, saddress
 // and port must be set.
 static int UpnpSearchAsyncUniMulti(
-    UpnpClient_Handle hnd, int mx, const char *target, const char *saddress, int port, void *cookie)
+    UpnpClient_Handle hnd, int mx, const char *target, const char *shost, int port, void *cookie)
 {
     if (UpnpSdkInit != 1) {
         return UPNP_E_FINISH;
@@ -1542,18 +1542,18 @@ static int UpnpSearchAsyncUniMulti(
     }
     if (mx == 0) {
         // unicast. Need address
-        if (nullptr == saddress || saddress[0] == 0) {
+        if (nullptr == shost || shost[0] == 0) {
             return UPNP_E_INVALID_PARAM;
         }
     } else {
         // multicast. Don't want address
-        if (nullptr != saddress && saddress[0] != 0) {
+        if (nullptr != shost && shost[0] != 0) {
             return UPNP_E_INVALID_PARAM;
         }
     }
 
     HandleUnlock();
-    return SearchByTarget(mx, target, saddress, port, cookie);
+    return SearchByTarget(mx, target, shost, port, cookie);
 }
 
 int UpnpSearchAsync(UpnpClient_Handle hnd, int mx, const char *target, const void *cookie)
@@ -1564,9 +1564,16 @@ int UpnpSearchAsync(UpnpClient_Handle hnd, int mx, const char *target, const voi
 }
 
 int UpnpSearchAsyncUnicast(
-    UpnpClient_Handle hnd, const char *saddress, int port, const char *target, void *cookie)
+    UpnpClient_Handle hnd, const std::string& url, const char *target, void *cookie)
 {
-    return UpnpSearchAsyncUniMulti(hnd, 0, target, saddress, port, cookie);
+    uri_type parseduri;
+    int ret;
+    if ((ret = parse_uri(url, &parseduri)) != UPNP_E_SUCCESS) {
+        return ret;
+    }
+    const char *host = parseduri.hostport.strhost.c_str();
+    int port = parseduri.hostport.strport.empty() ? 80 : atoi(parseduri.hostport.strport.c_str());
+    return UpnpSearchAsyncUniMulti(hnd, 0, target, host, port, cookie);
 }
 
 #endif /* INCLUDE_CLIENT_APIS */

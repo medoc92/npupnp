@@ -1358,12 +1358,9 @@ EXPORT_SPEC int UpnpSearchAsync(
 EXPORT_SPEC int UpnpSearchAsyncUnicast(
     /** The handle of the client performing the search. */
     UpnpClient_Handle Hnd,
-    /** The target IP V4 or V6 unicast address in standard string format (e.g. 192.168.1.1,
-     *  2001:db8::1:0) */
-    const char *saddress,
-    /** The target port. This should be 1900 except if found different through a SEARCHPORT.UPNP.ORG
-     *  header from an  earlier discovery packet */
-    int port,
+    /** An URL providing the host and port to use for the search. This would typically be the
+     * description URL from an earlier discovery. */
+    const std::string& url,
     /** The search target as defined in the UPnP Device Architecture v1.0 specification. */
     const char *Target,
     /** The user data to pass when the callback function is invoked. */

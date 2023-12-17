@@ -102,34 +102,28 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
 {
     int handle, start;
     struct Handle_Info *dev_info = nullptr;
-    int mx;
     SsdpEntity event;
-    int maxAge;
-
+    
     /* check man hdr. */
     if (!parser.man || strcmp(parser.man, R"("ssdp:discover")") != 0) {
         /* bad or missing hdr. */
-        UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-                   "ssdp_handle_device_req: no/bad MAN header\n");
+        UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "ssdp_handle_device_req: no/bad MAN header\n");
         return;
     }
-    /* MX header. Must be >= 1*/
-    if (!parser.mx || (mx = atoi(parser.mx)) <= 0) {
-        UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-                   "ssdp_handle_device_req: no/bad MX header\n");
-        return;
+    /* MX header. May be absent for a unicast request. Consistency has been checked in ssdp_server */
+    int mx = 0;
+    if (parser.mx) {
+        mx = atoi(parser.mx);
     }
     /* ST header. */
     if (!parser.st || ssdp_request_type(parser.st, &event) == -1) {
-        UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-                   "ssdp_handle_device_req: no/bad ST header\n");
+        UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "ssdp_handle_device_req: no/bad ST header\n");
         return;
     }
 
-    // Loop to dispatch the packet to each of our configured devices
-    // by starting the handle search at the last processed
-    // position. each device response is scheduled by the ThreadPool
-    // with a random delay based on the MX header of the search packet.
+    // Loop to dispatch the packet to each of our configured devices by starting the handle search
+    // at the last processed position. each device response is scheduled by the ThreadPool with a
+    // random delay based on the MX header of the search packet.
     start = 0;
     for (;;) {
         HandleLock();
@@ -142,13 +136,11 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
             /* no info found. */
             return;
         }
-        maxAge = dev_info->MaxAge;
+        int maxAge = dev_info->MaxAge;
         HandleUnlock();
 
-        UpnpPrintf(UPNP_DEBUG, API, __FILE__, __LINE__,
-                   "MAX-AGE        =  %d\n", maxAge);
-        UpnpPrintf(UPNP_DEBUG, API, __FILE__, __LINE__,
-                   "MX       =  %d\n", maxAge);
+        UpnpPrintf(UPNP_DEBUG, API, __FILE__, __LINE__, "MAX-AGE        =  %d\n", maxAge);
+        UpnpPrintf(UPNP_DEBUG, API, __FILE__, __LINE__, "MX       =  %d\n", mx);
         UpnpPrintf(UPNP_DEBUG, API, __FILE__, __LINE__,
                    "DeviceType     =    %s\n", event.DeviceType.c_str());
         UpnpPrintf(UPNP_DEBUG, API, __FILE__, __LINE__,
@@ -162,14 +154,18 @@ void ssdp_handle_device_request(SSDPPacketParser& parser,
         threadArg->event = event;
         threadArg->MaxAge = maxAge;
 
-        mx = std::max(1, mx);
-        /* Subtract a bit from the mx to allow for network/processing delays */
-        int delayms = rand() %    (mx * 1000 - 100);
-        UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-                   "ssdp_handle_device_req: scheduling resp in %d ms\n",delayms);
         auto worker = std::make_unique<SSDPSearchJobWorker>(threadArg);
-        gTimerThread->schedule(TimerThread::SHORT_TERM, std::chrono::milliseconds(delayms),
-                               nullptr, std::move(worker));
+        if (mx) {
+            mx = std::max(1, mx);
+            /* Subtract a bit from the mx to allow for network/processing delays */
+            int delayms = rand() % (mx * 1000 - 100);
+            UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+                       "ssdp_handle_device_req: scheduling resp in %d ms\n", delayms);
+            gTimerThread->schedule(TimerThread::SHORT_TERM, std::chrono::milliseconds(delayms),
+                                   nullptr, std::move(worker));
+        } else {
+            gSendThreadPool.addJob(std::move(worker));
+        }
         start = handle;
     }
 }

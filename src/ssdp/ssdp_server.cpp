@@ -173,8 +173,17 @@ static http_method_t valid_ssdp_msg(SSDPPacketParser& parser, NetIF::IPAddr& cla
         }
         // Check the dest to be either one of the well-known multicast addresses or one of our own
         // interfaces.
-        if (strcmp(parser.host, "239.255.255.250:1900") &&
-            strcasecmp(parser.host, "[FF02::C]:1900") && strcasecmp(parser.host, "[FF05::C]:1900")) {
+        if (!strcmp(parser.host, "239.255.255.250:1900") ||
+            !strcasecmp(parser.host, "[FF02::C]:1900") ||
+            !strcasecmp(parser.host, "[FF05::C]:1900")) {
+            // Multicast request. Needs an MX
+            if (!parser.mx || atoi(parser.mx) <= 0) {
+                UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+                           "valid_ssdp_msg: HOST header indicates multicast but no MX set\n");
+                return HTTPMETHOD_UNKNOWN;
+            }
+        } else {
+            // Unicast request maybe
             struct hostport_type hostport;
             if (UPNP_E_INVALID_URL == parse_hostport(parser.host, &hostport, false)) {
                 UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
@@ -199,7 +208,6 @@ static http_method_t valid_ssdp_msg(SSDPPacketParser& parser, NetIF::IPAddr& cla
                 return HTTPMETHOD_UNKNOWN;
             }
         }
-        //std::cerr << "SSDP packet ok from " << claddr.straddr() << " host " << parser.host << "\n";
     } else {
         // We return HTTPMETHOD_MSEARCH + isresponse for response packets.
         // Analog to what the original code did.
