@@ -62,10 +62,7 @@ struct ResultData {
     Upnp_FunPtr ctrlpt_callback;
 };
 
-/*!
- * \brief Sends a callback to the control point application with a SEARCH
- * result.
- */
+/** Calls back the control point application with a search result. */
 class SearchResultJobWorker : public JobWorker {
 public:
     explicit SearchResultJobWorker(ResultData *res)
@@ -82,9 +79,99 @@ public:
     ResultData *m_resultdata;
 };
 
-void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser,
-                            struct sockaddr_storage *dest_addr,
-                            void *)
+/* Worker to send the search messages. */
+class SearchSendJobWorker : public JobWorker {
+public:
+    explicit SearchSendJobWorker(const std::string& v4, const std::string& v6)
+        : ReqBufv4(v4), ReqBufv6(v6) {}
+    std::string ReqBufv4;
+    std::string ReqBufv6;
+    ~SearchSendJobWorker() override {}
+    SearchSendJobWorker(const SearchSendJobWorker&) = delete;
+    SearchSendJobWorker& operator=(const SearchSendJobWorker&) = delete;
+    void work() override;
+
+};
+
+void SearchSendJobWorker::work()
+{
+    bool needv4 = !ReqBufv4.empty();
+    bool needv6 = !ReqBufv6.empty();
+    fd_set wrSet;
+    FD_ZERO(&wrSet);
+    int max_fd = -1;
+    if (needv4) {
+        if (gSsdpReqSocket4 != INVALID_SOCKET) {
+            FD_SET(gSsdpReqSocket4, &wrSet);
+#ifdef _WIN32
+            // max_fd is ignored under windows. Just set it to not -1.
+            max_fd = 0;
+#else
+            max_fd = std::max(max_fd, gSsdpReqSocket4);
+#endif
+        }
+    }
+#ifdef UPNP_ENABLE_IPV6
+    if (needv6) {
+        if (gSsdpReqSocket6 != INVALID_SOCKET) {
+            FD_SET(gSsdpReqSocket6, &wrSet);
+#ifdef _WIN32
+            // max_fd is ignored under windows. Just set it to not -1.
+            max_fd = 0;
+#else
+            max_fd = std::max(max_fd, gSsdpReqSocket6);
+#endif
+        }
+    }
+#endif
+
+    if (max_fd == -1) {
+        UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
+                   "SSDP_LIB: neither ipv4 nor ipv6 are active !\n");
+        return;
+    }
+    int ret = select(max_fd + 1, nullptr, &wrSet, nullptr, nullptr);
+    if (ret == -1) {
+        char errorBuffer[ERROR_BUFFER_LEN];
+        posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
+        UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
+                   "SSDP_LIB: Error in select(): %s\n", errorBuffer);
+        UpnpCloseSocket(gSsdpReqSocket4);
+#ifdef UPNP_ENABLE_IPV6
+        UpnpCloseSocket(gSsdpReqSocket6);
+#endif
+        return;
+    }
+
+#ifdef UPNP_ENABLE_IPV6
+    if (needv6 && gSsdpReqSocket6 != INVALID_SOCKET && FD_ISSET(gSsdpReqSocket6, &wrSet)) {
+        struct sockaddr_storage ssv6 = {};
+        auto destAddr6 = reinterpret_cast<struct sockaddr_in6 *>(&ssv6);
+        destAddr6->sin6_family = static_cast<sa_family_t>(AF_INET6);
+        inet_pton(AF_INET6, SSDP_IPV6_LINKLOCAL, &destAddr6->sin6_addr);
+        destAddr6->sin6_port = htons(SSDP_PORT);
+        destAddr6->sin6_scope_id = apiFirstIPV6Index();
+        UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+                   ">>> SSDP SEND M-SEARCH >>>\n%s\n", ReqBufv6.c_str());
+        sendto(gSsdpReqSocket6, ReqBufv6.c_str(), ReqBufv6.size(), 0,
+               reinterpret_cast<struct sockaddr *>(destAddr6), sizeof(struct sockaddr_in6));
+    }
+#endif /* UPNP_ENABLE_IPV6 */
+
+    if (needv4 && gSsdpReqSocket4 != INVALID_SOCKET && FD_ISSET(gSsdpReqSocket4, &wrSet)) {
+        struct sockaddr_storage ssv4 = {};
+        auto destAddr4 = reinterpret_cast<struct sockaddr_in *>(&ssv4);
+        destAddr4->sin_family = static_cast<sa_family_t>(AF_INET);
+        inet_pton(AF_INET, SSDP_IP, &destAddr4->sin_addr);
+        destAddr4->sin_port = htons(SSDP_PORT);
+        UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+                   ">>> SSDP SEND M-SEARCH >>>\n%s\n", ReqBufv4.c_str());
+        sendto(gSsdpReqSocket4, ReqBufv4.c_str(), ReqBufv4.size(), 0,
+               reinterpret_cast<struct sockaddr *>(destAddr4), sizeof(struct sockaddr_in));
+    }
+}
+
+void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser, struct sockaddr_storage *dest_addr, void *)
 {
     int handle;
     struct Handle_Info *ctrlpt_info = nullptr;
@@ -366,10 +453,10 @@ int SearchByTarget(int Mx, const char *St, const char *saddress, int port, void 
         saddress4 = saddress;
         saddress6 = saddress;
     } else {
-        if (Mx < MIN_SEARCH_TIME)
-            Mx = MIN_SEARCH_TIME;
-        else if (Mx > MAX_SEARCH_TIME)
-            Mx = MAX_SEARCH_TIME;
+        if (Mx < UPNP_MIN_SEARCH_TIME)
+            Mx = UPNP_MIN_SEARCH_TIME;
+        else if (Mx > UPNP_MAX_SEARCH_TIME)
+            Mx = UPNP_MAX_SEARCH_TIME;
         port = SSDP_PORT;
         saddress4 = SSDP_IP;
         saddress6 = SSDP_IPV6_LINKLOCAL;
@@ -381,8 +468,8 @@ int SearchByTarget(int Mx, const char *St, const char *saddress, int port, void 
         if (retVal != UPNP_E_SUCCESS)
             return retVal;
     }
-#ifdef UPNP_ENABLE_IPV6
     std::string ReqBufv6;
+#ifdef UPNP_ENABLE_IPV6
     if (needv6) {
         auto retVal = CreateClientRequestPacket(ReqBufv6, Mx, St, AF_INET6, saddress6, port);
         if (retVal != UPNP_E_SUCCESS)
@@ -394,7 +481,8 @@ int SearchByTarget(int Mx, const char *St, const char *saddress, int port, void 
     }
 #endif
 
-    /* add search criteria to list */
+    /* Add the search criteria and callback to the list and schedule a timeout event to remove
+       it when the search window closes */
     HandleLock();
     int handle;
     struct Handle_Info *ctrlpt_info;
@@ -403,7 +491,6 @@ int SearchByTarget(int Mx, const char *St, const char *saddress, int port, void 
         return UPNP_E_INTERNAL_ERROR;
     }
     auto newArg = std::make_unique<SsdpSearchArg>(St, Cookie, requestType);
-    /* Schedule a timeout event to remove search Arg */
     auto worker = std::make_unique<SearchExpiredJobWorker>();
     int *idp = &(worker->m_id);
     gTimerThread->schedule(TimerThread::SHORT_TERM, TimerThread::REL_SEC, Mx ? Mx + 1 : 2,
@@ -413,94 +500,17 @@ int SearchByTarget(int Mx, const char *St, const char *saddress, int port, void 
 
     HandleUnlock();
 
-    fd_set wrSet;
-    FD_ZERO(&wrSet);
-    int max_fd = -1;
-    if (needv4) {
-        if (gSsdpReqSocket4 != INVALID_SOCKET) {
-            FD_SET(gSsdpReqSocket4, &wrSet);
-#ifdef _WIN32
-            // max_fd is ignored under windows. Just set it to not -1.
-            max_fd = 0;
-#else
-            max_fd = std::max(max_fd, gSsdpReqSocket4);
-#endif
-        }
+    // Schedule sending the packets.
+    std::unique_ptr<SearchSendJobWorker> sworker;
+    int delay = 0;
+    for (int i = 0; i < NUM_SSDP_COPY; i++) {
+        sworker = std::make_unique<SearchSendJobWorker>(ReqBufv4, ReqBufv6);
+        gTimerThread->schedule(TimerThread::SHORT_TERM, std::chrono::milliseconds(delay),
+                               nullptr, std::move(sworker));
+        delay += SSDP_PAUSE;
     }
-#ifdef UPNP_ENABLE_IPV6
-    if (needv6) {
-        if (gSsdpReqSocket6 != INVALID_SOCKET) {
-            FD_SET(gSsdpReqSocket6, &wrSet);
-#ifdef _WIN32
-            // max_fd is ignored under windows. Just set it to not -1.
-            max_fd = 0;
-#else
-            max_fd = std::max(max_fd, gSsdpReqSocket6);
-#endif
-        }
-    }
-#endif
-
-    if (max_fd == -1) {
-        UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
-                   "SSDP_LIB: neither ipv4 nor ipv6 are active !\n");
-        return UPNP_E_INTERNAL_ERROR;
-    }
-    int ret = select(max_fd + 1, nullptr, &wrSet, nullptr, nullptr);
-    if (ret == -1) {
-        char errorBuffer[ERROR_BUFFER_LEN];
-        posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-        UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
-                   "SSDP_LIB: Error in select(): %s\n", errorBuffer);
-        UpnpCloseSocket(gSsdpReqSocket4);
-#ifdef UPNP_ENABLE_IPV6
-        UpnpCloseSocket(gSsdpReqSocket6);
-#endif
-        return UPNP_E_INTERNAL_ERROR;
-    }
-
-#ifdef UPNP_ENABLE_IPV6
-    if (needv6 && gSsdpReqSocket6 != INVALID_SOCKET && FD_ISSET(gSsdpReqSocket6, &wrSet)) {
-        struct sockaddr_storage ssv6 = {};
-
-        auto destAddr6 = reinterpret_cast<struct sockaddr_in6 *>(&ssv6);
-        destAddr6->sin6_family = static_cast<sa_family_t>(AF_INET6);
-        inet_pton(AF_INET6, SSDP_IPV6_LINKLOCAL, &destAddr6->sin6_addr);
-        destAddr6->sin6_port = htons(SSDP_PORT);
-        destAddr6->sin6_scope_id = apiFirstIPV6Index();
-
-        for (int cnt = 0; cnt < NUM_SSDP_COPY; cnt++) {
-            UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
-                       ">>> SSDP SEND M-SEARCH >>>\n%s\n", ReqBufv6.c_str());
-            sendto(gSsdpReqSocket6, ReqBufv6.c_str(), ReqBufv6.size(), 0,
-                   reinterpret_cast<struct sockaddr *>(destAddr6),
-                   sizeof(struct sockaddr_in6));
-            std::this_thread::sleep_for(std::chrono::milliseconds(SSDP_PAUSE));
-        }
-    }
-#endif /* UPNP_ENABLE_IPV6 */
-
-    if (needv4 && gSsdpReqSocket4 != INVALID_SOCKET && FD_ISSET(gSsdpReqSocket4, &wrSet)) {
-        struct sockaddr_storage ssv4 = {};
-
-        auto destAddr4 = reinterpret_cast<struct sockaddr_in *>(&ssv4);
-        destAddr4->sin_family = static_cast<sa_family_t>(AF_INET);
-        inet_pton(AF_INET, SSDP_IP, &destAddr4->sin_addr);
-        destAddr4->sin_port = htons(SSDP_PORT);
-
-        int NumCopy = 0;
-        while (NumCopy < NUM_SSDP_COPY) {
-            UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
-                       ">>> SSDP SEND M-SEARCH >>>\n%s\n", ReqBufv4.c_str());
-            sendto(gSsdpReqSocket4, ReqBufv4.c_str(), ReqBufv4.size(), 0,
-                   reinterpret_cast<struct sockaddr *>(destAddr4),
-                   sizeof(struct sockaddr_in));
-            NumCopy++;
-            std::this_thread::sleep_for(std::chrono::milliseconds(SSDP_PAUSE));
-        }
-    }
-
     return UPNP_E_SUCCESS;
 }
+
 #endif /* EXCLUDE_SSDP */
 #endif /* INCLUDE_CLIENT_APIS */

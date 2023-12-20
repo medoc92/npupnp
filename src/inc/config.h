@@ -220,7 +220,7 @@ typedef intptr_t ssize_t;
  *
  * @{
  */
-#define NUM_SSDP_COPY  2
+#define NUM_SSDP_COPY  3
 /* @} */
 
 
@@ -233,7 +233,7 @@ typedef intptr_t ssize_t;
  *
  * @{
  */
-#define SSDP_PAUSE  100u
+#define SSDP_PAUSE  100
 /* @} */
 
 
