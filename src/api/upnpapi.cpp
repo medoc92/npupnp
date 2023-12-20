@@ -1526,7 +1526,7 @@ int UpnpSendAdvertisementLowPower(
 
 // Internal merged multicast / unicast search. This is unicast iff Mx is 0, in which case, saddress
 // and port must be set.
-static int UpnpSearchAsyncUniMulti(
+static int searchAsyncUniMulti(
     UpnpClient_Handle hnd, int mx, const char *target, const char *shost, int port, void *cookie)
 {
     if (UpnpSdkInit != 1) {
@@ -1560,7 +1560,7 @@ int UpnpSearchAsync(UpnpClient_Handle hnd, int mx, const char *target, const voi
 {
     if (mx < 1)
         mx = DEFAULT_MX;
-    return UpnpSearchAsyncUniMulti(hnd, mx, target, "", 0, const_cast<void *>(cookie));
+    return searchAsyncUniMulti(hnd, mx, target, "", 0, const_cast<void *>(cookie));
 }
 
 int UpnpSearchAsyncUnicast(
@@ -1573,7 +1573,7 @@ int UpnpSearchAsyncUnicast(
     }
     const char *host = parseduri.hostport.strhost.c_str();
     int port = parseduri.hostport.strport.empty() ? 80 : atoi(parseduri.hostport.strport.c_str());
-    return UpnpSearchAsyncUniMulti(hnd, 0, target, host, port, cookie);
+    return searchAsyncUniMulti(hnd, 0, target, host, port, cookie);
 }
 
 #endif /* INCLUDE_CLIENT_APIS */
