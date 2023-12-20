@@ -69,6 +69,8 @@ public:
     /// Unique Device Number. This is the same as the deviceID in the
     /// discovery message. e.g. uuid:a7bdcd12-e6c1-4c7e-b588-3bbc959eda8d
     std::string UDN;
+    /// URL this was downloaded from
+    std::string descURL;
     /// Base for all relative URLs. e.g. http://192.168.4.4:49152/
     std::string URLBase;
     /// Manufacturer: e.g. D-Link, PacketVideo

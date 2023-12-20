@@ -109,12 +109,15 @@ UPnPDeviceDesc::UPnPDeviceDesc(const string& url, const string& description)
     UPnPDeviceParser mparser(description, *this);
     if (!mparser.Parse())
         return;
+    descURL = url;
     if (URLBase.empty()) {
-        // The standard says that if the URLBase value is empty, we
-        // should use the url the description was retrieved
-        // from. However this is sometimes something like
-        // http://host/desc.xml, sometimes something like http://host/
-        // (rare, but e.g. sent by the server on a dlink nas).
+        // The standard says that if the URLBase value is empty, we should use the url the
+        // description was retrieved from. However this is sometimes something like
+        // http://host/desc.xml, sometimes something like http://host/ (rare, but e.g. sent by the
+        // server on a dlink nas).
+        // Also this is wrong because, to be useful, URLBase assumes that relative URLs (e.g. for
+        // the service descriptions) will be absolute paths. They could be relative paths instead, in
+        // which case descURL (added at some point) should be used and URLBase is useless.
         URLBase = baseurl(url);
     }
     for (auto& dev: embedded) {
