@@ -236,16 +236,6 @@ typedef intptr_t ssize_t;
 #define SSDP_PAUSE  100u
 /* @} */
 
-/*!
- * \name WEB_SERVER_BUF_SIZE
- * 
- * This configuration parameter sets the maximum buffer size for the 
- * webserver. The default value is 1MB.
- *
- * @{
- */
-#define WEB_SERVER_BUF_SIZE  (size_t)(1024*1024)
-/* @} */
 
 /*!
  * \name WEB_SERVER_CONTENT_LANGUAGE
@@ -289,34 +279,6 @@ typedef intptr_t ssize_t;
  * @{
  */
 #define CP_MINIMUM_SUBSCRIPTION_TIME (AUTO_RENEW_TIME + 5)
-/* @} */
-
-
-/*!
- * \name MAX_SEARCH_TIME
- *
- * The {\tt MAX_SEARCH_TIME} is the maximum time
- * allowed for an SSDP search by a control point. Searching for greater than
- * this time automatically results in a search for this amount.  The default 
- * value is 80 seconds.
- *
- * @{
- */
-#define MAX_SEARCH_TIME 80
-/* @} */
-
-
-/*!
- * \name MIN_SEARCH_TIME
- *
- * The {\tt MIN_SEARCH_TIME} is the minimumm time
- * allowed for an SSDP search by a control point. Searching for less than
- * this time automatically results in a search for this amount.  The default 
- * value is 2 seconds.
- *
- * @{
- */
-#define MIN_SEARCH_TIME 2
 /* @} */
 
 
@@ -408,7 +370,6 @@ typedef intptr_t ssize_t;
  *   \item {\tt EXCLUDE_DOM [0,1]}
  *   \item {\tt EXCLUDE_MINISERVER[0,1]}
  *   \item {\tt EXCLUDE_WEB_SERVER[0,1]}
- *   \item {\tt EXCLUDE_JNI[0,1]}
  * \end{itemize}
  *
  * @{
@@ -419,28 +380,9 @@ typedef intptr_t ssize_t;
 #define EXCLUDE_DOM  0
 #define EXCLUDE_MINISERVER 0
 #define EXCLUDE_WEB_SERVER 0
-#ifdef USE_JNI
-#    define EXCLUDE_JNI 0
-#else
-#    define EXCLUDE_JNI 1
-#endif
 /* @} */
 
     
-/*!
- * \name DEBUG_TARGET
- *
- * The user has the option to redirect the library output debug messages 
- * to either the screen or to a log file.  All the output messages with 
- * debug level 0 will go to {\tt upnp.err} and messages with debug level 
- * greater than zero will be redirected to {\tt upnp.out}.
- *
- * @{
- */
-#define DEBUG_TARGET        1   
-/* @} */
-
-
 /*!
  * \name Other debugging features
  *
@@ -456,7 +398,6 @@ typedef intptr_t ssize_t;
 #define DEBUG_MSERV        0
 #define DEBUG_DOM        0
 #define DEBUG_HTTP        0
-#define DEBUG_API        0
 
 
 /*

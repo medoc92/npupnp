@@ -60,6 +60,18 @@
 /** I don't think that this is actually used in the API, but define it for compatibility */
 #define UPNP_UNTIL_CLOSE -4
 
+/** Maximum search window settable by a control point in seconds. 
+ * The window defines the period over which devices may answer at a random point. Setting the mx
+ * parameter to UpnpSearchAsync() higher than this value will result in the value being used
+ * instead. */
+#define UPNP_MAX_SEARCH_TIME 80
+
+/** Minimum search window settable by a control point in seconds. 
+ * The window defines the period over which devices may answer at a random point. Setting the mx
+ * parameter to UpnpSearchAsync() below this value will result in this value to be used
+ * instead. */
+#define UPNP_MIN_SEARCH_TIME 2
+
 
 /**
  * \name Error codes 
