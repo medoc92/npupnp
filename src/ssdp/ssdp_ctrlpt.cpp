@@ -393,7 +393,11 @@ static int CreateClientRequestPacket(
     if (SearchTarget != nullptr) {
         str << "ST: " << SearchTarget << "\r\n";
     }
+
+    str << "USER-AGENT: " << get_sdk_client_info() << "\r\n";
+
     str << "\r\n";
+
     RqstBuf = str.str();
     return UPNP_E_SUCCESS;
 }
