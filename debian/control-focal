@@ -9,7 +9,7 @@ Build-Depends: debhelper-compat (=12),
  libexpat1-dev, libmicrohttpd-dev, libcurl4-gnutls-dev
 Standards-Version: 4.3.0
 
-Package: libnpupnp12
+Package: libnpupnp13
 Architecture: any
 Section: libs
 Depends: ${shlibs:Depends}, ${misc:Depends}
@@ -25,7 +25,7 @@ Description: UPnP library, based on Pupnp code, but extensively
 Package: libnpupnp-dev
 Architecture: any
 Section: libdevel
-Depends: ${misc:Depends}, libnpupnp12 (= ${binary:Version})
+Depends: ${misc:Depends}, libnpupnp13 (= ${binary:Version})
 Conflicts: libnpupnp2-dev
 Multi-Arch: same
 Description: Development package for the npupnp UPnP library,
