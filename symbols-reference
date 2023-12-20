@@ -33,6 +33,7 @@
   UpnpGetServerIpAddress()
   UpnpIsWebserverEnabled()
   UpnpRegisterRootDevice(char const*, int (*)(Upnp_EventType_e, void const*, void*), void const*, int*)
+  UpnpSearchAsyncUnicast(int, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const*, void*)
   UpnpGetServerIp6Address()
   UpnpRegisterRootDevice2(Upnp_DescType_e, char const*, unsigned long, int, int (*)(Upnp_EventType_e, void const*, void*), void const*, int*)
   UpnpRegisterRootDevice4(char const*, int (*)(Upnp_EventType_e, void const*, void*), void const*, int*, int, char const*)
