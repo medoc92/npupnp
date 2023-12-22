@@ -177,7 +177,7 @@ static http_method_t valid_ssdp_msg(SSDPPacketParser& parser, NetIF::IPAddr& cla
             !strcasecmp(parser.host, "[FF02::C]:1900") ||
             !strcasecmp(parser.host, "[FF05::C]:1900")) {
             // Multicast request. Needs an MX
-            if (!parser.mx || atoi(parser.mx) <= 0) {
+            if (method == HTTPMETHOD_MSEARCH && (!parser.mx || atoi(parser.mx) <= 0)) {
                 UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
                            "valid_ssdp_msg: HOST header indicates multicast but no MX set\n");
                 return HTTPMETHOD_UNKNOWN;

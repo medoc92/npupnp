@@ -44,7 +44,6 @@ public:
     SSDPPacketParser& operator=(const SSDPPacketParser&) = delete;
 
     bool parse();
-    static void trimright(char *cp, size_t len);
     void dump(std::ostream& os) const;
 
     // Results. After parsing, the set fields point into the original buffer.

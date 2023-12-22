@@ -52,7 +52,7 @@ static const char *response_start = "HTTP/1.1 200 OK\r\n";
 static const size_t response_start_len = strlen(response_start);
 
 
-void SSDPPacketParser::trimright(char *cp, size_t len) {
+static void trimright(char *cp, size_t len) {
     while (len > 0) {
         if (cp[len-1] == ' ' ||    cp[len-1] == '\t') {
             len--;
