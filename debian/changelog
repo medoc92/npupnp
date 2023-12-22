@@ -1,4 +1,4 @@
-libnpupnp (6.0.0-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+libnpupnp (6.0.1-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Switch UPnP version to 1.1.
   * Add bootid, configid headers to the SSDP packets, and the corresponding
@@ -9,8 +9,9 @@ libnpupnp (6.0.0-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
   * Control: export the minimum and maximum values for the search window in
     upnp.h, the client may need them.
   * Add interface to perform unicast search.
-
- -- Jean-Francois Dockes <jf@dockes.org>  Wed, 20 Dec 2023 11:23:00 +0100
+  * (6.0.1 fixes event blunder in 6.0.0 which was very short-lived)
+  
+ -- Jean-Francois Dockes <jf@dockes.org>  Fri, 22 Dec 2023 17:39:00 +0100
 
 libnpupnp (5.1.2-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
