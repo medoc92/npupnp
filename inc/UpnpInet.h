@@ -5,9 +5,7 @@
 
 #ifdef _WIN32
 
-#include <stdarg.h>
 #include <winsock2.h>
-#include <iphlpapi.h>
 #include <ws2tcpip.h>
 
 #if(_WIN32_WINNT < 0x0600)
