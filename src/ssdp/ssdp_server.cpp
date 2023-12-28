@@ -46,6 +46,7 @@
 
 #include <chrono>
 #include <cstdio>
+#include <cstdint>
 #include <fcntl.h>
 #include <thread>
 #include <algorithm>

@@ -43,7 +43,11 @@
 #include <map>
 
 #include "upnpconfig.h"
-#include "UpnpInet.h"
+#ifdef _WIN32
+#include <winsock2.h>
+#else
+#include <sys/socket.h>
+#endif
 #include "UpnpGlobal.h"
 
 /** Array size for some fixed sized character arrays in API structures */

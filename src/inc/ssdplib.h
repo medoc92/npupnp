@@ -37,7 +37,7 @@
 #include "ssdpparser.h"
 #include "httputils.h"
 #include "miniserver.h"
-#include "UpnpInet.h"
+#include "upnpinet.h"
 
 #include <sys/types.h>
 #include <signal.h>

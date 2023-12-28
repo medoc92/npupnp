@@ -19,8 +19,6 @@ typedef ADDRESS_FAMILY sa_family_t;
 
 #else /* ! _WIN32 -> */
 
-#include <unistd.h>
-
 /*** Windows compatibility macros */
 #define UpnpCloseSocket(s) do {close(s); s = -1;} while(0)
 #define UPNP_SOCK_GET_LAST_ERROR() errno

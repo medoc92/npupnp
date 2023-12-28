@@ -51,7 +51,7 @@
 
 #include <curl/curl.h>
 
-#include "UpnpInet.h"
+#include "upnpinet.h"
 #include "genut.h"
 #include "statcodes.h"
 #include "upnp.h"

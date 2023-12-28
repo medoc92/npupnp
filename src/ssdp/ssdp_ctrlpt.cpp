@@ -50,7 +50,7 @@ nnn * Redistribution and use in source and binary forms, with or without
 #include "ssdplib.h"
 #include "statcodes.h"
 #include "upnpapi.h"
-#include "UpnpInet.h"
+#include "upnpinet.h"
 #include "ThreadPool.h"
 #include "genut.h"
 #include "inet_pton.h"

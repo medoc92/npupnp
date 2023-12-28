@@ -33,7 +33,7 @@
  **************************************************************************/
 
 #include "httputils.h"
-#include "UpnpInet.h"
+#include "upnpinet.h"
 
 struct MiniServerSockArray {
     /*! Socket for stopping miniserver */

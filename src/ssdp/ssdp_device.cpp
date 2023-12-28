@@ -40,7 +40,7 @@
 #include "statcodes.h"
 #include "ThreadPool.h"
 #include "upnpapi.h"
-#include "UpnpInet.h"
+#include "upnpinet.h"
 #include "upnpdebug.h"
 #include "TimerThread.h"
 #include "genut.h"
@@ -49,6 +49,7 @@
 
 #include <cassert>
 #include <cstdio>
+#include <cstdint>
 #include <cstring>
 #include <iostream>
 #include <sstream>

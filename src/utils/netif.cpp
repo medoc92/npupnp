@@ -36,6 +36,7 @@
 #include <algorithm>
 #include <numeric>
 #include <sstream>
+#include <cstdint>
 
 #ifndef _WIN32
 

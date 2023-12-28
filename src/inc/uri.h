@@ -36,16 +36,10 @@
 #include <vector>
 
 #include "UpnpGlobal.h" 
-#include "UpnpInet.h"
+#include "upnpinet.h"
 
 #include <string.h>
 #include <sys/types.h>
-
-#ifdef _WIN32
-#include <winsock2.h>
-#else
-#include <sys/socket.h>
-#endif
 
 /*!
  * \brief Represents a host port: e.g. "127.127.0.1:80", "www.recoll.org" 

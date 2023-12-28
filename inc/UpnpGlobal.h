@@ -34,7 +34,4 @@
 
 #endif
 
-/* Sized integer types. */
-#include <stdint.h>
-
 #endif /* UPNPGLOBAL_H */

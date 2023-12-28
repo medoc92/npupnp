@@ -20,7 +20,7 @@
 #ifndef HAVE_INET_PTON
 #include <stdio.h>
 
-#include "UpnpInet.h"
+#include "upnpinet.h"
 #include "inet_pton.h"
 /* For upnp_strlcpy */
 #include "genut.h"

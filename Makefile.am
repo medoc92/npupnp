@@ -26,7 +26,6 @@ npupnpinclude_HEADERS = \
 	inc/upnp.h \
 	inc/upnpdebug.h \
 	inc/UpnpGlobal.h \
-	inc/UpnpInet.h \
 	inc/netif.h \
 	inc/upnpdescription.h
 
@@ -77,6 +76,7 @@ libnpupnp_la_SOURCES = \
 	src/inc/ssdplib.h \
 	src/inc/ssdpparser.h \
 	src/inc/statcodes.h \
+        src/inc/upnpinet.h \
 	src/inc/upnp_timeout.h \
 	src/inc/upnpapi.h \
 	src/inc/uri.h \
