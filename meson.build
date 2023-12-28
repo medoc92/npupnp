@@ -137,7 +137,6 @@ install_headers(
   'inc/upnpdescription.h',
   'inc/UpnpGlobal.h',
   'inc/upnp.h',
-  'inc/UpnpInet.h',
   'inc/upnptools.h',
   ufile,
   subdir: 'npupnp',
