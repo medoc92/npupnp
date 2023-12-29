@@ -82,10 +82,7 @@ std::string gena_sid_uuid()
         }
         if (hwaddr.empty()) {
             srand(static_cast<unsigned int>(tp & 0xffffffff));
-            int randval = rand();
-            char buf[40];
-            snprintf(buf, 40, "%d", randval);
-            hwaddr = buf;
+            hwaddr = std::to_string(rand());
         }
     }
 

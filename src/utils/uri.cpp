@@ -471,8 +471,7 @@ std::string maybeScopeUrlAddr(
     std::string scopedaddr = urlip.straddr(true, true);
 
     auto sa6 = reinterpret_cast<struct sockaddr_in6*>(&prsduri.hostport.IPaddress);
-    char portbuf[20];
-    snprintf(portbuf, sizeof(portbuf), "%hu", ntohs(sa6->sin6_port));
+    auto portbuf = std::to_string(ntohs(sa6->sin6_port));
     prsduri.hostport.text = std::string("[") + scopedaddr + "]:" + portbuf;
     return uri_asurlstr(prsduri);
 }

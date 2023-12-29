@@ -148,8 +148,7 @@ static void UpnpDisplayFileAndLine(
     struct tm *timeinfo;
     const char *smod;
 
-    char slev[25];
-    snprintf(slev, 25, "%d", DLevel);
+    auto slev = std::to_string(DLevel);
         
     switch(Module) {
     case SSDP: smod="SSDP";break;
@@ -167,7 +166,7 @@ static void UpnpDisplayFileAndLine(
     strftime(timebuf, 26, "%Y-%m-%d %H:%M:%S", timeinfo);
     std::ostringstream ss;
     ss << "0x" << std::hex << std::this_thread::get_id();
-    fprintf(fp, "%s UPNP-%s-%s: Thread:%s [%s:%d]: ", timebuf, smod, slev,
+    fprintf(fp, "%s UPNP-%s-%s: Thread:%s [%s:%d]: ", timebuf, smod, slev.c_str(),
             ss.str().c_str(), DbgFileName, DbgLineNo);
     fflush(fp);
 }

@@ -1159,9 +1159,8 @@ void catstrerror(std::string *reason, const char *what, int _errno)
 
     reason->append(": errno: ");
 
-    char nbuf[20];
-    sprintf(nbuf, "%d", _errno);
-    reason->append(nbuf);
+    auto nbuf = std::to_string(_errno);
+    reason->append(nbuf.c_str());
 
     reason->append(" : ");
 
