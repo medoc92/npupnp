@@ -57,19 +57,6 @@ inline int posix_strerror_r(int err, char *buf, size_t len) {
 
 #define posix_strerror_r(errno,buf,len) strerror_s(buf,len,errno)
 
-#if defined(__MINGW32__)
-// For some reason the mingw32 in qt8 comes with bogus (lld) defs for these.
-#undef PRIu64
-#undef PRIi64
-#endif
-
-#ifndef PRIu64
-#define PRIu64 "I64u"
-#endif
-#ifndef PRIi64
-#define PRIi64 "I64i"
-#endif /* PRIi64 */
-
 #endif /* _WIN32 */
 
 #ifdef __cplusplus
