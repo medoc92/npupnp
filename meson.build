@@ -2,9 +2,9 @@ project(
   'libnpupnp',
   'cpp',
   license: 'BSD-3-Clause',
-  version: '6.0.2',
+  version: files('VERSION'),
   default_options: 'cpp_std=c++17',
-  meson_version: '>=0.48',
+  meson_version: '>=0.57',
 )
 
 cpp = meson.get_compiler('cpp')
