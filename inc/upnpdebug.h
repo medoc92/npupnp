@@ -134,7 +134,11 @@ EXPORT_SPEC void UpnpPrintf(
     ...)
 #if (__GNUC__ >= 3)
 /* This enables printf like format checking by the compiler. */
+#ifdef __MINGW32__
+    __attribute__ ((format(__MINGW_PRINTF_FORMAT, 5, 6)))
+#else
     __attribute__ ((format(__printf__, 5, 6)))
+#endif
 #endif
     ;
 

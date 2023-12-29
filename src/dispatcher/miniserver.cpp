@@ -583,7 +583,7 @@ static int get_port(
         *port = ntohs(reinterpret_cast<struct sockaddr_in6*>(&sockinfo)->sin6_port);
     }
     UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
-               "sockfd = %d, .... port = %d\n", sockfd, static_cast<int>(*port));
+               "sockfd = %d, .... port = %d\n", static_cast<int>(sockfd), static_cast<int>(*port));
 
     return 0;
 }

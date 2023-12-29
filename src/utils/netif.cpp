@@ -303,9 +303,8 @@ std::string IPAddr::straddr(bool setscope, bool forurl) const
             return buf;
         }
         std::string s{buf};
-        char scopebuf[30];
-        snprintf(scopebuf, sizeof(scopebuf), "%u", sa6->sin6_scope_id);
-        s += std::string(forurl ? "%25" : "%") + scopebuf;
+        auto scope = std::to_string(sa6->sin6_scope_id);
+        s += std::string(forurl ? "%25" : "%") + scope;
         return s;
     }
     }
