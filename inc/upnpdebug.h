@@ -118,6 +118,12 @@ EXPORT_SPEC FILE *UpnpGetDebugFile(
     /** [in] debug will go in the name of this module. */
     Dbg_Module module);
 
+/* This enables printf like format checking by the compiler. */
+#ifdef __MINGW32__
+    [[gnu::format(__MINGW_PRINTF_FORMAT, 5, 6)]]
+#else
+    [[gnu::format(printf, 5, 6)]]
+#endif
 /** @brief Prints the debug statement to the current output */
 EXPORT_SPEC void UpnpPrintf(
     /** [in] Message level, to be compared to the current verbosity. */
@@ -132,14 +138,6 @@ EXPORT_SPEC void UpnpPrintf(
     const char *FmtStr,
     /** [in] Printf-like arguments. */
     ...)
-#if (__GNUC__ >= 3)
-/* This enables printf like format checking by the compiler. */
-#ifdef __MINGW32__
-    __attribute__ ((format(__MINGW_PRINTF_FORMAT, 5, 6)))
-#else
-    __attribute__ ((format(__printf__, 5, 6)))
-#endif
-#endif
     ;
 
 
