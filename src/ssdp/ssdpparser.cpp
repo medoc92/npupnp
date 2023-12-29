@@ -38,12 +38,6 @@
 #include "upnpdebug.h"
 #include "UpnpGlobal.h"
 
-#if defined(_WIN32) && defined(_MSC_VER)
-#define strcasecmp _stricmp
-#endif
-
-#define CCRLF "\r\n"
-
 static const char *notify_start = "NOTIFY * HTTP/1.1\r\n";
 static const size_t notify_start_len = strlen(notify_start);
 static const char *msearch_start = "M-SEARCH * HTTP/1.1\r\n";
