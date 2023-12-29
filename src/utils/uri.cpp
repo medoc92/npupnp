@@ -419,11 +419,9 @@ int parse_uri(const std::string& in, uri_type *out)
         in[begin_hostport + 1] == '/') {
         begin_hostport += 2;
         begin_path = parse_hostport(in.c_str() + begin_hostport, &out->hostport);
-        if (begin_path >= 0) {
-            begin_path += begin_hostport;
-        } else {
+        if (begin_path == 0)
             return begin_path;
-        }
+        begin_path += begin_hostport;
     } else {
         begin_path = static_cast<int>(begin_hostport);
     }
