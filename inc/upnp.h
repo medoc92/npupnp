@@ -41,6 +41,7 @@
 #include <vector>
 #include <unordered_map>
 #include <map>
+#include <cstdint>
 
 #include "upnpconfig.h"
 #ifdef _WIN32
