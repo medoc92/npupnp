@@ -33,8 +33,7 @@
 
 #include "config.h"
 
-#if EXCLUDE_DOM == 0
-
+#if UPNP_HAVE_TOOLS
 #include "upnp.h"
 #include "upnptools.h"
 #include "uri.h"
@@ -152,5 +151,4 @@ int UpnpResolveURL2(const char *BaseURL, const char *RelURL, char **AbsURL)
     return ret;
 }
 
-#endif /* EXCLUDE_DOM == 0 */
-
+#endif // UPNP_HAVE_TOOLS

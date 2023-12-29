@@ -355,34 +355,7 @@ typedef intptr_t ssize_t;
 /* @} */
 
 
-/*!
- * \name Module Exclusion
- *
- * Depending on the requirements, the user can selectively discard any of 
- * the major modules like SOAP, GENA, SSDP or the Internal web server. By 
- * default everything is included inside the SDK.  By setting any of
- * the values below to 0, that component will not be included in the final
- * SDK.
- * \begin{itemize}
- *   \item {\tt EXCLUDE_SOAP[0,1]}
- *   \item {\tt EXCLUDE_GENA[0,1]}
- *   \item {\tt EXCLUDE_SSDP[0,1]}
- *   \item {\tt EXCLUDE_DOM [0,1]}
- *   \item {\tt EXCLUDE_MINISERVER[0,1]}
- *   \item {\tt EXCLUDE_WEB_SERVER[0,1]}
- * \end{itemize}
- *
- * @{
- */
-#define EXCLUDE_SSDP 0
-#define EXCLUDE_SOAP 0
-#define EXCLUDE_GENA 0
-#define EXCLUDE_DOM  0
-#define EXCLUDE_MINISERVER 0
-#define EXCLUDE_WEB_SERVER 0
-/* @} */
-
-    
+   
 /*!
  * \name Other debugging features
  *
@@ -399,19 +372,6 @@ typedef intptr_t ssize_t;
 #define DEBUG_DOM        0
 #define DEBUG_HTTP        0
 
-
-/*
- * @} Compile time configuration options
- */
-
-
-/***************************************************************************
- * Do not change, Internal purpose only!!!
- ***************************************************************************/ 
-
-/*!
- * @{
- */
 
 
 /*
@@ -437,7 +397,6 @@ typedef intptr_t ssize_t;
 #endif
 
 /* configure --enable-ssdp */
-#undef EXCLUDE_SSDP
 #if UPNP_HAVE_SSDP
 #       define EXCLUDE_SSDP 0
 #else
@@ -445,7 +404,6 @@ typedef intptr_t ssize_t;
 #endif
 
 /* configure --enable-soap */
-#undef EXCLUDE_SOAP
 #if UPNP_HAVE_SOAP
 #    define EXCLUDE_SOAP 0
 #else
@@ -453,15 +411,12 @@ typedef intptr_t ssize_t;
 #endif
 
 /* configure --enable-gena */
-#undef EXCLUDE_GENA
 #if UPNP_HAVE_GENA
 #       define EXCLUDE_GENA 0
 #else
 #       define EXCLUDE_GENA 1
 #endif
 
-#undef  EXCLUDE_WEB_SERVER
-#undef  EXCLUDE_MINISERVER
 #ifdef  INTERNAL_WEB_SERVER
 #    define EXCLUDE_WEB_SERVER 0
 #    define EXCLUDE_MINISERVER 0
