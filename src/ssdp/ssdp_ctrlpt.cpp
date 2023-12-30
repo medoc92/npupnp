@@ -422,7 +422,7 @@ void SearchExpiredJobWorker::work()
     }
 
     Upnp_FunPtr ctrlpt_callback = ctrlpt_info->Callback;
-    void *cookie;
+    void* cookie = nullptr;
     int found = 0;
     int id = m_id;
     auto it = std::find_if(
