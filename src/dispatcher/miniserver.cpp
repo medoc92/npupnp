@@ -583,7 +583,7 @@ static int get_port(
         *port = ntohs(reinterpret_cast<struct sockaddr_in6*>(&sockinfo)->sin6_port);
     }
     UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
-               "sockfd = %d, .... port = %d\n", sockfd, static_cast<int>(*port));
+               "sockfd = %d, .... port = %d\n", static_cast<int>(sockfd), static_cast<int>(*port));
 
     return 0;
 }
@@ -692,6 +692,12 @@ static int available_port(int reqport)
     return ret;
 }
 
+/* This enables printf like format checking by the compiler. */
+#ifdef __MINGW32__
+[[gnu::format(__MINGW_PRINTF_FORMAT, 2, 0)]]
+#else
+[[gnu::format(printf, 2, 0)]]
+#endif
 static void mhdlogger(void *, const char *fmt, va_list ap)
 {
     char buf[1024];
