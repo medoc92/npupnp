@@ -12,7 +12,7 @@ jobs:
     name: Linux-GCC${{matrix.cxx}}-${{matrix.deps}}-${{matrix.type}}
     strategy:
       matrix:
-        cxx: ['7', '8', '9', '10', '11']
+        cxx: ['7', '8', '9', '10', '11', '13']
         deps: ['forcefallback', 'default']
         type: ['shared', 'static']
     steps:
@@ -95,6 +95,25 @@ jobs:
         run: |
           meson setup "${{github.workspace}}/build" --wrap-mode=${{matrix.deps}} -Dwarning_level=3 -Dcpp_std=c++latest
           meson compile -C "${{github.workspace}}/build" --verbose
+  Cygwin:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: 'MSYS'
+          install: >-
+            gcc
+            meson
+            ninja
+      - name: Compile and Test
+        run: |
+          meson setup build -Dwarning_level=3 -Dcpp_std=gnu++20
+          meson compile -C build --verbose
+          meson test -C build --verbose
   MacOS:
     runs-on: macos-latest
     name: macOS-${{matrix.deps}}-${{matrix.type}}
@@ -113,3 +132,33 @@ jobs:
         run: |
           meson setup "${{github.workspace}}/build" --wrap-mode=${{matrix.deps}} -Ddefault_library=${{matrix.type}} -Dwarning_level=3 -Dcpp_std=c++20
           meson compile -C "${{github.workspace}}/build" --verbose
+  FreeBSD:
+    runs-on: ubuntu-latest
+    name: FreeBSD
+    steps:
+      - uses: actions/checkout@v4
+      - name: FreeBSD
+        uses: vmactions/freebsd-vm@v1
+        with:
+          prepare: |
+            pkg install -y curl ninja meson pkgconf libmicrohttpd
+          run: |
+            meson setup "${{github.workspace}}/build" -Dwarning_level=3 -Dcpp_std=c++20
+            meson compile -C "${{github.workspace}}/build" --verbose
+            meson test -C "${{github.workspace}}/build" --verbose
+  Alpine:
+    runs-on: ubuntu-latest
+    container:
+      image: alpine
+    steps:
+      - name: Install packages
+        run: |
+          apk add curl-dev expat-dev g++ gcc git libmicrohttpd-dev linux-headers pkgconf meson samurai
+          git config --global --add safe.directory '*'
+
+      - uses: actions/checkout@v4
+      - name: Sanity Checks
+        run: |
+          meson setup "${{github.workspace}}/build" -Dwarning_level=3 -Dcpp_std=c++20
+          meson compile -C "${{github.workspace}}/build" --verbose
+          meson test -C "${{github.workspace}}/build" --verbose
