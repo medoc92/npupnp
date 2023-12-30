@@ -92,7 +92,7 @@
 #define PACKAGE_NAME "libnpupnp"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "libnpupnp 6.0.3"
+#define PACKAGE_STRING "libnpupnp 6.0.4"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "libnpupnp"
@@ -101,7 +101,7 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "6.0.3"
+#define PACKAGE_VERSION "6.0.4"
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
