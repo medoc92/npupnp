@@ -583,7 +583,7 @@ static int get_port(
         *port = ntohs(reinterpret_cast<struct sockaddr_in6*>(&sockinfo)->sin6_port);
     }
     UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
-               "sockfd = %d, .... port = %d\n", sockfd, static_cast<int>(*port));
+               "sockfd = %d, .... port = %d\n", static_cast<int>(sockfd), static_cast<int>(*port));
 
     return 0;
 }
@@ -614,7 +614,12 @@ static int get_miniserver_stopsock(MiniServerSockArray *out)
     /* Bind to local socket. */
     stop_sockaddr = {};
     stop_sockaddr.sin_family = static_cast<sa_family_t>(AF_INET);
-    stop_sockaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    if (inet_pton(AF_INET, "127.0.0.1", &stop_sockaddr.sin_addr) != 1) {
+        UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
+                   "Error in converting IP address\n");
+        return UPNP_E_INVALID_PARAM;
+    }
     ret = bind(out->miniServerStopSock,
                reinterpret_cast<struct sockaddr *>(&stop_sockaddr),
                sizeof(stop_sockaddr));
@@ -692,6 +697,12 @@ static int available_port(int reqport)
     return ret;
 }
 
+/* This enables printf like format checking by the compiler. */
+#ifdef __MINGW32__
+[[gnu::format(__MINGW_PRINTF_FORMAT, 2, 0)]]
+#else
+[[gnu::format(printf, 2, 0)]]
+#endif
 static void mhdlogger(void *, const char *fmt, va_list ap)
 {
     char buf[1024];
@@ -822,8 +833,14 @@ int StopMiniServer()
         return 0;
     }
     stopaddr.sin_family = static_cast<sa_family_t>(AF_INET);
-    stopaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
     stopaddr.sin_port = htons(miniSocket->stopPort);
+
+    if (inet_pton(AF_INET, "127.0.0.1", &stopaddr.sin_addr) != 1) {
+        UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
+                   "Error in converting IP address\n");
+        UpnpCloseSocket(sock);
+        return 0;
+    }
 
     while (gMServState != MSERV_IDLE) {
         sendto(sock, buf, bufLen, 0,

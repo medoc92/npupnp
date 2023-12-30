@@ -153,8 +153,7 @@ static int genaNotify(const std::string& propertySet, const subscription *sub)
         list = curl_slist_append(list, "NT: upnp:event");
         list = curl_slist_append(list, "NTS: upnp:propchange");
         list = curl_slist_append(list,(std::string("SID: ") + sub->sid).c_str());
-        char buff[100];
-        snprintf(buff, 100, "%d", sub->ToSendEventKey);
+        auto buff = std::to_string(sub->ToSendEventKey);
         list = curl_slist_append(list, (std::string("SEQ: ") + buff).c_str());
 
         list = curl_slist_append(list, "Accept:");
