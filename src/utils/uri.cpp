@@ -414,14 +414,16 @@ int parse_uri(const std::string& in, uri_type *out)
         out->path_type = REL_PATH;
     }
 
-    size_t begin_path = 0;
+    int begin_path = 0;
     if (begin_hostport + 1 < in.size() && in[begin_hostport] == '/' &&
         in[begin_hostport + 1] == '/') {
         begin_hostport += 2;
         begin_path = parse_hostport(in.c_str() + begin_hostport, &out->hostport);
-        if (begin_path == 0)
+        if (begin_path >= 0) {
+            begin_path += begin_hostport;
+        } else {
             return begin_path;
-        begin_path += begin_hostport;
+        }
     } else {
         begin_path = static_cast<int>(begin_hostport);
     }
@@ -471,7 +473,8 @@ std::string maybeScopeUrlAddr(
     std::string scopedaddr = urlip.straddr(true, true);
 
     auto sa6 = reinterpret_cast<struct sockaddr_in6*>(&prsduri.hostport.IPaddress);
-    auto portbuf = std::to_string(ntohs(sa6->sin6_port));
+    char portbuf[20];
+    snprintf(portbuf, sizeof(portbuf), "%hu", ntohs(sa6->sin6_port));
     prsduri.hostport.text = std::string("[") + scopedaddr + "]:" + portbuf;
     return uri_asurlstr(prsduri);
 }
