@@ -47,7 +47,7 @@
 #include <ifaddrs.h>
 #ifdef __linux__
 #include <netpacket/packet.h>
-#else
+#elif !defined(__CYGWIN__)
 #include <net/if_dl.h>
 #endif
 
@@ -569,14 +569,14 @@ Interfaces::Internal::Internal()
             }
         }
         break;
-#ifdef __linux__
+#if defined(__linux__)
         case AF_PACKET:
         {
             auto sll = reinterpret_cast<struct sockaddr_ll*>(ifa->ifa_addr);
             ifit->m->sethwaddr(reinterpret_cast<const char*>(sll->sll_addr), sll->sll_halen);
         }
         break;
-#else
+#elif !defined(__CYGWIN__)
         case AF_LINK:
         {
             auto sdl = reinterpret_cast<struct sockaddr_dl*>(ifa->ifa_addr);
