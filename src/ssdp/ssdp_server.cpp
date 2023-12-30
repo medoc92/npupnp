@@ -354,11 +354,17 @@ static int create_ssdp_sock_v4(SOCKET *ssdpSock)
 
     for (const auto& netif : g_netifs) {
         auto ipaddr = netif.firstipv4addr();
-        if (nullptr == ipaddr)
+        if (!ipaddr)
             continue;
         struct ip_mreq ssdpMcastAddr = {};
-        ssdpMcastAddr.imr_interface.s_addr = inet_addr(ipaddr->straddr().c_str());
-        ssdpMcastAddr.imr_multiaddr.s_addr = inet_addr(SSDP_IP);
+        if (inet_pton(AF_INET, ipaddr->straddr().c_str(), &(ssdpMcastAddr.imr_interface)) != 1) {
+            errorcause = "inet_pton() error";
+            goto error_handler;
+        }
+        if (inet_pton(AF_INET, SSDP_IP, &(ssdpMcastAddr.imr_multiaddr)) != 1) {
+            errorcause = "inet_pton() error for multicast address";
+            goto error_handler;
+        }
         ret = setsockopt(*ssdpSock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
                          reinterpret_cast<char *>(&ssdpMcastAddr), sizeof(struct ip_mreq));
         if (ret == -1) {
@@ -407,8 +413,14 @@ static int create_ssdp_sock_reqv4(SOCKET *ssdpReqSock)
         return ret;
     }
 
-    uint32_t hostaddrv4 = inet_addr(sadrv4.c_str());
+    uint32_t hostaddrv4;
     std::string errorcause;
+
+    if (inet_pton(AF_INET, sadrv4.c_str(), &hostaddrv4) != 1) {
+        errorcause = "inet_pton() error";
+        ret = UPNP_E_INVALID_PARAM;
+        goto error_handler;
+    }
 
     *ssdpReqSock = socket(AF_INET, SOCK_DGRAM, 0);
     if (*ssdpReqSock == INVALID_SOCKET) {
