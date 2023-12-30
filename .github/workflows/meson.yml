@@ -146,3 +146,19 @@ jobs:
             meson setup "${{github.workspace}}/build" -Dwarning_level=3 -Dcpp_std=c++20
             meson compile -C "${{github.workspace}}/build" --verbose
             meson test -C "${{github.workspace}}/build" --verbose
+  Alpine:
+    runs-on: ubuntu-latest
+    container:
+      image: alpine
+    steps:
+      - name: Install packages
+        run: |
+          apk add curl-dev expat-dev g++ gcc git libmicrohttpd-dev linux-headers pkgconf meson samurai
+          git config --global --add safe.directory '*'
+
+      - uses: actions/checkout@v4
+      - name: Sanity Checks
+        run: |
+          meson setup "${{github.workspace}}/build" -Dwarning_level=3 -Dcpp_std=c++20
+          meson compile -C "${{github.workspace}}/build" --verbose
+          meson test -C "${{github.workspace}}/build" --verbose
