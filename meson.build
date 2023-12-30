@@ -2,9 +2,9 @@ project(
   'libnpupnp',
   'cpp',
   license: 'BSD-3-Clause',
-  version: '6.0.2',
+  version: files('VERSION'),
   default_options: 'cpp_std=c++17',
-  meson_version: '>=0.48',
+  meson_version: '>=0.57',
 )
 
 cpp = meson.get_compiler('cpp')
@@ -118,7 +118,7 @@ libnpupnp = library(
   gnu_symbol_visibility: 'hidden',
   name_prefix: '',
   version: meson.project_version(),
-  soversion: host_machine.system() == 'windows' ? '' : '5',
+  soversion: host_machine.system() == 'windows' ? '' : '6',
   include_directories: libnpupnp_incdir,
   dependencies: deps,
   install: true,
