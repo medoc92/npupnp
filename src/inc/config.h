@@ -38,6 +38,14 @@
 
 #ifdef _WIN32
 
+// This needs to be defined before we include any Windows include and config.h is usually at the top
+// of files (or we can put it there), so it's the right place. We need this to get, e.g. inet_pton
+// from ws2tcpip.h
+#if _WIN32_WINNT < 0x0600
+#undef _WIN32_WINNT
+#define _WIN32_WINNT 0x0600
+#endif
+
 #ifdef _MSC_VER
 /* no ssize_t defined for VC */
 #include <cstdint>

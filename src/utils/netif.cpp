@@ -27,6 +27,15 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  ******************************************************************************/
+
+// Keep this at the top so that we get the right defs out of, e.g. ws2tcpip.h
+#ifdef _WIN32
+#if _WIN32_WINNT < 0x0600
+#undef _WIN32_WINNT
+#define _WIN32_WINNT 0x0600
+#endif
+#endif
+
 #include "netif.h"
 
 #include <cstring>
