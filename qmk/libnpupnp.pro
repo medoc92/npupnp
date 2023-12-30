@@ -45,8 +45,6 @@ windows {
     DEFINES += CURL_STATICLIB
     DEFINES += PSAPI_VERSION=1
 
-    SOURCES += ../src/utils/inet_pton.cpp
-
     ## W7 with mingw
     contains(QMAKE_CC, gcc){
       INCLUDEPATH += $$PWD/../../expat-2.1.0/lib

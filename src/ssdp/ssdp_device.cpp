@@ -44,7 +44,6 @@
 #include "upnpdebug.h"
 #include "TimerThread.h"
 #include "genut.h"
-#include "inet_pton.h"
 #include "netif.h"
 
 #include <cassert>

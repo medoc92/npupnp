@@ -65,7 +65,6 @@ libnpupnp_la_SOURCES = \
 	src/inc/gena_sids.h \
 	src/inc/genut.h \
 	src/inc/httputils.h \
-	src/inc/inet_pton.h \
 	src/inc/md5.h \
 	src/inc/miniserver.h \
 	src/inc/picoxml.h \
@@ -107,7 +106,6 @@ libnpupnp_la_SOURCES += \
 	src/utils/description.cpp \
 	src/utils/genut.cpp \
 	src/utils/httputils.cpp \
-	src/utils/inet_pton.cpp \
 	src/utils/md5.cpp \
 	src/utils/netif.cpp \
 	src/utils/smallut.cpp \

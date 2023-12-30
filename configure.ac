@@ -225,11 +225,6 @@ fi
 
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([getifaddrs])
-AC_SEARCH_LIBS([inet_pton], [Ws2_32],
-  [AC_DEFINE([HAVE_INET_PTON], 1, [Define to 1 if you have the `inet_pton' function.])], [])
-if test "$ac_cv_win32" = "yes"; then
-    AC_SEARCH_LIBS([GetAdaptersAddresses], [iphlpapi], [], [])
-fi
 # Solaris needs -lsocket -lnsl -lrt
 AC_SEARCH_LIBS([bind],           [socket])
 AC_SEARCH_LIBS([gethostbyname],  [nsl])
