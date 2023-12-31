@@ -232,7 +232,7 @@ static void handle_invoke_action(
 {
     struct Upnp_Action_Request action;
     int err_code;
-    const char *err_str;
+    const char* err_str = nullptr;
 
     action.ErrCode = UPNP_E_SUCCESS;
     action.ErrStr[0] = 0;
