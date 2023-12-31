@@ -140,7 +140,7 @@ endif
 
 
 EXTRA_DIST = \
-	VERSION \
+	VER \
 	meson.build \
 	meson_options.txt \
 	libnpupnp.pc.in \
