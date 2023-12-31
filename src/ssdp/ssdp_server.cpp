@@ -405,7 +405,7 @@ static int create_ssdp_sock_reqv4(SOCKET *ssdpReqSock)
     char ttl = 2;
     int ret = UPNP_E_SOCKET_ERROR;
 
-    *ssdpReqSock = -1;
+    *ssdpReqSock = INVALID_SOCKET;
 
     std::string sadrv4 = apiFirstIPV4Str();
     if (sadrv4.empty()) {
