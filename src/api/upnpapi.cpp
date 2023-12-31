@@ -32,39 +32,33 @@
 
 #include "config.h"
 
-#include <string>
 #include <algorithm>
-#include <sstream>
-#include <vector>
-#include <utility>
-#include <mutex>
-#include <thread>
 #include <array>
+#include <mutex>
+#include <sstream>
+#include <string>
+#include <thread>
+#include <utility>
+#include <vector>
 
 #include <curl/curl.h>
 
-#include "httputils.h"
-#include "upnpapi.h"
-#include "ssdplib.h"
-#include "soaplib.h"
-#include "ThreadPool.h"
-#include "upnp_timeout.h"
 #include "genut.h"
-#include "netif.h"
+#include "httputils.h"
+#include "soaplib.h"
+#include "upnp_timeout.h"
+#include "upnpapi.h"
+#include "uri.h"
 
 /* Needed for GENA */
 #include "gena.h"
-#include "gena_ctrlpt.h"
 #include "gena_device.h"
 #include "gena_sids.h"
-#include "miniserver.h"
-#include "service_table.h"
 
 #ifdef INTERNAL_WEB_SERVER
-#include "VirtualDir.h"
 #include "webserver.h"
-#include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 #ifndef _WIN32
 # ifndef O_BINARY
 #  define O_BINARY 0
@@ -73,15 +67,10 @@
 
 #endif /* INTERNAL_WEB_SERVER */
 
-#include <cassert>
-#include <csignal>
 #include <cstdlib>
-#include <cstring>
 
 #ifndef _WIN32
 #include <unistd.h>
-#include <sys/param.h>
-#include <sys/types.h>
 #else
 #include <io.h>
 #endif

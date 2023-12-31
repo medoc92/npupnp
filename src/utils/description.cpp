@@ -3,8 +3,8 @@
 #include "upnpdescription.h"
 
 #include <algorithm>
-
 #include <cstring>
+#include <string>
 
 #ifdef USE_EXPAT
 #include "expatmm.h"

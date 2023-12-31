@@ -37,12 +37,13 @@
 /** @file upnp.h
  * @brief main libnpupnp API definitions */
 
-#include <string>
-#include <vector>
-#include <unordered_map>
-#include <map>
-#include <ctime>
 #include <cstdint>
+#include <ctime>
+#include <map>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include "upnpconfig.h"
 #ifdef _WIN32

@@ -35,16 +35,16 @@
  * @brief Implement a simplified and system-idependant interface to a
  * system's network interfaces.
  */
-#include <stdio.h>
+#include <cstdio>
 #include <memory>
-#include <string>
 #include <ostream>
+#include <string>
+#include <utility>
 #include <vector>
 #ifdef _WIN32
 #include <winsock2.h>
 #else
 #include <sys/socket.h>
-#include <netinet/in.h>
 #endif
 
 #include "UpnpGlobal.h"

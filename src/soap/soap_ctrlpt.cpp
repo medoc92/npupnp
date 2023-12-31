@@ -36,16 +36,13 @@
 #include <cstdlib>
 #include <curl/curl.h>
 #include <iostream>
-#include <sstream>
 
+#include "genut.h"
 #include "miniserver.h"
-#include "httputils.h"
+#include "soaplib.h"
 #include "statcodes.h"
 #include "upnpapi.h"
-#include "soaplib.h"
 #include "uri.h"
-#include "upnp.h"
-#include "genut.h"
 
 #ifdef USE_EXPAT
 #include "expatmm.h"

@@ -36,8 +36,8 @@
  * a possible future merge.
  */
 
-#include <vector>
 #include <string>
+#include <vector>
 
 #include "UpnpGlobal.h"
 

@@ -34,12 +34,9 @@
 #ifndef THREADPOOL_H
 #define THREADPOOL_H
 
-#include <list>
-#include <memory>
-#include <string>
+#include <cstddef>
 #include <memory>
 
-#include <errno.h>
 #ifdef __MINGW32__
 #include <sched.h>
 #endif

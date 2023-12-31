@@ -33,18 +33,9 @@
 
 #include "config.h"
 
-#include <string>
-#include <mutex>
-
-#include <string.h>
-#include <time.h>
-
 #include "httputils.h"
 #include "miniserver.h"
-#include "service_table.h"
 #include "upnp.h"
-#include "uri.h"
-
 
 #define GENA_E_BAD_RESPONSE UPNP_E_BAD_RESPONSE
 #define GENA_E_BAD_SERVICE UPNP_E_INVALID_SERVICE

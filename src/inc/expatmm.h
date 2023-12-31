@@ -23,11 +23,12 @@
 #ifndef _EXPATMM_EXPATXMLPARSER_H
 #define _EXPATMM_EXPATXMLPARSER_H
 
-#include <string.h>
 #include <expat.h>
+
+#include <cstring>
+#include <map>
 #include <sstream>
 #include <string>
-#include <map>
 #include <vector>
 
 #ifdef _MSC_VER

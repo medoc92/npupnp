@@ -48,28 +48,18 @@
 
 #include "miniserver.h"
 
-#include "httputils.h"
-#include "ssdplib.h"
-#include "statcodes.h"
 #include "ThreadPool.h"
-#include "upnpapi.h"
 #include "genut.h"
+#include "ssdplib.h"
+#include "upnpapi.h"
 #include "uri.h"
-#include "netif.h"
-#include "upnp.h"
 
-#include <cassert>
+#include <algorithm>
 #include <cerrno>
 #include <chrono>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <iostream>
-#include <sys/types.h>
-#include <stdarg.h>
-#include <thread>
-#include <algorithm>
 #include <condition_variable>
+#include <cstdio>
+#include <cstring>
 
 #include <microhttpd.h>
 

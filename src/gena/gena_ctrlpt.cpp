@@ -38,20 +38,17 @@
 
 #include <curl/curl.h>
 
-#include <string>
+#include <algorithm>
 #include <map>
 #include <sstream>
-#include <algorithm>
+#include <string>
 
 #include "gena.h"
-#include "httputils.h"
-#include "statcodes.h"
-#include "upnpapi.h"
-#include "upnp_timeout.h"
 #include "genut.h"
-#include "TimerThread.h"
-#include "gena_sids.h"
-#include "netif.h"
+#include "statcodes.h"
+#include "upnp_timeout.h"
+#include "upnpapi.h"
+#include "uri.h"
 
 #ifdef USE_EXPAT
 #include "expatmm.h"

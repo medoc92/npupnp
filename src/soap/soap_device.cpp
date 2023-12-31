@@ -39,9 +39,8 @@
 #include <cstring>
 
 #include <iostream>
-#include <sstream>
-#include <string>
 #include <map>
+#include <string>
 
 #ifdef USE_EXPAT
 #include "expatmm.h"
@@ -51,11 +50,10 @@
 #define XMLPARSERTP PicoXMLParser
 #endif
 
+#include "genut.h"
 #include "soaplib.h"
 #include "statcodes.h"
 #include "upnpapi.h"
-#include "httputils.h"
-#include "genut.h"
 
 #define SREQ_HDR_NOT_FOUND     -1
 #define SREQ_BAD_HDR_FORMAT     -2

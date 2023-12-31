@@ -36,8 +36,8 @@
 /** @file upnpdebug.h
  * @brief libnpupnp message log definitions */
 
-#include "upnpconfig.h"
 #include "UpnpGlobal.h"
+#include "upnpconfig.h"
 
 #include <stdio.h>
 

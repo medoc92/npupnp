@@ -32,8 +32,9 @@
 #ifndef SOAPLIB_H
 #define SOAPLIB_H 
 
-#include <vector>
 #include <string>
+#include <utility>
+#include <vector>
 
 struct MHDTransaction;
 

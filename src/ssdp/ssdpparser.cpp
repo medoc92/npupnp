@@ -27,16 +27,12 @@
  ******************************************************************************/
 
 #include "config.h"
-
 #include "ssdpparser.h"
 
-#include <iostream>
 #include <cstring>
-#include <mutex>
-#include <string>
+#include <iostream>
 
 #include "upnpdebug.h"
-#include "UpnpGlobal.h"
 
 static const char *notify_start = "NOTIFY * HTTP/1.1\r\n";
 static const size_t notify_start_len = strlen(notify_start);
@@ -48,11 +44,10 @@ static const size_t response_start_len = strlen(response_start);
 
 static void trimright(char *cp, size_t len) {
     while (len > 0) {
-        if (cp[len-1] == ' ' ||    cp[len-1] == '\t') {
-            len--;
-        } else {
+        if (cp[len - 1] != ' ' && cp[len - 1] != '\t') {
             break;
         }
+        len--;
     }
     cp[len] = 0;
 }

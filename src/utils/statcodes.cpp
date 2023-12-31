@@ -35,7 +35,6 @@
 * messages and functions to manipulate those buffers                    *
 ************************************************************************/
 
-#include "config.h"
 #include <map>
 #include <string>
 

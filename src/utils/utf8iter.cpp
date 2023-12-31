@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <unordered_set>
-#include <iostream>
 
 void utf8truncate(std::string& s, int maxlen, int flags, const std::string& ellipsis,
                   const std::string& ws)

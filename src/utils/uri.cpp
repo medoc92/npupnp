@@ -36,9 +36,6 @@
  *
  * \brief Contains functions for uri, url parsing utility.
  */
-#include "config.h"
-
-#include <iostream>
 #include <numeric>
 
 #ifdef __FreeBSD__
@@ -49,16 +46,13 @@
 #endif /* __FreeBSD__ */
 
 #ifndef _WIN32
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <netdb.h>
+#include <sys/socket.h>
 #endif /* _WIN32 */
 
-#include <cassert>
-
-#include "uri.h"
 #include "genut.h"
 #include "upnpapi.h"
+#include "uri.h"
 
 int parse_hostport(const char *in, hostport_type *out, bool noresolve)
 {

@@ -26,7 +26,6 @@
 #include "md5.h"
 
 #include <cstring>
-#include <cstdint>
 
 namespace MedocUtils {
 

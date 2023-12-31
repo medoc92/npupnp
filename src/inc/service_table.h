@@ -33,18 +33,14 @@
 #ifndef SERVICE_TABLE_H
 #define SERVICE_TABLE_H
 
+#include <ctime>
 #include <list>
 #include <string>
 #include <vector>
 
-#include <stdio.h>
-#include <time.h>
-
 #include "config.h"
-#include "uri.h"
 #include "upnp.h"
 #include "upnpdebug.h"
-#include "ThreadPool.h"
 #include "upnpdescription.h"
 
 #define SID_SIZE  size_t(41)

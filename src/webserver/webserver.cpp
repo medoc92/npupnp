@@ -43,22 +43,17 @@
 
 #include "webserver.h"
 
-#include <map>
-#include <iostream>
 #include <algorithm>
+#include <map>
 #include <mutex>
-#include <condition_variable>
 
 #include <cinttypes>
 
-#include "httputils.h"
+#include "genut.h"
 #include "ssdplib.h"
 #include "statcodes.h"
-#include "upnp.h"
 #include "upnpapi.h"
-#include "VirtualDir.h"
-#include "genut.h"
-#include "smallut.h"
+#include "uri.h"
 
 #include <cassert>
 #include <fcntl.h>

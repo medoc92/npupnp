@@ -19,37 +19,23 @@
 
 #include <algorithm>
 #include <cctype>
-#include <cerrno>
-#include <cinttypes>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
-#include <iostream>
-#include <list>
-#include <numeric>
-#include <set>
-#include <string>
-#include <unordered_map>
-#include <unordered_set>
 #include <functional>
+#include <map>
+#include <string>
+#include <utility>
+#include <vector>
 
 // Older compilers don't support stdc++ regex, but Windows does not have the Linux one. Have a
 // simple class to solve the simple cases.
 #if defined(_WIN32)
-#define USE_STD_REGEX
 #define strncasecmp _strnicmp
 #define strcasecmp _stricmp
 #define localtime_r(a,b) localtime_s(b,a)
-#else
-#define USE_LINUX_REGEX
-#endif
-
-#ifdef USE_STD_REGEX
-#include <regex>
-#else
-#include <regex.h>
 #endif
 
 using namespace std::placeholders;
