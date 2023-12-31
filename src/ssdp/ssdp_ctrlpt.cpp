@@ -53,7 +53,6 @@ nnn * Redistribution and use in source and binary forms, with or without
 #include "upnpinet.h"
 #include "ThreadPool.h"
 #include "genut.h"
-#include "inet_pton.h"
 
 /*! Structure to contain Discovery response. */
 struct ResultData {

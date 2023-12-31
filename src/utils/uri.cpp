@@ -59,7 +59,6 @@
 #include "uri.h"
 #include "genut.h"
 #include "upnpapi.h"
-#include "inet_pton.h"
 
 int parse_hostport(const char *in, hostport_type *out, bool noresolve)
 {

@@ -69,11 +69,6 @@
 #include <winsock2.h>
 #include <iphlpapi.h>
 #include <ws2tcpip.h>
-
-#ifndef __MINGW32__
-#include "inet_pton.h"
-#endif
-
 #endif /* _WIN32 */
 
 

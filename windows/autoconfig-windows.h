@@ -7,8 +7,6 @@
 #undef _WIN32_WINNT
 #define _WIN32_WINNT 0x0600
 #include <ws2tcpip.h>
-#define HAVE_INET_PTON 1
-#define HAVE_INET_NTOP 1
 #endif
 
 /* Define if building universal (internal helper macro) */
@@ -31,9 +29,6 @@
 
 /* Define to 1 if you have the `getifaddrs' function. */
 #define HAVE_GETIFADDRS 1
-
-/* Define to 1 if you have the `inet_pton' function. */
-#define HAVE_INET_PTON 1
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1

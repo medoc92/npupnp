@@ -46,7 +46,6 @@ npupnp_sources = files(
   'src/utils/description.cpp',
   'src/utils/genut.cpp',
   'src/utils/httputils.cpp',
-  'src/utils/inet_pton.cpp',
   'src/utils/md5.cpp',
   'src/utils/netif.cpp',
   'src/utils/smallut.cpp',
@@ -107,7 +106,6 @@ auto.set('UPNP_ENABLE_UNSPECIFIED_SERVER', get_option('unspecified_server'))
 auto.set('UPNP_ENABLE_IPV6', get_option('ipv6'))
 auto.set10('UPNP_HAVE_CLIENT', get_option('client'))
 auto.set10('UPNP_HAVE_WEBSERVER', get_option('webserver'))
-auto.set('HAVE_INET_PTON', true) #every platform has this
 
 ufile = configure_file(output: 'upnpconfig.h', configuration: auto)
 cfile = configure_file(output: 'autoconfig.h', configuration: auto)
