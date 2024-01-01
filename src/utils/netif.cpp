@@ -37,6 +37,7 @@
 #endif
 
 #include "netif.h"
+#include "smallut.h"
 
 #include <cstring>
 #include <ostream>
@@ -778,6 +779,11 @@ Interfaces *Interfaces::theInterfaces()
         theInterfacesP = new Interfaces();
     }
     return theInterfacesP;
+}
+
+void Interfaces::cleanup()
+{
+    deleteZ(theInterfacesP);
 }
 
 std::ostream& Interfaces::print(std::ostream& out) {
