@@ -51,6 +51,10 @@ class JobWorker {
 public:
     virtual ~JobWorker() = default;
     virtual void work() = 0;
+
+    JobWorker() = default;
+    JobWorker(const JobWorker&) = delete;
+    JobWorker& operator=(const JobWorker&) = delete;
 };
 
 /* Attributes for thread pool. Used to set and change parameters. */

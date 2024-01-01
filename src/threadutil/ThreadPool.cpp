@@ -65,7 +65,6 @@ using namespace std::chrono;
 struct ThreadPoolJob {
     ThreadPoolJob(std::unique_ptr<JobWorker> worker, ThreadPool::ThreadPriority _prio)
         : m_worker(std::move(worker)), priority(_prio) {}
-    ~ThreadPoolJob() = default;
     std::unique_ptr<JobWorker> m_worker;
     ThreadPool::ThreadPriority priority;
     steady_clock::time_point requestTime;
