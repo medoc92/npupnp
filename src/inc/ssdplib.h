@@ -187,7 +187,10 @@ void readFromSSDPSocket(
  */
 int get_ssdp_sockets(
     /* [out] Array of SSDP sockets. */
-    MiniServerSockArray *out);
+    MiniServerSockArray *out,
+    /* [in] Port to listen on. -1 for default */
+    int port);
+
 
 
 /*!

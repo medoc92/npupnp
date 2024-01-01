@@ -817,6 +817,7 @@ EXPORT_SPEC int UpnpFinish()
     UpnpRemoveAllVirtualDirs();
     UpnpSdkInit = 0;
     UpnpCloseLog();
+    NetIF::Interfaces::cleanup();
 
     return UPNP_E_SUCCESS;
 }

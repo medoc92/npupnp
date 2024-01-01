@@ -741,8 +741,18 @@ int StartMiniServer(uint16_t *listen_port4, uint16_t *listen_port6)
         goto out;
     }
 
+    /* Check what port we should listen on */
+    port = available_port(static_cast<int>(*listen_port4));
+    if (port < 0) {
+        UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
+                   "miniserver: available_port() failed !\n");
+        return port;
+    }
+    *listen_port4 = port;
+    *listen_port6 = port;
+
     /* SSDP socket for discovery/advertising. */
-    ret_code = get_ssdp_sockets(miniSocket);
+    ret_code = get_ssdp_sockets(miniSocket, port);
     if (ret_code != UPNP_E_SUCCESS) {
         UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
                    "miniserver: get_ssdp_sockets() failed\n");
@@ -769,15 +779,6 @@ int StartMiniServer(uint16_t *listen_port4, uint16_t *listen_port6)
     }
     
 #ifdef INTERNAL_WEB_SERVER
-    port = available_port(static_cast<int>(*listen_port4));
-    if (port < 0) {
-        UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
-                   "miniserver: available_port() failed !\n");
-        return port;
-    }
-    *listen_port4 = port;
-    *listen_port6 = port;
-
     mhdflags = MHD_USE_THREAD_PER_CONNECTION | MHD_USE_INTERNAL_POLLING_THREAD | MHD_USE_DEBUG;
 
 #ifdef UPNP_ENABLE_IPV6
@@ -824,6 +825,10 @@ int StopMiniServer()
     if (gMServState != MSERV_RUNNING) {
         return 0;
     }
+
+#ifdef INTERNAL_WEB_SERVER
+    MHD_stop_daemon(mhd);
+#endif
 
     sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock == INVALID_SOCKET) {
