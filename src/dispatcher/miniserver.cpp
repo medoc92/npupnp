@@ -825,6 +825,10 @@ int StopMiniServer()
         return 0;
     }
 
+#ifdef INTERNAL_WEB_SERVER
+    MHD_stop_daemon(mhd);
+#endif
+
     sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock == INVALID_SOCKET) {
         posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);

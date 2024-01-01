@@ -171,6 +171,7 @@ public:
     /** @brief Return the Interfaces singleton after possibly building
      * it by querying the system */
     static Interfaces *theInterfaces();
+    static void cleanup();
 
     /** @brief Read the state from the system again */
     bool refresh();
