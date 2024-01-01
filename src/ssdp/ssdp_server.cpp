@@ -400,7 +400,7 @@ static int sock_make_no_blocking(SOCKET sock)
 }
 
 /* Create the SSDP IPv4 socket to be used by the control point. */
-static int create_ssdp_sock_reqv4(SOCKET *ssdpReqSock)
+static int create_ssdp_sock_reqv4(SOCKET *ssdpReqSock, int port)
 {
     char ttl = 2;
     int ret = UPNP_E_SOCKET_ERROR;
@@ -439,6 +439,24 @@ static int create_ssdp_sock_reqv4(SOCKET *ssdpReqSock)
     }
 
     sock_make_no_blocking(*ssdpReqSock);
+
+    if (port > 0)
+    {
+        struct sockaddr_storage ss = {};
+        auto ssdpAddr4 = reinterpret_cast<struct sockaddr_in *>(&ss);
+
+        ssdpAddr4->sin_family = static_cast<sa_family_t>(AF_INET);
+        ssdpAddr4->sin_addr.s_addr = htonl(INADDR_ANY);
+        ssdpAddr4->sin_port = htons(port);
+        ret = bind(*ssdpReqSock, reinterpret_cast<struct sockaddr *>(ssdpAddr4), sizeof(*ssdpAddr4));
+
+        if (ret == -1) {
+            errorcause = "bind(INADDR_ANY)";
+            ret = UPNP_E_SOCKET_BIND;
+            goto error_handler;
+        }
+    }
+
     return UPNP_E_SUCCESS;
 
 error_handler:
@@ -535,7 +553,7 @@ error_handler:
 
 #ifdef INCLUDE_CLIENT_APIS
 /* Create the SSDP IPv6 socket to be used by the control point. */
-static int create_ssdp_sock_reqv6(SOCKET *ssdpReqSock)
+static int create_ssdp_sock_reqv6(SOCKET *ssdpReqSock, int port)
 {
 #ifdef _WIN32
     DWORD hops = 1;
@@ -566,6 +584,35 @@ static int create_ssdp_sock_reqv6(SOCKET *ssdpReqSock)
     }
 
     sock_make_no_blocking(*ssdpReqSock);
+
+    if (port > 0)
+    {
+        int onOff = 1;
+
+        // Set IPV6 socket to only bind to IPV6 (Linux Dual Stack)
+        ret = setsockopt(*ssdpReqSock, IPPROTO_IPV6, IPV6_V6ONLY,
+                reinterpret_cast<char *>(&onOff), sizeof(onOff));
+
+        if (ret == -1) {
+            errorcause = "setsockopt() IPV6_V6ONLY";
+            goto error_handler;
+        }
+
+        struct sockaddr_storage ss = {};
+        auto ssdpAddr6 = reinterpret_cast<struct sockaddr_in6 *>(&ss);
+
+        ssdpAddr6->sin6_family = static_cast<sa_family_t>(AF_INET6);
+        ssdpAddr6->sin6_addr = in6addr_any;
+        ssdpAddr6->sin6_scope_id = 0;
+        ssdpAddr6->sin6_port = htons(port);
+        ret = bind(*ssdpReqSock, reinterpret_cast<struct sockaddr *>(ssdpAddr6), sizeof(*ssdpAddr6));
+
+        if (ret == -1) {
+            errorcause = "bind(IN6ADDR_ANY)";
+            ret = UPNP_E_SOCKET_BIND;
+            goto error_handler;
+        }
+    }
 
     return UPNP_E_SUCCESS;
 
@@ -602,7 +649,7 @@ static void closeSockets(MiniServerSockArray *out, int doclose)
     maybeCLoseAndInvalidate(&out->ssdpSock6UlaGua, doclose);
 }
 
-int get_ssdp_sockets(MiniServerSockArray *out)
+int get_ssdp_sockets(MiniServerSockArray *out, int port)
 {
     int retVal = UPNP_E_SOCKET_ERROR;
     bool hasIPV4 = !apiFirstIPV4Str().empty();
@@ -613,7 +660,7 @@ int get_ssdp_sockets(MiniServerSockArray *out)
     if (using_ipv6()) {
         /* Create the IPv6 socket for SSDP REQUESTS */
         if (hasIPV6) {
-            if ((retVal = create_ssdp_sock_reqv6(&out->ssdpReqSock6)) != UPNP_E_SUCCESS) {
+            if ((retVal = create_ssdp_sock_reqv6(&out->ssdpReqSock6, port)) != UPNP_E_SUCCESS) {
                 goto out;
             }
             /* For use by ssdp control point. */
@@ -623,7 +670,7 @@ int get_ssdp_sockets(MiniServerSockArray *out)
 #endif /* UPNP_ENABLE_IPV6 */
     /* Create the IPv4 socket for SSDP REQUESTS */
     if (hasIPV4) {
-        if ((retVal = create_ssdp_sock_reqv4(&out->ssdpReqSock4)) != UPNP_E_SUCCESS) {
+        if ((retVal = create_ssdp_sock_reqv4(&out->ssdpReqSock4, port)) != UPNP_E_SUCCESS) {
             goto out;
         }
         /* For use by ssdp control point. */
