@@ -191,7 +191,7 @@ fi
 # Checks for header files (which aren't needed on Win32)
 #
 if test "$ac_cv_win32" = "no"; then
-AC_CHECK_HEADERS([ arpa/inet.h fcntl.h inttypes.h limits.h netdb.h netinet/in.h stdlib.h string.h sys/ioctl.h sys/socket.h sys/time.h syslog.h unistd.h],[],[AC_MSG_ERROR([required header file missing])])
+AC_CHECK_HEADERS([ arpa/inet.h fcntl.h netdb.h netinet/in.h sys/ioctl.h sys/socket.h sys/time.h syslog.h unistd.h],[],[AC_MSG_ERROR([required header file missing])])
 fi
 
 
