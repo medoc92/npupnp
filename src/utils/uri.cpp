@@ -317,7 +317,7 @@ std::string remove_dots(const std::string& in)
             }
             vpath.pop_back();
         } else {
-            vpath.push_back(elt);
+            vpath.push_back(std::move(elt));
         }
         pos = epos;
     }

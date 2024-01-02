@@ -152,7 +152,7 @@ private:
 
     void _startelem(const std::string& tagname,
                     const std::map<std::string, std::string>& attrs, bool empty) {
-        m_path.push_back(StackEl(tagname));
+        m_path.emplace_back(tagname);
         StackEl& lastelt = m_path.back();
         lastelt.start_index = m_pos;
         lastelt.attributes = attrs;

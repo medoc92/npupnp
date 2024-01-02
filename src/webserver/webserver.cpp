@@ -340,7 +340,7 @@ int web_server_add_virtual_dir(
         }
         *old = entry;
     } else {
-        virtualDirList.push_back(entry);
+        virtualDirList.push_back(std::move(entry));
     }
     return UPNP_E_SUCCESS;
 }
