@@ -306,9 +306,9 @@ static int getIfInfo(const char *IfNames)
     if (!using_ipv6()) {
         // Trim the ipv6 addresses
         for (auto& netif : g_netifs) {
-            auto addrmasks = netif.getaddresses();
+            auto [addrs, _] = netif.getaddresses();
             std::vector<NetIF::IPAddr> kept;
-            std::copy_if(addrmasks.first.begin(), addrmasks.first.end(),
+            std::copy_if(addrs.begin(), addrs.end(),
                          std::back_inserter(kept),
                          [](const NetIF::IPAddr &addr){
                              return addr.family() ==

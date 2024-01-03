@@ -765,7 +765,7 @@ std::string breakIntoLines(const std::string& in, unsigned int ll, unsigned int 
     std::string query = in;
     std::string oq;
     unsigned int nlines = 0;
-    while (query.length() > 0) {
+    while (!query.empty()) {
         std::string ss = query.substr(0, ll);
         if (ss.length() == ll) {
             std::string::size_type pos = ss.find_last_of(' ');
@@ -781,7 +781,7 @@ std::string breakIntoLines(const std::string& in, unsigned int ll, unsigned int 
             }
         }
         // This cant happen, but anyway. Be very sure to avoid an infinite loop
-        if (ss.length() == 0) {
+        if (ss.empty()) {
             oq = query;
             break;
         }
@@ -800,7 +800,7 @@ static bool parsedate(std::vector<std::string>::const_iterator& it,
                       std::vector<std::string>::const_iterator end, DateInterval *dip)
 {
     dip->y1 = dip->m1 = dip->d1 = dip->y2 = dip->m2 = dip->d2 = 0;
-    if (it->length() > 4 || !it->length() ||
+    if (it->length() > 4 || it->empty() ||
         it->find_first_not_of("0123456789") != std::string::npos) {
         return false;
     }
@@ -814,7 +814,7 @@ static bool parsedate(std::vector<std::string>::const_iterator& it,
         return false;
     }
 
-    if (it->length() > 2 || !it->length() ||
+    if (it->length() > 2 || it->empty() ||
         it->find_first_not_of("0123456789") != std::string::npos) {
         return false;
     }
@@ -828,7 +828,7 @@ static bool parsedate(std::vector<std::string>::const_iterator& it,
         return false;
     }
 
-    if (it->length() > 2 || !it->length() ||
+    if (it->length() > 2 || it->empty() ||
         it->find_first_not_of("0123456789") != std::string::npos) {
         return false;
     }
@@ -1320,7 +1320,7 @@ std::string flagsToString(const std::vector<CharFlags>& flags, unsigned int val)
         }
         if (s && *s) {
             /* We have something to write */
-            if (out.length()) {
+            if (!out.empty()) {
                 // If not first, add '|' separator
                 out.append("|");
             }

@@ -264,5 +264,5 @@ int initServiceTable(
 
 #endif /* INCLUDE_DEVICE_APIS */
 
-#endif /* SERVICE_TABLE */
+#endif /* SERVICE_TABLE_H */
 

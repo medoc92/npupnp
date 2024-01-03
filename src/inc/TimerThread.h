@@ -128,5 +128,5 @@ private:
     std::unique_ptr<Internal> m;
 };
 
-#endif /* TIMER_THREAD_H */
+#endif /* TIMERTHREAD_H */
 
