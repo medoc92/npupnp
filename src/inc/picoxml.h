@@ -62,7 +62,6 @@
 #include <map>
 #include <sstream>
 #include <iostream>
-#include <algorithm>
 
 // Expat compat
 typedef char XML_Char;

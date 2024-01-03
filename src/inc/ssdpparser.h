@@ -28,6 +28,7 @@
  *
  ******************************************************************************/
 
+#include <cstdlib>
 #include <iostream>
 
 // Simple parser for an SSDP request or response packet.

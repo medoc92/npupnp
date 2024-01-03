@@ -38,11 +38,7 @@
 #include "upnptools.h"
 #include "uri.h"
 
-#include <cstdarg>
-#include <cstdio>
-#include <cstdlib>
-#include <string>
-
+#include <cstring>
 
 /*! Maximum action header buffer length. */
 #define HEADER_LENGTH 2000

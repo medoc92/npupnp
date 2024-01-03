@@ -35,27 +35,21 @@
 #ifdef INCLUDE_DEVICE_APIS
 #if EXCLUDE_SSDP == 0
 
+#include "ThreadPool.h"
+#include "genut.h"
 #include "httputils.h"
 #include "ssdplib.h"
 #include "statcodes.h"
-#include "ThreadPool.h"
 #include "upnpapi.h"
-#include "upnpinet.h"
-#include "upnpdebug.h"
-#include "TimerThread.h"
-#include "genut.h"
-#include "netif.h"
 
-#include <cassert>
+#include <algorithm>
+#include <chrono>
 #include <cstdio>
-#include <cstdint>
 #include <cstring>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <thread>
-#include <algorithm>
-#include <chrono>
 
 struct SsdpSearchReply {
     int MaxAge;

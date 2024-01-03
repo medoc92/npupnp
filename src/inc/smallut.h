@@ -18,13 +18,13 @@
 #ifndef _SMALLUT_H_INCLUDED_
 #define _SMALLUT_H_INCLUDED_
 
-#include <stdint.h>
-#include <time.h>
-#include <string>
-#include <vector>
-#include <map>
 #include <functional>
+#include <map>
 #include <memory>
+#include <stdint.h>
+#include <string>
+#include <time.h>
+#include <vector>
 
 struct tm;
 

@@ -39,22 +39,19 @@
 #include "netif.h"
 #include "smallut.h"
 
-#include <cstring>
-#include <ostream>
-#include <vector>
-#include <iostream>
 #include <algorithm>
+#include <cstring>
 #include <numeric>
+#include <ostream>
 #include <sstream>
-#include <cstdint>
+#include <vector>
 
 #ifndef _WIN32
 
-#include <sys/types.h>
 #include <arpa/inet.h>
-#include <netinet/in.h>
-#include <net/if.h>
 #include <ifaddrs.h>
+#include <net/if.h>
+#include <netinet/in.h>
 #ifdef __linux__
 #include <netpacket/packet.h>
 #elif !defined(__CYGWIN__)

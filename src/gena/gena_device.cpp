@@ -36,19 +36,16 @@
 #if EXCLUDE_GENA == 0
 #ifdef INCLUDE_DEVICE_APIS
 
-#include <sstream>
 #include <iostream>
+#include <sstream>
 
 #include <curl/curl.h>
 
-#include <cassert>
-
 #include "gena.h"
-#include "httputils.h"
-#include "statcodes.h"
-#include "upnpapi.h"
 #include "gena_sids.h"
 #include "genut.h"
+#include "statcodes.h"
+#include "upnpapi.h"
 #include "uri.h"
 
 static constexpr auto XML_PROPERTYSET_HEADER =

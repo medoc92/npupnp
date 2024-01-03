@@ -33,11 +33,11 @@ typedef int SOCKET;
 #  include <sys/sockio.h>
 #endif
 
-#include <sys/types.h>
-#include <sys/socket.h>
+#include <arpa/inet.h>
 #include <ifaddrs.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 
 
 #endif /* ! _WIN32 */

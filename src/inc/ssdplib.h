@@ -33,16 +33,11 @@
  *
  **************************************************************************/
 
-#include "upnp.h"
-#include "ssdpparser.h"
-#include "httputils.h"
 #include "miniserver.h"
+#include "ssdpparser.h"
+#include "upnp.h"
 #include "upnpinet.h"
 
-#include <sys/types.h>
-#include <signal.h>
-#include <setjmp.h>
-#include <errno.h>
 #include <string>
 
 /* Standard defined values for the UPnP multicast addresses */

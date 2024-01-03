@@ -20,8 +20,10 @@
 #ifdef UTF8ITER_CHECK
 #include "assert.h"
 #endif
-#include <string>
+
+#include <cstddef>
 #include <cstdint>
+#include <string>
 
 /** 
  * A small helper class to iterate over utf8 strings. This is not an

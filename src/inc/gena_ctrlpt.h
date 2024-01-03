@@ -32,7 +32,10 @@
 #ifndef GENA_CTRLPT_H
 #define GENA_CTRLPT_H
 
+#include <mutex>
 #include <string>
+
+#include "upnp.h"
 
 struct ClientSubscription {
     int renewEventId{-1};

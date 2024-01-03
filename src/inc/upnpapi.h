@@ -34,20 +34,23 @@
 #ifndef UPNPAPI_H
 #define UPNPAPI_H
 
+#include <cstddef>
 #include <list>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
-#include <mutex>
 
+#include "ThreadPool.h"
+#include "TimerThread.h"
+#include "VirtualDir.h"        /* for struct VirtualDirCallbacks */
+#include "gena_ctrlpt.h"
+#include "httputils.h"
+#include "netif.h"
 #include "service_table.h"
 #include "ssdplib.h"
 #include "upnp.h"
-#include "VirtualDir.h"        /* for struct VirtualDirCallbacks */
-#include "TimerThread.h"
 #include "upnpdescription.h"
-#include "gena_ctrlpt.h"
-#include "netif.h"
 
 #define MAX_INTERFACES 256
 

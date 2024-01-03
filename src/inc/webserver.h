@@ -32,10 +32,8 @@
 #ifndef GENLIB_NET_HTTP_WEBSERVER_H
 #define GENLIB_NET_HTTP_WEBSERVER_H
 
-#include <time.h>
+#include <ctime>
 #include <string>
-#include <stdint.h>
-#include "httputils.h"
 
 
 typedef enum {

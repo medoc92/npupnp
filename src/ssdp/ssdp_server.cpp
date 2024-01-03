@@ -36,20 +36,15 @@
 #if EXCLUDE_SSDP == 0
 
 #include "ssdplib.h"
-#include "ssdpparser.h"
-#include "httputils.h"
-#include "miniserver.h"
-#include "ThreadPool.h"
-#include "upnpapi.h"
-#include "genut.h"
-#include "netif.h"
 
-#include <chrono>
-#include <cstdio>
-#include <cstdint>
+#include "ThreadPool.h"
+#include "genut.h"
+#include "upnpapi.h"
+#include "uri.h"
+
+#include <algorithm>
 #include <fcntl.h>
 #include <thread>
-#include <algorithm>
 
 #ifdef INCLUDE_CLIENT_APIS
 SOCKET gSsdpReqSocket4 = INVALID_SOCKET;

@@ -33,14 +33,12 @@
 
 #if EXCLUDE_GENA == 0
 
-#include <sstream>
-
 #include "gena.h"
-#include "gena_device.h"
 #include "gena_ctrlpt.h"
+#include "gena_device.h"
 
-#include "httputils.h"
 #include "statcodes.h"
+#include "upnpdebug.h"
 
 /************************************************************************
  * Function : genaCallback                                    

@@ -37,22 +37,18 @@ nnn * Redistribution and use in source and binary forms, with or without
 #if EXCLUDE_SSDP == 0
 #include <string.h>
 
-#include <string>
-#include <sstream>
-#include <iostream>
-#include <chrono>
-#include <thread>
 #include <algorithm>
+#include <chrono>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <thread>
 
-#include "upnp.h"
-#include "ssdpparser.h"
+#include "genut.h"
 #include "httputils.h"
 #include "ssdplib.h"
-#include "statcodes.h"
 #include "upnpapi.h"
-#include "upnpinet.h"
-#include "ThreadPool.h"
-#include "genut.h"
+#include "uri.h"
 
 /*! Structure to contain Discovery response. */
 struct ResultData {

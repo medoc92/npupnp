@@ -33,31 +33,26 @@
 /* Misc HTTP-related utilities */
 
 #include "config.h"
-
 #include "httputils.h"
 
-#include <cctype>
 #include <cinttypes>
-#include <climits>
-#include <cstdio>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <cstdint>
-
-#include <string>
-#include <sstream>
+#include <ctime>
 #include <iostream>
 #include <map>
+#include <sstream>
+#include <string>
 
 #include <curl/curl.h>
+#include <microhttpd.h>
 
-#include "upnpinet.h"
 #include "genut.h"
 #include "statcodes.h"
 #include "upnp.h"
 #include "upnpdebug.h"
 #include "uri.h"
-#include "upnpapi.h"
 
 static const std::string bogus_soap_post{"SMPOST"};
 static const std::map<std::string, int> Http_Method_Table {

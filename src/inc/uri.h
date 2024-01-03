@@ -33,13 +33,8 @@
 #define GENLIB_NET_URI_H
 
 #include <string>
-#include <vector>
 
-#include "UpnpGlobal.h" 
 #include "upnpinet.h"
-
-#include <string.h>
-#include <sys/types.h>
 
 /*!
  * \brief Represents a host port: e.g. "127.127.0.1:80", "www.recoll.org" 

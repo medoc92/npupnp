@@ -31,8 +31,8 @@
 
 #include "genut.h"
 
+#include <cstring>
 #include <string>
-#include <string.h>
 
 size_t upnp_strlcpy(char *dst, const char *src, size_t dsize)
 {

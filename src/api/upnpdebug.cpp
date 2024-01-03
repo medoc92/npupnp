@@ -34,15 +34,15 @@
 #include "upnp.h"
 #include "upnpdebug.h"
 
-#include <mutex>
-#include <thread>
-#include <sstream>
-#include <iostream>
-#include <cerrno>
 #include <cstdarg>
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
+#include <iostream>
+#include <mutex>
+#include <sstream>
+#include <string>
+#include <thread>
 
 /* Mutex to synchronize all the log file operations in the debug mode */
 static std::mutex GlobalDebugMutex;

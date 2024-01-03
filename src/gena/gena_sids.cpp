@@ -31,13 +31,11 @@
 
 #include "gena_sids.h"
 
+#include <chrono>
+#include <cstdlib>
 #include <mutex>
 #include <sstream>
-#include <iostream>
-#include <chrono>
-#include <thread>
-#include <cstdlib>
-#include <algorithm>
+#include <string>
 
 #ifndef _MSC_VER
 #include <unistd.h>
@@ -45,7 +43,6 @@
 #include <process.h>
 #endif
 
-#include "UpnpGlobal.h"
 #include "md5.h"
 #include "netif.h"
 

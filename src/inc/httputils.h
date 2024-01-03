@@ -33,6 +33,8 @@
 #ifndef _HTTPUTILS_H_
 #define _HTTPUTILS_H_
 
+#include <cstddef>
+#include <ctime>
 #include <map>
 #include <string>
 

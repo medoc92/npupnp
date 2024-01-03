@@ -44,6 +44,7 @@
 #include <iostream>
 
 #include "service_table.h"
+#include "uri.h"
 
 #ifdef INCLUDE_DEVICE_APIS
 
