@@ -33,9 +33,13 @@
 // Older compilers don't support stdc++ regex, but Windows does not have the Linux one. Have a
 // simple class to solve the simple cases.
 #if defined(_WIN32)
+#define USE_STD_REGEX
+#include <regex>
 #define strncasecmp _strnicmp
 #define strcasecmp _stricmp
 #define localtime_r(a,b) localtime_s(b,a)
+#else
+#include <regex.h>
 #endif
 
 using namespace std::placeholders;
@@ -1217,7 +1221,7 @@ std::string SimpleRegexp::getMatch(const std::string&, int i) const
     return m->res.str(i);
 }
 
-#else // -> !WIN32
+#else // -> !USE_STD_REGEX, use classic regex.h
 
 class SimpleRegexp::Internal {
 public:
