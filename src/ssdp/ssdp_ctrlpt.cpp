@@ -81,7 +81,7 @@ public:
         : ReqBufv4(v4), ReqBufv6(v6) {}
     std::string ReqBufv4;
     std::string ReqBufv6;
-    ~SearchSendJobWorker() override {}
+    ~SearchSendJobWorker() override = default;
     SearchSendJobWorker(const SearchSendJobWorker&) = delete;
     SearchSendJobWorker& operator=(const SearchSendJobWorker&) = delete;
     void work() override;
