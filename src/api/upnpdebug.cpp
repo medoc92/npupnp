@@ -104,10 +104,7 @@ void UpnpSetLogLevel(Upnp_LogLevel log_level)
 
 void UpnpCloseLog(void)
 {
-    /* Calling lock() assumes that someone called UpnpInitLog(), but
-     * this is reasonable as it is called from UpnpInit(). We risk a
-     * crash if we do this without a lock.*/
-    std::unique_lock<std::mutex> lck(GlobalDebugMutex);
+    std::lock_guard lck(GlobalDebugMutex);
 
     if (fp != nullptr && is_stderr == 0) {
         fclose(fp);

@@ -25,7 +25,10 @@
 #include <cstring>
 #include <ctime>
 #include <functional>
+#include <list>
 #include <map>
+#include <set>
+#include <unordered_set>
 #include <string>
 #include <utility>
 #include <vector>
