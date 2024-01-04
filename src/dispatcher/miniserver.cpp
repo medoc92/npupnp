@@ -94,7 +94,7 @@ static MiniServerCallback gGenaCallback = nullptr;
 
 void SetHTTPGetCallback(MiniServerCallback callback)
 {
-    std::lock_guard<std::mutex> lck(gMServStateMutex);
+    std::scoped_lock lck(gMServStateMutex);
     gGetCallback = callback;
 }
 
@@ -393,7 +393,7 @@ static MHD_Result answer_to_connection(
     case HTTPMETHOD_POST:
     case HTTPMETHOD_HEAD:
     {
-        std::lock_guard<std::mutex> lck(gMServStateMutex);
+        std::scoped_lock lck(gMServStateMutex);
         callback = gGetCallback;
         break;
     }
@@ -493,7 +493,7 @@ void MiniServerJobWorker::work()
     ++maxMiniSock;
 
     {
-        std::unique_lock<std::mutex> lck(gMServStateMutex);
+        std::scoped_lock lck(gMServStateMutex);
         gMServState = MSERV_RUNNING;
         gMServStateCV.notify_all();
     }
@@ -535,11 +535,10 @@ void MiniServerJobWorker::work()
             ssdp_read(miniSocket->ssdpSock6, &rdSet);
             ssdp_read(miniSocket->ssdpSock6UlaGua, &rdSet);
         }
-        stopSock = receive_from_stopSock(
-            miniSocket->miniServerStopSock, &rdSet);
+        stopSock = receive_from_stopSock(miniSocket->miniServerStopSock, &rdSet);
     }
 
-    std::unique_lock<std::mutex> lck(gMServStateMutex);
+    std::scoped_lock lck(gMServStateMutex);
     delete miniSocket;
     miniSocket = nullptr;
     gMServState = MSERV_IDLE;
@@ -709,7 +708,7 @@ int StartMiniServer(uint16_t *listen_port4, uint16_t *listen_port6)
     unsigned int mhdflags = 0;
 
     {
-        std::unique_lock<std::mutex> lck(gMServStateMutex);
+        std::scoped_lock lck(gMServStateMutex);
         if (gMServState != MSERV_IDLE) {
             /* miniserver running. */
             UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__, "miniserver: ALREADY RUNNING !\n");

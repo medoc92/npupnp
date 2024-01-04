@@ -244,14 +244,14 @@ int web_server_set_localdoc(
     LocalDoc doc;
     doc.data = data;
     doc.last_modified = last_modified;
-    std::unique_lock<std::mutex> lck(gWebMutex);
+    std::scoped_lock lck(gWebMutex);
     localDocs[path] = doc;
     return UPNP_E_SUCCESS;
 }
 
 int web_server_unset_localdoc(const std::string& path)
 {
-    std::unique_lock<std::mutex> lck(gWebMutex);
+    std::scoped_lock lck(gWebMutex);
     auto it = localDocs.find(path);
     if (it != localDocs.end())
         localDocs.erase(it);
@@ -324,7 +324,7 @@ int web_server_add_virtual_dir(
         entry.path += '/';
     }
 
-    std::lock_guard<std::mutex> lock(vdlmutex);
+    std::scoped_lock lock(vdlmutex);
     auto old = std::find_if(virtualDirList.begin(), virtualDirList.end(),
                             [entry](const VirtualDirListEntry& o) {
                                 return entry.path == o.path;
@@ -345,7 +345,7 @@ int web_server_remove_virtual_dir(const char *dirname)
     if (dirname == nullptr) {
         return UPNP_E_INVALID_PARAM;
     }
-    std::lock_guard<std::mutex> lock(vdlmutex);
+    std::scoped_lock lock(vdlmutex);
     for (auto it = virtualDirList.begin(); it != virtualDirList.end(); it++) {
         if (it->path == dirname) {
             virtualDirList.erase(it);
@@ -358,7 +358,7 @@ int web_server_remove_virtual_dir(const char *dirname)
 
 void web_server_clear_virtual_dirs()
 {
-    std::lock_guard<std::mutex> lock(vdlmutex);
+    std::scoped_lock lock(vdlmutex);
     virtualDirList.clear();
 }
 
@@ -373,7 +373,7 @@ static const VirtualDirListEntry *isFileInVirtualDir(const std::string& path)
     // We ensure that vd entries paths end with /. Meaning that if
     // the paths compare equal up to the vd path len, the input
     // path is in a subdir of the vd path.
-    std::lock_guard<std::mutex> lock(vdlmutex);
+    std::scoped_lock lock(vdlmutex);
     for (const auto& vd : virtualDirList)
         if (!vd.path.compare(0, vd.path.size(), path, 0, vd.path.size()))
             return &vd;
@@ -477,7 +477,7 @@ static int process_request(
     }
     entryp = isFileInVirtualDir(request_doc);
     if (!entryp) {
-        std::unique_lock<std::mutex> lck(gWebMutex);
+        std::scoped_lock lck(gWebMutex);
         auto localdocit = localDocs.find(request_doc);
         // Just make a copy. Could do better using a
         // map<string,share_ptr> like the original, but I don't think

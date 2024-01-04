@@ -54,7 +54,7 @@ static std::mutex uuid_mutex;
 // address, if possible, random number else.
 std::string gena_sid_uuid()
 {
-    std::lock_guard<std::mutex> mylock(uuid_mutex);
+    std::scoped_lock mylock(uuid_mutex);
 
     auto now = std::chrono::high_resolution_clock::now();
     int64_t tp = now.time_since_epoch().count();

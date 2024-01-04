@@ -589,7 +589,7 @@ static int upnpInitCommon(const char *hostIP, const char *ifName,
 {
     int retVal = UPNP_E_SUCCESS;
 
-    std::unique_lock<std::mutex> lck(gSDKInitMutex);
+    std::scoped_lock lck(gSDKInitMutex);
 
     /* Check if we're already initialized. */
     if (UpnpSdkInit == 1) {

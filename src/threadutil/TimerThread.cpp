@@ -134,7 +134,7 @@ void TimerJobWorker::work()
 
 TimerThread::Internal::Internal(ThreadPool *tp)
 {
-    std::unique_lock<std::mutex> lck(mutex);
+    std::scoped_lock lck(mutex);
     this->tp = tp;
     auto worker = std::make_unique<TimerJobWorker>(this);
     tp->addPersistent(std::move(worker), ThreadPool::HIGH_PRIORITY);
@@ -156,7 +156,7 @@ int TimerThread::schedule(
     std::unique_ptr<JobWorker> worker, ThreadPool::ThreadPriority priority
     )
 {
-    std::unique_lock<std::mutex> lck(m->mutex);
+    std::scoped_lock lck(m->mutex);
     int rc = EOUTOFMEM;
 
     auto newEvent = new TimerEvent(std::move(worker), priority, persistence, when, m->lastEventId);
@@ -215,7 +215,7 @@ int TimerThread::schedule(
 int TimerThread::remove(int id)
 {
     int rc = -1;
-    std::unique_lock<std::mutex> lck(m->mutex);
+    std::scoped_lock lck(m->mutex);
 
     for (auto it = m->eventQ.begin(); it != m->eventQ.end(); it++) {
         TimerEvent *temp = *it;

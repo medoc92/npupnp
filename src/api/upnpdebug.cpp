@@ -104,7 +104,7 @@ void UpnpSetLogLevel(Upnp_LogLevel log_level)
 
 void UpnpCloseLog(void)
 {
-    std::lock_guard lck(GlobalDebugMutex);
+    std::scoped_lock lck(GlobalDebugMutex);
 
     if (fp != nullptr && is_stderr == 0) {
         fclose(fp);
@@ -179,7 +179,7 @@ void UpnpPrintf(
     if (!DebugAtThisLevel(DLevel, Module))
         return;
 
-    std::unique_lock<std::mutex> lck(GlobalDebugMutex);
+    std::scoped_lock lck(GlobalDebugMutex);
     if (fp == nullptr) {
         return;
     }
