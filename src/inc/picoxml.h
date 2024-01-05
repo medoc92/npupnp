@@ -435,7 +435,7 @@ private:
             }
             // Position: m_pos minus the string size (including 2 quotes) plus position inside s
             epos = m_pos - (s.size() + 2) + it - s.begin();
-            it++;
+            ++it;
             std::string code;
             while (it != s.end() && *it != ';') {
                 code += *it++;
@@ -447,7 +447,7 @@ private:
                 out.clear();
                 break;
             }
-            it++;
+            ++it;
             if (code == e_quot) {
                 out += '"';
             } else if (code == e_amp) {
