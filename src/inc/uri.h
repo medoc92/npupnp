@@ -40,9 +40,6 @@
  * \brief Represents a host port: e.g. "127.127.0.1:80", "www.recoll.org" 
 */
 struct hostport_type {
-    hostport_type() {
-        IPaddress = {};
-    }
     /*! Full "host:port" or "host" text. This is mostly useful when it is
       separated from the rest of an URL parse_hostport() */
     std::string text;
@@ -56,7 +53,7 @@ struct hostport_type {
      * getaddrinfo() from a host name. May not be set if
      * parse_hostport was called with noresolve==true and we had a
      * host name */
-    struct sockaddr_storage IPaddress;
+    struct sockaddr_storage IPaddress {};
 };
 
 /*!
