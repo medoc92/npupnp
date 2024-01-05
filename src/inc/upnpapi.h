@@ -79,9 +79,7 @@ struct Handle_Info
     /*! Callback function pointer. */
     Upnp_FunPtr  Callback{nullptr};
     /*! . */
-    char *Cookie{nullptr};
-    /*! 0 = not installed; otherwise installed. */
-    int   aliasInstalled;
+    char* Cookie{nullptr};
 
     /* Device Only */
 #ifdef INCLUDE_DEVICE_APIS
