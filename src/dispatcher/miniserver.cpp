@@ -202,7 +202,7 @@ static MHD_Result filter_connections(
 // exploit implemented in a local browser. Of course this supposes that the
 // browser will actually set a meaningful HOST, which they appear to do.
 enum VHH_Status{VHH_YES, VHH_NO, VHH_REDIRECT};
-static VHH_Status validate_host_header(MHDTransaction *mhdt, NetIF::IPAddr& claddr)
+static VHH_Status validate_host_header(MHDTransaction* mhdt, const NetIF::IPAddr& claddr)
 {
     // Find HOST header
     auto hostit = mhdt->headers.find("host");
@@ -275,7 +275,7 @@ static VHH_Status validate_host_header(MHDTransaction *mhdt, NetIF::IPAddr& clad
 }
 
 static std::string rebuild_url_from_mhdt(
-    MHDTransaction *mhdt, const std::string& path, NetIF::IPAddr& claddr)
+    MHDTransaction* mhdt, const std::string& path, const NetIF::IPAddr& claddr)
 {
     std::string aurl("http://");
     auto hostport = UpnpGetUrlHostPortForClient(mhdt->client_address);

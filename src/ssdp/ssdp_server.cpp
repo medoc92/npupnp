@@ -138,7 +138,7 @@ int ssdp_request_type(const char *cmd, SsdpEntity *Evt)
  *
  * \return HTTPMETHOD_UNKNOWN if packet is invalid, else method.
  */
-static http_method_t valid_ssdp_msg(SSDPPacketParser& parser, NetIF::IPAddr& claddr)
+static http_method_t valid_ssdp_msg(SSDPPacketParser& parser, const NetIF::IPAddr& claddr)
 {
     http_method_t method = HTTPMETHOD_UNKNOWN;
     if (!parser.isresponse) {
