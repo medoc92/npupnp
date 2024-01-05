@@ -780,7 +780,7 @@ std::string breakIntoLines(const std::string& in, unsigned int ll, unsigned int 
                     ss = query;
                 }
             } else {
-                ss = ss.substr(0, pos + 1);
+                ss.resize(pos + 1);
             }
         }
         // This cant happen, but anyway. Be very sure to avoid an infinite loop
