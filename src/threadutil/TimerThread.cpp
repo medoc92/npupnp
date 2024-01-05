@@ -47,10 +47,10 @@ struct TimerEvent {
     TimerEvent(
         std::unique_ptr<JobWorker> w, ThreadPool::ThreadPriority prio,
         TimerThread::Duration p, system_clock::time_point et, int _id)
-        : priority(prio), persistent(p), eventTime(et), id(_id) {
-        worker = std::move(w);
+        : worker(std::move(w)), priority(prio), persistent(p), eventTime(et), id(_id)
+    {
     }
-    
+
     std::unique_ptr<JobWorker> worker;
     ThreadPool::ThreadPriority priority;
     /*! [in] Long term or short term job. */
