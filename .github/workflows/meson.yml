@@ -112,11 +112,7 @@ jobs:
           meson test -C build --verbose
   MacOS:
     runs-on: macos-latest
-    name: macOS-${{matrix.deps}}-${{matrix.type}}
-    strategy:
-      matrix:
-        deps: ['forcefallback', 'default']
-        type: ['shared', 'static']
+    name: macOS
     steps:
       - uses: actions/checkout@v4
 
@@ -126,7 +122,7 @@ jobs:
 
       - name: Compile and Test
         run: |
-          meson setup "${{github.workspace}}/build" --wrap-mode=${{matrix.deps}} -Ddefault_library=${{matrix.type}} -Dwarning_level=3 -Dcpp_std=c++20
+          meson setup "${{github.workspace}}/build" -Dwarning_level=3 -Dcpp_std=c++20
           meson compile -C "${{github.workspace}}/build" --verbose
   FreeBSD:
     runs-on: ubuntu-latest
