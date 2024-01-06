@@ -254,7 +254,6 @@ private:
             } else {
                 _startelem(tag, attrs, emptyel);
             }
-            spos = m_pos;
             if (!_chardata()) {
                 return false;
             }

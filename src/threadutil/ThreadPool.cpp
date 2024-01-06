@@ -647,7 +647,6 @@ int ThreadPool::setAttr(const ThreadPoolAttr* attr)
 {
     int retCode = 0;
     ThreadPoolAttr temp;
-    int i = 0;
 
     std::unique_lock<std::mutex> lck(m->mutex);
 
@@ -659,7 +658,7 @@ int ThreadPool::setAttr(const ThreadPoolAttr* attr)
     m->attr = temp;
     /* add threads */
     if (m->totalThreads < m->attr.minThreads) {
-        for (i = m->totalThreads; i < m->attr.minThreads; i++) {
+        for (auto i = m->totalThreads; i < m->attr.minThreads; i++) {
             retCode = m->createWorker(lck);
             if (retCode != 0) {
                 break;
