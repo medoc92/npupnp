@@ -2041,43 +2041,39 @@ Upnp_Handle_Type GetDeviceHandleInfoForPath(
 Upnp_Handle_Type GetHandleInfo(UpnpClient_Handle Hnd,
                                struct Handle_Info **HndInfo)
 {
-    Upnp_Handle_Type ret = HND_INVALID;
-
     if (Hnd < 1 || Hnd >= NUM_HANDLE) {
         UpnpPrintf(UPNP_ERROR, API, __FILE__, __LINE__,
                    "GetHandleInfo: out of range\n");
-    } else if (HandleTable[Hnd] == nullptr) {
-        // Don't print anything, we sometimes walk the table
-        //UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-        //           "GetHandleInfo: HTable[%d] is NULL\n",
-        //           Hnd);
-    } else if (HandleTable[Hnd] != nullptr) {
-        *HndInfo = static_cast<struct Handle_Info *>(HandleTable[Hnd]);
-        ret = (*HndInfo)->HType;
+        return HND_INVALID;
     }
 
-    return ret;
+    *HndInfo = static_cast<struct Handle_Info*>(HandleTable[Hnd]);
+
+    // Don't print anything, we sometimes walk the table
+    // UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+    //           "GetHandleInfo: HTable[%d] is NULL\n",
+    //           Hnd);
+
+    return (*HndInfo)->HType;
 }
 
 int PrintHandleInfo(UpnpClient_Handle Hnd)
 {
-    struct Handle_Info * HndInfo;
-    if (HandleTable[Hnd] != nullptr) {
-        HndInfo = static_cast<struct Handle_Info*>(HandleTable[Hnd]);
-        UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-                   "Handle_%d Type_%d: \n", Hnd, HndInfo->HType);
-#ifdef INCLUDE_DEVICE_APIS
-        switch(HndInfo->HType) {
-        case HND_CLIENT:
-            break;
-        default:
-            UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-                       "DescURL: %s\n", HndInfo->DescURL);
-        }
-#endif /* INCLUDE_DEVICE_APIS */
-    } else {
+    if (!HandleTable[Hnd])
         return UPNP_E_INVALID_HANDLE;
+
+    auto HndInfo = static_cast<struct Handle_Info*>(HandleTable[Hnd]);
+    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+               "Handle_%d Type_%d: \n", Hnd, HndInfo->HType);
+#ifdef INCLUDE_DEVICE_APIS
+    switch (HndInfo->HType) {
+    case HND_CLIENT:
+        break;
+    default:
+        UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+                   "DescURL: %s\n", HndInfo->DescURL);
     }
+#endif /* INCLUDE_DEVICE_APIS */
     return UPNP_E_SUCCESS;
 }
 
