@@ -13,7 +13,7 @@ AC_INIT([libnpupnp],m4_esyscmd_s([cat VER]),[jfd@recoll.org])
 # - If any interfaces have been removed or changed since the last public
 #   release, then set age to 0. Change package name if it is needed to have
 #   several installed versions of the lib. 
-AC_SUBST([LT_VERSION_NPUPNP],       [13:1:0])
+AC_SUBST([LT_VERSION_NPUPNP],       [13:2:0])
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])

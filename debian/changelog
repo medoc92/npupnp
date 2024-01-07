@@ -1,3 +1,9 @@
+libnpupnp (6.0.6-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Misc small internal cleanups, mostly for multi-platform building.
+  
+ -- Jean-Francois Dockes <jf@dockes.org>  Sun, 07 Jan 2024 19:00:00 +0100
+
 libnpupnp (6.0.1-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Switch UPnP version to 1.1.
