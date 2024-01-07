@@ -1151,10 +1151,7 @@ void catstrerror(std::string *reason, const char *what, int _errno)
     }
 
     reason->append(": errno: ");
-
-    auto nbuf = std::to_string(_errno);
-    reason->append(nbuf);
-
+    reason->append(std::to_string(_errno));
     reason->append(" : ");
 
 #if defined(sun) || defined(_WIN32)
@@ -1178,10 +1175,10 @@ void catstrerror(std::string *reason, const char *what, int _errno)
     // https://www.zverovich.net/2015/03/13/reliable-detection-of-strerror-variants.html
     char errbuf[200];
     errbuf[0] = 0;
-    reason->append(_check_strerror_r(
-                       strerror_r(_errno, errbuf, sizeof(errbuf)), errbuf));
+    reason->append(_check_strerror_r(strerror_r(_errno, errbuf, sizeof(errbuf)), errbuf));
 #endif
 }
+
 
 #ifndef SMALLUT_NO_REGEX
 #ifdef USE_STD_REGEX
