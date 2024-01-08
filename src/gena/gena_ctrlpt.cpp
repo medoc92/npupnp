@@ -121,24 +121,24 @@ void AutoRenewSubscriptionJobWorker::work()
     int send_callback = 0;
     Upnp_EventType eventType = UPNP_EVENT_AUTORENEWAL_FAILED;
 
-    if (AUTO_RENEW_TIME == 0) {
-        // We are compile-time configured for no auto-renewal.
-        UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__, "GENA SUB EXPIRED\n");
-        sub_struct->ErrCode = UPNP_E_SUCCESS;
+#if AUTO_RENEW_TIME == 0
+    // We are compile-time configured for no auto-renewal.
+    UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__, "GENA SUB EXPIRED\n");
+    sub_struct->ErrCode = UPNP_E_SUCCESS;
+    send_callback = 1;
+    eventType = UPNP_EVENT_SUBSCRIPTION_EXPIRED;
+#else
+    UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__, "GENA AUTO RENEW\n");
+    int timeout = sub_struct->TimeOut;
+    int errCode = genaRenewSubscription(event->handle, sub_struct->Sid, &timeout);
+    sub_struct->ErrCode = errCode;
+    sub_struct->TimeOut = timeout;
+    if (errCode != UPNP_E_SUCCESS &&
+        errCode != GENA_E_BAD_SID &&
+        errCode != GENA_E_BAD_HANDLE) {
         send_callback = 1;
-        eventType = UPNP_EVENT_SUBSCRIPTION_EXPIRED;
-    } else {
-        UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__, "GENA AUTO RENEW\n");
-        int timeout = sub_struct->TimeOut;
-        int errCode = genaRenewSubscription(event->handle, sub_struct->Sid, &timeout);
-        sub_struct->ErrCode = errCode;
-        sub_struct->TimeOut = timeout;
-        if (errCode != UPNP_E_SUCCESS &&
-            errCode != GENA_E_BAD_SID &&
-            errCode != GENA_E_BAD_HANDLE) {
-            send_callback = 1;
-        }
     }
+#endif
 
     if (send_callback) {
         HandleReadLock();
