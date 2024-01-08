@@ -67,6 +67,7 @@
   NetIF::Interfaces::interfaceForAddress(NetIF::IPAddr const&, std::vector<NetIF::Interface, std::allocator<NetIF::Interface> > const&, NetIF::IPAddr&)
   NetIF::Interfaces::interfaceForAddress(NetIF::IPAddr const&, NetIF::IPAddr&)
   NetIF::Interfaces::print(std::ostream&)
+  NetIF::Interfaces::cleanup()
   NetIF::Interfaces::refresh()
   NetIF::Interfaces::Internal::Internal()
   NetIF::Interfaces::Internal::Internal()

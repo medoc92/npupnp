@@ -1,6 +1,7 @@
-libnpupnp (6.0.6-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+libnpupnp (6.1.0-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Misc small internal cleanups, mostly for multi-platform building.
+  * Add interface to free the netif data memory.
   
  -- Jean-Francois Dockes <jf@dockes.org>  Sun, 07 Jan 2024 19:00:00 +0100
 
