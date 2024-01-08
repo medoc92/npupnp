@@ -33,7 +33,14 @@ add_project_arguments('-DNOMINMAX', language: 'cpp')
 add_project_arguments('-DSMALLUT_NO_REGEX', language: 'cpp')
 add_project_arguments('-DSMALLUT_EXTERNAL_INSTANTIATIONS', language: 'cpp')
 
-add_project_arguments(cpp.get_supported_arguments('-Wno-deprecated-declarations'), language: 'cpp')
+add_project_arguments(
+  cpp.get_supported_arguments(
+    '-Wno-deprecated-declarations',
+    '/D_CRT_SECURE_NO_WARNINGS',
+    '/wd4251',
+  ),
+  language: 'cpp',
+)
 
 libnpupnp_incdir = include_directories('.', 'inc', 'src/inc')
 
