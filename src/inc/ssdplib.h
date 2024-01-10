@@ -73,12 +73,13 @@ typedef enum SsdpSearchType {
 // each incoming search response packet to what is on the list and
 // call the client back if there is a match.
 struct SsdpSearchArg {
-    SsdpSearchArg(const char *st, void *ck, SsdpSearchType rt)
-        : requestType(rt), searchTarget(st), cookie(ck) {
+    SsdpSearchArg(int i, const char* st, void* ck, SsdpSearchType rt)
+        : timeoutEventId(i), requestType(rt), searchTarget(st), cookie(ck)
+    {
     }
     // TimerThread timeout event used to find the search entry when
     // the timeout fires.
-    int timeoutEventId{-1};
+    int timeoutEventId;
     // The request type and search target are matched against incoming
     // search responses to determine if we need to call back.
     enum SsdpSearchType requestType;
