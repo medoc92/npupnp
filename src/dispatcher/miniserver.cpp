@@ -475,7 +475,7 @@ void MiniServerJobWorker::work()
     fd_set expSet;
     fd_set rdSet;
     SOCKET maxMiniSock;
-    int ret = 0;
+    int ret;
     int stopSock = 0;
 
     maxMiniSock = 0;
