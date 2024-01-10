@@ -167,9 +167,8 @@ AM_CONDITIONAL([COND_TESTPROGS], [test "$buildtestprogs" = yes])
 
 AC_TYPE_SIZE_T
 AC_TYPE_OFF_T
-AC_DEFINE([_LARGE_FILE_SOURCE], [], [Large files support])
-AC_DEFINE([_FILE_OFFSET_BITS], [64], [File Offset size])
 
+AC_SYS_LARGEFILE
 
 #
 # Are we targetting Win32?
