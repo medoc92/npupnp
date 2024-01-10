@@ -1249,9 +1249,7 @@ std::string SimpleRegexp::simpleSub(
         return {};
     }
 
-    int err;
-    if ((err = regexec(&m->expr, in.c_str(),
-                       m->nmatch + 1, &m->matches[0], 0))) {
+    if (int err = regexec(&m->expr, in.c_str(), m->nmatch + 1, &m->matches[0], 0)) {
 #if SIMPLESUB_DBG
         const int ERRSIZE = 200;
         char errbuf[ERRSIZE + 1];
