@@ -7,14 +7,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  Ubuntu:
+  Linux-GCC:
     runs-on: ubuntu-20.04
-    name: Linux-GCC${{matrix.cxx}}-${{matrix.deps}}-${{matrix.type}}
     strategy:
       matrix:
         cxx: ['7', '8', '9', '10', '11', '13']
-        deps: ['forcefallback', 'default']
-        type: ['shared', 'static']
     steps:
       - uses: actions/checkout@v4
       - uses: egor-tensin/setup-gcc@v1
@@ -27,16 +24,13 @@ jobs:
 
       - name: Compile and Test
         run: |
-          meson setup "${{github.workspace}}/build" --wrap-mode=${{matrix.deps}} -Ddefault_library=${{matrix.type}} -Dwarning_level=3
+          meson setup "${{github.workspace}}/build" -Dwarning_level=3
           meson compile -C "${{github.workspace}}/build" --verbose
-  Ubuntu-clang:
+  Linux-Clang:
     runs-on: ubuntu-20.04
-    name: Linux-Clang${{matrix.cxx}}-${{matrix.deps}}-${{matrix.type}}
     strategy:
       matrix:
         cxx: ['6.0', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17']
-        deps: ['forcefallback', 'default']
-        type: ['shared', 'static']
     steps:
       - uses: actions/checkout@v4
       - uses: egor-tensin/setup-clang@v1
@@ -49,7 +43,7 @@ jobs:
         env:
           CXXFLAGS: -stdlib=libc++
         run: |
-          meson setup "${{github.workspace}}/build" --wrap-mode=${{matrix.deps}} -Ddefault_library=${{matrix.type}} -Dwarning_level=3
+          meson setup "${{github.workspace}}/build" -Dwarning_level=3
           meson compile -C "${{github.workspace}}/build" --verbose
   VisualStudio:
     runs-on: windows-latest
@@ -116,11 +110,6 @@ jobs:
           meson test -C build --verbose
   MacOS:
     runs-on: macos-latest
-    name: macOS-${{matrix.deps}}-${{matrix.type}}
-    strategy:
-      matrix:
-        deps: ['forcefallback', 'default']
-        type: ['shared', 'static']
     steps:
       - uses: actions/checkout@v4
 
@@ -130,18 +119,53 @@ jobs:
 
       - name: Compile and Test
         run: |
-          meson setup "${{github.workspace}}/build" --wrap-mode=${{matrix.deps}} -Ddefault_library=${{matrix.type}} -Dwarning_level=3 -Dcpp_std=c++20
+          meson setup "${{github.workspace}}/build" -Dwarning_level=3 -Dcpp_std=c++20
           meson compile -C "${{github.workspace}}/build" --verbose
-  FreeBSD:
+  DragonflyBSD:
     runs-on: ubuntu-latest
-    name: FreeBSD
     steps:
       - uses: actions/checkout@v4
-      - name: FreeBSD
-        uses: vmactions/freebsd-vm@v1
+      - uses: vmactions/dragonflybsd-vm@v1
+        with:
+          prepare: |
+            pkg install -y curl ninja meson pkgconf expat libmicrohttpd
+          run: |
+            meson setup "${{github.workspace}}/build" -Dwarning_level=3 -Dcpp_std=c++20
+            meson compile -C "${{github.workspace}}/build" --verbose
+            meson test -C "${{github.workspace}}/build" --verbose
+  FreeBSD:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: vmactions/freebsd-vm@v1
         with:
           prepare: |
             pkg install -y curl ninja meson pkgconf libmicrohttpd
+          run: |
+            meson setup "${{github.workspace}}/build" -Dwarning_level=3 -Dcpp_std=c++20
+            meson compile -C "${{github.workspace}}/build" --verbose
+            meson test -C "${{github.workspace}}/build" --verbose
+  NetBSD:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: vmactions/netbsd-vm@v1
+        with:
+          release: '9.0'
+          prepare: |
+            /usr/sbin/pkg_add curl meson pkgconf libmicrohttpd
+          run: |
+            meson setup "${{github.workspace}}/build" -Dwarning_level=3
+            meson compile -C "${{github.workspace}}/build" --verbose
+            meson test -C "${{github.workspace}}/build" --verbose
+  OpenBSD:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: vmactions/openbsd-vm@v1
+        with:
+          prepare: |
+            pkg_add curl ninja meson pkgconf libmicrohttpd
           run: |
             meson setup "${{github.workspace}}/build" -Dwarning_level=3 -Dcpp_std=c++20
             meson compile -C "${{github.workspace}}/build" --verbose
