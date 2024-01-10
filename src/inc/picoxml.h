@@ -302,10 +302,9 @@ private:
         return m_in[m_pos + 1 + sz];
     }
     void trimtag(std::string& tag) {
-        std::string::size_type trimpos = tag.find_last_not_of(" \t\n\r");
-        if (trimpos != std::string::npos) {
-            tag = tag.substr(0, trimpos+1);
-        }
+        auto trimpos = tag.find_last_not_of(" \t\n\r");
+        if (trimpos != std::string::npos)
+            tag.resize(trimpos + 1);
     }
 
     bool skipDecl() {
