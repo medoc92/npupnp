@@ -132,7 +132,7 @@ public:
     ThreadPool& operator=(const ThreadPool&) = delete;
 
     /* Initialize things and start up returns 0 if ok */
-    int start(ThreadPoolAttr *attr = nullptr);
+    int start(const ThreadPoolAttr* attr = nullptr);
 
     /* Add regular job. To be scheduled asap, we don't wait for it to start */
     int addJob(std::unique_ptr<JobWorker> worker, ThreadPriority priority = MED_PRIORITY);
@@ -166,7 +166,7 @@ public:
      *     \li \c 0 on success, nonzero on failure.
      *     \li \c INVALID_POLICY if policy can not be set.
      */
-    int setAttr(ThreadPoolAttr *attr);
+    int setAttr(const ThreadPoolAttr* attr);
 
     /*!
      * \brief Shuts the thread pool down. Waits for all threads to finish.

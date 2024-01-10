@@ -74,7 +74,7 @@ struct ThreadPoolJob {
 
 class ThreadPool::Internal {
 public:
-    explicit Internal(ThreadPoolAttr *attr);
+    explicit Internal(const ThreadPoolAttr* attr);
     bool ok{false};
     int createWorker(std::unique_lock<std::mutex>& lck);
     void addWorker(std::unique_lock<std::mutex>& lck);
@@ -138,12 +138,11 @@ ThreadPool::~ThreadPool()
     m.release();
 }
 
-int ThreadPool::start(ThreadPoolAttr *attr)
+int ThreadPool::start(const ThreadPoolAttr* attr)
 {
     m = std::make_unique<Internal>(attr);
-    if (m && m->ok) {
+    if (m->ok)
         return 0;
-    }
     return -1;
 }
 
@@ -532,7 +531,7 @@ void ThreadPool::Internal::addWorker(std::unique_lock<std::mutex>& lck)
     }
 }
 
-ThreadPool::Internal::Internal(ThreadPoolAttr *attr)
+ThreadPool::Internal::Internal(const ThreadPoolAttr* attr)
 {
     int retCode = 0;
     int i = 0;
@@ -644,7 +643,7 @@ int ThreadPool::getAttr(ThreadPoolAttr *out)
     return 0;
 }
 
-int ThreadPool::setAttr(ThreadPoolAttr *attr)
+int ThreadPool::setAttr(const ThreadPoolAttr* attr)
 {
     int retCode = 0;
     ThreadPoolAttr temp;

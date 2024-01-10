@@ -935,7 +935,7 @@ static void cerrdip(const std::string& s, DateInterval *dip)
 // or pre-1970 dates. Just convert everything to unixtime and
 // seconds (with average durations for months/years), add and convert
 // back
-static bool addperiod(DateInterval *dp, DateInterval *pp)
+static bool addperiod(DateInterval* dp, const DateInterval* pp)
 {
     // Create a struct tm with possibly non normalized fields and let
     // timegm sort it out

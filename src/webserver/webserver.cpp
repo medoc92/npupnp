@@ -385,7 +385,7 @@ static const VirtualDirListEntry *isFileInVirtualDir(const std::string& path)
  * \brief Other header processing. Only HDR_ACCEPT_LANGUAGE for now.
  */
 static int CheckOtherHTTPHeaders(
-    MHDTransaction *mhdt, struct SendInstruction *RespInstr, int64_t)
+    const MHDTransaction* mhdt, struct SendInstruction* RespInstr, int64_t)
 {
     for (const auto& header : mhdt->headers) {
         /* find header type. */
