@@ -157,8 +157,7 @@ static MHD_Result queryvalues_cb(void *cls, enum MHD_ValueKind,
     return MHD_YES;
 }
 
-// Use int not enum as data.second spares a map code instanciation (at least with some compilers)
-static const std::map<std::string, int> strmethtometh {
+static const std::map<std::string_view, int> strmethtometh {
     {"get", HTTPMETHOD_GET},
     {"head", HTTPMETHOD_HEAD},
     {"m-post", HTTPMETHOD_MPOST},
@@ -167,11 +166,9 @@ static const std::map<std::string, int> strmethtometh {
     {"post", HTTPMETHOD_POST},
     {"subscribe", HTTPMETHOD_SUBSCRIBE},
     {"unsubscribe", HTTPMETHOD_UNSUBSCRIBE},
-        };
+};
 
-static void request_completed_cb(
-    void*, MHD_Connection*,
-    void** con_cls, MHD_RequestTerminationCode)
+static void request_completed_cb(void*, MHD_Connection*, void** con_cls, MHD_RequestTerminationCode)
 {
     if (nullptr == con_cls)
         return;
@@ -352,7 +349,8 @@ static MHD_Result answer_to_connection(
             return MHD_NO;
         }
         UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__, "Redirecting to [%s]\n", aurl.c_str());
-        struct MHD_Response *response = MHD_create_response_from_buffer(0,nullptr,MHD_RESPMEM_PERSISTENT);
+        struct MHD_Response *response =
+            MHD_create_response_from_buffer(0,nullptr,MHD_RESPMEM_PERSISTENT);
         if (nullptr == response ) {
             UpnpPrintf(UPNP_DEBUG, MSERV, __FILE__, __LINE__,
                        "answer_to_connection: can't create redirect\n");

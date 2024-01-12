@@ -31,15 +31,13 @@
 
 #include <cstring>
 #include <iostream>
+#include <string_view>
 
 #include "upnpdebug.h"
 
-static const char *notify_start = "NOTIFY * HTTP/1.1\r\n";
-static const size_t notify_start_len = strlen(notify_start);
-static const char *msearch_start = "M-SEARCH * HTTP/1.1\r\n";
-static const size_t msearch_start_len = strlen(msearch_start);
-static const char *response_start = "HTTP/1.1 200 OK\r\n";
-static const size_t response_start_len = strlen(response_start);
+static constexpr std::string_view notify_start{"NOTIFY * HTTP/1.1\r\n"};
+static constexpr std::string_view msearch_start{"M-SEARCH * HTTP/1.1\r\n"};
+static constexpr std::string_view response_start{"HTTP/1.1 200 OK\r\n"};
 
 
 static void trimright(char *cp, size_t len) {
@@ -85,18 +83,18 @@ bool SSDPPacketParser::parse()
     protocol = "HTTP";
     version = "1.1";
     char *cp;
-    if (!strncmp(m_packet, notify_start, notify_start_len)) {
+    if (!strncmp(m_packet, notify_start.data(), notify_start.size())) {
         method = "NOTIFY";
         url = "*";
-        cp = m_packet + notify_start_len;
-    } else if (!strncmp(m_packet, msearch_start, msearch_start_len)) {
+        cp = m_packet + notify_start.size();
+    } else if (!strncmp(m_packet, msearch_start.data(), msearch_start.size())) {
         method = "M-SEARCH";
         url = "*";
-        cp = m_packet + msearch_start_len;
-    } else if (!strncmp(m_packet, response_start, response_start_len)) {
+        cp = m_packet + msearch_start.size();
+    } else if (!strncmp(m_packet, response_start.data(), response_start.size())) {
         isresponse = true;
         status  = "200";
-        cp = m_packet + response_start_len;
+        cp = m_packet + response_start.size();
     } else {
         UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
                    "SSDP parser: bad first line in [%s]\n", m_packet);

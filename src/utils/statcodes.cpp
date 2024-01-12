@@ -35,12 +35,12 @@
 * messages and functions to manipulate those buffers                    *
 ************************************************************************/
 
-#include <map>
+#include <unordered_map>
 #include <string>
 
 #include "statcodes.h"
 
-static const std::map<int, std::string> httpcodes {
+static const std::unordered_map<int, std::string> httpcodes {
     {HTTP_CONTINUE, "Continue"},
     {HTTP_SWITCHING_PROCOTOLS , "Switching Protocols"},
     {HTTP_OK, "OK"},

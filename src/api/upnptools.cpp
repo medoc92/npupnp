@@ -34,31 +34,16 @@
 #include "config.h"
 
 #if UPNP_HAVE_TOOLS
+#include <cstring>
+#include <unordered_map>
+
 #include "upnp.h"
 #include "upnptools.h"
 #include "uri.h"
 
-#include <cstring>
 
-/*! Maximum action header buffer length. */
-#define HEADER_LENGTH 2000
-
-/*!
- * \brief Structure to maintain a error code and string associated with the
- * error code.
- */
-struct ErrorString {
-    /*! Error code. */
-    int rc;
-    /*! Error description. */
-    const char *rcError;
-};
-
-
-/*!
- * \brief Array of error structures.
- */
-static constexpr struct ErrorString ErrorMessages[] = {
+/* Error number to string translation */
+static std::unordered_map<int, const char*> errorMessages{
     {UPNP_E_SUCCESS, "UPNP_E_SUCCESS"},
     {UPNP_E_INVALID_HANDLE, "UPNP_E_INVALID_HANDLE"},
     {UPNP_E_INVALID_PARAM, "UPNP_E_INVALID_PARAM"},
@@ -108,13 +93,11 @@ static constexpr struct ErrorString ErrorMessages[] = {
 
 const char *UpnpGetErrorMessage(int rc)
 {
-    for (const auto& i : ErrorMessages) {
-        if (rc == i.rc) {
-            return i.rcError;
-        }
+    auto it = errorMessages.find(rc);
+    if (it == std::end(errorMessages)) {
+        return "Unknown error code";
     }
-
-    return "Unknown error code";
+    return it->second;
 }
 
 int UpnpResolveURL(const char *BaseURL, const char *RelURL, char *AbsURL)

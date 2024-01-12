@@ -41,7 +41,7 @@
 #include <cstring>
 #include <ctime>
 #include <iostream>
-#include <map>
+#include <unordered_map>
 #include <sstream>
 #include <string>
 
@@ -54,8 +54,8 @@
 #include "upnpdebug.h"
 #include "uri.h"
 
-static const std::string bogus_soap_post{"SMPOST"};
-static const std::map<std::string, int> Http_Method_Table {
+static constexpr std::string_view bogus_soap_post{"SMPOST"};
+static const std::unordered_map<std::string_view, int> Http_Method_Table {
     {"GET", HTTPMETHOD_GET},
     {"HEAD", HTTPMETHOD_HEAD},
     {"M-POST", HTTPMETHOD_MPOST},
@@ -67,7 +67,7 @@ static const std::map<std::string, int> Http_Method_Table {
     {bogus_soap_post, SOAPMETHOD_POST},
 };
 
-static const std::map<std::string, int> Http_Header_Names {
+static const std::unordered_map<std::string_view, int> Http_Header_Names {
     {"accept", HDR_ACCEPT},
     {"accept-charset", HDR_ACCEPT_CHARSET},
     {"accept-encoding", HDR_ACCEPT_ENCODING},
@@ -292,7 +292,7 @@ int http_Download(const char *_surl, int timeout_secs,
 int http_SendStatusResponse(MHDTransaction *mhdt, int status_code)
 {
     std::ostringstream body;
-    body <<    "<html><body><h1>" << status_code << " " << 
+    body << "<html><body><h1>" << status_code << " " << 
         http_get_code_text(status_code) << "</h1></body></html>";
     mhdt->response = MHD_create_response_from_buffer(
         body.str().size(), const_cast<char*>(body.str().c_str()), MHD_RESPMEM_MUST_COPY);
@@ -308,8 +308,7 @@ bool has_xml_content_type(MHDTransaction *mhdt)
 
     auto it = mhdt->headers.find("content-type");
     if (it == mhdt->headers.end()) {
-        UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
-                   "has_xml_content: no content type header\n");
+        UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__, "has_xml_content: no content type header\n");
         return false;
     }
     if (strncasecmp(xmlmtype, it->second.c_str(), mtlen)) {
@@ -325,8 +324,7 @@ bool timeout_header_value(std::map<std::string, std::string>& headers,
 {
     auto ittimo = headers.find("timeout");
     if (ittimo == headers.end()) {
-        UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
-                   "timeout_header_value: no timeout header\n");
+        UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__, "timeout_header_value: no timeout header\n");
         return false;
     }
     stringtolower(ittimo->second);
@@ -374,8 +372,7 @@ static const std::string& get_sdk_common_info()
         versioninfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
 
         if (GetVersionEx(&versioninfo) != 0)
-            ostr << versioninfo.dwMajorVersion << "." <<
-                versioninfo.dwMinorVersion << "." <<
+            ostr << versioninfo.dwMajorVersion << "." << versioninfo.dwMinorVersion << "." <<
                 versioninfo.dwBuildNumber << " " << versioninfo.dwPlatformId
                  << "/" << versioninfo.szCSDVersion;
 #else
@@ -454,7 +451,8 @@ std::string query_encode(const std::string& qs)
     return out;
 }
 
-size_t header_callback_curl(char *buffer, size_t size, size_t nitems, std::map<std::string, std::string> *headers)
+size_t header_callback_curl(char *buffer, size_t size, size_t nitems,
+                            std::map<std::string, std::string> *headers)
 {
     size_t bufsize = size * nitems;
     const char *colon = std::strchr(buffer, ':');

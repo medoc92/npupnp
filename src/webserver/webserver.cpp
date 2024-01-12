@@ -45,6 +45,7 @@
 
 #include <algorithm>
 #include <map>
+#include <unordered_map>
 #include <mutex>
 
 #include <cinttypes>
@@ -112,7 +113,7 @@ struct SendInstruction {
  * module variables - Globals, static and externs.
  */
 
-static const std::map<std::string, const char*> gEncodedMediaTypes = {
+static const std::unordered_map<std::string_view, std::string_view> gEncodedMediaTypes = {
     {"aif", "audio/aiff"},
     {"aifc", "audio/aiff"},
     {"aiff", "audio/aiff"},
@@ -187,9 +188,9 @@ static const std::map<std::string, const char*> gEncodedMediaTypes = {
 
 
 /*! Global variable. A file system directory which serves as webserver
-    root. If this is not set from the API UpnpSetWebServerRootDir()
-    call, we do not serve files from the file system at all (only
-    possibly the virtual dir and/or the localDocs). */
+  root. If this is not set from the API UpnpSetWebServerRootDir()
+  call, we do not serve files from the file system at all (only
+  possibly the virtual dir and/or the localDocs). */
 static std::string gDocumentRootDir;
 
 struct LocalDoc {
@@ -216,10 +217,9 @@ static std::mutex vdlmutex;
 
 
 /* Compute MIME type from file name extension. */
-static UPNP_INLINE int get_content_type(
-    const char *filename, std::string& content_type)
+static UPNP_INLINE int get_content_type(const char *filename, std::string& content_type)
 {
-    const char *ctname = "application/octet-stream";
+    std::string_view ctname{"application/octet-stream"};
     content_type.clear();
     /* get ext */
     const char *e = strrchr(filename, '.');
@@ -235,8 +235,7 @@ static UPNP_INLINE int get_content_type(
     return 0;
 }
 
-int web_server_set_localdoc(
-    const std::string& path, const std::string& data, time_t last_modified)
+int web_server_set_localdoc(const std::string& path, const std::string& data, time_t last_modified)
 {
     if (path.empty() || path.front() != '/') {
         return UPNP_E_INVALID_PARAM;
@@ -280,10 +279,8 @@ static int get_file_info(const char *filename, struct File_Info *info)
     info->last_modified = s.st_mtime;
     int rc = get_content_type(filename, info->content_type);
     UpnpPrintf(UPNP_INFO, HTTP, __FILE__, __LINE__,
-               "get_file_info: %s, sz: %" PRIi64 ", mtime=%s rdable=%d\n",
-               filename, info->file_length,
-               make_date_string(info->last_modified).c_str(),
-               info->is_readable);
+               "get_file_info: %s, sz: %" PRIi64 ", mtime=%s rdable=%d\n", filename,
+               info->file_length, make_date_string(info->last_modified).c_str(), info->is_readable);
 
     return rc;
 }
@@ -307,8 +304,7 @@ int web_server_add_virtual_dir(
         return UPNP_E_INVALID_PARAM;
     }
 
-    UpnpPrintf(UPNP_DEBUG, HTTP, __FILE__, __LINE__,
-               "web_server_add_virtual_dir: [%s]\n", dirname);
+    UpnpPrintf(UPNP_DEBUG, HTTP, __FILE__, __LINE__, "web_server_add_virtual_dir: [%s]\n", dirname);
 
     VirtualDirListEntry entry;
     entry.cookie = cookie;
