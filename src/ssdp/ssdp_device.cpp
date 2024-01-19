@@ -849,11 +849,15 @@ int AdvertiseAndReply(UpnpDevice_Handle Hnd, SSDPDevMessageType tp, int Exp,
             }
         }
     } else {
-        sock = repDestAddr->sa_family == AF_INET ?
-            createReplySocket4(
-                reinterpret_cast<struct sockaddr_in*>(repDestAddr), lochost) :
-            createReplySocket6(
-                reinterpret_cast<struct sockaddr_in6*>(repDestAddr), lochost);
+        if (repDestAddr->sa_family == AF_INET) {
+            sockaddr_in rs;
+            std::memcpy(&rs, repDestAddr, sizeof(sockaddr_in));
+            sock = createReplySocket4(&rs, lochost);
+        } else {
+            sockaddr_in6 rs;
+            std::memcpy(&rs, repDestAddr, sizeof(sockaddr_in6));
+            sock = createReplySocket6(&rs, lochost);
+        }
         if (sock == INVALID_SOCKET) {
             goto exitfunc;
         }
