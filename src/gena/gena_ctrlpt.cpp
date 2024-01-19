@@ -58,7 +58,7 @@
 #define XMLPARSERTP PicoXMLParser
 #endif
 
-#define UPNP_NOPE (Upnp_LogLevel)(UPNP_ALL+1)
+#define UPNP_NOPE static_cast<Upnp_LogLevel>(UPNP_ALL+1)
 
 extern TimerThread *gTimerThread;
 
