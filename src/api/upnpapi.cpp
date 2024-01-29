@@ -135,7 +135,7 @@ unsigned short LOCAL_PORT_V6;
 
 /*! UPnP device and control point handle table    */
 #define NUM_HANDLE 200
-static std::array<Handle_Info*, NUM_HANDLE> HandleTable;
+static std::array<struct Handle_Info*, NUM_HANDLE> HandleTable;
 
 /*! Maximum content-length (in bytes) that the SDK will process on an incoming
  * packet. Content-Length exceeding this size will be not processed and
@@ -2038,22 +2038,19 @@ Upnp_Handle_Type GetDeviceHandleInfoForPath(
 }
 
 
-Upnp_Handle_Type GetHandleInfo(UpnpClient_Handle Hnd,
-                               struct Handle_Info **HndInfo)
+Upnp_Handle_Type GetHandleInfo(UpnpClient_Handle Hnd, struct Handle_Info **HndInfo)
 {
     if (Hnd < 1 || Hnd >= NUM_HANDLE) {
-        UpnpPrintf(UPNP_ERROR, API, __FILE__, __LINE__,
-                   "GetHandleInfo: out of range\n");
+        UpnpPrintf(UPNP_ERROR, API, __FILE__, __LINE__, "GetHandleInfo: out of range\n");
+        return HND_INVALID;
+    }
+    if (HandleTable[Hnd] == nullptr) {
+        // Don't print anything, we sometimes walk the table
+        //UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "GetHandleInfo: HTable[%d] is NULL\n", Hnd);
         return HND_INVALID;
     }
 
-    *HndInfo = static_cast<struct Handle_Info*>(HandleTable[Hnd]);
-
-    // Don't print anything, we sometimes walk the table
-    // UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-    //           "GetHandleInfo: HTable[%d] is NULL\n",
-    //           Hnd);
-
+    *HndInfo = HandleTable[Hnd];
     return (*HndInfo)->HType;
 }
 
