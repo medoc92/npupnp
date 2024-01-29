@@ -685,11 +685,13 @@ static int available_port(int reqport)
 }
 
 /* This enables printf like format checking by the compiler. */
+#ifndef _MSC_VER
 #ifdef __MINGW32__
 [[gnu::format(__MINGW_PRINTF_FORMAT, 2, 0)]]
 #else
 [[gnu::format(printf, 2, 0)]]
 #endif
+#endif // !_MSC_VER
 static void mhdlogger(void *, const char *fmt, va_list ap)
 {
     char buf[1024];

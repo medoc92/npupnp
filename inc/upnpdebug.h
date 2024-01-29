@@ -119,11 +119,13 @@ EXPORT_SPEC FILE *UpnpGetDebugFile(
     Dbg_Module module);
 
 /* This enables printf like format checking by the compiler. */
+#ifndef _MSC_VER
 #ifdef __MINGW32__
     [[gnu::format(__MINGW_PRINTF_FORMAT, 5, 6)]]
 #else
     [[gnu::format(printf, 5, 6)]]
 #endif
+#endif // !_MSC_VER
 /** @brief Prints the debug statement to the current output */
 EXPORT_SPEC void UpnpPrintf(
     /** [in] Message level, to be compared to the current verbosity. */
