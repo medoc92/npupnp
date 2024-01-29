@@ -1242,20 +1242,18 @@ public:
 };
 
 // Substitute one instance of regular expression
-std::string SimpleRegexp::simpleSub(
-    const std::string& in, const std::string& repl)
+std::string SimpleRegexp::simpleSub(const std::string& in, const std::string& repl)
 {
     if (!ok()) {
         return {};
     }
-
     if (int err = regexec(&m->expr, in.c_str(), m->nmatch + 1, &m->matches[0], 0)) {
+        PRETEND_USE(err);
 #if SIMPLESUB_DBG
         const int ERRSIZE = 200;
         char errbuf[ERRSIZE + 1];
         regerror(err, &expr, errbuf, ERRSIZE);
-        std::cerr << "simpleSub: regexec(" << sexp << ") failed: "
-                  <<  errbuf << "\n";
+        std::cerr << "simpleSub: regexec(" << sexp << ") failed: " <<  errbuf << "\n";
 #endif
         return in;
     }
