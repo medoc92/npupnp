@@ -126,7 +126,7 @@ int AdvertiseAndReply(
     SSDPDevMessageType tp,
     /* [in] Advertisement max-age or search response random delay base. */
     int Exp,
-    struct sockaddr *repDestAddr,
+    struct sockaddr_storage *repDestAddr,
     /* [in] Additional descriptive data for a search request */
     const SsdpEntity& sdata
 );

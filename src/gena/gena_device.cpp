@@ -649,7 +649,7 @@ static int create_url_list(
     out->clear();
 
     // Get information for the client address
-    NetIF::IPAddr claddr(reinterpret_cast<struct sockaddr*>(mhdt->client_address));
+    NetIF::IPAddr claddr(reinterpret_cast<struct sockaddr*>(&mhdt->client_address));
     if (!claddr.ok()) {
         UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
                    "create_url_list: can't determine client addr\n");

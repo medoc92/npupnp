@@ -275,7 +275,7 @@ static std::string rebuild_url_from_mhdt(
     MHDTransaction* mhdt, const std::string& path, const NetIF::IPAddr& claddr)
 {
     std::string aurl("http://");
-    auto hostport = UpnpGetUrlHostPortForClient(mhdt->client_address);
+    auto hostport = UpnpGetUrlHostPortForClient(&mhdt->client_address);
     if (hostport.empty()) {
         UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
                    "answer_to_connection: got empty hostport for connection from %s\n",
@@ -309,9 +309,7 @@ static MHD_Result answer_to_connection(
         *con_cls = mhdt;
         MHD_get_connection_values(conn, MHD_HEADER_KIND, headers_cb, mhdt);
         auto ca = MHD_get_connection_info(conn, MHD_CONNECTION_INFO_CLIENT_ADDRESS)->client_addr;
-        sockaddr_storage ss;
-        std::memcpy(&ss, ca, sizeof(sockaddr_storage));
-        mhdt->client_address = &ss;
+        mhdt->copyToClientAddress(ca);
 
         MHD_get_connection_values(conn, MHD_GET_ARGUMENT_KIND, queryvalues_cb, mhdt);
         mhdt->conn = conn;
@@ -337,7 +335,7 @@ static MHD_Result answer_to_connection(
             return MHD_YES;
         }
         
-        NetIF::IPAddr claddr(reinterpret_cast<sockaddr*>(mhdt->client_address));
+        NetIF::IPAddr claddr(reinterpret_cast<sockaddr*>(&mhdt->client_address));
         switch (validate_host_header(mhdt, claddr)) {
         case VHH_YES: return MHD_YES;
         case VHH_NO: return MHD_NO;

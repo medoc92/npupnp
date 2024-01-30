@@ -67,7 +67,7 @@ struct SSDPPwrState {
 // A bundle to simplify arg lists
 struct SSDPCommonData {
     SOCKET sock;
-    struct sockaddr *DestAddr;
+    struct sockaddr_storage *DestAddr;
     const char *DevOrServType;
     SSDPPwrState pwr;
     std::string prodvers;
@@ -85,14 +85,13 @@ public:
     void work() override {
         AdvertiseAndReply(m_reply->handle, MSGTYPE_REPLY,
                           m_reply->MaxAge,
-                          reinterpret_cast<struct sockaddr *>(&m_reply->dest_addr),
+                          &m_reply->dest_addr,
                           m_reply->event);
     }
     SsdpSearchReply *m_reply;
 };
 
-void ssdp_handle_device_request(SSDPPacketParser& parser,
-                                struct sockaddr_storage *dest_addr)
+void ssdp_handle_device_request(SSDPPacketParser& parser, struct sockaddr_storage *dest_addr)
 {
     int handle, start;
     struct Handle_Info *dev_info = nullptr;
@@ -323,17 +322,18 @@ static bool ssdpMcastAddr(struct sockaddr_storage& ss, int AddressFamily)
     return true;
 }
 
-static int sendPackets(SOCKET sock, struct sockaddr *daddr, int cnt, std::string *pckts)
+static int sendPackets(SOCKET sock, struct sockaddr_storage *daddr, int cnt, std::string *pckts)
 {
-    NetIF::IPAddr destip(daddr);
-    int socklen = daddr->sa_family == AF_INET ? sizeof(struct sockaddr_in) :
+    NetIF::IPAddr destip(reinterpret_cast<struct sockaddr*>(daddr));
+    int socklen = daddr->ss_family == AF_INET ? sizeof(struct sockaddr_in) :
         sizeof(struct sockaddr_in6);
 
     for (int i = 0; i < cnt; i++) {
         ssize_t rc;
         UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__, ">>> SSDP SEND to %s >>>\n%s\n",
                    destip.straddr().c_str(), pckts[i].c_str());
-        rc = sendto(sock, pckts[i].c_str(), pckts[i].size(), 0, daddr, socklen);
+        rc = sendto(sock, pckts[i].c_str(), pckts[i].size(), 0,
+                    reinterpret_cast<struct sockaddr*>(daddr), socklen);
 
         if (rc == -1) {
             char errorBuffer[ERROR_BUFFER_LEN];
@@ -434,17 +434,17 @@ static int DeviceAdvertisementOrShutdown(
             goto error_handler;
         CreateServicePacket(msgtype, "upnp:rootdevice",
                             Mil_Usn, Location, Duration, msgs[0],
-                            sscd.DestAddr->sa_family, sscd.pwr, sscd.prodvers);
+                            sscd.DestAddr->ss_family, sscd.pwr, sscd.prodvers);
     }
     /* both root and sub-devices need to send these two messages */
     CreateServicePacket(msgtype, Udn, Udn,
-                        Location, Duration, msgs[1], sscd.DestAddr->sa_family,
+                        Location, Duration, msgs[1], sscd.DestAddr->ss_family,
                         sscd.pwr, sscd.prodvers);
     rc = snprintf(Mil_Usn, sizeof(Mil_Usn), "%s::%s", Udn, DevType);
     if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Usn))
         goto error_handler;
     CreateServicePacket(msgtype, DevType, Mil_Usn, Location, Duration, msgs[2],
-                        sscd.DestAddr->sa_family, sscd.pwr, sscd.prodvers);
+                        sscd.DestAddr->ss_family, sscd.pwr, sscd.prodvers);
     /* check error */
     if ((RootDev && msgs[0].empty()) || msgs[1].empty() || msgs[2].empty()) {
         goto error_handler;
@@ -472,7 +472,7 @@ static int SendReply(
     char Mil_Usn[LINE_SIZE];
     int i;
     int rc = 0;
-    auto family = static_cast<int>(sscd.DestAddr->sa_family);
+    auto family = static_cast<int>(sscd.DestAddr->ss_family);
 
     if (RootDev) {
         /* one msg for root device */
@@ -519,7 +519,7 @@ static int DeviceReply(
     std::string szReq[3];
     char Mil_Nt[LINE_SIZE], Mil_Usn[LINE_SIZE];
     int rc = 0;
-    auto family = static_cast<int>(sscd.DestAddr->sa_family);
+    auto family = static_cast<int>(sscd.DestAddr->ss_family);
 
     /* create 2 or 3 msgs */
     if (RootDev) {
@@ -570,7 +570,7 @@ static int ServiceSend(
     if (rc < 0 || static_cast<unsigned int>(rc) >= sizeof(Mil_Usn))
         return UPNP_E_OUTOF_MEMORY;
     CreateServicePacket(tp, ServType, Mil_Usn, Location, Duration, szReq[0],
-                        sscd.DestAddr->sa_family, sscd.pwr, sscd.prodvers);
+                        sscd.DestAddr->ss_family, sscd.pwr, sscd.prodvers);
     if (szReq[0].empty()) {
         return UPNP_E_OUTOF_MEMORY;
 
@@ -614,7 +614,7 @@ static bool sameServOrDevNoVers(const char *his, const char *mine)
 // be subdevices
 static int AdvertiseAndReplyOneDest(
     UpnpDevice_Handle Hnd, SSDPDevMessageType tp, int Exp,
-    struct sockaddr *DestAddr, const SsdpEntity& sdata, SOCKET sock,
+    struct sockaddr_storage *DestAddr, const SsdpEntity& sdata, SOCKET sock,
     const std::string& lochost)
 {
     int retVal = UPNP_E_SUCCESS;
@@ -790,7 +790,7 @@ static int AdvertiseAndReplyOneDest(
 // work for each of the appropriate network addresses/interfaces.
 
 int AdvertiseAndReply(UpnpDevice_Handle Hnd, SSDPDevMessageType tp, int Exp,
-                      struct sockaddr *repDestAddr, const SsdpEntity& sdata)
+                      struct sockaddr_storage *repDestAddr, const SsdpEntity& sdata)
 {
     bool isNotify = (tp == MSGTYPE_ADVERTISEMENT || tp == MSGTYPE_SHUTDOWN);
     int ret = UPNP_E_SUCCESS;
@@ -804,7 +804,7 @@ int AdvertiseAndReply(UpnpDevice_Handle Hnd, SSDPDevMessageType tp, int Exp,
                        "ssdp_device: mcast for %s\n", netif.getname().c_str());
 
             struct sockaddr_storage dss;
-            auto destaddr = reinterpret_cast<struct sockaddr*>(&dss);
+            auto destaddr = &dss;
 
 #ifdef UPNP_ENABLE_IPV6
             if (using_ipv6()) {
@@ -849,15 +849,11 @@ int AdvertiseAndReply(UpnpDevice_Handle Hnd, SSDPDevMessageType tp, int Exp,
             }
         }
     } else {
-        if (repDestAddr->sa_family == AF_INET) {
-            sockaddr_in rs;
-            std::memcpy(&rs, repDestAddr, sizeof(sockaddr_in));
-            sock = createReplySocket4(&rs, lochost);
-        } else {
-            sockaddr_in6 rs;
-            std::memcpy(&rs, repDestAddr, sizeof(sockaddr_in6));
-            sock = createReplySocket6(&rs, lochost);
-        }
+        sock = repDestAddr->ss_family == AF_INET ?
+            createReplySocket4(
+                reinterpret_cast<struct sockaddr_in*>(repDestAddr), lochost) :
+            createReplySocket6(
+                reinterpret_cast<struct sockaddr_in6*>(repDestAddr), lochost);
         if (sock == INVALID_SOCKET) {
             goto exitfunc;
         }

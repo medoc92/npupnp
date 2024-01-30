@@ -107,19 +107,28 @@ void MHDTransaction::copyClientAddress(struct sockaddr_storage *dest) const
 {
     if (nullptr == dest)
         return;
-    if (nullptr == client_address) {
-        *dest = {};
-        return;
-    }
-    if (client_address->ss_family == AF_INET) {
-        memcpy(dest, client_address, sizeof(struct sockaddr_in));
+    if (client_address.ss_family == AF_INET) {
+        memcpy(dest, &client_address, sizeof(struct sockaddr_in));
+    } else if (client_address.ss_family == AF_INET6) {
+        memcpy(dest, &client_address, sizeof(struct sockaddr_in6));
     } else {
-        memcpy(dest, client_address, sizeof(struct sockaddr_in6));
-    }        
+        *dest = {};
+    }
 }
 
-bool MHDTransaction::copyHeader(const std::string& name,
-                                std::string& value)
+void MHDTransaction::copyToClientAddress(struct sockaddr *src)
+{
+    memset(&client_address, 0, sizeof(client_address));
+    if (nullptr == src)
+        return;
+    if (src->sa_family == AF_INET) {
+        memcpy(&client_address, src, sizeof(struct sockaddr_in));
+    } else if (src->sa_family == AF_INET6) {
+        memcpy(&client_address, src, sizeof(struct sockaddr_in6));
+    }
+}
+
+bool MHDTransaction::copyHeader(const std::string& name, std::string& value)
 {
     auto it = headers.find(stringtolower(name));
     if (it == headers.end()) {

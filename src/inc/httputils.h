@@ -73,7 +73,7 @@ std::string query_encode(const std::string& qs);
 struct MHDTransaction {
 public:
     struct MHD_Connection *conn{nullptr};
-    struct sockaddr_storage *client_address;
+    struct sockaddr_storage client_address;
     std::string url;
     http_method_t method;
     std::string version;
@@ -85,6 +85,7 @@ public:
     int httpstatus;
 
     void copyClientAddress(struct sockaddr_storage *dest) const;
+    void copyToClientAddress(struct sockaddr *src);
     // Returns false if header not found, else copies it
     bool copyHeader(const std::string& name, std::string& value);
 };

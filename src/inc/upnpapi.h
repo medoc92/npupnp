@@ -65,7 +65,7 @@ extern size_t g_maxContentLength;
 extern int g_UpnpSdkEQMaxLen;
 extern int g_UpnpSdkEQMaxAge;
 
-typedef enum {HND_INVALID=-1,HND_CLIENT,HND_DEVICE} Upnp_Handle_Type;
+typedef enum {HND_INVALID=-1, HND_CLIENT, HND_DEVICE} Upnp_Handle_Type;
 
 struct SsdpSearchArg;
 
@@ -75,7 +75,7 @@ struct Handle_Info
     Handle_Info() = default;
     ~Handle_Info() = default;
     /*! . */
-    Upnp_Handle_Type HType{Upnp_Handle_Type(0)};
+    Upnp_Handle_Type HType{HND_INVALID};
     /*! Callback function pointer. */
     Upnp_FunPtr  Callback{nullptr};
     /*! . */
