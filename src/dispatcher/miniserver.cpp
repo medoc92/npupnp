@@ -308,9 +308,10 @@ static MHD_Result answer_to_connection(
         auto mhdt = new MHDTransaction;
         *con_cls = mhdt;
         MHD_get_connection_values(conn, MHD_HEADER_KIND, headers_cb, mhdt);
-        mhdt->client_address =
-            reinterpret_cast<struct sockaddr_storage*>(
-                MHD_get_connection_info (conn,MHD_CONNECTION_INFO_CLIENT_ADDRESS)->client_addr);
+        auto ca = MHD_get_connection_info(conn, MHD_CONNECTION_INFO_CLIENT_ADDRESS)->client_addr;
+        sockaddr_storage ss;
+        std::memcpy(&ss, ca, sizeof(sockaddr_storage));
+        mhdt->client_address = &ss;
 
         MHD_get_connection_values(conn, MHD_GET_ARGUMENT_KIND, queryvalues_cb, mhdt);
         mhdt->conn = conn;
