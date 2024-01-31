@@ -36,20 +36,20 @@
 // std::regex makes the program text is almost 100kb bigger than the classical regex.h so we're
 // keeping the latter wherever we can (also, older platforms have no or a buggy std::regex)
 // Windows does not have the classical regex, no choice there.
-// We define a class to solve the simple cases. 
-
-#ifdef _WIN32
+// We define a class to solve the simple cases.
+#if __has_include(<regex.h>)
+#include <regex.h>
+#else
 #define USE_STD_REGEX
+#include <regex>
+#endif
+
+#ifdef _MSC_VER
 #define strncasecmp _strnicmp
 #define strcasecmp _stricmp
 #define localtime_r(a,b) localtime_s(b,a)
-#endif // _WIN32
+#endif // _MSC_VER
 
-#ifdef USE_STD_REGEX
-#include <regex>
-#else
-#include <regex.h>
-#endif
 
 using namespace std::placeholders;
 
