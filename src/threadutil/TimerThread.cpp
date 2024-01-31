@@ -33,6 +33,7 @@
 
 #include "TimerThread.h"
 
+#include <algorithm>
 #include <cassert>
 #include <chrono>
 #include <condition_variable>
@@ -157,35 +158,27 @@ int TimerThread::schedule(
     )
 {
     std::scoped_lock lck(m->mutex);
-    int rc = EOUTOFMEM;
 
     auto newEvent = new TimerEvent(std::move(worker), priority, persistence, when, m->lastEventId);
     if (newEvent == nullptr) {
-        return rc;
+        return EOUTOFMEM;
     }
     if (id) {
         *id = m->lastEventId;
     }
     /* add job to Q. Q is ordered by eventTime with the head of the Q being
      * the next event. */
-    rc = 0;
-    int found = 0;
-    for (auto it = m->eventQ.begin(); it != m->eventQ.end(); it++) {
-        if ((*it)->eventTime >= when) {
-            m->eventQ.insert(it, newEvent);
-            found = 1;
-            break;
-        }
-    }
-    /* add to the end of Q. */
-    if (!found) {
+    auto it = std::find_if(m->eventQ.begin(), m->eventQ.end(), [=](const auto& e) { return e->eventTime >= when; });
+    if (it != m->eventQ.end())
+        m->eventQ.insert(it, newEvent);
+    else
         m->eventQ.push_back(newEvent);
-    }
+
     /* signal change in Q. */
     m->condition.notify_all();
     m->lastEventId++;
 
-    return rc;
+    return 0;
 }
 
 int TimerThread::schedule(
@@ -214,19 +207,16 @@ int TimerThread::schedule(
 
 int TimerThread::remove(int id)
 {
-    int rc = -1;
     std::scoped_lock lck(m->mutex);
 
-    for (auto it = m->eventQ.begin(); it != m->eventQ.end(); it++) {
-        TimerEvent *temp = *it;
-        if (temp->id == id) {
-            m->eventQ.erase(it);
-            delete temp;
-            rc = 0;
-            break;
-        }
+    auto it = std::find_if(m->eventQ.begin(), m->eventQ.end(), [id](const auto& e) { return e->id == id; });
+    if (it != m->eventQ.end()) {
+        m->eventQ.erase(it);
+        delete *it;
+        return 0;
     }
-    return rc;
+
+    return -1;
 }
 
 int TimerThread::shutdown()
