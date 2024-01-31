@@ -33,14 +33,20 @@
 #include <utility>
 #include <vector>
 
-// Older compilers don't support stdc++ regex, but Windows does not have the Linux one. Have a
-// simple class to solve the simple cases.
-#if defined(_WIN32)
+// std::regex makes the program text is almost 100kb bigger than the classical regex.h so we're
+// keeping the latter wherever we can (also, older platforms have no or a buggy std::regex)
+// Windows does not have the classical regex, no choice there.
+// We define a class to solve the simple cases. 
+
+#ifdef _WIN32
 #define USE_STD_REGEX
-#include <regex>
 #define strncasecmp _strnicmp
 #define strcasecmp _stricmp
 #define localtime_r(a,b) localtime_s(b,a)
+#endif // _WIN32
+
+#ifdef USE_STD_REGEX
+#include <regex>
 #else
 #include <regex.h>
 #endif
@@ -797,95 +803,6 @@ std::string breakIntoLines(const std::string& in, unsigned int ll, unsigned int 
     return oq;
 }
 
-// Date is Y[-M[-D]]
-static bool parsedate(std::vector<std::string>::const_iterator& it,
-                      std::vector<std::string>::const_iterator end, DateInterval *dip)
-{
-    dip->y1 = dip->m1 = dip->d1 = dip->y2 = dip->m2 = dip->d2 = 0;
-    if (it->length() > 4 || it->empty() ||
-        it->find_first_not_of("0123456789") != std::string::npos) {
-        return false;
-    }
-    if (it == end || sscanf(it++->c_str(), "%d", &dip->y1) != 1) {
-        return false;
-    }
-    if (it == end || *it == "/") {
-        return true;
-    }
-    if (*it++ != "-") {
-        return false;
-    }
-
-    if (it->length() > 2 || it->empty() ||
-        it->find_first_not_of("0123456789") != std::string::npos) {
-        return false;
-    }
-    if (it == end || sscanf(it++->c_str(), "%d", &dip->m1) != 1) {
-        return false;
-    }
-    if (it == end || *it == "/") {
-        return true;
-    }
-    if (*it++ != "-") {
-        return false;
-    }
-
-    if (it->length() > 2 || it->empty() ||
-        it->find_first_not_of("0123456789") != std::string::npos) {
-        return false;
-    }
-    if (it == end || sscanf(it++->c_str(), "%d", &dip->d1) != 1) {
-        return false;
-    }
-
-    return true;
-}
-
-// Called with the 'P' already processed. Period ends at end of string
-// or at '/'. We dont' do a lot effort at validation and will happily
-// accept 10Y1Y4Y (the last wins)
-static bool parseperiod(std::vector<std::string>::const_iterator& it,
-                        std::vector<std::string>::const_iterator end, DateInterval *dip)
-{
-    dip->y1 = dip->m1 = dip->d1 = dip->y2 = dip->m2 = dip->d2 = 0;
-    while (it != end) {
-        int value;
-        if (it->find_first_not_of("0123456789") != std::string::npos) {
-            return false;
-        }
-        if (sscanf(it++->c_str(), "%d", &value) != 1) {
-            return false;
-        }
-        if (it == end || it->empty()) {
-            return false;
-        }
-        switch (it->at(0)) {
-        case 'Y':
-        case 'y':
-            dip->y1 = value;
-            break;
-        case 'M':
-        case 'm':
-            dip->m1 = value;
-            break;
-        case 'D':
-        case 'd':
-            dip->d1 = value;
-            break;
-        default:
-            return false;
-        }
-        it++;
-        if (it == end) {
-            return true;
-        }
-        if (*it == "/") {
-            return true;
-        }
-    }
-    return true;
-}
-
 #ifdef _WIN32
 static int setenv(const char* name, const char* value, int overwrite)
 {
@@ -919,201 +836,6 @@ time_t portable_timegm(struct tm *tm)
     }
     tzset();
     return ret;
-}
-
-#if 0
-static void cerrdip(const std::string& s, DateInterval *dip)
-{
-    cerr << s << dip->y1 << "-" << dip->m1 << "-" << dip->d1 << "/"
-         << dip->y2 << "-" << dip->m2 << "-" << dip->d2
-         << endl;
-}
-#endif
-
-// Compute date + period. Won't work out of the unix era.
-// or pre-1970 dates. Just convert everything to unixtime and
-// seconds (with average durations for months/years), add and convert
-// back
-static bool addperiod(DateInterval* dp, const DateInterval* pp)
-{
-    // Create a struct tm with possibly non normalized fields and let
-    // timegm sort it out
-    struct tm tm = {};
-    tm.tm_year = dp->y1 - 1900 + pp->y1;
-    tm.tm_mon = dp->m1 + pp->m1 - 1;
-    tm.tm_mday = dp->d1 + pp->d1;
-    time_t tres = mktime(&tm);
-    localtime_r(&tres, &tm);
-    dp->y1 = tm.tm_year + 1900;
-    dp->m1 = tm.tm_mon + 1;
-    dp->d1 = tm.tm_mday;
-    //cerrdip("Addperiod return", dp);
-    return true;
-}
-int monthdays(int mon, int year)
-{
-    switch (mon) {
-        // We are returning a few too many 29 days februaries, no problem
-    case 2:
-        return (year % 4) == 0 ? 29 : 28;
-    case 1:
-    case 3:
-    case 5:
-    case 7:
-    case 8:
-    case 10:
-    case 12:
-        return 31;
-    default:
-        return 30;
-    }
-}
-bool parsedateinterval(const std::string& s, DateInterval *dip)
-{
-    std::vector<std::string> vs;
-    dip->y1 = dip->m1 = dip->d1 = dip->y2 = dip->m2 = dip->d2 = 0;
-    DateInterval p1, p2, d1, d2;
-    p1 = p2 = d1 = d2 = *dip;
-    bool hasp1 = false, hasp2 = false, hasd1 = false, hasd2 = false,
-        hasslash = false;
-
-    if (!stringToStrings(s, vs, "PYMDpymd-/")) {
-        return false;
-    }
-    if (vs.empty()) {
-        return false;
-    }
-
-    auto it = vs.cbegin();
-    if (*it == "P" || *it == "p") {
-        it++;
-        if (!parseperiod(it, vs.end(), &p1)) {
-            return false;
-        }
-        hasp1 = true;
-        //cerrdip("p1", &p1);
-        p1.y1 = -p1.y1;
-        p1.m1 = -p1.m1;
-        p1.d1 = -p1.d1;
-    } else if (*it == "/") {
-        hasslash = true;
-        goto secondelt;
-    } else {
-        if (!parsedate(it, vs.end(), &d1)) {
-            return false;
-        }
-        hasd1 = true;
-    }
-
-    // Got one element and/or /
-secondelt:
-    if (it != vs.end()) {
-        if (*it != "/") {
-            return false;
-        }
-        hasslash = true;
-        it++;
-        if (it == vs.end()) {
-            // ok
-        } else if (*it == "P" || *it == "p") {
-            it++;
-            if (!parseperiod(it, vs.end(), &p2)) {
-                return false;
-            }
-            hasp2 = true;
-        } else {
-            if (!parsedate(it, vs.end(), &d2)) {
-                return false;
-            }
-            hasd2 = true;
-        }
-    }
-
-    // 2 periods dont' make sense
-    if (hasp1 && hasp2) {
-        return false;
-    }
-    // Nothing at all doesn't either
-    if (!hasp1 && !hasd1 && !hasp2 && !hasd2) {
-        return false;
-    }
-
-    // Empty part means today IF other part is period, else means
-    // forever (stays at 0)
-    time_t now = time(nullptr);
-    struct tm *tmnow = gmtime(&now);
-    if ((!hasp1 && !hasd1) && hasp2) {
-        d1.y1 = 1900 + tmnow->tm_year;
-        d1.m1 = tmnow->tm_mon + 1;
-        d1.d1 = tmnow->tm_mday;
-        hasd1 = true;
-    } else if ((!hasp2 && !hasd2) && hasp1) {
-        d2.y1 = 1900 + tmnow->tm_year;
-        d2.m1 = tmnow->tm_mon + 1;
-        d2.d1 = tmnow->tm_mday;
-        hasd2 = true;
-    }
-
-    // Incomplete dates have different meanings depending if there is
-    // a period or not (actual or infinite indicated by a / + empty)
-    //
-    // If there is no explicit period, an incomplete date indicates a
-    // period of the size of the uncompleted elements. Ex: 1999
-    // actually means 1999/P12M
-    //
-    // If there is a period, the incomplete date should be extended
-    // to the beginning or end of the unspecified portion. Ex: 1999/
-    // means 1999-01-01/ and /1999 means /1999-12-31
-    if (hasd1) {
-        if (!(hasslash || hasp2)) {
-            if (d1.m1 == 0) {
-                p2.m1 = 12;
-                d1.m1 = 1;
-                d1.d1 = 1;
-            } else if (d1.d1 == 0) {
-                d1.d1 = 1;
-                p2.d1 = monthdays(d1.m1, d1.y1);
-            }
-            hasp2 = true;
-        } else {
-            if (d1.m1 == 0) {
-                d1.m1 = 1;
-                d1.d1 = 1;
-            } else if (d1.d1 == 0) {
-                d1.d1 = 1;
-            }
-        }
-    }
-    // if hasd2 is true we had a /
-    if (hasd2) {
-        if (d2.m1 == 0) {
-            d2.m1 = 12;
-            d2.d1 = 31;
-        } else if (d2.d1 == 0) {
-            d2.d1 = monthdays(d2.m1, d2.y1);
-        }
-    }
-    if (hasp1) {
-        // Compute d1
-        d1 = d2;
-        if (!addperiod(&d1, &p1)) {
-            return false;
-        }
-    } else if (hasp2) {
-        // Compute d2
-        d2 = d1;
-        if (!addperiod(&d2, &p2)) {
-            return false;
-        }
-    }
-
-    dip->y1 = d1.y1;
-    dip->m1 = d1.m1;
-    dip->d1 = d1.d1;
-    dip->y2 = d2.y1;
-    dip->m2 = d2.m1;
-    dip->d2 = d2.d1;
-    return true;
 }
 
 std::string hexprint(const std::string& in, char separ)
