@@ -91,6 +91,36 @@ jobs:
         run: |
           meson setup "${{github.workspace}}/build" --wrap-mode=${{matrix.deps}} -Dwarning_level=3 -Dcpp_std=c++latest
           meson compile -C "${{github.workspace}}/build" --verbose
+  MSYS2:
+    runs-on: windows-latest
+    name: MSYS2-${{matrix.platform}}-deps=${{matrix.deps}}
+    strategy:
+      matrix:
+        deps: ['enabled', 'disabled']
+        platform: ['UCRT64', 'CLANG64']
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{matrix.platform}}
+          pacboy: >-
+            cc:p
+            cmake:p
+            curl:p
+            expat:p
+            libmicrohttpd:p
+            meson:p
+            ninja:p
+            pkgconf:p
+
+      - name: Compile and Test
+        run: |
+          meson setup "${{github.workspace}}/build" -Dauto_features=${{matrix.deps}} -Dwarning_level=3 -Dcpp_std=c++20
+          meson compile -C "${{github.workspace}}/build" --verbose
   Cygwin:
     runs-on: windows-latest
     defaults:
