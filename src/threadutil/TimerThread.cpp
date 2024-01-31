@@ -168,7 +168,7 @@ int TimerThread::schedule(
     }
     /* add job to Q. Q is ordered by eventTime with the head of the Q being
      * the next event. */
-    auto it = std::find_if(m->eventQ.begin(), m->eventQ.end(), [=](const auto& e) { return e->eventTime == when; });
+    auto it = std::find_if(m->eventQ.begin(), m->eventQ.end(), [=](const auto& e) { return e->eventTime >= when; });
     if (it != m->eventQ.end())
         m->eventQ.insert(it, newEvent);
     else
