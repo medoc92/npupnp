@@ -244,15 +244,10 @@ private:
 
 class SSDPEventHandlerJobWorker : public JobWorker {
 public:
-    explicit SSDPEventHandlerJobWorker(ssdp_thread_data *data)
-        : m_data(data) {}
-    ~SSDPEventHandlerJobWorker() override {
-        delete m_data;
-    }
-    SSDPEventHandlerJobWorker(const SSDPEventHandlerJobWorker&) = delete;
-    SSDPEventHandlerJobWorker& operator=(const SSDPEventHandlerJobWorker&) = delete;
+    explicit SSDPEventHandlerJobWorker(std::unique_ptr<ssdp_thread_data> data)
+        : m_data(std::move(data)) {}
     void work() override;
-    ssdp_thread_data *m_data;
+    std::unique_ptr<ssdp_thread_data> m_data;
 };
 
 /* Thread routine to process one received SSDP message */
@@ -285,7 +280,7 @@ void SSDPEventHandlerJobWorker::work()
 
 void readFromSSDPSocket(SOCKET socket)
 {
-    auto data = new ssdp_thread_data;
+    auto data = std::make_unique<ssdp_thread_data>();
     auto sap = reinterpret_cast<struct sockaddr *>(&data->dest_addr);
     socklen_t socklen = sizeof(data->dest_addr);
     ssize_t cnt = recvfrom(socket, data->packet(), data->size() - 1, 0, sap, &socklen);
@@ -298,10 +293,8 @@ void readFromSSDPSocket(SOCKET socket)
                    "End of received data -----------------------------\n",
                    nipa.straddr().c_str(), data->packet());
         /* add thread pool job to handle request */
-        auto worker = std::make_unique<SSDPEventHandlerJobWorker>(data);
+        auto worker = std::make_unique<SSDPEventHandlerJobWorker>(std::move(data));
         gRecvThreadPool.addJob(std::move(worker));
-    } else {
-        delete data;
     }
 }
 

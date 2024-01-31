@@ -75,20 +75,15 @@ struct SSDPCommonData {
 
 class SSDPSearchJobWorker : public JobWorker {
 public:
-    explicit SSDPSearchJobWorker(SsdpSearchReply *reply)
-        : m_reply(reply) {}
-    ~SSDPSearchJobWorker() override {
-        delete m_reply;
-    }
-    SSDPSearchJobWorker(const SSDPSearchJobWorker&) = delete;
-    SSDPSearchJobWorker& operator=(const SSDPSearchJobWorker&) = delete;
+    explicit SSDPSearchJobWorker(std::unique_ptr<SsdpSearchReply> reply)
+        : m_reply(std::move(reply)) {}
     void work() override {
         AdvertiseAndReply(m_reply->handle, MSGTYPE_REPLY,
                           m_reply->MaxAge,
                           &m_reply->dest_addr,
                           m_reply->event);
     }
-    SsdpSearchReply *m_reply;
+    std::unique_ptr<SsdpSearchReply> m_reply;
 };
 
 void ssdp_handle_device_request(SSDPPacketParser& parser, struct sockaddr_storage *dest_addr)
@@ -141,13 +136,13 @@ void ssdp_handle_device_request(SSDPPacketParser& parser, struct sockaddr_storag
         UpnpPrintf(UPNP_DEBUG, API, __FILE__, __LINE__,
                    "ServiceType =  %s\n", event.ServiceType.c_str());
 
-        auto threadArg = new SsdpSearchReply;
+        auto threadArg = std::make_unique<SsdpSearchReply>();
         threadArg->handle = handle;
         memcpy(&threadArg->dest_addr, dest_addr, sizeof(threadArg->dest_addr));
         threadArg->event = event;
         threadArg->MaxAge = maxAge;
 
-        auto worker = std::make_unique<SSDPSearchJobWorker>(threadArg);
+        auto worker = std::make_unique<SSDPSearchJobWorker>(std::move(threadArg));
         if (mx) {
             mx = std::max(1, mx);
             /* Subtract a bit from the mx to allow for network/processing delays */

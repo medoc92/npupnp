@@ -113,7 +113,7 @@ struct Handle_Info
     /*! Client subscription list. */
     std::list<ClientSubscription> ClientSubList;
     /*! Active SSDP searches. */
-    std::list<std::unique_ptr<SsdpSearchArg>> SsdpSearchList;
+    std::list<SsdpSearchArg> SsdpSearchList;
     int SubsOpsTimeoutMS{HTTP_DEFAULT_TIMEOUT * 1000};
 #endif
 

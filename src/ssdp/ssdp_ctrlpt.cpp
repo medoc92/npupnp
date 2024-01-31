@@ -52,6 +52,8 @@ nnn * Redistribution and use in source and binary forms, with or without
 
 /*! Structure to contain Discovery response. */
 struct ResultData {
+    explicit ResultData(Upnp_Discovery p, void* c, Upnp_FunPtr f) :
+        param(p), cookie(c), ctrlpt_callback(f) {}
     struct Upnp_Discovery param;
     void *cookie;
     Upnp_FunPtr ctrlpt_callback;
@@ -60,30 +62,22 @@ struct ResultData {
 /** Calls back the control point application with a search result. */
 class SearchResultJobWorker : public JobWorker {
 public:
-    explicit SearchResultJobWorker(ResultData *res)
-        : m_resultdata(res) {}
-    ~SearchResultJobWorker() override {
-        delete m_resultdata;
-    }
-    SearchResultJobWorker(const SearchResultJobWorker&) = delete;
-    SearchResultJobWorker& operator=(const SearchResultJobWorker&) = delete;
+    explicit SearchResultJobWorker(std::unique_ptr<ResultData> res)
+        : m_resultdata(std::move(res)) {}
     void work() override {
         m_resultdata->ctrlpt_callback(UPNP_DISCOVERY_SEARCH_RESULT, &m_resultdata->param,
                                       m_resultdata->cookie);
     }
-    ResultData *m_resultdata;
+    std::unique_ptr<ResultData> m_resultdata;
 };
 
 /* Worker to send the search messages. */
 class SearchSendJobWorker : public JobWorker {
 public:
-    explicit SearchSendJobWorker(const std::string& v4, const std::string& v6)
-        : ReqBufv4(v4), ReqBufv6(v6) {}
+    explicit SearchSendJobWorker(std::string v4, std::string v6)
+        : ReqBufv4(std::move(v4)), ReqBufv6(std::move(v6)) {}
     std::string ReqBufv4;
     std::string ReqBufv6;
-    ~SearchSendJobWorker() override = default;
-    SearchSendJobWorker(const SearchSendJobWorker&) = delete;
-    SearchSendJobWorker& operator=(const SearchSendJobWorker&) = delete;
     void work() override;
 
 };
@@ -310,9 +304,9 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser, struct sockaddr_storage *d
             return;
         }
         size_t stlen = strlen(parser.st);
-        for (auto&& searchArg : ctrlpt_info->SsdpSearchList) {
+        for (const auto& searchArg : ctrlpt_info->SsdpSearchList) {
             /* check for match of ST header and search target */
-            switch (searchArg->requestType) {
+            switch (searchArg.requestType) {
             case SSDP_ALL:
                 matched = 1;
                 break;
@@ -320,18 +314,18 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser, struct sockaddr_storage *d
                 matched = (event.RequestType == SSDP_ROOTDEVICE);
                 break;
             case SSDP_DEVICEUDN:
-                matched = !strncmp(searchArg->searchTarget.c_str(), parser.st, stlen);
+                matched = !strncmp(searchArg.searchTarget.c_str(), parser.st, stlen);
                 break;
             case SSDP_DEVICETYPE:
             {
-                size_t m = std::min(stlen, searchArg->searchTarget.size());
-                matched =!strncmp(searchArg->searchTarget.c_str(), parser.st, m);
+                size_t m = std::min(stlen, searchArg.searchTarget.size());
+                matched = !strncmp(searchArg.searchTarget.c_str(), parser.st, m);
                 break;
             }
             case SSDP_SERVICE:
             {
-                size_t m = std::min(stlen, searchArg->searchTarget.size());
-                matched = !strncmp(searchArg->searchTarget.c_str(),parser.st, m);
+                size_t m = std::min(stlen, searchArg.searchTarget.size());
+                matched = !strncmp(searchArg.searchTarget.c_str(), parser.st, m);
                 break;
             }
             default:
@@ -340,11 +334,8 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser, struct sockaddr_storage *d
             }
             if (matched) {
                 /* schedule call back */
-                auto threadData = new ResultData;
-                threadData->param = param;
-                threadData->cookie = searchArg->cookie;
-                threadData->ctrlpt_callback = ctrlpt_callback;
-                auto worker = std::make_unique<SearchResultJobWorker>(threadData);
+                auto threadData = std::make_unique<ResultData>(param, searchArg.cookie, ctrlpt_callback);
+                auto worker = std::make_unique<SearchResultJobWorker>(std::move(threadData));
                 gRecvThreadPool.addJob(std::move(worker));
             }
         }
@@ -399,8 +390,6 @@ static int CreateClientRequestPacket(
 
 class SearchExpiredJobWorker : public JobWorker {
 public:
-    SearchExpiredJobWorker() = default;
-    ~SearchExpiredJobWorker() override = default;
     void work() override;
     int m_id;
 };
@@ -423,10 +412,10 @@ void SearchExpiredJobWorker::work()
     auto it = std::find_if(
         ctrlpt_info->SsdpSearchList.begin(),
         ctrlpt_info->SsdpSearchList.end(),
-        [id](const std::unique_ptr<SsdpSearchArg>& item) {return item->timeoutEventId == id;});
+        [id](const auto& item) { return item.timeoutEventId == id; });
 
     if (it != ctrlpt_info->SsdpSearchList.end()) {
-        cookie = (*it)->cookie;
+        cookie = it->cookie;
         found = 1;
         ctrlpt_info->SsdpSearchList.erase(it);
     }
@@ -489,13 +478,11 @@ int SearchByTarget(int Mx, const char *St, const char *saddress, int port, void 
         HandleUnlock();
         return UPNP_E_INTERNAL_ERROR;
     }
-    auto newArg = std::make_unique<SsdpSearchArg>(St, Cookie, requestType);
     auto worker = std::make_unique<SearchExpiredJobWorker>();
     int *idp = &(worker->m_id);
     gTimerThread->schedule(TimerThread::SHORT_TERM, TimerThread::REL_SEC, Mx ? Mx + 1 : 2,
                            idp, std::move(worker));
-    newArg->timeoutEventId = *idp;
-    ctrlpt_info->SsdpSearchList.push_back(std::move(newArg));
+    ctrlpt_info->SsdpSearchList.emplace_back(*idp, St, Cookie, requestType);
 
     HandleUnlock();
 
