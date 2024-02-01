@@ -52,6 +52,11 @@
 #include <thread>
 
 struct SsdpSearchReply {
+    SsdpSearchReply(int a, UpnpDevice_Handle h, sockaddr_storage* da, SsdpEntity e)
+        : MaxAge(a), handle(h), event(std::move(e))
+    {
+        std::memcpy(&dest_addr, da, sizeof(dest_addr));
+    }
     int MaxAge;
     UpnpDevice_Handle handle;
     struct sockaddr_storage dest_addr;
@@ -136,12 +141,7 @@ void ssdp_handle_device_request(SSDPPacketParser& parser, struct sockaddr_storag
         UpnpPrintf(UPNP_DEBUG, API, __FILE__, __LINE__,
                    "ServiceType =  %s\n", event.ServiceType.c_str());
 
-        auto threadArg = std::make_unique<SsdpSearchReply>();
-        threadArg->handle = handle;
-        memcpy(&threadArg->dest_addr, dest_addr, sizeof(threadArg->dest_addr));
-        threadArg->event = event;
-        threadArg->MaxAge = maxAge;
-
+        auto threadArg = std::make_unique<SsdpSearchReply>(maxAge, handle, dest_addr, event);
         auto worker = std::make_unique<SSDPSearchJobWorker>(std::move(threadArg));
         if (mx) {
             mx = std::max(1, mx);
