@@ -280,11 +280,10 @@ int SoapSendAction(
                "soapSendAction: http_stt [%ld] errcode %d errdesc[%s]\n",
                http_status, *errcodep, errdesc.c_str());
 
-    if (ret_code == SOAP_ACTION_RESP) {
+    if (ret_code == SOAP_ACTION_RESP)
         return UPNP_E_SUCCESS;
-    } else if (ret_code == SOAP_ACTION_RESP_ERROR ) {
+    if (ret_code == SOAP_ACTION_RESP_ERROR)
         return *errcodep;
-    }
     return ret_code;
 }
 
