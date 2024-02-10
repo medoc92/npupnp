@@ -300,15 +300,13 @@ size_t utf8len(const std::string& s);
 /** Return number of bytes for Unicode character */
 inline int utf8codepointsize(uint32_t codepoint)
 {
-    if (codepoint <= 0x7F) {
+    if (codepoint <= 0x7F)
         return 1;
-    } else if (codepoint <= 0x7FF) {
+    if (codepoint <= 0x7FF)
         return 2;
-    } else if (codepoint < 0xFFFF) {
+    if (codepoint < 0xFFFF)
         return 3;
-    } else {
-        return 4;
-    }
+    return 4;
 }
 
 /** @brief Check and possibly fix string by replacing badly encoded
