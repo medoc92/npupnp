@@ -168,12 +168,10 @@ static const std::map<std::string_view, int> strmethtometh {
     {"unsubscribe", HTTPMETHOD_UNSUBSCRIBE},
 };
 
-static void request_completed_cb(void*, MHD_Connection*, void** con_cls, MHD_RequestTerminationCode)
+static void request_completed_cb(void*, MHD_Connection*, MHDTransaction** con_cls, MHD_RequestTerminationCode)
 {
-    if (nullptr == con_cls)
-        return;
-    auto mhdt = static_cast<MHDTransaction *>(*con_cls);
-    delete mhdt;
+    if (con_cls)
+        delete *con_cls;
 }
 
 
