@@ -323,7 +323,7 @@ static int create_ssdp_sock_v4(SOCKET *ssdpSock)
 
 #if (defined(BSD) && !defined(__GNU__)) || defined(__OSX__) || defined(__APPLE__)
     onOff = 1;
-    ret = setsockopt(*ssdpSock, SOL_SOCKET, SO_REUSEPORT, (char *)&onOff, sizeof(onOff));
+    ret = setsockopt(*ssdpSock, SOL_SOCKET, SO_REUSEPORT, reinterpret_cast<char *>(&onOff), sizeof(onOff));
     if (ret == -1) {
         errorcause = "setsockopt() SO_REUSEPORT";
         goto error_handler;
@@ -484,7 +484,7 @@ static int create_ssdp_sock_v6(bool isulagua, SOCKET *ssdpSock)
 #if (defined(BSD) && !defined(__GNU__)) || defined(__OSX__) || defined(__APPLE__)
     onOff = 1;
     ret = setsockopt(*ssdpSock, SOL_SOCKET, SO_REUSEPORT,
-                     (char *)&onOff, sizeof(onOff));
+                     reinterpret_cast<char *>(&onOff), sizeof(onOff));
     if (ret == -1) {
         errorcause = "setsockopt() SO_REUSEPORT";
         goto error_handler;

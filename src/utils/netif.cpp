@@ -584,7 +584,7 @@ Interfaces::Internal::Internal()
         {
             auto sdl = reinterpret_cast<struct sockaddr_dl*>(ifa->ifa_addr);
             LOGDEB("NetIF::Interfaces: " << ifa->ifa_name << " has hwaddr\n");
-            ifit->m->sethwaddr((const char*)LLADDR(sdl), sdl->sdl_alen);
+            ifit->m->sethwaddr(reinterpret_cast<const char*>(LLADDR(sdl)), sdl->sdl_alen);
         }
         break;
 #endif
@@ -617,7 +617,7 @@ static bool wchartoutf8(const wchar_t* in, std::string& out, size_t wlen)
         fwprintf(stderr, L"wchartoutf8: conversion error1 for [%s]\n", in);
         return false;
     }
-    char *cp = (char *)malloc(bytes+1);
+    auto cp = static_cast<char *>(malloc(bytes+1));
     if (nullptr == cp) {
         LOGERR("wchartoutf8: malloc failed\n");
         return false;
@@ -707,7 +707,7 @@ Interfaces::Internal::Internal()
         // Note: upnpapi.c used IfIndex instead.
         ifit->m->index = adapts_item->Ipv6IfIndex;
         /* The MAC is in the pAdapter->Address char array */
-        ifit->m->sethwaddr((const char *)adapts_item->PhysicalAddress,
+        ifit->m->sethwaddr(reinterpret_cast<const char *>(adapts_item->PhysicalAddress),
                            adapts_item->PhysicalAddressLength);
         LOGDEB("NetIF::Interfaces: " << tmpnm << " has hwaddr\n");
         uni_addr = adapts_item->FirstUnicastAddress;
@@ -723,7 +723,7 @@ Interfaces::Internal::Internal()
                 struct sockaddr_in sa = {};
                 sa.sin_family = AF_INET;
                 sa.sin_addr.s_addr = mask;
-                ifit->m->netmasks.emplace_back((struct sockaddr*)&sa);
+                ifit->m->netmasks.emplace_back(reinterpret_cast<sockaddr*>(&sa));
             }
             break;
             case AF_INET6:
