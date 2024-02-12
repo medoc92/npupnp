@@ -198,6 +198,8 @@ static int genaNotify(const std::string& propertySet, const subscription *sub)
    though (e.g. with shared_ptr for the propertySet string. We don't
    typically have thousands of subscribed CPs... */
 struct Notification {
+    Notification(std::string sid, std::string udn, std::string pset, Upnp_SID uSID, time_t ct, UpnpDevice_Handle dh)
+        : device_handle(dh), UDN(std::move(udn)), servId(std::move(sid)), sid(std::move(uSID)), propertySet(std::move(pset)), ctime(ct) {}
     UpnpDevice_Handle device_handle; //
     std::string UDN;                 // Device
     std::string servId;  // Service
@@ -344,19 +346,7 @@ int genaInitNotifyXML(
     sub->active = 1;
 
     /* schedule thread for initial notification */
-    thread_struct = new Notification;
-    if (thread_struct == nullptr) {
-        line = __LINE__;
-        ret = UPNP_E_OUTOF_MEMORY;
-        goto ExitFunction;
-    }
-    thread_struct->servId = servId;
-    thread_struct->UDN = UDN;
-    thread_struct->propertySet = propertySet;
-    thread_struct->sid = sid;
-    thread_struct->ctime = time(nullptr);
-    thread_struct->device_handle = device_handle;
-
+    thread_struct = new Notification(servId, UDN, propertySet, sid, time(nullptr), device_handle);
     {
         auto worker = std::make_unique<GenaNotifyJobWorker>(thread_struct);
         ret = gSendThreadPool.addJob(std::move(worker));
@@ -493,19 +483,7 @@ int genaNotifyAllXML(
 
     finger = GetFirstSubscription(service);
     while (finger != service->subscriptionList.end()) {
-        thread_struct = new Notification;
-        if (thread_struct == nullptr) {
-            line = __LINE__;
-            ret = UPNP_E_OUTOF_MEMORY;
-            break;
-        }
-        thread_struct->UDN = UDN;
-        thread_struct->servId = servId;
-        thread_struct->propertySet = propertySet;
-        thread_struct->ctime = time(nullptr);
-        thread_struct->device_handle = device_handle;
-        thread_struct->sid = finger->sid;
-
+        thread_struct = new Notification(servId, UDN, propertySet, finger->sid, time(nullptr), device_handle);
         maybeDiscardEvents(finger->outgoing);
         finger->outgoing.push_back(thread_struct);
 

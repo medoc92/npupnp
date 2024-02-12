@@ -94,6 +94,13 @@ static void clientCancelRenew(ClientSubscription *sub)
 }
 
 struct upnp_timeout_data_subscribe : public upnp_timeout_data {
+    upnp_timeout_data_subscribe(std::string s, int e, const std::string& url, int t)
+    {
+        sub.Sid = std::move(s);
+        sub.ErrCode = e;
+        upnp_strlcpy(sub.PublisherUrl, url, NAME_SIZE);
+        sub.TimeOut = t;
+    }
     struct Upnp_Event_Subscribe sub;
 };
 
@@ -174,17 +181,9 @@ static int ScheduleGenaAutoRenew(
         return GENA_SUCCESS;
     }
 
-    auto RenewEventStruct = new upnp_timeout_data_subscribe;
-    auto RenewEvent =  new upnp_timeout;
-
     /* schedule expire event */
-    RenewEventStruct->sub.Sid = sub->SID;
-    RenewEventStruct->sub.ErrCode = UPNP_E_SUCCESS;
-    upnp_strlcpy(RenewEventStruct->sub.PublisherUrl, sub->eventURL, NAME_SIZE);
-    RenewEventStruct->sub.TimeOut = TimeOut;
-
-    RenewEvent->handle = client_handle;
-    RenewEvent->Event = RenewEventStruct;
+    auto RenewEventStruct = new upnp_timeout_data_subscribe(sub->SID, UPNP_E_SUCCESS, sub->eventURL, TimeOut);
+    auto RenewEvent = new upnp_timeout(client_handle, RenewEventStruct);
 
     /* Schedule the job */
     auto worker = std::make_unique<AutoRenewSubscriptionJobWorker>(RenewEvent);

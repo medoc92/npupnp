@@ -1411,6 +1411,7 @@ int UpnpSendAdvertisement(UpnpDevice_Handle Hnd, int Exp)
 }
 
 struct upnp_timeout_data_int : public upnp_timeout_data {
+    upnp_timeout_data_int(int e) : exp(e) {}
     int exp;
 };
 
@@ -1462,11 +1463,8 @@ int UpnpSendAdvertisementLowPower(
     if(retVal != UPNP_E_SUCCESS)
         return retVal;
 
-    auto adEvent = new upnp_timeout;
-    auto adEventData = new upnp_timeout_data_int;
-    adEventData->exp = Exp;
-    adEvent->Event = adEventData;
-    adEvent->handle = Hnd;
+    auto adEventData = new upnp_timeout_data_int(Exp);
+    auto adEvent = new upnp_timeout(Hnd, adEventData);
 
     if (checkLockHandle(HND_DEVICE, Hnd, &SInfo) == HND_INVALID) {
         delete adEvent;

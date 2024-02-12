@@ -46,10 +46,10 @@ struct upnp_timeout_data {
  * had void* payload on which it called free())
  */
 struct upnp_timeout {
-    int handle{-1};
+    upnp_timeout(int h, upnp_timeout_data* e) : handle(h), Event(e) {}
+    int handle;
     int eventId{0};
-    upnp_timeout_data *Event{nullptr};
-    upnp_timeout() = default;
+    upnp_timeout_data* Event;
     ~upnp_timeout() {
         delete Event;
     }
