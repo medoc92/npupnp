@@ -43,7 +43,6 @@
 
 #include "webserver.h"
 
-#include <algorithm>
 #include <map>
 #include <unordered_map>
 #include <mutex>
@@ -383,10 +382,9 @@ static const VirtualDirListEntry *isFileInVirtualDir(const std::string& path)
 static int CheckOtherHTTPHeaders(
     const MHDTransaction* mhdt, struct SendInstruction* RespInstr, int64_t)
 {
-    for (const auto& header : mhdt->headers) {
+    for (const auto& [type, hvalue] : mhdt->headers) {
         /* find header type. */
-        int index = httpheader_str2int(header.first);
-        const std::string& hvalue = header.second;
+        int index = httpheader_str2int(type);
         if (index >= 0) {
             switch (index) {
             case HDR_ACCEPT_LANGUAGE:
@@ -489,10 +487,8 @@ static int process_request(
         std::string qs;
         if (!mhdt->queryvalues.empty()) {
             qs = "?";
-            for (const auto& entry : mhdt->queryvalues) {
-                qs += query_encode(entry.first) + "=" + query_encode(entry.second);
-                qs += "&";
-            }
+            for (const auto& [name, val] : mhdt->queryvalues)
+                qs += query_encode(name) + "=" + query_encode(val) + "&";
             qs.pop_back();
         }
         std::string bfilename{filename};
@@ -733,13 +729,12 @@ static void web_server_callback(MHDTransaction *mhdt)
     }
 
     bool serverhfound{false};
-    for (const auto& header : headers) {
-        //std::cerr << "web_server_callback: adding header [" << header.first <<
-        //"]->[" << header.second << "]\n";
-        if (!stringlowercmp("server", header.first)) {
+    for (const auto& [name, val] : headers) {
+        // std::cerr << "web_server_callback: adding header [" << name << "]->[" << val << "]\n";
+        if (!stringlowercmp("server", name)) {
             serverhfound = true;
         }
-        MHD_add_response_header(mhdt->response, header.first.c_str(), header.second.c_str());
+        MHD_add_response_header(mhdt->response, name.c_str(), val.c_str());
     }
     if (!serverhfound) {
         MHD_add_response_header(mhdt->response, "SERVER", get_sdk_device_info("").c_str());

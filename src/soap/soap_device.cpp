@@ -137,11 +137,8 @@ static void send_action_response(
     response << start_body;
     response << "<u:" << soap_info->action_name << "Response" <<
         R"( xmlns:u=")" << soap_info->service_type << R"(">)" "\n";
-    for (const auto&  arg : data) {
-        response << "<" << arg.first << ">" <<
-            xmlQuote(arg.second) <<
-            "</" <<    arg.first << ">\n";
-    }
+    for (const auto& [name, val] : data)
+        response << "<" << name << ">" << xmlQuote(val) << "</" << name << ">\n";
     response << "</u:" << soap_info->action_name << "Response" << ">\n";
     response << end_body;
     const std::string& txt(response.str());

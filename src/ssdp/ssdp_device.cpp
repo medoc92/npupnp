@@ -823,16 +823,13 @@ int AdvertiseAndReply(UpnpDevice_Handle Hnd, SSDPDevMessageType tp, int Exp,
 #endif /* UPNP_ENABLE_IPV6 */
 
             ssdpMcastAddr(dss, AF_INET);
-            auto addresses = netif.getaddresses();
-            for (const auto& ipaddr : addresses.first) {
-                if (ipaddr.family() == NetIF::IPAddr::Family::IPV4) {
-                    const struct sockaddr_storage& fss{ipaddr.getaddr()};
-                    sock = createMulticastSocket4(
-                        reinterpret_cast<const struct sockaddr_in*>(&fss),
-                        lochost);
-                } else {
+            for (const auto& ipaddr : netif.getaddresses().first) {
+                if (ipaddr.family() != NetIF::IPAddr::Family::IPV4)
                     continue;
-                }
+                const struct sockaddr_storage& fss{ipaddr.getaddr()};
+                sock = createMulticastSocket4(
+                    reinterpret_cast<const struct sockaddr_in*>(&fss),
+                    lochost);
                 if (sock == INVALID_SOCKET) {
                     goto exitfunc;
                 }

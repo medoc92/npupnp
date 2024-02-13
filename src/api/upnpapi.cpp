@@ -32,7 +32,6 @@
 
 #include "config.h"
 
-#include <algorithm>
 #include <array>
 #include <mutex>
 #include <sstream>
@@ -307,11 +306,9 @@ static int getIfInfo(const char *IfNames)
         for (auto& netif : g_netifs) {
             auto [addrs, _] = netif.getaddresses();
             std::vector<NetIF::IPAddr> kept;
-            std::copy_if(addrs.begin(), addrs.end(),
-                         std::back_inserter(kept),
-                         [](const NetIF::IPAddr &addr){
-                             return addr.family() ==
-                                 NetIF::IPAddr::Family::IPV4;});
+            for (const auto& addr : addrs)
+                if (addr.family() == NetIF::IPAddr::Family::IPV4)
+                    kept.push_back(addr);
             netif.trimto(kept);
         }
     }
@@ -346,8 +343,7 @@ static int getmyipv4(const char *inipv4 = nullptr)
 
     if (ipspecified) {
         for (auto& iface : selected) {
-            const auto addrs = iface.getaddresses().first;
-            for (const auto& addr : addrs) {
+            for (const auto& addr : iface.getaddresses().first) {
                 if (addr.straddr() == inipv4) {
                     netifp = &iface;
                     goto ipv4found;
@@ -413,7 +409,6 @@ static int WinsockInit(void)
 /* Initializes the global threadm pools used by the UPnP SDK. */
 static int UpnpInitThreadPools()
 {
-    int ret = UPNP_E_SUCCESS;
     ThreadPoolAttr attr;
 
     attr.maxThreads = MAX_THREADS;
@@ -423,17 +418,15 @@ static int UpnpInitThreadPools()
     attr.maxIdleTime = THREAD_IDLE_TIME;
     attr.maxJobsTotal = MAX_JOBS_TOTAL;
 
-    auto i = std::any_of(o_threadpools.begin(), o_threadpools.end(), [&](const std::pair<ThreadPool*, const char*> &entry)
-        { return entry.first->start(&attr) != UPNP_E_SUCCESS; });
-
-    if (i) {
-        ret = UPNP_E_INIT_FAILED;
-        UpnpSdkInit = 0;
-        UpnpFinish();
+    for (const auto& [tp, _] : o_threadpools) {
+        if (tp->start(&attr) != UPNP_E_SUCCESS) {
+            UpnpSdkInit = 0;
+            UpnpFinish();
+            return UPNP_E_INIT_FAILED;
+        }
     }
-    return ret;
+    return UPNP_E_SUCCESS;
 }
-
 
 /*!
  * \brief Performs the initial steps in initializing the UPnP SDK.
@@ -789,10 +782,9 @@ EXPORT_SPEC int UpnpFinish()
 #if EXCLUDE_WEB_SERVER == 0
     web_server_destroy();
 #endif
-    for (const auto& entry : o_threadpools) {
-        entry.first->shutdown();
-        PrintThreadPoolStats(entry.first, __FILE__, __LINE__,
-                             entry.second);
+    for (const auto& [t, d] : o_threadpools) {
+        t->shutdown();
+        PrintThreadPoolStats(t, __FILE__, __LINE__, d);
     }
     /* remove all virtual dirs */
     UpnpRemoveAllVirtualDirs();

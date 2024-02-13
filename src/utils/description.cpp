@@ -2,7 +2,6 @@
 
 #include "upnpdescription.h"
 
-#include <algorithm>
 #include <cstring>
 #include <string>
 
@@ -31,10 +30,13 @@ protected:
         // Arghh: upmpdcli wrongly used devicelist instead of
         // deviceList. Support both as it is unlikely that anybody
         // would use both for different purposes
-        bool ismain = !std::any_of(
-            m_path.begin(), m_path.end(),
-            [](const StackEl& el) {
-                return !stringlowercmp("devicelist", el.name);});
+        bool ismain = true;
+        for (const auto& e : m_path) {
+            if (!stringlowercmp("devicelist", e.name)) {
+                ismain = false;
+                break;
+            }
+        }
 
         UPnPDeviceDesc* dev = ismain ? &m_device : &m_tdevice;
 
