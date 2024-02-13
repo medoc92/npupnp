@@ -198,8 +198,10 @@ static int genaNotify(const std::string& propertySet, const subscription *sub)
    though (e.g. with shared_ptr for the propertySet string. We don't
    typically have thousands of subscribed CPs... */
 struct Notification {
-    Notification(std::string sid, std::string udn, std::string pset, Upnp_SID uSID, time_t ct, UpnpDevice_Handle dh)
-        : device_handle(dh), UDN(std::move(udn)), servId(std::move(sid)), sid(std::move(uSID)), propertySet(std::move(pset)), ctime(ct) {}
+    Notification(std::string sid, std::string udn, std::string pset, Upnp_SID uSID,
+                 time_t ct, UpnpDevice_Handle dh)
+        : device_handle(dh), UDN(std::move(udn)), servId(std::move(sid)), sid(std::move(uSID)),
+          propertySet(std::move(pset)), ctime(ct) {}
     UpnpDevice_Handle device_handle; //
     std::string UDN;                 // Device
     std::string servId;  // Service
@@ -210,15 +212,19 @@ struct Notification {
 
 class GenaNotifyJobWorker : public JobWorker {
 public:
-    explicit GenaNotifyJobWorker(Notification *in)
+    explicit GenaNotifyJobWorker(std::shared_ptr<Notification> in)
         : m_input(in) {}
-    ~GenaNotifyJobWorker() override {
-        delete m_input;
-    }
+    ~GenaNotifyJobWorker() override = default;
     GenaNotifyJobWorker(const GenaNotifyJobWorker&) = delete;
     GenaNotifyJobWorker& operator=(const GenaNotifyJobWorker&) = delete;
     void work() override;
-    Notification *m_input;
+    // This is actually shared with the outgoing list head.  Note: 2024-02: as far as I understand,
+    // the only reason to keep a shared pointer to the active notification at the head of the
+    // subscription outgoing queue is as an indicator that we don't need to kickstart the
+    // queue. Else when adding an event and seeing an empty queue, we would not know if the event
+    // should be queued or directly sent to the Thread Pool. This could probably be replaced by a
+    // flag, which would allow to replace the shared_ptr with unique_ptr.
+    std::shared_ptr<Notification> m_input;
 };
 
 /*!
@@ -248,8 +254,7 @@ void GenaNotifyJobWorker::work()
         return;
     }
 
-    if (!(service = FindServiceId(&handle_info->ServiceTable,
-                                  m_input->servId, m_input->UDN)) ||
+    if (!(service = FindServiceId(&handle_info->ServiceTable, m_input->servId, m_input->UDN)) ||
         !service->active ||
         !(sub = GetSubscriptionSID(m_input->sid, service)) ||
         copy_subscription(sub, &sub_copy) != UPNP_E_SUCCESS) {
@@ -267,8 +272,7 @@ void GenaNotifyJobWorker::work()
         return;
     }
     /* validate context */
-    if (!(service = FindServiceId(&handle_info->ServiceTable,
-                                  m_input->servId, m_input->UDN)) ||
+    if (!(service = FindServiceId(&handle_info->ServiceTable, m_input->servId, m_input->UDN)) ||
         !service->active ||
         !(sub = GetSubscriptionSID(m_input->sid, service))) {
         HandleUnlock();
@@ -279,8 +283,7 @@ void GenaNotifyJobWorker::work()
         /* wrap to 1 for overflow */
         sub->ToSendEventKey = 1;
 
-    /* Remove head of event queue. Do not delete it, the ThreadJob free_func
-       will do it */
+    /* Remove head of event queue. */
     if (!sub->outgoing.empty()) {
         sub->outgoing.pop_front();
     }
@@ -312,9 +315,7 @@ int genaInitNotifyXML(
 {
     int ret = GENA_SUCCESS;
     int line = 0;
-
-    Notification *thread_struct = nullptr;
-
+    std::shared_ptr<Notification> thread_struct;
     subscription *sub = nullptr;
     service_info *service = nullptr;
     struct Handle_Info *handle_info;
@@ -346,7 +347,8 @@ int genaInitNotifyXML(
     sub->active = 1;
 
     /* schedule thread for initial notification */
-    thread_struct = new Notification(servId, UDN, propertySet, sid, time(nullptr), device_handle);
+    thread_struct = std::make_shared<Notification>(
+        servId, UDN, propertySet, sid, time(nullptr), device_handle);
     {
         auto worker = std::make_unique<GenaNotifyJobWorker>(thread_struct);
         ret = gSendThreadPool.addJob(std::move(worker));
@@ -361,12 +363,8 @@ int genaInitNotifyXML(
     }
 
 ExitFunction:
-    if (ret != GENA_SUCCESS) {
-        delete thread_struct;
-    }
     HandleUnlock();
-    UpnpPrintf(UPNP_ALL, GENA, __FILE__, line,
-               "genaInitNotifyCommon: ret %d\n", ret);
+    UpnpPrintf(UPNP_ALL, GENA, __FILE__, line, "genaInitNotifyCommon: ret %d\n", ret);
     return ret;
 }
 
@@ -383,8 +381,7 @@ int genaInitNotifyVars(
     int line = 0;
     std::string propertySet;
 
-    UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
-               "genaInitNotifyVars varcnt %d\n", var_count);
+    UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__, "genaInitNotifyVars varcnt %d\n", var_count);
 
     if (var_count <= 0) {
         line = __LINE__;
@@ -407,17 +404,7 @@ ExitFunction:
 
 void freeSubscriptionQueuedEvents(subscription *sub)
 {
-    /* The first event is discarded without deleting the Notification:
-       there is a mirror ThreadPool entry for this one, and the
-       completion event will take care of it. Other entries must be
-       fully cleaned-up here */
-    auto it = sub->outgoing.begin();
-    if (it != sub->outgoing.end())
-        it++;
-    while (it != sub->outgoing.end()) {
-        delete *it;
-        it = sub->outgoing.erase(it);
-    }
+    sub->outgoing.clear();
 }
 
 /*
@@ -428,7 +415,7 @@ void freeSubscriptionQueuedEvents(subscription *sub)
  * non-active: any but the head of queue, which is already copied to
  * the thread pool
  */
-static void maybeDiscardEvents(std::list<Notification*>& outgoing)
+static void maybeDiscardEvents(std::list<std::shared_ptr<Notification>>& outgoing)
 {
     time_t now = time(nullptr);
 
@@ -437,10 +424,8 @@ static void maybeDiscardEvents(std::list<Notification*>& outgoing)
     if (it != outgoing.end())
         it++;
     while (it != outgoing.end()) {
-        Notification *ntsp = *it;
         if (outgoing.size() > unsigned(g_UpnpSdkEQMaxLen) ||
-            now - ntsp->ctime > g_UpnpSdkEQMaxAge) {
-            delete ntsp;
+            now - (*it)->ctime > g_UpnpSdkEQMaxAge) {
             it = outgoing.erase(it);
         } else {
             /* If the list is smaller than the max and the oldest
@@ -451,15 +436,12 @@ static void maybeDiscardEvents(std::list<Notification*>& outgoing)
 }
 
 int genaNotifyAllXML(
-    UpnpDevice_Handle device_handle,
-    char *UDN, char *servId, const std::string& propertySet)
+    UpnpDevice_Handle device_handle, char *UDN, char *servId, const std::string& propertySet)
 {
     int ret = GENA_SUCCESS;
     int line = 0;
     std::list<subscription>::iterator finger;
-
-    Notification *thread_struct = nullptr;
-
+    std::shared_ptr<Notification> thread_struct;
     service_info *service = nullptr;
     struct Handle_Info *handle_info;
 
@@ -483,12 +465,12 @@ int genaNotifyAllXML(
 
     finger = GetFirstSubscription(service);
     while (finger != service->subscriptionList.end()) {
-        thread_struct = new Notification(servId, UDN, propertySet, finger->sid, time(nullptr), device_handle);
+        thread_struct = std::make_shared<Notification>(
+            servId, UDN, propertySet, finger->sid, time(nullptr), device_handle);
         maybeDiscardEvents(finger->outgoing);
         finger->outgoing.push_back(thread_struct);
 
-        /* If there is only one element on the list (which we just
-           added), need to kickstart the threadpool */
+        /* If there is only one element on the list (just added), kickstart the threadpool */
         if (finger->outgoing.size() == 1) {
             auto worker = std::make_unique<GenaNotifyJobWorker>(thread_struct);
             ret = gSendThreadPool.addJob(std::move(worker));
@@ -506,10 +488,7 @@ int genaNotifyAllXML(
 
 ExitFunction:
     HandleUnlock();
-
-    UpnpPrintf(UPNP_ALL, GENA, __FILE__, line,
-               "genaNotifyAllCommon: ret = %d\n", ret);
-
+    UpnpPrintf(UPNP_ALL, GENA, __FILE__, line, "genaNotifyAllCommon: ret = %d\n", ret);
     return ret;
 }
 

@@ -37,6 +37,7 @@
 #include <list>
 #include <string>
 #include <vector>
+#include <memory>
 
 #include "config.h"
 #include "upnp.h"
@@ -58,7 +59,7 @@ struct subscription {
        at a time goes into the thread pool. The first element in the
        list is a copy of the active job. Others are activated on job
        completion. */
-    std::list<Notification*> outgoing;
+    std::list<std::shared_ptr<Notification>> outgoing;
 
     subscription() = default;
     ~subscription();
@@ -69,12 +70,12 @@ struct subscription {
 extern void freeSubscriptionQueuedEvents(subscription *sub);
 
 struct service_info {
-    std::string    serviceType;
-    std::string    serviceId;
-    std::string    SCPDURL ;
+    std::string serviceType;
+    std::string serviceId;
+    std::string SCPDURL;
     std::string controlURL;
-    std::string    eventURL;
-    std::string    UDN;
+    std::string eventURL;
+    std::string UDN;
     int        active{0};
     int        TotalSubscriptions{0};
     std::list<subscription>    subscriptionList;
