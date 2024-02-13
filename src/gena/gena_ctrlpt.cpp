@@ -46,7 +46,6 @@
 #include "gena.h"
 #include "genut.h"
 #include "statcodes.h"
-#include "upnp_timeout.h"
 #include "upnpapi.h"
 #include "uri.h"
 
@@ -93,28 +92,21 @@ static void clientCancelRenew(ClientSubscription *sub)
     }
 }
 
-struct upnp_timeout_data_subscribe : public upnp_timeout_data {
-    upnp_timeout_data_subscribe(std::string s, int e, const std::string& url, int t)
-    {
+class AutoRenewSubscriptionJobWorker : public JobWorker {
+public:
+    explicit AutoRenewSubscriptionJobWorker(
+        int h, std::string s, int e, const std::string& url, int t) {
+        handle = h;
         sub.Sid = std::move(s);
         sub.ErrCode = e;
         upnp_strlcpy(sub.PublisherUrl, url, NAME_SIZE);
         sub.TimeOut = t;
     }
-    struct Upnp_Event_Subscribe sub;
-};
-
-class AutoRenewSubscriptionJobWorker : public JobWorker {
-public:
-    explicit AutoRenewSubscriptionJobWorker(upnp_timeout *ev)
-        : m_event(ev) {}
-    ~AutoRenewSubscriptionJobWorker() override {
-        deleteZ(m_event);
-    }
     AutoRenewSubscriptionJobWorker(const AutoRenewSubscriptionJobWorker&) = delete;
     AutoRenewSubscriptionJobWorker& operator=(const AutoRenewSubscriptionJobWorker&) = delete;
     void work() override;
-    upnp_timeout *m_event;
+    int handle;
+    struct Upnp_Event_Subscribe sub;
 };
 
 /*!
@@ -123,23 +115,21 @@ public:
  */
 void AutoRenewSubscriptionJobWorker::work()
 {
-    auto event = m_event;
-    auto sub_struct = &(dynamic_cast<upnp_timeout_data_subscribe*>(event->Event)->sub);
     int send_callback = 0;
     Upnp_EventType eventType = UPNP_EVENT_AUTORENEWAL_FAILED;
 
 #if AUTO_RENEW_TIME == 0
     // We are compile-time configured for no auto-renewal.
     UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__, "GENA SUB EXPIRED\n");
-    sub_struct->ErrCode = UPNP_E_SUCCESS;
+    sub.ErrCode = UPNP_E_SUCCESS;
     send_callback = 1;
     eventType = UPNP_EVENT_SUBSCRIPTION_EXPIRED;
 #else
     UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__, "GENA AUTO RENEW\n");
-    int timeout = sub_struct->TimeOut;
-    int errCode = genaRenewSubscription(event->handle, sub_struct->Sid, &timeout);
-    sub_struct->ErrCode = errCode;
-    sub_struct->TimeOut = timeout;
+    int timeout = sub.TimeOut;
+    int errCode = genaRenewSubscription(handle, sub.Sid, &timeout);
+    sub.ErrCode = errCode;
+    sub.TimeOut = timeout;
     if (errCode != UPNP_E_SUCCESS &&
         errCode != GENA_E_BAD_SID &&
         errCode != GENA_E_BAD_HANDLE) {
@@ -150,7 +140,7 @@ void AutoRenewSubscriptionJobWorker::work()
     if (send_callback) {
         HandleReadLock();
         struct Handle_Info *handle_info;
-        if (GetHandleInfo(event->handle, &handle_info) != HND_CLIENT) {
+        if (GetHandleInfo(handle, &handle_info) != HND_CLIENT) {
             HandleUnlock();
             return;
         }
@@ -158,7 +148,7 @@ void AutoRenewSubscriptionJobWorker::work()
         /* make callback */
         Upnp_FunPtr callback_fun = handle_info->Callback;
         HandleUnlock();
-        callback_fun(eventType, sub_struct, handle_info->Cookie);
+        callback_fun(eventType, &sub, handle_info->Cookie);
     }
 }
 
@@ -181,21 +171,16 @@ static int ScheduleGenaAutoRenew(
         return GENA_SUCCESS;
     }
 
-    /* schedule expire event */
-    auto RenewEventStruct = new upnp_timeout_data_subscribe(sub->SID, UPNP_E_SUCCESS, sub->eventURL, TimeOut);
-    auto RenewEvent = new upnp_timeout(client_handle, RenewEventStruct);
-
     /* Schedule the job */
-    auto worker = std::make_unique<AutoRenewSubscriptionJobWorker>(RenewEvent);
+    auto worker = std::make_unique<AutoRenewSubscriptionJobWorker>(
+        client_handle, sub->SID, UPNP_E_SUCCESS, sub->eventURL, TimeOut);
     int return_code = gTimerThread->schedule(
         TimerThread::SHORT_TERM, TimerThread::REL_SEC, TimeOut - AUTO_RENEW_TIME,
-        &(RenewEvent->eventId), std::move(worker));
+        &sub->renewEventId, std::move(worker));
 
     if (return_code != UPNP_E_SUCCESS) {
         return return_code;
     }
-
-    sub->renewEventId = RenewEvent->eventId;
     return GENA_SUCCESS;
 }
 

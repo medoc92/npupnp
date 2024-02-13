@@ -46,7 +46,6 @@
 #include "genut.h"
 #include "httputils.h"
 #include "soaplib.h"
-#include "upnp_timeout.h"
 #include "upnpapi.h"
 #include "uri.h"
 
@@ -1410,25 +1409,17 @@ int UpnpSendAdvertisement(UpnpDevice_Handle Hnd, int Exp)
     return UpnpSendAdvertisementLowPower(Hnd, Exp, -1, -1, -1);
 }
 
-struct upnp_timeout_data_int : public upnp_timeout_data {
-    upnp_timeout_data_int(int e) : exp(e) {}
-    int exp;
-};
-
 class AutoAdvertiseJobWorker : public JobWorker {
 public:
-    explicit AutoAdvertiseJobWorker(upnp_timeout *ev)
-        : m_event(ev) {}
-    ~AutoAdvertiseJobWorker() override {
-        deleteZ(m_event);
-    }
+    explicit AutoAdvertiseJobWorker(int h, int e)
+        : handle(h), exp(e) {}
     AutoAdvertiseJobWorker(const AutoAdvertiseJobWorker&) = delete;
     AutoAdvertiseJobWorker& operator=(const AutoAdvertiseJobWorker&) = delete;
     void work() override {
-        int exp = dynamic_cast<upnp_timeout_data_int*>(m_event->Event)->exp;
-        UpnpSendAdvertisement(m_event->handle, exp);
+        UpnpSendAdvertisement(handle, exp);
     }
-    upnp_timeout *m_event;
+    int handle;
+    int exp;
 };
 
 
@@ -1463,22 +1454,17 @@ int UpnpSendAdvertisementLowPower(
     if(retVal != UPNP_E_SUCCESS)
         return retVal;
 
-    auto adEventData = new upnp_timeout_data_int(Exp);
-    auto adEvent = new upnp_timeout(Hnd, adEventData);
-
     if (checkLockHandle(HND_DEVICE, Hnd, &SInfo) == HND_INVALID) {
-        delete adEvent;
         return UPNP_E_INVALID_HANDLE;
     }
-
 #ifdef SSDP_PACKET_DISTRIBUTE
     time_t thetime = ((Exp / 2) - (AUTO_ADVERTISEMENT_TIME));
 #else
     time_t thetime = Exp - AUTO_ADVERTISEMENT_TIME;
 #endif
-    auto worker = std::make_unique<AutoAdvertiseJobWorker>(adEvent);
+    auto worker = std::make_unique<AutoAdvertiseJobWorker>(Hnd, Exp);
     retVal = gTimerThread->schedule(TimerThread::SHORT_TERM, TimerThread::REL_SEC, thetime,
-                                    &adEvent->eventId, std::move(worker));
+                                    nullptr, std::move(worker));
     HandleUnlock();
     return retVal;
 
