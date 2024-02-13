@@ -62,6 +62,8 @@ struct TimerEvent {
 };
 
 
+// This is the worker for the permanent timer thread, in charge of dispatching jobs at appropriate
+// times
 class TimerJobWorker : public JobWorker {
 public:
     explicit TimerJobWorker(TimerThread::Internal* parent)
@@ -77,7 +79,7 @@ public:
     std::mutex mutex;
     std::condition_variable condition;
     int lastEventId{0};
-    std::list<TimerEvent*> eventQ;
+    std::list<std::unique_ptr<TimerEvent>> eventQ;
     int inshutdown{0};
     ThreadPool *tp{nullptr};
 };
@@ -85,17 +87,12 @@ public:
 /*!
  * \brief Implements timer thread.
  *
- * Waits for next event to occur and schedules associated job into threadpool.
- *    arg is cast to (TimerThread *).
+ * tl;dr: Sleeps until next event scheduled time, then dispatches it then sleeps...
  */
 void TimerJobWorker::work()
 {
     auto timer = m_parent;
-    TimerEvent *nextEvent = nullptr;
-    system_clock::time_point nextEventTime = system_clock::now();
-
     assert(timer != nullptr);
-
     std::unique_lock<std::mutex> lck(timer->mutex);
 
     while (true) {
@@ -106,27 +103,22 @@ void TimerJobWorker::work()
             timer->condition.notify_all();
             return;
         }
-        nextEvent = nullptr;
+        system_clock::time_point currentTime = system_clock::now();
         /* Get the next event if possible. */
         if (!timer->eventQ.empty()) {
-            nextEvent = timer->eventQ.front();
-            nextEventTime = nextEvent->eventTime;
-        }
-        system_clock::time_point currentTime = system_clock::now();
-        /* If time has elapsed, schedule job. */
-        if (nextEvent && currentTime >= nextEventTime) {
-            if (nextEvent->persistent) {
-                timer->tp->addPersistent(std::move(nextEvent->worker), nextEvent->priority);
+            std::unique_ptr<TimerEvent>& nextEvent(timer->eventQ.front());
+            if (currentTime >= nextEvent->eventTime) {
+                /* If time has elapsed, schedule job. */
+                if (timer->eventQ.front()->persistent) {
+                    timer->tp->addPersistent(std::move(nextEvent->worker), nextEvent->priority);
+                } else {
+                    timer->tp->addJob(std::move(nextEvent->worker), nextEvent->priority);
+                }
+                timer->eventQ.pop_front();
             } else {
-                timer->tp->addJob(std::move(nextEvent->worker), nextEvent->priority);
+                auto tm = nextEvent->eventTime;
+                timer->condition.wait_until(lck, tm);
             }
-            timer->eventQ.pop_front();
-            delete nextEvent;
-            continue;
-        }
-        if (nextEvent) {
-            auto tm = nextEvent->eventTime;
-            timer->condition.wait_until(lck, tm);
         } else {
             timer->condition.wait(lck);
         }
@@ -159,25 +151,23 @@ int TimerThread::schedule(
 {
     std::scoped_lock lck(m->mutex);
 
-    auto newEvent = new TimerEvent(std::move(worker), priority, persistence, when, m->lastEventId);
-    if (newEvent == nullptr) {
-        return EOUTOFMEM;
-    }
+    auto newEvent = std::make_unique<TimerEvent>(
+        std::move(worker), priority, persistence, when, m->lastEventId);
     if (id) {
         *id = m->lastEventId;
     }
     /* add job to Q. Q is ordered by eventTime with the head of the Q being
      * the next event. */
-    auto it = std::find_if(m->eventQ.begin(), m->eventQ.end(), [=](const auto& e) { return e->eventTime >= when; });
+    auto it = std::find_if(m->eventQ.begin(), m->eventQ.end(),
+                           [=](const auto& e) {return e->eventTime >= when;});
     if (it != m->eventQ.end())
-        m->eventQ.insert(it, newEvent);
+        m->eventQ.insert(it, std::move(newEvent));
     else
-        m->eventQ.push_back(newEvent);
+        m->eventQ.push_back(std::move(newEvent));
 
     /* signal change in Q. */
     m->condition.notify_all();
     m->lastEventId++;
-
     return 0;
 }
 
@@ -209,10 +199,10 @@ int TimerThread::remove(int id)
 {
     std::scoped_lock lck(m->mutex);
 
-    auto it = std::find_if(m->eventQ.begin(), m->eventQ.end(), [id](const auto& e) { return e->id == id; });
+    auto it = std::find_if(m->eventQ.begin(), m->eventQ.end(),
+                           [id](const auto& e) {return e->id == id;});
     if (it != m->eventQ.end()) {
         m->eventQ.erase(it);
-        delete *it;
         return 0;
     }
 
@@ -224,13 +214,7 @@ int TimerThread::shutdown()
     std::unique_lock<std::mutex> lck(m->mutex);
 
     m->inshutdown = 1;
-
-    /* Delete nodes in Q. Call registered free function on argument. */
-    for (auto & it : m->eventQ) {
-        delete it;
-    }
     m->eventQ.clear();
-
     m->condition.notify_all();
 
     while (m->inshutdown) {
