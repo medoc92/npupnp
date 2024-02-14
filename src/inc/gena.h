@@ -31,26 +31,15 @@
 #ifndef GENA_H
 #define GENA_H
 
+// For GENA_NOTIFICATION_ANSWERING_TIMEOUT
 #include "config.h"
 
-#include "httputils.h"
-#include "miniserver.h"
-#include "upnp.h"
-
-#define GENA_E_BAD_RESPONSE UPNP_E_BAD_RESPONSE
-#define GENA_E_BAD_SERVICE UPNP_E_INVALID_SERVICE
-#define GENA_E_SUBSCRIPTION_UNACCEPTED UPNP_E_SUBSCRIBE_UNACCEPTED
-#define GENA_E_BAD_SID UPNP_E_INVALID_SID
-#define GENA_E_UNSUBSCRIBE_UNACCEPTED UPNP_E_UNSUBSCRIBE_UNACCEPTED
-#define GENA_E_NOTIFY_UNACCEPTED UPNP_E_NOTIFY_UNACCEPTED
 #define GENA_E_NOTIFY_UNACCEPTED_REMOVE_SUB -9
-#define GENA_E_BAD_HANDLE UPNP_E_INVALID_HANDLE
-
-#define GENA_SUCCESS UPNP_E_SUCCESS
 
 #define GENA_DEFAULT_TIMEOUT 1801
 
 /** miniserver incoming GENA request callback function. */
+struct MHDTransaction;
 extern void genaCallback(MHDTransaction *);
  
 #endif /* GENA_H */

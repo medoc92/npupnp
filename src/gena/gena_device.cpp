@@ -54,7 +54,7 @@ static constexpr auto XML_PROPERTYSET_HEADER =
 /*!
  * \brief Unregisters a device.
  *
- * \return UPNP_E_SUCCESS on success, GENA_E_BAD_HANDLE on failure.
+ * \return UPNP_E_SUCCESS on success, UPNP_E_INVALID_HANDLE on failure.
  */
 int genaUnregisterDevice(UpnpDevice_Handle device_handle)
 {
@@ -65,7 +65,7 @@ int genaUnregisterDevice(UpnpDevice_Handle device_handle)
     if (GetHandleInfo(device_handle, &handle_info) != HND_DEVICE) {
         UpnpPrintf(UPNP_CRITICAL, GENA, __FILE__, __LINE__,
             "genaUnregisterDevice: BAD Handle: %d\n", device_handle);
-        ret = GENA_E_BAD_HANDLE;
+        ret = UPNP_E_INVALID_HANDLE;
     } else {
         clearServiceTable(handle_info->serviceTable);
         ret = UPNP_E_SUCCESS;
@@ -78,7 +78,7 @@ int genaUnregisterDevice(UpnpDevice_Handle device_handle)
 /*!
  * \brief Generates XML property set for notifications.
  *
- * \return UPNP_E_SUCCESS if successful else returns GENA_E_BAD_HANDLE.
+ * \return UPNP_E_SUCCESS if successful else returns UPNP_E_INVALID_HANDLE.
  *
  * \note The XML_VERSION comment is NOT sent due to interoperability issues
  *     with other UPnP vendors.
@@ -113,7 +113,7 @@ static int GeneratePropertySet(
  *
  * NOTIFY http request is sent and the reply is processed.
  *
- * \return GENA_SUCCESS if the event was delivered, otherwise returns the
+ * \return UPNP_E_SUCCESS if the event was delivered, otherwise returns the
  *     appropriate error code.
  *
  * The only code which has specific processing is
@@ -179,13 +179,13 @@ static int genaNotify(const std::string& propertySet, const subscription *sub)
 
     if (return_code == UPNP_E_SUCCESS) {
         if (http_code == HTTP_OK) {
-            return_code = GENA_SUCCESS;
+            return_code = UPNP_E_SUCCESS;
         } else {
             if (http_code == HTTP_PRECONDITION_FAILED)
                 /*Invalid SID gets removed */
                 return_code = GENA_E_NOTIFY_UNACCEPTED_REMOVE_SUB;
             else
-                return_code = GENA_E_NOTIFY_UNACCEPTED;
+                return_code = UPNP_E_NOTIFY_UNACCEPTED;
         }
     }
     return return_code;
@@ -313,7 +313,7 @@ int genaInitNotifyXML(
     const std::string& propertySet,
     const Upnp_SID& sid)
 {
-    int ret = GENA_SUCCESS;
+    int ret = UPNP_E_SUCCESS;
     int line = 0;
     std::shared_ptr<Notification> thread_struct;
     subscription *sub = nullptr;
@@ -327,21 +327,21 @@ int genaInitNotifyXML(
 
     if (GetHandleInfo(device_handle, &handle_info) != HND_DEVICE) {
         line = __LINE__;
-        ret = GENA_E_BAD_HANDLE;
+        ret = UPNP_E_INVALID_HANDLE;
         goto ExitFunction;
     }
 
     service = FindServiceId(handle_info->serviceTable, servId, UDN);
     if (service == nullptr) {
         line = __LINE__;
-        ret = GENA_E_BAD_SERVICE;
+        ret = UPNP_E_INVALID_SERVICE;
         goto ExitFunction;
     }
 
     sub = GetSubscriptionSID(sid, service);
     if (sub == nullptr || sub->active) {
         line = __LINE__;
-        ret = GENA_E_BAD_SID;
+        ret = UPNP_E_INVALID_SID;
         goto ExitFunction;
     }
     sub->active = 1;
@@ -359,7 +359,7 @@ int genaInitNotifyXML(
     } else {
         line = __LINE__;
         sub->outgoing.push_back(thread_struct);
-        ret = GENA_SUCCESS;
+        ret = UPNP_E_SUCCESS;
     }
 
 ExitFunction:
@@ -377,7 +377,7 @@ int genaInitNotifyVars(
     int var_count,
     const Upnp_SID& sid)
 {
-    int ret = GENA_SUCCESS;
+    int ret = UPNP_E_SUCCESS;
     int line = 0;
     std::string propertySet;
 
@@ -385,7 +385,7 @@ int genaInitNotifyVars(
 
     if (var_count <= 0) {
         line = __LINE__;
-        ret = GENA_SUCCESS;
+        ret = UPNP_E_SUCCESS;
         goto ExitFunction;
     }
 
@@ -438,7 +438,7 @@ static void maybeDiscardEvents(std::list<std::shared_ptr<Notification>>& outgoin
 int genaNotifyAllXML(
     UpnpDevice_Handle device_handle, char *UDN, char *servId, const std::string& propertySet)
 {
-    int ret = GENA_SUCCESS;
+    int ret = UPNP_E_SUCCESS;
     int line = 0;
     std::list<subscription>::iterator finger;
     std::shared_ptr<Notification> thread_struct;
@@ -452,14 +452,14 @@ int genaNotifyAllXML(
 
     if (GetHandleInfo(device_handle, &handle_info) != HND_DEVICE) {
         line = __LINE__;
-        ret = GENA_E_BAD_HANDLE;
+        ret = UPNP_E_INVALID_HANDLE;
         goto ExitFunction;
     }
 
     service = FindServiceId(handle_info->serviceTable, servId, UDN);
     if (service == nullptr) {
         line = __LINE__;
-        ret = GENA_E_BAD_SERVICE;
+        ret = UPNP_E_INVALID_SERVICE;
         goto ExitFunction;
     }
 
@@ -500,7 +500,7 @@ int genaNotifyAll(
     char **VarValues,
     int var_count)
 {
-    int ret = GENA_SUCCESS;
+    int ret = UPNP_E_SUCCESS;
     int line = 0;
 
     UpnpPrintf(UPNP_ALL, GENA, __FILE__, __LINE__, "genaNotifyAll\n");

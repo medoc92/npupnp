@@ -39,6 +39,7 @@
 
 #include "statcodes.h"
 #include "upnpdebug.h"
+#include "httputils.h"
 
 /************************************************************************
  * Function : genaCallback                                    

@@ -36,7 +36,7 @@
 /*!
  * \brief Cleans the service table of the device.
  *
- * \return UPNP_E_SUCCESS if successful, otherwise returns GENA_E_BAD_HANDLE
+ * \return UPNP_E_SUCCESS if successful, otherwise returns UPNP_E_INVALID_HANDLE
  */
 int genaUnregisterDevice(
     /*! [in] Handle of the root device */

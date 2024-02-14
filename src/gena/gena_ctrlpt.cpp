@@ -131,8 +131,8 @@ void AutoRenewSubscriptionJobWorker::work()
     sub.ErrCode = errCode;
     sub.TimeOut = timeout;
     if (errCode != UPNP_E_SUCCESS &&
-        errCode != GENA_E_BAD_SID &&
-        errCode != GENA_E_BAD_HANDLE) {
+        errCode != UPNP_E_INVALID_SID &&
+        errCode != UPNP_E_INVALID_HANDLE) {
         send_callback = 1;
     }
 #endif
@@ -168,7 +168,7 @@ static int ScheduleGenaAutoRenew(
     ClientSubscription *sub)
 {
     if (TimeOut == UPNP_INFINITE) {
-        return GENA_SUCCESS;
+        return UPNP_E_SUCCESS;
     }
 
     /* Schedule the job */
@@ -181,7 +181,7 @@ static int ScheduleGenaAutoRenew(
     if (return_code != UPNP_E_SUCCESS) {
         return return_code;
     }
-    return GENA_SUCCESS;
+    return UPNP_E_SUCCESS;
 }
 
 
@@ -417,7 +417,7 @@ int genaUnregisterClient(UpnpClient_Handle client_handle)
 
         if (GetHandleInfo(client_handle, &handle_info) != HND_CLIENT) {
             HandleUnlock();
-            return GENA_E_BAD_HANDLE;
+            return UPNP_E_INVALID_HANDLE;
         }
         if (handle_info->ClientSubList.empty()) {
             return_code = UPNP_E_SUCCESS;
@@ -448,13 +448,13 @@ int genaUnSubscribe(UpnpClient_Handle client_handle, const std::string& in_sid)
     struct Handle_Info *handle_info;
     if (GetHandleInfo(client_handle, &handle_info) != HND_CLIENT) {
         HandleUnlock();
-        return GENA_E_BAD_HANDLE;
+        return UPNP_E_INVALID_HANDLE;
     }
     auto sub = std::find_if(handle_info->ClientSubList.begin(), handle_info->ClientSubList.end(),
                             [in_sid](const ClientSubscription& e){return e.SID == in_sid;});
     if (handle_info->ClientSubList.end() == sub) {
         HandleUnlock();
-        return GENA_E_BAD_SID;
+        return UPNP_E_INVALID_SID;
     }
     auto timeoutms = handle_info->SubsOpsTimeoutMS;
     auto sub_copy = *sub;
@@ -465,13 +465,13 @@ int genaUnSubscribe(UpnpClient_Handle client_handle, const std::string& in_sid)
     HandleLock();
     if (GetHandleInfo(client_handle, &handle_info) != HND_CLIENT) {
         HandleUnlock();
-        return GENA_E_BAD_HANDLE;
+        return UPNP_E_INVALID_HANDLE;
     }
     handle_info->ClientSubList.remove_if(
         [in_sid] (const ClientSubscription& e) {return e.SID == in_sid;});
     HandleUnlock();
 
-    return GENA_SUCCESS;
+    return UPNP_E_SUCCESS;
 }
 
 
@@ -481,7 +481,7 @@ int genaSubscribe(
     int *TimeOut,
     std::string *out_sid)
 {
-    int return_code = GENA_SUCCESS;
+    int return_code = UPNP_E_SUCCESS;
     ClientSubscription newSubscription;
     std::string SID;
     std::string EventURL;
@@ -493,7 +493,7 @@ int genaSubscribe(
     HandleReadLock();
     /* validate handle */
     if (GetHandleInfo(client_handle, &handle_info) != HND_CLIENT) {
-        return_code = GENA_E_BAD_HANDLE;
+        return_code = UPNP_E_INVALID_HANDLE;
         SubscribeLock();
         goto error_handler;
     }
@@ -511,7 +511,7 @@ int genaSubscribe(
     }
 
     if(GetHandleInfo(client_handle, &handle_info) != HND_CLIENT) {
-        return_code = GENA_E_BAD_HANDLE;
+        return_code = UPNP_E_INVALID_HANDLE;
         goto error_handler;
     }
 
@@ -546,14 +546,14 @@ int genaRenewSubscription(
     struct Handle_Info *handle_info;
     if (GetHandleInfo(client_handle, &handle_info) != HND_CLIENT) {
         HandleUnlock();
-        return GENA_E_BAD_HANDLE;
+        return UPNP_E_INVALID_HANDLE;
     }
 
     auto sub = std::find_if(handle_info->ClientSubList.begin(), handle_info->ClientSubList.end(),
                             [in_sid](const ClientSubscription& e){return e.SID == in_sid;});
     if (handle_info->ClientSubList.end() == sub) {
         HandleUnlock();
-        return GENA_E_BAD_SID;
+        return UPNP_E_INVALID_SID;
     }
     auto timeoutms = handle_info->SubsOpsTimeoutMS;
 
@@ -572,7 +572,7 @@ int genaRenewSubscription(
 
     if (GetHandleInfo(client_handle, &handle_info) != HND_CLIENT) {
         HandleUnlock();
-        return GENA_E_BAD_HANDLE;
+        return UPNP_E_INVALID_HANDLE;
     }
 
     if (return_code != UPNP_E_SUCCESS) {
@@ -590,7 +590,7 @@ int genaRenewSubscription(
     if (handle_info->ClientSubList.end() == sub) {
         clientCancelRenew(&sub_copy);
         HandleUnlock();
-        return GENA_E_BAD_SID;
+        return UPNP_E_INVALID_SID;
     }
 
     /* Remember SID */
@@ -598,7 +598,7 @@ int genaRenewSubscription(
 
     /* start renew subscription timer */
     return_code = ScheduleGenaAutoRenew(client_handle, *TimeOut, &*sub);
-    if (return_code != GENA_SUCCESS) {
+    if (return_code != UPNP_E_SUCCESS) {
         handle_info->ClientSubList.remove_if(
             [sub] (const ClientSubscription& e) {return e.SID == sub->SID;});
     }
