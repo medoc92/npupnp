@@ -67,7 +67,7 @@ int genaUnregisterDevice(UpnpDevice_Handle device_handle)
             "genaUnregisterDevice: BAD Handle: %d\n", device_handle);
         ret = GENA_E_BAD_HANDLE;
     } else {
-        freeServiceTable(&handle_info->ServiceTable);
+        clearServiceTable(handle_info->serviceTable);
         ret = UPNP_E_SUCCESS;
     }
     HandleUnlock();
@@ -254,7 +254,7 @@ void GenaNotifyJobWorker::work()
         return;
     }
 
-    if (!(service = FindServiceId(&handle_info->ServiceTable, m_input->servId, m_input->UDN)) ||
+    if (!(service = FindServiceId(handle_info->serviceTable, m_input->servId, m_input->UDN)) ||
         !service->active ||
         !(sub = GetSubscriptionSID(m_input->sid, service)) ||
         copy_subscription(sub, &sub_copy) != UPNP_E_SUCCESS) {
@@ -272,7 +272,7 @@ void GenaNotifyJobWorker::work()
         return;
     }
     /* validate context */
-    if (!(service = FindServiceId(&handle_info->ServiceTable, m_input->servId, m_input->UDN)) ||
+    if (!(service = FindServiceId(handle_info->serviceTable, m_input->servId, m_input->UDN)) ||
         !service->active ||
         !(sub = GetSubscriptionSID(m_input->sid, service))) {
         HandleUnlock();
@@ -331,7 +331,7 @@ int genaInitNotifyXML(
         goto ExitFunction;
     }
 
-    service = FindServiceId(&handle_info->ServiceTable, servId, UDN);
+    service = FindServiceId(handle_info->serviceTable, servId, UDN);
     if (service == nullptr) {
         line = __LINE__;
         ret = GENA_E_BAD_SERVICE;
@@ -456,7 +456,7 @@ int genaNotifyAllXML(
         goto ExitFunction;
     }
 
-    service = FindServiceId(&handle_info->ServiceTable, servId, UDN);
+    service = FindServiceId(handle_info->serviceTable, servId, UDN);
     if (service == nullptr) {
         line = __LINE__;
         ret = GENA_E_BAD_SERVICE;

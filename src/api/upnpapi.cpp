@@ -1026,11 +1026,10 @@ static int registerRootDeviceAllForms(
     /*
      * GENA SET UP
      */
-    hasServiceTable = initServiceTable(HInfo->devdesc, &HInfo->ServiceTable);
+    hasServiceTable = initServiceTable(HInfo->devdesc, HInfo->serviceTable);
     if (hasServiceTable) {
-        UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-                   "registerRootDeviceAllForms: GENA services:\n");
-        printServiceTable(&HInfo->ServiceTable, UPNP_ALL, API);
+        UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,"registerRootDeviceAllForms: GENA services:\n");
+        printServiceTable(HInfo->serviceTable, UPNP_ALL, API);
     } else {
         UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "\nUpnpRegisterRootDeviceAF: no services\n");
     }
@@ -1965,8 +1964,8 @@ Upnp_Handle_Type GetDeviceHandleInfoForPath(
     for (int idx = 1; idx < NUM_HANDLE;    idx++) {
         Handle_Info *hinf;
         if (GetHandleInfo(idx, &hinf) == HND_DEVICE) {
-            if ((*serv_info = FindServiceControlURLPath(&hinf->ServiceTable, path)) ||
-                (*serv_info = FindServiceEventURLPath(&hinf->ServiceTable, path))) {
+            if ((*serv_info = FindServiceControlURLPath(hinf->serviceTable, path)) ||
+                (*serv_info = FindServiceEventURLPath(hinf->serviceTable, path))) {
                 *HndInfo = hinf;
                 *devhdl = idx;
                 return HND_DEVICE;

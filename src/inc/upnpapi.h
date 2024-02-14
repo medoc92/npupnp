@@ -100,8 +100,8 @@ struct Handle_Info
     int RegistrationState{0};
     /*! Parsed Device Description document. */
     UPnPDeviceDesc devdesc;
-    /*! Table holding subscriptions and URL information. */
-    service_table ServiceTable;
+    /*! Service information and subscriptions lists */
+    std::list<service_info> serviceTable;
     /*! . */
     int MaxSubscriptions{0};
     /*! . */

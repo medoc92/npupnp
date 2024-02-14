@@ -109,8 +109,7 @@ subscription *GetSubscriptionSID(const Upnp_SID& sid, service_info *service)
 {
     auto& sublist(service->subscriptionList);
     auto found = find_if(sublist.begin(), sublist.end(),
-                         [sid](const subscription& s)->bool{
-                             return sid == s.sid;});
+                         [sid](const subscription& s)->bool{return sid == s.sid;});
     if (found == sublist.end()) {
         return nullptr;
     }
@@ -128,8 +127,7 @@ subscription *GetSubscriptionSID(const Upnp_SID& sid, service_info *service)
 }
 
 std::list<subscription>::iterator GetNextSubscription(
-    service_info *service, std::list<subscription>::iterator current,
-    bool getfirst)
+    service_info *service, std::list<subscription>::iterator current, bool getfirst)
 {
     auto& sublist(service->subscriptionList);
 
@@ -168,7 +166,7 @@ subscription::~subscription()
  *    Function :    FindServiceId
  *
  *    Parameters :
- *        service_table *table ;    service table
+ *        service_table& table ;    service table
  *        const std::string& serviceId ;string representing the service id 
  *                                to be found among those in the table    
  *        const std::string& UDN ;        string representing the UDN 
@@ -183,9 +181,9 @@ subscription::~subscription()
  *    Note :
  ************************************************************************/
 service_info *FindServiceId(
-    service_table *table, const std::string& serviceId, const std::string& UDN)
+    service_table& table, const std::string& serviceId, const std::string& UDN)
 {
-    for (auto& si : table->serviceList)
+    for (auto& si : table)
         if ((serviceId == si.serviceId) && (UDN == si.UDN))
             return &si;
 
@@ -208,20 +206,15 @@ service_info *FindServiceId(
  *
  *    Note :
  ************************************************************************/
-service_info *FindServiceEventURLPath(
-    service_table *table, const std::string& eventURLPath)
+service_info *FindServiceEventURLPath(service_table& table, const std::string& eventURLPath)
 {
-    if (nullptr == table) {
-        return nullptr;
-    }
-
     uri_type parsed_url_in;
     if (parse_uri(eventURLPath, &parsed_url_in)
         != UPNP_E_SUCCESS) {
         return nullptr;
     }
 
-    for (auto& entry : table->serviceList) {
+    for (auto& entry : table) {
         if (entry.eventURL.empty()) {
             continue;
         }
@@ -243,7 +236,7 @@ service_info *FindServiceEventURLPath(
  *    Function :    FindServiceControlURLPath
  *
  *    Parameters :
- *        service_table * table ;    service table
+ *        service_table&  table ;    service table
  *        char * controlURLPath ;    control URL path used to find a service 
  *                                from the table    
  *
@@ -257,19 +250,15 @@ service_info *FindServiceEventURLPath(
  ************************************************************************/
 #if EXCLUDE_SOAP == 0
 service_info *FindServiceControlURLPath(
-    service_table *table, const std::string& controlURLPath)
+    service_table& table, const std::string& controlURLPath)
 {
-    if (nullptr == table) {
-        return nullptr;
-    }
-    
     uri_type parsed_url_in;
     if (parse_uri(controlURLPath, &parsed_url_in)
         != UPNP_E_SUCCESS) {
         return nullptr;
     }
 
-    for (auto& entry : table->serviceList) {
+    for (auto& entry : table) {
         if (entry.controlURL.empty()) {
             continue;
         }
@@ -303,8 +292,7 @@ service_info *FindServiceControlURLPath(
  *    Note :
  ************************************************************************/
 #ifdef DEBUG
-void printService(
-    const service_info *service, Upnp_LogLevel level, Dbg_Module module)
+void printService(const service_info *service, Upnp_LogLevel level, Dbg_Module module)
 {
     if(service) {
         UpnpPrintf(level, module, __FILE__, __LINE__,
@@ -320,35 +308,10 @@ void printService(
         UpnpPrintf(level, module, __FILE__, __LINE__,
                    "UDN: %s\n\n", service->UDN.c_str());
         if(service->active) {
-            UpnpPrintf(level, module, __FILE__, __LINE__,
-                       "Service is active\n");
+            UpnpPrintf(level, module, __FILE__, __LINE__,  "Service is active\n");
         } else {
-            UpnpPrintf(level, module, __FILE__, __LINE__,
-                       "Service is inactive\n");
+            UpnpPrintf(level, module, __FILE__, __LINE__,  "Service is inactive\n");
         }
-    }
-}
-
-/************************************************************************
- *    Function :    printServiceList
- *
- *    Parameters :
- *        service_info *service ;    Service whose information is to be printed
- *        Upnp_LogLevel level ;    Debug level specified to the print function
- *        Dbg_Module module ;    Debug module specified to the print function
- *
- *    Description :    For debugging purposes prints information of each 
- *        service from the service table passed into the function.
- *
- *    Return : void ;
- *
- *    Note :
- ************************************************************************/
-void printServiceList(
-    service_table *table, Upnp_LogLevel level, Dbg_Module module)
-{
-    for (const auto& entry: table->serviceList) {
-        printService(&entry, level, module);
     }
 }
 
@@ -368,13 +331,13 @@ void printServiceList(
  *
  *    Note :
  ************************************************************************/
-void printServiceTable(
-    service_table * table,
-    Upnp_LogLevel level,
-    Dbg_Module module)
+void printServiceTable(const service_table& table, Upnp_LogLevel level, Dbg_Module module)
 {
     UpnpPrintf(level, module, __FILE__, __LINE__,  "service_table:Services: \n");
-    printServiceList(table, level, module);}
+    for (const auto& entry: table) {
+        printService(&entry, level, module);
+    }
+}
 #endif
 
 #if EXCLUDE_GENA == 0
@@ -393,9 +356,9 @@ void printServiceTable(
  *
  *    Note :
  ************************************************************************/
-void freeServiceTable(service_table *table)
+void clearServiceTable(service_table& table)
 {
-    table->serviceList.clear();
+    table.clear();
 }
 
 /************************************************************************
@@ -410,13 +373,12 @@ void freeServiceTable(service_table *table)
  *
  *    Note :
  ************************************************************************/
-static int fillServiceList(const UPnPDeviceDesc& dev, service_table *stable)
+static int fillServiceList(const UPnPDeviceDesc& dev, service_table& stable)
 {
 
     for (const UPnPServiceDesc& sdesc : dev.services) {
         int fail = 0;
-        auto current =
-            stable->serviceList.emplace(stable->serviceList.end());
+        auto current = stable.emplace(stable.end());
         current->active = 1;
         current->UDN = dev.UDN;
         current->serviceType = sdesc.serviceType;
@@ -439,10 +401,10 @@ static int fillServiceList(const UPnPDeviceDesc& dev, service_table *stable)
             UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__, "Bad/No EVENT URL");
         }
         if (fail) {
-            stable->serviceList.erase(current);
+            stable.erase(current);
         }
     }
-    return !stable->serviceList.empty();
+    return !stable.empty();
 }
 
 /************************************************************************
@@ -458,9 +420,9 @@ static int fillServiceList(const UPnPDeviceDesc& dev, service_table *stable)
  * Return : 0 for failure, 1 if ok
  *
  ************************************************************************/
-int initServiceTable(const UPnPDeviceDesc& devdesc,    service_table *out)
+int initServiceTable(const UPnPDeviceDesc& devdesc, service_table& out)
 {
-    out->serviceList.clear();
+    out.clear();
     fillServiceList(devdesc, out);
     for (const auto& dev : devdesc.embedded) {
         fillServiceList(dev, out);

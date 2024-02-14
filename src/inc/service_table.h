@@ -86,16 +86,7 @@ struct service_info {
     service_info(const service_info& rhs) = delete;
 };
 
-struct service_table {
-    std::list<service_info> serviceList;
-
-    service_table() = default;
-    ~service_table() = default;
-    service_table& operator=(const service_table&) = delete;
-    service_table(const service_table&) = delete;
-};
-
-/* Functions for Subscriptions */
+using service_table =  std::list<service_info>;
 
 /*!
  * \brief Makes a copy of the subscription.
@@ -157,7 +148,7 @@ std::list<subscription>::iterator GetNextSubscription(
  */
 service_info *FindServiceId(
     /*! [in] Service table. */
-    service_table *table,
+    service_table& table,
     /*! [in] String representing the service id to be found among those
      * in the table. */
     const std::string& serviceId,
@@ -174,7 +165,7 @@ service_info *FindServiceId(
  */
 service_info *FindServiceEventURLPath(
     /*! [in] Service table. */
-    service_table *table,
+    service_table& table,
     /*! [in] Event URL path used to find a service from the table. */
     const std::string& eventURLPath);
 
@@ -187,7 +178,7 @@ service_info *FindServiceEventURLPath(
  */
 service_info * FindServiceControlURLPath(
     /*! [in] Service table. */
-    service_table *table,
+    service_table& table,
     /*! [in] Control URL path used to find a service from the table. */
     const std::string& controlURLPath);
 
@@ -196,62 +187,18 @@ service_info * FindServiceControlURLPath(
  * into the function.
  */
 #ifdef DEBUG
-void printService(
-    /*! [in] Service whose information is to be printed. */
-    service_info *service,
-    /*! [in] Debug level specified to the print function. */
-    Upnp_LogLevel level,
-    /*! [in] Debug module specified to the print function. */
-    Dbg_Module module);
+void printService(const service_info *service, Upnp_LogLevel level, Dbg_Module module);
+void printServiceTable(const service_table& table, Upnp_LogLevel level, Dbg_Module module);
 #else
-static UPNP_INLINE void printService(service_info *, Upnp_LogLevel, Dbg_Module)
-{
-}
-#endif
-
-/*!
- * \brief For debugging purposes prints information of each service from the
- * service table passed into the function.
- */
-#ifdef DEBUG
-void printServiceList(
-    /*! [in] Service whose information is to be printed. */
-    service_info *service,
-    /*! [in] Debug level specified to the print function. */
-    Upnp_LogLevel level,
-    /*! [in] Debug module specified to the print function. */
-    Dbg_Module module);
-#else
-static UPNP_INLINE void printServiceList(service_info *, Upnp_LogLevel, Dbg_Module)
-{
-}
-#endif
-
-/*!
- * \brief For debugging purposes prints the URL base of the table and information
- * of each service from the service table passed into the function.
- */
-#ifdef DEBUG
-void printServiceTable(
-    /*! [in] Service table to be printed. */
-    service_table *table,
-    /*! [in] Debug level specified to the print function. */
-    Upnp_LogLevel level,
-    /*! [in] Debug module specified to the print function. */
-    Dbg_Module module);
-#else
-static UPNP_INLINE void printServiceTable(service_table *, Upnp_LogLevel, Dbg_Module)
-{
-}
+static UPNP_INLINE void printService(const service_info *, Upnp_LogLevel, Dbg_Module){}
+static UPNP_INLINE void printServiceTable(const service_table& , Upnp_LogLevel, Dbg_Module){}
 #endif
 
 /*!
  * \brief Free's dynamic memory in table (does not free table, only memory
  * within the structure).
  */
-void freeServiceTable(
-    /*! [in] Service table whose internal memory needs to be freed. */
-    service_table *table);
+void clearServiceTable(service_table& table);
 
 /*!
  * \brief Retrieve service from the table.
@@ -261,7 +208,7 @@ void freeServiceTable(
 int initServiceTable(
     const UPnPDeviceDesc& devdesc,
     /*! [in] Output parameter which will contain the service list and URL. */
-    service_table *out);
+    service_table& out);
 
 #endif /* INCLUDE_DEVICE_APIS */
 
