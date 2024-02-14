@@ -263,7 +263,7 @@ static std::string myCallbackUrl(NetIF::IPAddr& netaddr)
 }
 
 struct CurlGuard {
-    CurlGuard() = default;
+    CurlGuard(CURL* t, curl_slist* l) : htalk(t), hlist(l) {}
     ~CurlGuard() {
         if (htalk) {
             curl_easy_cleanup(htalk);
@@ -274,8 +274,8 @@ struct CurlGuard {
     }
     CurlGuard(const CurlGuard&) = delete;
     CurlGuard& operator=(const CurlGuard&) = delete;
-    CURL *htalk{nullptr};
-    struct curl_slist *hlist{nullptr};
+    CURL *htalk;
+    struct curl_slist *hlist;
 };
 
 /*!
@@ -334,11 +334,10 @@ static int gena_subscribe(
         return UPNP_E_SOCKET_CONNECT;
     }
 
-    CurlGuard hdls;
     std::map<std::string, std::string> http_headers;
     char curlerrormessage[CURL_ERROR_SIZE];
 
-    hdls.htalk = curl_easy_init();
+    auto hdls = CurlGuard(curl_easy_init(), nullptr);
     curl_easy_setopt(hdls.htalk, CURLOPT_ERRORBUFFER, curlerrormessage);
     curl_easy_setopt(hdls.htalk, CURLOPT_WRITEFUNCTION, write_callback_null_curl);
     curl_easy_setopt(hdls.htalk, CURLOPT_CUSTOMREQUEST, "SUBSCRIBE");
@@ -482,7 +481,6 @@ int genaSubscribe(
     std::string *out_sid)
 {
     int return_code = UPNP_E_SUCCESS;
-    ClientSubscription newSubscription;
     std::string SID;
     std::string EventURL;
     struct Handle_Info *handle_info;
@@ -517,11 +515,8 @@ int genaSubscribe(
 
     /* create event url */
     EventURL = PublisherURL;
-    newSubscription.renewEventId = -1;
-    newSubscription.SID = SID;
     out_sid->assign(SID);
-    newSubscription.eventURL = EventURL;
-    handle_info->ClientSubList.push_front(newSubscription);
+    handle_info->ClientSubList.emplace_front(-1, std::move(SID), std::move(EventURL));
 
     /* schedule expiration event */
     return_code = ScheduleGenaAutoRenew(client_handle, *TimeOut,
