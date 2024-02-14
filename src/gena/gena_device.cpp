@@ -213,7 +213,7 @@ struct Notification {
 class GenaNotifyJobWorker : public JobWorker {
 public:
     explicit GenaNotifyJobWorker(std::shared_ptr<Notification> in)
-        : m_input(in) {}
+        : m_input(std::move(in)) {}
     ~GenaNotifyJobWorker() override = default;
     GenaNotifyJobWorker(const GenaNotifyJobWorker&) = delete;
     GenaNotifyJobWorker& operator=(const GenaNotifyJobWorker&) = delete;
