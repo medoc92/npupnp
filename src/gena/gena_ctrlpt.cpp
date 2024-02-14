@@ -102,8 +102,6 @@ public:
         upnp_strlcpy(sub.PublisherUrl, url, NAME_SIZE);
         sub.TimeOut = t;
     }
-    AutoRenewSubscriptionJobWorker(const AutoRenewSubscriptionJobWorker&) = delete;
-    AutoRenewSubscriptionJobWorker& operator=(const AutoRenewSubscriptionJobWorker&) = delete;
     void work() override;
     int handle;
     struct Upnp_Event_Subscribe sub;
