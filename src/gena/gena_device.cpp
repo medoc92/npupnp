@@ -213,10 +213,7 @@ struct Notification {
 class GenaNotifyJobWorker : public JobWorker {
 public:
     explicit GenaNotifyJobWorker(std::shared_ptr<Notification> in)
-        : m_input(in) {}
-    ~GenaNotifyJobWorker() override = default;
-    GenaNotifyJobWorker(const GenaNotifyJobWorker&) = delete;
-    GenaNotifyJobWorker& operator=(const GenaNotifyJobWorker&) = delete;
+        : m_input(std::move(in)) {}
     void work() override;
     // This is actually shared with the outgoing list head.  Note: 2024-02: as far as I understand,
     // the only reason to keep a shared pointer to the active notification at the head of the

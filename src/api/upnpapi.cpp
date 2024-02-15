@@ -1412,8 +1412,6 @@ class AutoAdvertiseJobWorker : public JobWorker {
 public:
     explicit AutoAdvertiseJobWorker(int h, int e)
         : handle(h), exp(e) {}
-    AutoAdvertiseJobWorker(const AutoAdvertiseJobWorker&) = delete;
-    AutoAdvertiseJobWorker& operator=(const AutoAdvertiseJobWorker&) = delete;
     void work() override {
         UpnpSendAdvertisement(handle, exp);
     }
