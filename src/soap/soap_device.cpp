@@ -297,7 +297,7 @@ error_handler:
  * \return 0 if OK, -1 on error.
  */
 static int get_dev_service(
-    MHDTransaction *mhdt, soap_devserv_t *soap_info)
+    const MHDTransaction *mhdt, soap_devserv_t *soap_info)
 {
     struct Handle_Info *hdlinfo;
     int device_hnd;
@@ -436,7 +436,6 @@ void soap_device_callback(MHDTransaction *mhdt)
     soap_devserv_t soap_info;
     std::vector<std::pair<std::string, std::string>> args;
     std::string strippedxml;
-    std::string productversion;
     
     /* The device/service identified by the request URI */
     if (get_dev_service(mhdt, &soap_info) < 0) {

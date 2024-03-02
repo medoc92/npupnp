@@ -247,7 +247,7 @@ static int gena_unsubscribe(
 }
 
 // localaddr is already in inet_ntop-provided dot or ipv6 format
-static std::string myCallbackUrl(NetIF::IPAddr& netaddr)
+static std::string myCallbackUrl(const NetIF::IPAddr& netaddr)
 {
     std::ostringstream oss;
     oss << "http://";

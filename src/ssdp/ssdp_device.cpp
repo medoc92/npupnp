@@ -52,7 +52,7 @@
 #include <thread>
 
 struct SsdpSearchReply {
-    SsdpSearchReply(int a, UpnpDevice_Handle h, sockaddr_storage* da, SsdpEntity e)
+    SsdpSearchReply(int a, UpnpDevice_Handle h, const sockaddr_storage* da, SsdpEntity e)
         : MaxAge(a), handle(h), event(std::move(e))
     {
         std::memcpy(&dest_addr, da, sizeof(dest_addr));
@@ -73,7 +73,7 @@ struct SSDPPwrState {
 struct SSDPCommonData {
     SOCKET sock;
     struct sockaddr_storage *DestAddr;
-    const char *DevOrServType;
+    const char *DevOrServType{};
     SSDPPwrState pwr;
     std::string prodvers;
 };
@@ -91,7 +91,7 @@ public:
     std::unique_ptr<SsdpSearchReply> m_reply;
 };
 
-void ssdp_handle_device_request(SSDPPacketParser& parser, struct sockaddr_storage *dest_addr)
+void ssdp_handle_device_request(const SSDPPacketParser& parser, struct sockaddr_storage *dest_addr)
 {
     int handle, start;
     struct Handle_Info *dev_info = nullptr;
@@ -259,7 +259,7 @@ error:
 }
 
 static SOCKET createReplySocket6(
-    struct sockaddr_in6 *destaddr, std::string& lochost)
+    const struct sockaddr_in6 *destaddr, std::string& lochost)
 {
     SOCKET sock = socket(AF_INET6, SOCK_DGRAM, 0);
     if (sock == INVALID_SOCKET) {
@@ -345,7 +345,7 @@ static int sendPackets(SOCKET sock, struct sockaddr_storage *daddr, int cnt, std
 static void CreateServicePacket(
     SSDPDevMessageType msg_type, const char *nt, const char *usn,
     const std::string& location, int duration, std::string &packet,
-    int AddressFamily, SSDPPwrState& pwr, const std::string& prodvers)
+    int AddressFamily, const SSDPPwrState& pwr, const std::string& prodvers)
 {
     std::ostringstream str;
     switch (msg_type) {
@@ -414,7 +414,7 @@ static void CreateServicePacket(
 }
 
 static int DeviceAdvertisementOrShutdown(
-    SSDPCommonData& sscd, SSDPDevMessageType msgtype, const char *DevType,
+    const SSDPCommonData& sscd, SSDPDevMessageType msgtype, const char *DevType,
     int RootDev, const char *Udn, const std::string& Location, int Duration)
 {
     char Mil_Usn[LINE_SIZE];
@@ -458,7 +458,7 @@ error_handler:
 }
 
 static int SendReply(
-    SSDPCommonData& sscd, const char *DevType, int RootDev,
+    const SSDPCommonData& sscd, const char *DevType, int RootDev,
     const char *Udn, const std::string& Location, int Duration, int ByType)
 {
     int ret_code = UPNP_E_OUTOF_MEMORY;
@@ -508,7 +508,7 @@ error_handler:
 }
 
 static int DeviceReply(
-    SSDPCommonData& sscd, const char *DevType, int RootDev,
+    const SSDPCommonData& sscd, const char *DevType, int RootDev,
     const char *Udn, const std::string& Location, int Duration)
 {
     std::string szReq[3];
@@ -554,7 +554,7 @@ static int DeviceReply(
 }
 
 static int ServiceSend(
-    SSDPCommonData& sscd, SSDPDevMessageType tp, const char *ServType,
+    const SSDPCommonData& sscd, SSDPDevMessageType tp, const char *ServType,
     const char *Udn, const std::string& Location, int Duration)
 {
     char Mil_Usn[LINE_SIZE];

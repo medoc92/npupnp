@@ -229,7 +229,7 @@ struct ssdp_thread_data {
     }
     ssdp_thread_data(const ssdp_thread_data&) = delete;
     ssdp_thread_data& operator=(const ssdp_thread_data&) = delete;
-    size_t size() {return BUFSIZE;}
+    static size_t size() {return BUFSIZE;}
     char *packet() { return m_packet; }
     // For transferring the data packet ownership to the parser.
     char *giveuppacket() {

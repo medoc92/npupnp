@@ -127,10 +127,9 @@ static int GeneratePropertySet(
  */
 static int genaNotify(const std::string& propertySet, const subscription *sub)
 {
-    std::string mid_msg;
     int return_code = -1;
-
     long http_code = 0;
+
     /* send a notify to each url until one goes thru */
     for (const auto& url : sub->DeliveryURLs) {
         CURL *easy = curl_easy_init();
@@ -558,7 +557,7 @@ static int respond_ok(MHDTransaction *mhdt, int time_out, subscription *sub,
 // one of our supported addresses, not necessarily the one this
 // particular client connected to.
 static bool callStrangerCheck(
-    const std::string& surl, uri_type& temp, const NetIF::Interface *clnetif, NetIF::IPAddr& claddr)
+    const std::string& surl, uri_type& temp, const NetIF::Interface *clnetif, const NetIF::IPAddr& claddr)
 {
     NetIF::IPAddr subsaddr(reinterpret_cast<struct sockaddr*>(&temp.hostport.IPaddress));
     if (!subsaddr.ok()) {
@@ -623,7 +622,7 @@ static int create_url_list(
         return UPNP_E_INVALID_INTERFACE;
     }
 
-    std::string::size_type openpos = 0;
+    std::string::size_type openpos;
     std::string::size_type closepos = 0;
     for (;;) {
         if ((openpos = ulist.find('<', closepos)) == std::string::npos) {
@@ -816,7 +815,6 @@ void gena_process_subscription_renewal_request(MHDTransaction *mhdt)
     service_info *service;
     struct Handle_Info *handle_info;
     UpnpDevice_Handle device_handle;
-    std::string event_url_path;
 
     /* if a CALLBACK or NT header is present, then it is an error */
     if (mhdt->headers.find("callback") != mhdt->headers.end() ||

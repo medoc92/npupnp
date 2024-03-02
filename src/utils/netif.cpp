@@ -901,7 +901,7 @@ const Interface *Interfaces::interfaceForAddress(
     return nullptr;
 }
 
-const Interface* Interfaces::interfaceForAddress(const IPAddr& addr, IPAddr& hostaddr)
+const Interface* Interfaces::interfaceForAddress(const IPAddr& addr, IPAddr& hostaddr) const
 {
     return interfaceForAddress(addr, m->interfaces, hostaddr);
 }

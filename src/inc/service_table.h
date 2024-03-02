@@ -95,7 +95,7 @@ using service_table =  std::list<service_info>;
  */
 int copy_subscription(
     /*! [in] Source subscription. */
-    subscription *in,
+    const subscription *in,
     /*! [in] Destination subscription. */
     subscription *out);
 

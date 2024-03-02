@@ -70,7 +70,7 @@ struct StringIcmpPred {
     explicit StringIcmpPred(const std::string& s1)
         : m_s1(s1) {
     }
-    bool operator()(const std::string& s2) {
+    bool operator()(const std::string& s2) const {
         return stringicmp(m_s1, s2) == 0;
     }
     const std::string& m_s1;

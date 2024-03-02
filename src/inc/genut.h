@@ -47,7 +47,7 @@ inline char *_check_strerror_r(char *cp, char *) {
     return cp;
 }
 inline int posix_strerror_r(int err, char *buf, size_t len) {
-    char *cp = _check_strerror_r(strerror_r(err, buf, len), buf);
+    const char *cp = _check_strerror_r(strerror_r(err, buf, len), buf);
     if (cp != buf) {
         upnp_strlcpy(buf, cp, len);
     }

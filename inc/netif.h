@@ -212,7 +212,7 @@ public:
      * @param addr the address we're looking for
      * @param[out] hostaddr the found interface address.
      * @return Both the interface and the address inside the interface. */
-    const Interface *interfaceForAddress(const IPAddr& addr, IPAddr& hostaddr);
+    const Interface *interfaceForAddress(const IPAddr& addr, IPAddr& hostaddr) const;
 
     /** debug */
     static void setlogfp(FILE *fp);

@@ -329,7 +329,7 @@ static int getIfInfo(const char *IfNames)
 static int getmyipv4(const char *inipv4 = nullptr)
 {
     bool ipspecified = (nullptr != inipv4 && 0 != inipv4[0]);
-    NetIF::Interfaces *ifs = NetIF::Interfaces::theInterfaces();
+    const NetIF::Interfaces *ifs = NetIF::Interfaces::theInterfaces();
     NetIF::Interface *netifp{nullptr};
     NetIF::Interfaces::Filter filt;
     filt.needs = {NetIF::Interface::Flags::HASIPV4,
@@ -1518,8 +1518,8 @@ int UpnpSearchAsyncUnicast(
     UpnpClient_Handle hnd, const std::string& url, const char *target, void *cookie)
 {
     uri_type parseduri;
-    int ret;
-    if ((ret = parse_uri(url, &parseduri)) != UPNP_E_SUCCESS) {
+    int ret = parse_uri(url, &parseduri);
+    if (ret != UPNP_E_SUCCESS) {
         return ret;
     }
     const char *host = parseduri.hostport.strhost.c_str();

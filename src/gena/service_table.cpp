@@ -63,7 +63,7 @@
  *
  *    Note :
  ************************************************************************/
-int copy_subscription(subscription *in, subscription *out)
+int copy_subscription(const subscription *in, subscription *out)
 {
     out->sid = in->sid;
     out->ToSendEventKey = in->ToSendEventKey;

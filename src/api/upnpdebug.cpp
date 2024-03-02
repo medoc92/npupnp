@@ -142,7 +142,7 @@ static void UpnpDisplayFileAndLine(
 {
     char timebuf[26];
     time_t now = time(nullptr);
-    struct tm *timeinfo;
+    const struct tm *timeinfo;
     const char *smod;
 
     auto slev = std::to_string(DLevel);
