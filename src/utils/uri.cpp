@@ -62,7 +62,7 @@ int parse_hostport(const char *in, hostport_type *out, bool noresolve)
     auto sai6 = reinterpret_cast<struct sockaddr_in6 *>(&out->IPaddress);
     char *srvname = nullptr;
     char *srvport = nullptr;
-    char *last_dot = nullptr;
+    const char *last_dot = nullptr;
     unsigned short int port;
     int af = AF_UNSPEC;
     size_t hostport_size;

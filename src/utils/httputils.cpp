@@ -116,7 +116,7 @@ void MHDTransaction::copyClientAddress(struct sockaddr_storage *dest) const
     }
 }
 
-void MHDTransaction::copyToClientAddress(struct sockaddr *src)
+void MHDTransaction::copyToClientAddress(const struct sockaddr *src)
 {
     memset(&client_address, 0, sizeof(client_address));
     if (nullptr == src)
@@ -426,7 +426,7 @@ std::string make_date_string(time_t thetime)
 
     time_t curr_time = thetime ? thetime : time(nullptr);
     struct tm date_storage;
-    struct tm *date = http_gmtime_r(&curr_time, &date_storage);
+    const struct tm *date = http_gmtime_r(&curr_time, &date_storage);
     if (date == nullptr)
         return {};
     char tempbuf[200];

@@ -204,7 +204,7 @@ void ssdp_handle_ctrlpt_msg(
     /* [in] SSDP message from the device. */
     SSDPPacketParser& parser,
     /* [in] Address of the device. */
-    struct sockaddr_storage *dest_addr,
+    const struct sockaddr_storage *dest_addr,
     /* [in] Cookie stored by the control point application. This cookie will
      * be returned to the control point in the callback.
      * Only in search reply. */
@@ -250,14 +250,14 @@ int SearchByTarget(
 
 void ssdp_handle_device_request(
     /* [in] . */
-    SSDPPacketParser& parser,
+    const SSDPPacketParser& parser,
     /* [in] . */
     struct sockaddr_storage *dest_addr);
 
 #else /* INCLUDE_DEVICE_APIS */
 
 static UPNP_INLINE void ssdp_handle_device_request(
-    SSDPPacketParser&, struct sockaddr_storage *) {}
+    const SSDPPacketParser&, struct sockaddr_storage *) {}
 
 #endif /* INCLUDE_DEVICE_APIS */
 

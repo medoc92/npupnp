@@ -822,7 +822,7 @@ static void unsetenv(const char* name)
 time_t portable_timegm(struct tm *tm)
 {
     time_t ret;
-    char *tz;
+    const char *tz;
 
     tz = getenv("TZ");
     setenv("TZ", "", 1);

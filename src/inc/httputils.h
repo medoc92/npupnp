@@ -85,7 +85,7 @@ public:
     int httpstatus;
 
     void copyClientAddress(struct sockaddr_storage *dest) const;
-    void copyToClientAddress(struct sockaddr *src);
+    void copyToClientAddress(const struct sockaddr *src);
     // Returns false if header not found, else copies it
     bool copyHeader(const std::string& name, std::string& value);
 };

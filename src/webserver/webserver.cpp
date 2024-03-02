@@ -194,7 +194,7 @@ static std::string gDocumentRootDir;
 
 struct LocalDoc {
     std::string data;
-    time_t last_modified;
+    time_t last_modified{};
 };
 
 // Data which we serve directly: usually description
@@ -239,9 +239,7 @@ int web_server_set_localdoc(const std::string& path, const std::string& data, ti
     if (path.empty() || path.front() != '/') {
         return UPNP_E_INVALID_PARAM;
     }
-    LocalDoc doc;
-    doc.data = data;
-    doc.last_modified = last_modified;
+    LocalDoc doc{data, last_modified};
     std::scoped_lock lck(gWebMutex);
     localDocs[path] = doc;
     return UPNP_E_SUCCESS;

@@ -159,7 +159,7 @@ void SearchSendJobWorker::work()
     }
 }
 
-void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser, struct sockaddr_storage *dest_addr, void *)
+void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser, const struct sockaddr_storage *dest_addr, void *)
 {
     int handle;
     struct Handle_Info *ctrlpt_info = nullptr;

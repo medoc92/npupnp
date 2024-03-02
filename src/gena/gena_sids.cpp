@@ -64,7 +64,7 @@ std::string gena_sid_uuid()
 
     static std::string hwaddr;
     if (hwaddr.empty()) {
-        NetIF::Interfaces *ifs = NetIF::Interfaces::theInterfaces();
+        const NetIF::Interfaces *ifs = NetIF::Interfaces::theInterfaces();
         NetIF::Interfaces::Filter filt;
             filt.needs = {NetIF::Interface::Flags::HASHWADDR,
                           NetIF::Interface::Flags::HASIPV4};
