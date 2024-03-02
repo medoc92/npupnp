@@ -152,10 +152,11 @@ get_response_value(
 
 class UPnPSoapOptParser {
 public:
-    UPnPSoapOptParser(std::vector<std::pair<std::string, std::string>>& opts) {
-        for (const auto& opt : opts) {
-            if (opt.first == "timeoutms") {
-                timeoutms = atoi(opt.second.c_str());
+    UPnPSoapOptParser(const std::vector<std::pair<std::string, std::string>>& opts)
+    {
+        for (const auto& [name, val] : opts) {
+            if (name == "timeoutms") {
+                timeoutms = std::stoi(val);
             }
         }
     }
@@ -186,10 +187,8 @@ int SoapSendAction(
     std::ostringstream act;
     act << "<u:" << actionName << R"( xmlns:u=")" << serviceType << R"(">)" "\n";
     /* Action arguments */
-    for (const auto& arg : actionArgs) {
-        act << "<" << arg.first << ">" << xmlQuote(arg.second) << "</" <<
-            arg.first << ">\n";
-    }
+    for (const auto& [name, val] : actionArgs)
+        act << "<" << name << ">" << xmlQuote(val) << "</" << name << ">\n";
     act << "</u:" << actionName << ">\n";
     
     /* parse url */

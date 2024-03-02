@@ -54,7 +54,6 @@
 #include "upnpapi.h"
 #include "uri.h"
 
-#include <algorithm>
 #include <cerrno>
 #include <chrono>
 #include <condition_variable>
@@ -284,8 +283,8 @@ static std::string rebuild_url_from_mhdt(
     aurl += path;
     if (!mhdt->queryvalues.empty()) {
         aurl += "?";
-        for (const auto& entry: mhdt->queryvalues) {
-            aurl += query_encode(entry.first) + "=" + query_encode(entry.second) + "&";
+        for (const auto& [q, v] : mhdt->queryvalues) {
+            aurl += query_encode(q) + "=" + query_encode(v) + "&";
         }
         aurl.pop_back();
     }

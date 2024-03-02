@@ -37,7 +37,6 @@ nnn * Redistribution and use in source and binary forms, with or without
 #if EXCLUDE_SSDP == 0
 #include <string.h>
 
-#include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <sstream>

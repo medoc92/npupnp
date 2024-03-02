@@ -429,16 +429,18 @@ bool Interface::trimto(const std::vector<IPAddr>& keep)
 {
     auto mit = m->netmasks.begin();
     for (auto ait = m->addresses.begin(); ait != m->addresses.end();) {
-        auto it = find_if(keep.begin(), keep.end(),
-                          [ait] (const IPAddr& a) {
-                              return ait->straddr() == a.straddr();
-                          });
-        if (it == keep.end()) {
+        bool found = false;
+        for (const auto& a : keep) {
+            if (ait->straddr() == a.straddr()) {
+                ait++;
+                mit++;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
             ait = m->addresses.erase(ait);
             mit = m->netmasks.erase(mit);
-        } else {
-            ait++;
-            mit++;
         }
     }
     return !m->addresses.empty();
@@ -807,11 +809,9 @@ std::vector<Interface> Interfaces::select(const Filter& filt) const
            " noflags " << noflags << std::dec << "\n");
 
     std::vector<Interface> out;
-    const auto& ifs = theInterfaces()->m->interfaces;
-    std::copy_if(ifs.begin(), ifs.end(), std::back_inserter(out),
-        [=](const NetIF::Interface &entry){
-                     return (entry.m->flags & yesflags) == yesflags &&
-                         (entry.m->flags & noflags) == 0;});
+    for (const auto& entry : theInterfaces()->m->interfaces)
+        if ((entry.m->flags & yesflags) == yesflags && (entry.m->flags & noflags) == 0)
+            out.push_back(entry);
     return out;
 }
 
@@ -829,11 +829,11 @@ static const Interface* interfaceForAddress4(
 {
     struct sockaddr_storage sbuf, mbuf;
     for (const auto& netif : vifs) {
-        auto addresses = netif.getaddresses();
-        for (unsigned int i = 0; i < addresses.first.size(); i++) {
-            if (addresses.first[i].family() == IPAddr::Family::IPV4) {
-                addresses.first[i].copyToStorage(&sbuf);
-                addresses.second[i].copyToStorage(&mbuf);
+        auto [addrs, masks] = netif.getaddresses();
+        for (unsigned int i = 0; i < addrs.size(); i++) {
+            if (addrs[i].family() == IPAddr::Family::IPV4) {
+                addrs[i].copyToStorage(&sbuf);
+                masks[i].copyToStorage(&mbuf);
                 uint32_t addr = reinterpret_cast<struct sockaddr_in*>(&sbuf)->sin_addr.s_addr;
                 uint32_t mask = reinterpret_cast<struct sockaddr_in*>(&mbuf)->sin_addr.s_addr;
                 if (mask == 0) // ??
@@ -845,7 +845,7 @@ static const Interface* interfaceForAddress4(
                     ((vifs.size() == 1) && (mask == 0xffffffff)) ||
                     // Normal subnet check
                     ((peeraddr & mask) == (addr & mask)) ) {
-                    hostaddr = addresses.first[i];
+                    hostaddr = addrs[i];
                     return &netif;
                 }
             }
