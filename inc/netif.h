@@ -211,8 +211,11 @@ public:
      * belongs to among all the system interfaces.
      * @param addr the address we're looking for
      * @param[out] hostaddr the found interface address.
-     * @return Both the interface and the address inside the interface. */
-    const Interface *interfaceForAddress(const IPAddr& addr, IPAddr& hostaddr) const;
+     * @return Both the interface and the address inside the interface. 
+     * Note that this could have a const specifier, but this would change the ABI and is not worth
+     * the trouble at this point.
+     */
+    const Interface *interfaceForAddress(const IPAddr& addr, IPAddr& hostaddr);
 
     /** debug */
     static void setlogfp(FILE *fp);
