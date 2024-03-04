@@ -1,2 +1,2 @@
-version=3
-http://www.lesbonscomptes.com/upmpdcli/downloads/libnpupnp-(\d.*)\.(?:tar.bz2|tar.gz|tar|tgz)
+version=4
+https://www.lesbonscomptes.com/upmpdcli/downloads/libnpupnp-(\d.*)\.(?:tar.bz2|tar.gz|tar|tgz)
