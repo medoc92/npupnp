@@ -17,6 +17,7 @@
  */
 #include "smallut.h"
 
+#include <algorithm>
 #include <cctype>
 #include <cmath>
 #include <cstdio>
@@ -73,7 +74,7 @@ std::string stringtolower(const std::string& i)
 
 void stringtoupper(std::string& io)
 {
-    std::transform(io.begin(), io.end(), io.begin(), [](unsigned char c) { return std::toupper(c); });
+    std::transform(io.begin(), io.end(), io.begin(), [](unsigned char c) {return std::toupper(c);});
 }
 
 std::string stringtoupper(const std::string& i)
@@ -148,6 +149,13 @@ int stringuppercmp(const std::string& s1, const std::string& s2)
 bool beginswith(const std::string& big, const std::string& small)
 {
     return big.compare(0, small.size(), small) == 0;
+}
+bool endswith(const std::string& big, const std::string& small)
+{
+    if (big.size() >= small.size()) {
+        return (!big.compare (big.length() - small.length(), small.length(), small));
+    }
+    return false;
 }
 
 template <class T> bool stringToStrings(const std::string& s, T& tokens, const std::string& addseps)
