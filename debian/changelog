@@ -1,3 +1,10 @@
+libnpupnp (6.1.1-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Misc internal cleanups, mostly based on automated analysis tools
+   (cppcheck, fanalyzer, clang-tidy).
+  
+ -- Jean-Francois Dockes <jf@dockes.org>  Mon, 04 Mar 2024 10:51:00 +0100
+
 libnpupnp (6.1.0-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Misc small internal cleanups, mostly for multi-platform building.
