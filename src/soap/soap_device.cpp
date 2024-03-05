@@ -117,8 +117,7 @@ static void send_error_response(
     const std::string& txt = ostr.str();
     mhdt->response = MHD_create_response_from_buffer(
         txt.size(), const_cast<char*>(txt.c_str()), MHD_RESPMEM_MUST_COPY);
-    MHD_add_response_header(mhdt->response, "Content-Type",
-                            R"(text/xml; charset="utf-8")");
+    MHD_add_response_header(mhdt->response, "Content-Type", R"(text/xml; charset="utf-8")");
     MHD_add_response_header(mhdt->response, "SERVER",
                             get_sdk_device_info(productversion).c_str());
     /* We do as the original code, but should this not be error_code? */
@@ -142,28 +141,22 @@ static void send_action_response(
     response << "</u:" << soap_info->action_name << "Response" << ">\n";
     response << end_body;
     const std::string& txt(response.str());
-    UpnpPrintf(UPNP_INFO, SOAP, __FILE__, __LINE__,
-               "Action Response data: [%s]\n", txt.c_str());
+    UpnpPrintf(UPNP_INFO, SOAP, __FILE__, __LINE__, "Action Response data: [%s]\n", txt.c_str());
     mhdt->response = MHD_create_response_from_buffer(
         txt.size(), const_cast<char*>(txt.c_str()), MHD_RESPMEM_MUST_COPY);
     MHD_add_response_header(
-        mhdt->response, "SERVER",
-        get_sdk_device_info(soap_info->productversion).c_str());
+        mhdt->response, "SERVER", get_sdk_device_info(soap_info->productversion).c_str());
     mhdt->httpstatus = 200;
 }
 
 
 /* The original code performed a few consistency checks on the action xml
-   - Checked the soap namespace against
-     SOAP_URN = "http:/""/schemas.xmlsoap.org/soap/envelope/";
+   - Checked the soap namespace against SOAP_URN = "http:/""/schemas.xmlsoap.org/soap/envelope/";
    - Checked the "Body" elt name
-   - Checked that the action node namespace uri matched the service
-     type from the SOAPACTION header
-   - Checked that the action node local name matched the action name
-     from the SOAPACTION header.
+   - Checked that the action node namespace uri matched the service type from the SOAPACTION header
+   - Checked that the action node local name matched the action name from the SOAPACTION header.
    - Other checks for a var request. We don't support this any more.
-  As we're not in the business of checking conformity, we did not reproduce
-  the tests for now.
+  As we're not in the business of checking conformity, we did not reproduce the tests for now.
 */
 class UPnPActionRequestParser : public XMLPARSERTP {
 public:
@@ -239,8 +232,7 @@ static void handle_invoke_action(
     mhdt->copyClientAddress(&action.CtrlPtIPAddr);
     mhdt->copyHeader("user-agent", action.Os);
 
-    int ret = soap_info->callback(
-        UPNP_CONTROL_ACTION_REQUEST, &action, soap_info->cookie);
+    int ret = soap_info->callback(UPNP_CONTROL_ACTION_REQUEST, &action, soap_info->cookie);
     if (ret != UPNP_E_SUCCESS) {
         UpnpPrintf(UPNP_DEBUG, SOAP, __FILE__, __LINE__,
                    "Action callback failed. ret %d errcode %d errstr [%s]\n",
@@ -268,8 +260,7 @@ static void handle_invoke_action(
         UPnPActionRequestParser parser(action.xmlResponse, rspnm, args, true);
         if (!parser.Parse()) {
             UpnpPrintf(UPNP_INFO, SOAP, __FILE__, __LINE__,
-                       "XML response parse failed for [%s]\n",
-                       action.xmlResponse.c_str());
+                       "XML response parse failed for [%s]\n", action.xmlResponse.c_str());
             err_code = SOAP_ACTION_FAILED;
             err_str = Soap_Action_Failed;
             goto error_handler;
@@ -293,8 +284,7 @@ error_handler:
  *
  * \return 0 if OK, -1 on error.
  */
-static int get_dev_service(
-    const MHDTransaction *mhdt, soap_devserv_t *soap_info)
+static int get_dev_service(const MHDTransaction *mhdt, soap_devserv_t *soap_info)
 {
     struct Handle_Info *hdlinfo;
     int device_hnd;
@@ -302,13 +292,11 @@ static int get_dev_service(
 
     HandleReadLock();
 
-    auto hdltp = GetDeviceHandleInfoForPath(
-        mhdt->url, &device_hnd, &hdlinfo, &serv_info);
+    auto hdltp = GetDeviceHandleInfoForPath(mhdt->url, &device_hnd, &hdlinfo, &serv_info);
 
     if (hdltp != HND_DEVICE || nullptr == serv_info) {
         HandleUnlock();
-        UpnpPrintf(UPNP_ERROR, SOAP, __FILE__, __LINE__,
-                   "get_dev_service: client not found.\n");
+        UpnpPrintf(UPNP_ERROR, SOAP, __FILE__, __LINE__, "get_dev_service: client not found.\n");
         return -1;
     }
 
@@ -419,8 +407,6 @@ static int check_soapaction_hdr(
 }
 
 
-
-
 /*!
  * \brief This is a callback called by miniserver after receiving the request
  * from the control point. After HTTP processing, it calls handle_soap_request
@@ -433,6 +419,8 @@ void soap_device_callback(MHDTransaction *mhdt)
     soap_devserv_t soap_info;
     std::vector<std::pair<std::string, std::string>> args;
     std::string strippedxml;
+    UpnpPrintf(UPNP_INFO, SOAP, __FILE__, __LINE__, "Action POST data: [%s]\n",
+               mhdt->postdata.c_str());
     
     /* The device/service identified by the request URI */
     if (get_dev_service(mhdt, &soap_info) < 0) {
@@ -476,8 +464,7 @@ void soap_device_callback(MHDTransaction *mhdt)
         // header The parser will produce both argument vectors and an
         // XML subdocument matching the subtree which libupnp would
         // have sent (transition help).
-        UPnPActionRequestParser parser(
-            mhdt->postdata, soap_info.action_name, args, false);
+        UPnPActionRequestParser parser(mhdt->postdata, soap_info.action_name, args, false);
         if (!parser.Parse()) {
             UpnpPrintf(UPNP_INFO, SOAP, __FILE__, __LINE__,
                        "XML parse failed for [%s]\n", mhdt->postdata.c_str());
@@ -492,8 +479,7 @@ void soap_device_callback(MHDTransaction *mhdt)
     handle_invoke_action(mhdt, &soap_info, strippedxml, args);
 
     if (mhdt->response)
-        MHD_add_response_header(mhdt->response, "Content-Type",
-                                R"(text/xml; charset="utf-8")");
+        MHD_add_response_header(mhdt->response, "Content-Type", R"(text/xml; charset="utf-8")");
 
 error_handler:
     // productversion could be empty here, in which case we will send the lib
