@@ -673,7 +673,6 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
     void *cookie;
     Upnp_FunPtr callback_fun;
     UpnpDevice_Handle device_handle;
-    std::list<subscription>::iterator sub;
 
     UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
                "Subscription Request Received:\n");
@@ -744,7 +743,7 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
     }
 
     /* generate new subscription */
-    sub = service->subscriptionList.emplace(service->subscriptionList.end());
+    auto sub = service->subscriptionList.emplace(service->subscriptionList.end());
     if (sub == service->subscriptionList.end()) {
         http_SendStatusResponse(mhdt, HTTP_INTERNAL_SERVER_ERROR);
         HandleUnlock();

@@ -157,11 +157,6 @@ std::list<subscription>::iterator GetFirstSubscription(service_info *service)
     return GetNextSubscription(service, sublist.begin(), true);
 }
 
-subscription::~subscription()
-{
-    outgoing.clear();
-}
-
 /************************************************************************
  *    Function :    FindServiceId
  *

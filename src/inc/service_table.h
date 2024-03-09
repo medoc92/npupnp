@@ -60,11 +60,6 @@ struct subscription {
        list is a copy of the active job. Others are activated on job
        completion. */
     std::list<std::shared_ptr<Notification>> outgoing;
-
-    subscription() = default;
-    ~subscription();
-    subscription& operator=(const subscription&) = delete;
-    subscription(const subscription&) = delete;
 };
 
 struct service_info {
