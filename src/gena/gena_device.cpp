@@ -398,11 +398,6 @@ ExitFunction:
     return ret;
 }
 
-void freeSubscriptionQueuedEvents(subscription *sub)
-{
-    sub->outgoing.clear();
-}
-
 /*
  * This gets called before queuing a new event, with the handLock held.
  * - The list size can never go over MAX_SUBSCRIPTION_QUEUED_EVENTS so we

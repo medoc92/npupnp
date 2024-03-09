@@ -67,8 +67,6 @@ struct subscription {
     subscription(const subscription&) = delete;
 };
 
-extern void freeSubscriptionQueuedEvents(subscription *sub);
-
 struct service_info {
     std::string serviceType;
     std::string serviceId;
