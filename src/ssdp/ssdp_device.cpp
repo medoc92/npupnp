@@ -73,7 +73,6 @@ struct SSDPPwrState {
 struct SSDPCommonData {
     SOCKET sock;
     struct sockaddr_storage *DestAddr;
-    const char *DevOrServType{};
     SSDPPwrState pwr;
     std::string prodvers;
 };
@@ -626,14 +625,7 @@ static int AdvertiseAndReplyOneDest(
     }
 
     int defaultExp = SInfo->MaxAge;
-
-    struct SSDPCommonData sscd;
-    sscd.sock = sock;
-    sscd.DestAddr = DestAddr;
-    sscd.pwr = SSDPPwrState{SInfo->PowerState, SInfo->SleepPeriod, SInfo->RegistrationState};
-    sscd.prodvers = SInfo->productversion;
-
-
+    SSDPCommonData sscd{sock, DestAddr, SSDPPwrState{SInfo->PowerState, SInfo->SleepPeriod, SInfo->RegistrationState}, SInfo->productversion};
     std::string location{SInfo->DescURL};
     replaceLochost(location, lochost);
     std::string lowerloc{SInfo->LowerDescURL};

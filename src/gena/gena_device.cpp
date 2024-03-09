@@ -665,7 +665,6 @@ static int create_url_list(
 
 void gena_process_subscription_request(MHDTransaction *mhdt)
 {
-    struct Upnp_Subscription_Request request_struct = {};
     int return_code = 1;
     int time_out = 1801;
     service_info *service;
@@ -783,9 +782,7 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
                "Subscription Request granted\n");
 
     /* finally generate callback for init table dump */
-    request_struct.ServiceId = service->serviceId.c_str();
-    request_struct.UDN = service->UDN.c_str();
-    request_struct.Sid = sub->sid;
+    Upnp_Subscription_Request request_struct{service->serviceId.c_str(), service->UDN.c_str(), sub->sid};
 
     /* copy callback */
     callback_fun = handle_info->Callback;
