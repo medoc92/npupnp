@@ -159,7 +159,7 @@ std::list<subscription>::iterator GetFirstSubscription(service_info *service)
 
 subscription::~subscription()
 {
-    freeSubscriptionQueuedEvents(this);
+    outgoing.clear();
 }
 
 /************************************************************************
