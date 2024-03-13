@@ -63,8 +63,8 @@ using namespace std::chrono;
 
 /*! Internal ThreadPool Job. */
 struct ThreadPoolJob {
-    ThreadPoolJob(std::unique_ptr<JobWorker> worker, ThreadPool::ThreadPriority _prio)
-        : m_worker(std::move(worker)), priority(_prio) {}
+    ThreadPoolJob(std::unique_ptr<JobWorker> worker, ThreadPool::ThreadPriority _prio, int j, steady_clock::time_point rt)
+        : m_worker(std::move(worker)), priority(_prio), requestTime(rt), jobId(j) {}
     std::unique_ptr<JobWorker> m_worker;
     ThreadPool::ThreadPriority priority;
     steady_clock::time_point requestTime;
@@ -581,10 +581,7 @@ int ThreadPool::addPersistent(std::unique_ptr<JobWorker> worker, ThreadPriority 
             return EMAXTHREADS;
     }
 
-    auto job = std::make_unique<ThreadPoolJob>(std::move(worker), priority);
-    job->jobId = m->lastJobId;
-    job->requestTime = steady_clock::now();
-    m->persistentJob = std::move(job);
+    m->persistentJob = std::make_unique<ThreadPoolJob>(std::move(worker), priority, m->lastJobId, steady_clock::now());
 
     /* Notify a waiting thread */
     m->condition.notify_one();
@@ -607,9 +604,7 @@ int ThreadPool::addJob(std::unique_ptr<JobWorker> worker, ThreadPriority prio)
         return 0;
     }
 
-    auto job = std::make_unique<ThreadPoolJob>(std::move(worker), prio);
-    job->jobId =  m->lastJobId;
-    job->requestTime = steady_clock::now();
+    auto job = std::make_unique<ThreadPoolJob>(std::move(worker), prio, m->lastJobId, steady_clock::now());
     switch (job->priority) {
     case HIGH_PRIORITY:
         m->highJobQ.push_back(std::move(job));
