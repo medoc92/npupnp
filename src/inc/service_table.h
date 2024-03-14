@@ -183,8 +183,8 @@ service_info * FindServiceControlURLPath(
 void printService(const service_info *service, Upnp_LogLevel level, Dbg_Module module);
 void printServiceTable(const service_table& table, Upnp_LogLevel level, Dbg_Module module);
 #else
-static UPNP_INLINE void printService(const service_info *, Upnp_LogLevel, Dbg_Module){}
-static UPNP_INLINE void printServiceTable(const service_table& , Upnp_LogLevel, Dbg_Module){}
+static inline void printService(const service_info*, Upnp_LogLevel, Dbg_Module) {}
+static inline void printServiceTable(const service_table&, Upnp_LogLevel, Dbg_Module) {}
 #endif
 
 /*!

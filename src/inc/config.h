@@ -53,22 +53,9 @@ typedef intptr_t ssize_t;
 #define strncasecmp _strnicmp
 #define strcasecmp _stricmp
 #define getpid _getpid
-#define UPNP_INLINE _inline
 #endif /* _MSC_VER */
 
-#ifdef __GNUC__
-#define UPNP_INLINE inline
-#endif /* __GNUC__ */
-
-#else /* !_WIN32 -> */
-
-#ifdef __STRICT_ANSI__
-#define UPNP_INLINE __inline__
-#else
-#define UPNP_INLINE inline
-#endif
-
-#endif // !_WIN32
+#endif // _WIN32
 
 /*!
  *  \name Compile time configuration options

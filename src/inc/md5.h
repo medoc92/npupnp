@@ -15,8 +15,8 @@
 #ifndef _MD5_H_
 #define _MD5_H_
 
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 #include <string>
 
 namespace MedocUtils {

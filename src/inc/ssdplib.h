@@ -256,8 +256,8 @@ void ssdp_handle_device_request(
 
 #else /* INCLUDE_DEVICE_APIS */
 
-static UPNP_INLINE void ssdp_handle_device_request(
-    const SSDPPacketParser&, struct sockaddr_storage *) {}
+static inline void ssdp_handle_device_request(
+    const SSDPPacketParser&, struct sockaddr_storage*) {}
 
 #endif /* INCLUDE_DEVICE_APIS */
 

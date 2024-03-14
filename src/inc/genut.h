@@ -32,7 +32,8 @@
 #define _GENUT_H_INCLUDED_
 
 #include "smallut.h"
-#include <string.h>
+
+#include <cstring>
 
 extern size_t upnp_strlcpy(char *dst, const char *src, size_t dsize);
 

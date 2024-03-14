@@ -741,8 +741,8 @@ void PrintThreadPoolStats(
                stats.totalIdleTime);
 }
 #else
-static UPNP_INLINE void PrintThreadPoolStats(
-    ThreadPool *, const char *, int, const char *)
+static void PrintThreadPoolStats(
+    ThreadPool*, const char*, int, const char*)
 {
 }
 #endif /* DEBUG */

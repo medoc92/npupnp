@@ -216,7 +216,7 @@ static std::mutex vdlmutex;
 
 
 /* Compute MIME type from file name extension. */
-static UPNP_INLINE int get_content_type(const char *filename, std::string& content_type)
+static int get_content_type(const char* filename, std::string& content_type)
 {
     std::string_view ctname{"application/octet-stream"};
     content_type.clear();

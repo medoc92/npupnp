@@ -111,7 +111,7 @@ void SetGenaCallback(MiniServerCallback callback)
 
 #endif /* INTERNAL_WEB_SERVER */
 
-static UPNP_INLINE void fdset_if_valid(SOCKET sock, fd_set *set)
+static void fdset_if_valid(SOCKET sock, fd_set* set)
 {
     if (sock != INVALID_SOCKET) {
         FD_SET(sock, set);
