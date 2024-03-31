@@ -7,6 +7,11 @@ project(
   meson_version: '>=0.57',
 )
 
+# Change this only when the library interface would become incompatible with a binary linked with a
+# previous version. A change should also result in changing the Debian binary package name so that
+# both library versions can cohexist on a system.
+npupnp_soversion = 13
+
 cpp = meson.get_compiler('cpp')
 deps = []
 if host_machine.system() == 'windows'
@@ -29,6 +34,7 @@ else
   add_project_arguments('-DUPNP_STATIC_LIB', language: 'cpp')
 endif
 
+# Note: meson sets -D_FILE_OFFSET_BITS=64 by default
 add_project_arguments('-DNOMINMAX', language: 'cpp')
 add_project_arguments('-DSMALLUT_NO_REGEX', language: 'cpp')
 add_project_arguments('-DSMALLUT_EXTERNAL_INSTANTIATIONS', language: 'cpp')
@@ -94,6 +100,15 @@ if get_option('tools')
   )
 endif
 
+# The library has 3 configuration files :
+# 1) "./autoconfig.h" is auto-generated and used only internally during build
+# 2) "./src/inc/config.h" is static and contains some compile-time 
+#    parameters. This file was previously in "./upnp/inc" but is no longer 
+#    installed (contains internal definitions only).
+# 3) "./inc/upnpconfig.h" is auto-generated and installed with the 
+#    libraries : it contains information on the configuration of the
+#    installed libraries.
+
 auto = configuration_data()
 auto.set_quoted('PACKAGE_VERSION', meson.project_version())
 auto.set_quoted('NPUPNP_VERSION_STRING', meson.project_version())
@@ -122,8 +137,7 @@ libnpupnp = library(
   npupnp_sources,
   gnu_symbol_visibility: 'hidden',
   name_prefix: '',
-  version: meson.project_version(),
-  soversion: host_machine.system() == 'windows' ? '' : '6',
+  soversion: host_machine.system() == 'windows' ? '' : npupnp_soversion,
   include_directories: libnpupnp_incdir,
   dependencies: deps,
   install: true,
