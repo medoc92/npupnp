@@ -18,7 +18,6 @@ doc/refdoc
 inc/stamp-h2
 inc/upnp/
 inc/upnpconfig.h
-libnpupnp.pc
 libtool
 m4/
 macos/build-libnpupnp-Desktop_Qt_5_14_2_clang_64bit-Release/
@@ -26,5 +25,4 @@ stamp-h1
 upnp/Makefile
 windows/build-libnpupnp-Desktop_Qt_5_8_0_MinGW_32bit-Debug/
 windows/qmk/libnpupnp.pro.user
-
 subprojects/packagecache

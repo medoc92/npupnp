@@ -1,3 +1,9 @@
+libnpupnp (6.2.0-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Removed autotools build system, now using meson.
+
+ -- Jean-Francois Dockes <jf@dockes.org>  Sun, 31 Mar 2024 16:51:00 +0200
+
 libnpupnp (6.1.1-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Misc internal cleanups, mostly based on automated analysis tools

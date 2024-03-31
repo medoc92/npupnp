@@ -110,7 +110,6 @@ endif
 #    installed libraries.
 
 auto = configuration_data()
-auto.set_quoted('PACKAGE_VERSION', meson.project_version())
 auto.set_quoted('NPUPNP_VERSION_STRING', meson.project_version())
 ver = meson.project_version().split('.')
 auto.set('NPUPNP_VERSION_MAJOR', ver[0])

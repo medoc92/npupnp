@@ -22,4 +22,3 @@ sed -i -E -e '/^#define[ \t]+NPUPNP_VERSION_STRING/c\'\
 -e '/^#define[ \t]+NPUPNP_VERSION_PATCH/c\'\
 "#define NPUPNP_VERSION_PATCH $PATCH" \
 windows/upnpconfig-windows.h macos/upnpconfig-macos.h
-

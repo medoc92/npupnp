@@ -6,7 +6,7 @@ Vcs-Browser: https://framagit.org/medoc92/npupnp
 Vcs-Git: https://framagit.org/medoc92/npupnp.git
 Maintainer: Jean-Francois Dockes <jf@dockes.org>
 Build-Depends: debhelper-compat (=13), autoconf, automake, libtool, pkg-config,
- libexpat1-dev, libmicrohttpd-dev, libcurl4-gnutls-dev
+ libexpat1-dev, libmicrohttpd-dev, libcurl4-gnutls-dev, meson, ninja-build
 Rules-Requires-Root: no
 Standards-Version: 4.6.2
 

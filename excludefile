@@ -1,0 +1,14 @@
+*~
+#*
+.ccls
+.ccls-cache
+.clang-format
+.git
+.github
+.gitignore
+build
+core
+debian
+manifest.txt
+rpm
+subprojects/packagecache

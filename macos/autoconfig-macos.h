@@ -17,7 +17,7 @@
 #define PACKAGE_NAME "libnpupnp"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "libnpupnp 6.1.1"
+#define PACKAGE_STRING "libnpupnp 6.2.0"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "libnpupnp"
@@ -26,7 +26,7 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "6.1.1"
+#define PACKAGE_VERSION "6.2.0"
 
 /* see upnpconfig.h */
 #define UPNP_ENABLE_IPV6 1
