@@ -93,7 +93,6 @@ doc/refdoc/html/upnp_8h_source.html
 doc/refdoc/html/upnpdebug_8h.html
 doc/refdoc/html/upnpdebug_8h_source.html
 doc/refdoc/html/upnpdescription_8h_source.html
-excludefile
 inc/
 inc/UpnpGlobal.h
 inc/netif.h
@@ -105,13 +104,11 @@ inc/upnptools.h
 macos/
 macos/autoconfig-macos.h
 macos/upnpconfig-macos.h
-makesrcdist.sh
 meson.build
 meson_options.txt
 qmk/
 qmk/libnpupnp.pro
 qmk/libnpupnp.pro.user
-setversion.sh
 src/
 src/api/
 src/api/.deps/
@@ -188,7 +185,6 @@ subprojects/
 subprojects/curl.wrap
 subprojects/expat.wrap
 subprojects/libmicrohttpd.wrap
-symbols-reference
 test/
 test/Makefile.am
 test/Makefile.in

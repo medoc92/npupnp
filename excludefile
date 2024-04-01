@@ -9,6 +9,10 @@
 build
 core
 debian
+excludefile
+makesrcdist.sh
 manifest.txt
 rpm
+setversion.sh
 subprojects/packagecache
+symbols-reference
