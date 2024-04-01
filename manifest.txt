@@ -3,7 +3,6 @@ AUTHORS
 COPYING
 INSTALL
 README.md
-VER
 doc/
 doc/Doxyfile
 doc/Makefile

@@ -11,7 +11,7 @@ fatal() {
 usage() {
     echo 'Usage: makescrdist.sh -t -s do_it'
     echo ' -t : no tagging'
-    echo ' -s : snapshot release: use date instead of VERSION'
+    echo ' -s : snapshot release: use date instead of version'
     echo ' -s implies -t'
     exit 1
 }
@@ -54,7 +54,7 @@ if test $snap = yes ; then
   version=`date +%F_%H-%M-%S`
   TAG=""
 else
-    version=`cat VER`
+    version=`grep "version:" meson.build | head -1 | awk '{print $2}' | tr -d "',"`
     # trim whitespace
     version=`echo $version | xargs`
     TAG="${myname}-v$version"

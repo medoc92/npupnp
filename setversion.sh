@@ -1,6 +1,6 @@
 #!/bin/sh
 
-VERSION=`cat VER`
+VERSION=`grep "version:" meson.build | head -1 | awk '{print $2}' | tr -d "',"`
 MAJOR=`echo $VERSION | cut -d. -f 1`
 MINOR=`echo $VERSION | cut -d. -f 2`
 PATCH=`echo $VERSION | cut -d. -f 3`

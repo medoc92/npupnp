@@ -2,9 +2,9 @@ project(
   'libnpupnp',
   'cpp',
   license: 'BSD-3-Clause',
-  version: files('VER'),
+  version: '6.1.2',
   default_options: 'cpp_std=c++17',
-  meson_version: '>=0.57',
+  meson_version: '>=0.49',
 )
 
 # Change this only when the library interface would become incompatible with a binary linked with a
