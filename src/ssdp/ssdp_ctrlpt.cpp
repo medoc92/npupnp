@@ -462,10 +462,6 @@ int SearchByTarget(int Mx, const char *St, const char *saddress, int port, void 
         if (retVal != UPNP_E_SUCCESS)
             return retVal;
     }
-#else
-    if (needv6) {
-        return UPNP_E_INVALID_PARAM;
-    }
 #endif
 
     /* Add the search criteria and callback to the list and schedule a timeout event to remove
