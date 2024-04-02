@@ -24,24 +24,28 @@ by either XML string documents or C++ STL structures.
 At this point the API is C++. It would not be impossible to add a pure C
 API if this was needed.
 
-Have a look at the
-[DOC](https://www.lesbonscomptes.com/upmpdcli/npupnp-doc/libnpupnp.html) !
-
+[Documentation](https://www.lesbonscomptes.com/upmpdcli/npupnp-doc/libnpupnp.html) !
 
 Tar archives for the releases are stored on the [upmpdcli downloads
 page](https://www.lesbonscomptes.com/upmpdcli/pages/downloads.html)
 
-Building:
+Build dependancies (as Debian package names, you may need to translate): `pkg-config`,
+`libexpat1-dev`, `libmicrohttpd-dev`, `libcurl4-gnutls-dev`.
 
-    cd [top source directory]
+At the moment, the tar archives builds are based on the GNU autotools. The build sequence is the
+usual one:
+
     ./autogen.sh # Only for a git clone, no need for a tar release file
     configure --prefix=/usr
     make
     sudo make install
 
-Build dependancies (as Debian package names, you may need to translate): `pkg-config`,
-`libexpat1-dev`, `libmicrohttpd-dev`, `libcurl4-gnutls-dev`.
+The development code has switched to using meson/ninja-build. The new way is something like:
 
-Only for git code: `autoconf`, `automake`, `libtool`.
-
-
+    cd [somewhere]
+    mkdir builddir
+    meson setup --prefix=usr builddir /path/to/npupnp/meson.build
+    cd builddir
+    ninja 
+    sudo meson install
+    
