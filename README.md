@@ -35,7 +35,6 @@ Build dependancies (as Debian package names, you may need to translate): `pkg-co
 At the moment, the tar archives builds are based on the GNU autotools. The build sequence is the
 usual one:
 
-    ./autogen.sh # Only for a git clone, no need for a tar release file
     configure --prefix=/usr
     make
     sudo make install
