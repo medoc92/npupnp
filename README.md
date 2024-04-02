@@ -35,6 +35,7 @@ Build dependancies (as Debian package names, you may need to translate): `pkg-co
 At the moment, the tar archives builds are based on the GNU autotools. The build sequence is the
 usual one:
 
+    [cd /path/to/top/of/extracted/tar]
     configure --prefix=/usr
     make
     sudo make install
@@ -42,7 +43,6 @@ usual one:
 The development code has switched to using meson/ninja-build. The new way is something like:
 
     cd [somewhere]
-    mkdir builddir
     meson setup --prefix=usr builddir /path/to/npupnp/meson.build
     cd builddir
     ninja 
