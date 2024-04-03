@@ -2,7 +2,11 @@
 
 myname=libnpupnp
 MYNAME=`echo $myname | tr a-z A-Z`
-# A shell-script to make a libnpupnp source distribution.
+wherefile=inc/upnpdescription.h
+islib=yes
+builtlib=build/libnpupnp.so
+
+# A shell-script to make a source distribution.
 
 fatal() {
     echo $*
@@ -11,7 +15,7 @@ fatal() {
 usage() {
     echo 'Usage: makescrdist.sh -t -s do_it'
     echo ' -t : no tagging'
-    echo ' -s : snapshot release: use date instead of version'
+    echo ' -s : snapshot release: use date instead of VERSION'
     echo ' -s implies -t'
     exit 1
 }
@@ -27,7 +31,7 @@ test_tag() {
 
 TAR=${TAR-/bin/tar}
 
-if test ! -f inc/upnpdescription.h;then
+if test ! -f $tfile;then
     echo "Should be executed in the top source directory"
     exit 1
 fi
@@ -96,13 +100,15 @@ fi
 # Check for symbol changes. The symbols-reference file should have
 # been adjusted (and the soversion possibly changed) before running
 # this.
-if test "$dotag" = "yes" ; then
-    meson setup build || exit 1
-    meson configure build --buildtype release || exit 1
-    (cd build;meson compile) || exit 1
-    nm -g --defined-only --demangle build/libnpupnp.so | grep ' T ' | \
-        awk '{$1=$2="";print $0}' | diff symbols-reference - || exit 1
-    rm -rf build
+if test "$islib" = "yes" ; then 
+    if test "$dotag" = "yes" ; then
+        meson setup build || exit 1
+        meson configure build --buildtype release || exit 1
+        (cd build;meson compile) || exit 1
+        nm -g --defined-only --demangle $builtlib | grep ' T ' | \
+            awk '{$1=$2="";print $0}' | diff symbols-reference - || exit 1
+        rm -rf build
+    fi
 fi
 
 $TAR chfX - excludefile .  | (cd $topdir;$TAR xf -)
