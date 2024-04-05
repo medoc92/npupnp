@@ -1,15 +1,16 @@
 Summary: UPnP base library
 Name: libnpupnp
-Version: 6.1.1
+Version: 6.1.2
 Release: 1%{?dist}
 License: BSD
 Group: Application/Multimedia
 URL: http://www.lesbonscomptes.com/upmpdcli/
 Source: http://www.lesbonscomptes.com/upmpdcli/downloads/%{name}-%{version}.tar.gz
-BuildRequires:  libcurl-devel
-BuildRequires:  libmicrohttpd-devel
+BuildRequires: meson
+BuildRequires: libcurl-devel
+BuildRequires: libmicrohttpd-devel
 # Opensuse:
-#BuildRequires:  libexpat-devel
+#BuildRequires: libexpat-devel
 # Fedora
 BuildRequires:  expat-devel
 
@@ -22,17 +23,15 @@ API and open source code for building control points, devices, and
 bridges.
 
 %prep
-%setup -q
+%autosetup
 
 %build
-%configure
-%{__make} %{?_smp_mflags}
+%meson
+%meson_build
 
 %install
 %{__rm} -rf %{buildroot}
-%{__make} install DESTDIR=%{buildroot} STRIP=/bin/true INSTALL='install -p'
-%{__rm} -f %{buildroot}%{_libdir}/libnpupnp.a
-%{__rm} -f %{buildroot}%{_libdir}/libnpupnp.la
+%meson_install
 
 %clean
 %{__rm} -rf %{buildroot}
