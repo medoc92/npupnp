@@ -39,6 +39,7 @@
 #include "upnpinet.h"
 
 #include <string>
+#include <vector>
 
 /* Standard defined values for the UPnP multicast addresses */
 #define SSDP_IP   "239.255.255.250"
@@ -105,9 +106,9 @@ struct SsdpEntity {
 
 /* Globals */
 #ifdef INCLUDE_CLIENT_APIS
-extern SOCKET gSsdpReqSocket4;
+extern std::vector<SOCKET> gSsdpReqSocket4List;
 #ifdef UPNP_ENABLE_IPV6
-extern SOCKET gSsdpReqSocket6;
+extern std::vector<SOCKET> gSsdpReqSocket6List;
 #endif /* UPNP_ENABLE_IPV6 */
 #endif /* INCLUDE_CLIENT_APIS */
 

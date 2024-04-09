@@ -45,11 +45,12 @@
 #include <algorithm>
 #include <fcntl.h>
 #include <thread>
+#include <vector>
 
 #ifdef INCLUDE_CLIENT_APIS
-SOCKET gSsdpReqSocket4 = INVALID_SOCKET;
+std::vector<SOCKET> gSsdpReqSocket4List = {};
 #ifdef UPNP_ENABLE_IPV6
-SOCKET gSsdpReqSocket6 = INVALID_SOCKET;
+std::vector<SOCKET> gSsdpReqSocket6List = {};
 #endif /* UPNP_ENABLE_IPV6 */
 #endif /* INCLUDE_CLIENT_APIS */
 
@@ -340,10 +341,11 @@ static int create_ssdp_sock_v4(SOCKET *ssdpSock)
         goto error_handler;
     }
 
-    for (const auto& netif : g_netifs) {
+    for (const auto& netif: g_netifs) {
         auto ipaddr = netif.firstipv4addr();
         if (!ipaddr)
             continue;
+
         struct ip_mreq ssdpMcastAddr = {};
         if (inet_pton(AF_INET, ipaddr->straddr().c_str(), &(ssdpMcastAddr.imr_interface)) != 1) {
             errorcause = "inet_pton() error";
@@ -388,18 +390,12 @@ static int sock_make_no_blocking(SOCKET sock)
 }
 
 /* Create the SSDP IPv4 socket to be used by the control point. */
-static int create_ssdp_sock_reqv4(SOCKET *ssdpReqSock, int port)
+static int create_ssdp_sock_reqv4(const std::string & sadrv4, SOCKET* ssdpReqSock, int port)
 {
     char ttl = 2;
     int ret = UPNP_E_SOCKET_ERROR;
 
     *ssdpReqSock = INVALID_SOCKET;
-
-    std::string sadrv4 = apiFirstIPV4Str();
-    if (sadrv4.empty()) {
-        UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__, "create_ssdp_sock_reqv4: no IPV4??\n");
-        return ret;
-    }
 
     uint32_t hostaddrv4;
     std::string errorcause;
@@ -541,14 +537,13 @@ error_handler:
 
 #ifdef INCLUDE_CLIENT_APIS
 /* Create the SSDP IPv6 socket to be used by the control point. */
-static int create_ssdp_sock_reqv6(SOCKET *ssdpReqSock, int port)
+static int create_ssdp_sock_reqv6(const std::string& sadrv6, int index, SOCKET* ssdpReqSock, int port)
 {
 #ifdef _WIN32
     DWORD hops = 1;
 #else
     int hops = 1;
 #endif
-    int index = apiFirstIPV6Index();
     std::string errorcause;
     int ret = UPNP_E_SOCKET_ERROR;
 
@@ -629,41 +624,131 @@ static void maybeCLoseAndInvalidate(SOCKET *s, int doclose)
 static void closeSockets(MiniServerSockArray *out, int doclose)
 {
 #ifdef INCLUDE_CLIENT_APIS
-    maybeCLoseAndInvalidate(&out->ssdpReqSock4, doclose);
-    maybeCLoseAndInvalidate(&out->ssdpReqSock6, doclose);
+
+
+    int netif_idx = 0;
+    for (const NetIF::Interface& netif : g_netifs) {
+        maybeCLoseAndInvalidate(&out->ssdpReqSock4List[netif_idx], doclose);
+
+#ifdef UPNP_ENABLE_IPV6
+        if (using_ipv6())
+            maybeCLoseAndInvalidate(&out->ssdpReqSock6List[netif_idx], doclose);
+#endif /* UPNP_ENABLE_IPV6 */
+
+        netif_idx++;
+    }
 #endif
     maybeCLoseAndInvalidate(&out->ssdpSock4, doclose);
     maybeCLoseAndInvalidate(&out->ssdpSock6, doclose);
     maybeCLoseAndInvalidate(&out->ssdpSock6UlaGua, doclose);
 }
 
-int get_ssdp_sockets(MiniServerSockArray *out, int port)
+int get_ssdp_req_socket_v4_for_netif(MiniServerSockArray* socketArray, int netif_idx, int port)
+{
+    std::string sadrv4;
+
+    const NetIF::Interface & netif = g_netifs[netif_idx];
+    const NetIF::IPAddr * ip = netif.firstipv4addr();
+
+    // No ip addr on iface ?
+    if (ip == nullptr) {
+        socketArray->ssdpReqSock4List[netif_idx] = INVALID_SOCKET;
+        return UPNP_E_SOCKET_ERROR;
+    }
+
+    sadrv4 = ip->straddr();
+    SOCKET ssdpReqSock4;
+
+    int retVal = create_ssdp_sock_reqv4(sadrv4, &ssdpReqSock4, port);
+
+    // Failed to create socket ?
+    if (retVal != UPNP_E_SUCCESS) {
+        socketArray->ssdpReqSock4List[netif_idx] = INVALID_SOCKET;
+        return retVal;
+    }
+
+    socketArray->ssdpReqSock4List[netif_idx] = ssdpReqSock4;
+    return UPNP_E_SUCCESS;
+}
+
+#ifdef UPNP_ENABLE_IPV6
+int get_ssdp_req_socket_v6_for_netif(MiniServerSockArray* socketArray, int netif_idx, int port)
+{    
+    const NetIF::Interface& netif = g_netifs[netif_idx];
+    const NetIF::IPAddr* ip = netif.firstipv4addr();
+
+    // No ip addr on iface ?
+    if (ip == nullptr) {
+        socketArray->ssdpReqSock6List[netif_idx] = INVALID_SOCKET;
+        return UPNP_E_SOCKET_ERROR;
+    }
+
+    std::string sadrv6 = ip->straddr();
+    SOCKET ssdpReqSock6;
+
+    int retVal = create_ssdp_sock_reqv6(sadrv6, netif.getindex(), & ssdpReqSock6, port);
+
+    // Failed to create socket ?
+    if (retVal != UPNP_E_SUCCESS) {
+        socketArray->ssdpReqSock6List[netif_idx] = INVALID_SOCKET;
+        return retVal;
+    }
+
+    socketArray->ssdpReqSock6List[netif_idx] = ssdpReqSock6;
+    return UPNP_E_SUCCESS;
+}
+#endif /* get_ssdp_req_socket_v6_for_netif */
+
+int get_ssdp_sockets(MiniServerSockArray *out, int startPort)
 {
     int retVal = UPNP_E_SOCKET_ERROR;
     bool hasIPV4 = !apiFirstIPV4Str().empty();
+    bool hasIPV6 = !apiFirstIPV6Str().empty();
 
 #ifdef INCLUDE_CLIENT_APIS
+
+    //
+    // Create one ipv4 request socket and one ipv6 req for each interface
+    //
+
+    out->ssdpReqSock4List.resize(g_netifs.size(), INVALID_SOCKET);
+
 #ifdef UPNP_ENABLE_IPV6
-    bool hasIPV6 = !apiFirstIPV6Str().empty();
-    if (using_ipv6()) {
-        /* Create the IPv6 socket for SSDP REQUESTS */
-        if (hasIPV6) {
-            if ((retVal = create_ssdp_sock_reqv6(&out->ssdpReqSock6, port)) != UPNP_E_SUCCESS) {
-                goto out;
-            }
-            /* For use by ssdp control point. */
-            gSsdpReqSocket6 = out->ssdpReqSock6;
-        }
-    }
+    out->ssdpReqSock6List.resize(g_netifs.size(), INVALID_SOCKET);
 #endif /* UPNP_ENABLE_IPV6 */
-    /* Create the IPv4 socket for SSDP REQUESTS */
-    if (hasIPV4) {
-        if ((retVal = create_ssdp_sock_reqv4(&out->ssdpReqSock4, port)) != UPNP_E_SUCCESS) {
-            goto out;
-        }
-        /* For use by ssdp control point. */
-        gSsdpReqSocket4 = out->ssdpReqSock4;
+
+    int netif_idx = 0;
+    int port = startPort;
+    for (const NetIF::Interface & netif: g_netifs) {
+        
+        //
+        // Create ip v4 request socket
+        //
+
+        get_ssdp_req_socket_v4_for_netif(out, netif_idx, port);
+
+
+        //
+        // Create ip v6 request socket
+        //
+
+#ifdef UPNP_ENABLE_IPV6
+        if (using_ipv6()) {
+            get_ssdp_req_socket_v6_for_netif(out, netif_idx, port);
+        }            
+#endif /* UPNP_ENABLE_IPV6 */
+
+        port++;
+        netif_idx++;
     }
+
+    // Set global ssdp request socket arrays
+    gSsdpReqSocket4List = out->ssdpReqSock4List;
+
+#ifdef UPNP_ENABLE_IPV6
+    gSsdpReqSocket6List = out->ssdpReqSock6List;
+#endif /* UPNP_ENABLE_IPV6 */
+
 #endif /* INCLUDE_CLIENT_APIS */
 
     /* Create the IPv4 socket for SSDP */

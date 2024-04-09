@@ -38,6 +38,7 @@
 
 #include "httputils.h"
 #include "upnpinet.h"
+#include <vector>
 
 struct MiniServerSockArray {
     /*! Socket for stopping miniserver */
@@ -54,8 +55,12 @@ struct MiniServerSockArray {
     uint16_t miniServerPort6{0};
 #ifdef INCLUDE_CLIENT_APIS
     /*! SSDP sockets for sending search requests and receiving search replies */
-    SOCKET ssdpReqSock4{INVALID_SOCKET};
-    SOCKET ssdpReqSock6{INVALID_SOCKET};
+    std::vector<SOCKET> ssdpReqSock4List {};
+
+#ifdef UPNP_ENABLE_IPV6
+    std::vector<SOCKET> ssdpReqSock6List {};
+#endif /* UPNP_ENABLE_IPV6 */
+
 #endif /* INCLUDE_CLIENT_APIS */
 
     MiniServerSockArray() = default;
@@ -65,8 +70,12 @@ struct MiniServerSockArray {
         maybeClose(ssdpSock6);
         maybeClose(ssdpSock6UlaGua);
 #ifdef INCLUDE_CLIENT_APIS
-        maybeClose(ssdpReqSock4);
-        maybeClose(ssdpReqSock6);
+        for (SOCKET socket:ssdpReqSock4List) { maybeClose(socket); }
+
+#ifdef UPNP_ENABLE_IPV6
+        for (SOCKET socket:ssdpReqSock6List) { maybeClose(socket); }
+#endif /* UPNP_ENABLE_IPV6 */
+
 #endif /* INCLUDE_CLIENT_APIS */
     }
 
