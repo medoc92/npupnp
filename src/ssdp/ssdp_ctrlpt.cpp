@@ -73,91 +73,182 @@ public:
 /* Worker to send the search messages. */
 class SearchSendJobWorker : public JobWorker {
 public:
-    explicit SearchSendJobWorker(std::string v4, std::string v6)
-        : ReqBufv4(std::move(v4)), ReqBufv6(std::move(v6)) {}
-    std::string ReqBufv4;
-    std::string ReqBufv6;
-    void work() override;
+    explicit SearchSendJobWorker(int index, std::string reqBuf)
+        :Index(index), ReqBuff(std::move(reqBuf)) {}
+    std::string ReqBuff;
+    int Index;
 
 };
 
-void SearchSendJobWorker::work()
-{
-    bool needv4 = !ReqBufv4.empty();
-    bool needv6 = !ReqBufv6.empty();
-    fd_set wrSet;
-    FD_ZERO(&wrSet);
-    int max_fd = -1;
-    if (needv4) {
-        if (gSsdpReqSocket4 != INVALID_SOCKET) {
-            FD_SET(gSsdpReqSocket4, &wrSet);
-#ifdef _WIN32
-            // max_fd is ignored under windows. Just set it to not -1.
-            max_fd = 0;
-#else
-            max_fd = std::max(max_fd, gSsdpReqSocket4);
-#endif
-        }
-    }
-#ifdef UPNP_ENABLE_IPV6
-    if (needv6) {
-        if (gSsdpReqSocket6 != INVALID_SOCKET) {
-            FD_SET(gSsdpReqSocket6, &wrSet);
-#ifdef _WIN32
-            // max_fd is ignored under windows. Just set it to not -1.
-            max_fd = 0;
-#else
-            max_fd = std::max(max_fd, gSsdpReqSocket6);
-#endif
-        }
-    }
-#endif
+class SearchSendJobWorkerV4 : public SearchSendJobWorker {
+public:
+    explicit SearchSendJobWorkerV4(int index, std::string reqBuf)
+        : SearchSendJobWorker(index, std::move(reqBuf)) {}
 
-    if (max_fd == -1) {
-        UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
-                   "SSDP_LIB: neither ipv4 nor ipv6 are active !\n");
-        return;
-    }
-    int ret = select(max_fd + 1, nullptr, &wrSet, nullptr, nullptr);
-    if (ret == -1) {
-        char errorBuffer[ERROR_BUFFER_LEN];
-        posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-        UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
-                   "SSDP_LIB: Error in select(): %s\n", errorBuffer);
-        UpnpCloseSocket(gSsdpReqSocket4);
-#ifdef UPNP_ENABLE_IPV6
-        UpnpCloseSocket(gSsdpReqSocket6);
-#endif
-        return;
-    }
+    void work() override;
+};
 
 #ifdef UPNP_ENABLE_IPV6
-    if (needv6 && gSsdpReqSocket6 != INVALID_SOCKET && FD_ISSET(gSsdpReqSocket6, &wrSet)) {
-        struct sockaddr_storage ssv6 = {};
-        auto destAddr6 = reinterpret_cast<struct sockaddr_in6 *>(&ssv6);
-        destAddr6->sin6_family = static_cast<sa_family_t>(AF_INET6);
-        inet_pton(AF_INET6, SSDP_IPV6_LINKLOCAL, &destAddr6->sin6_addr);
-        destAddr6->sin6_port = htons(SSDP_PORT);
-        destAddr6->sin6_scope_id = apiFirstIPV6Index();
-        UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
-                   ">>> SSDP SEND M-SEARCH >>>\n%s\n", ReqBufv6.c_str());
-        sendto(gSsdpReqSocket6, ReqBufv6.c_str(), ReqBufv6.size(), 0,
-               reinterpret_cast<struct sockaddr *>(destAddr6), sizeof(struct sockaddr_in6));
-    }
+class SearchSendJobWorkerV6 : public SearchSendJobWorker {
+public:
+    explicit SearchSendJobWorkerV6(int index, std::string reqBuf)
+        : SearchSendJobWorker(index, std::move(reqBuf)) {}
+
+    void work() override;
+};
 #endif /* UPNP_ENABLE_IPV6 */
 
-    if (needv4 && gSsdpReqSocket4 != INVALID_SOCKET && FD_ISSET(gSsdpReqSocket4, &wrSet)) {
-        struct sockaddr_storage ssv4 = {};
-        auto destAddr4 = reinterpret_cast<struct sockaddr_in *>(&ssv4);
-        destAddr4->sin_family = static_cast<sa_family_t>(AF_INET);
-        inet_pton(AF_INET, SSDP_IP, &destAddr4->sin_addr);
-        destAddr4->sin_port = htons(SSDP_PORT);
-        UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
-                   ">>> SSDP SEND M-SEARCH >>>\n%s\n", ReqBufv4.c_str());
-        sendto(gSsdpReqSocket4, ReqBufv4.c_str(), ReqBufv4.size(), 0,
-               reinterpret_cast<struct sockaddr *>(destAddr4), sizeof(struct sockaddr_in));
+//
+// TODO: Move in dedicated utils
+//
+
+static void GetLastError(int& errorCode, std::string errorDesc)
+{
+    errorCode = 0;
+    errorDesc = "";
+    char errorBuffer[ERROR_BUFFER_LEN];
+#ifdef _WIN32
+    errorCode = WSAGetLastError();
+    errorBuffer[0] = '\0';
+    FormatMessage(
+        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL,
+        errorCode,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        errorBuffer,
+        sizeof(errorBuffer),
+        NULL);
+    errorDesc = errorBuffer;
+#else
+    errorCode = errno;
+    posix_strerror_r(lastError, errorBuffer, ERROR_BUFFER_LEN);
+    errorDesc = errorBuffer;
+#endif /* _WIN32 */
+}
+
+void SearchSendJobWorkerV4::work()
+{
+    fd_set wrSet;
+    FD_ZERO(&wrSet);
+
+    const NetIF::Interface& iface = g_netifs[Index];
+    SOCKET& sockRef = gSsdpReqSocket4List[Index];
+    
+    if (sockRef == INVALID_SOCKET) {
+        UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
+                   "SSDP_LIB - %s: socket is invalid !\n", iface.getfriendlyname().c_str());
+        return;
+    }
+
+    FD_SET(sockRef, &wrSet);
+#ifdef _WIN32
+    // max_fd is ignored under windows. Just set it to not -1.
+    int max_fd = 0;
+#else
+    int max_fd = std::max(max_fd, Socket);
+#endif
+
+    int ret = select(max_fd + 1, nullptr, &wrSet, nullptr, nullptr);
+    if (ret == -1) {
+        int lastError;
+        std::string errorDesc;
+        GetLastError(lastError, errorDesc);
+        UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
+                   "SSDP_LIB - %s: Error in select():  %d, %s\n", iface.getfriendlyname().c_str(), lastError, errorDesc.c_str());
+        UpnpCloseSocket(sockRef);
+        return;
+    }
+
+    if (!FD_ISSET(sockRef, &wrSet))
+    {
+        UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
+                   "SSDP_LIB - %s: socket not set after select!\n", iface.getfriendlyname().c_str());
+        return;
+    }
+
+    struct sockaddr_storage ssv4 = {};
+    auto destAddr4 = reinterpret_cast<struct sockaddr_in *>(&ssv4);
+    destAddr4->sin_family = static_cast<sa_family_t>(AF_INET);
+    inet_pton(AF_INET, SSDP_IP, &destAddr4->sin_addr);
+    destAddr4->sin_port = htons(SSDP_PORT);
+    UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+               ">>> SSDP SEND M-SEARCH >>>\n%s\n%s\n", iface.getfriendlyname().c_str(), ReqBuff.c_str());
+    ret = sendto(sockRef, ReqBuff.c_str(), ReqBuff.size(), 0,
+            reinterpret_cast<struct sockaddr *>(destAddr4), sizeof(struct sockaddr_in));
+
+    if (ret == -1) {
+        int lastError;
+        std::string errorDesc;
+        GetLastError(lastError, errorDesc);
+        UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
+                   "SSDP_LIB - %s: Error in sendto(): %d, %s\n", iface.getfriendlyname().c_str(), lastError, errorDesc.c_str());
+
+        return;
     }
 }
+
+#ifdef UPNP_ENABLE_IPV6
+void SearchSendJobWorkerV6::work()
+{
+    fd_set wrSet;
+    FD_ZERO(&wrSet);
+    
+    const NetIF::Interface& iface = g_netifs[Index];
+    SOCKET& sockRef = gSsdpReqSocket6List[Index];
+
+    if (sockRef == INVALID_SOCKET) {
+        UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
+                   "SSDP_LIB - %s: socket is invalid !\n", iface.getfriendlyname().c_str());
+        return;
+    }
+
+    FD_SET(sockRef, &wrSet);
+#ifdef _WIN32
+    // max_fd is ignored under windows. Just set it to not -1.
+    int max_fd = 0;
+#else
+    int max_fd = std::max(max_fd, Socket);
+#endif
+
+    int ret = select(max_fd + 1, nullptr, &wrSet, nullptr, nullptr);
+    if (ret == -1) {
+        int lastError;
+        std::string errorDesc;
+        GetLastError(lastError, errorDesc);
+        UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
+                   "SSDP_LIB - %s: Error in select():  %d, %s\n", iface.getfriendlyname().c_str(), lastError, errorDesc.c_str());
+        UpnpCloseSocket(sockRef);
+        return;
+    }
+
+    if (!FD_ISSET(sockRef, &wrSet)) {
+        UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
+                   "SSDP_LIB - %s: socket not set after select!\n", iface.getfriendlyname().c_str());
+        return;
+    }
+
+    struct sockaddr_storage ssv6 = {};
+    auto destAddr6 = reinterpret_cast<struct sockaddr_in6*>(&ssv6);
+    destAddr6->sin6_family = static_cast<sa_family_t>(AF_INET6);
+    inet_pton(AF_INET6, SSDP_IPV6_LINKLOCAL, &destAddr6->sin6_addr);
+    destAddr6->sin6_port = htons(SSDP_PORT);
+    destAddr6->sin6_scope_id = iface.getindex();
+    UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
+               ">>> SSDP SEND M-SEARCH >>>\n%s\n%s\n", iface.getfriendlyname().c_str(), ReqBuff.c_str());
+    ret = sendto(sockRef, ReqBuff.c_str(), ReqBuff.size(), 0,
+                 reinterpret_cast<struct sockaddr*>(destAddr6), sizeof(struct sockaddr_in6));
+
+    if (ret == -1) {
+        int lastError;
+        std::string errorDesc;
+        GetLastError(lastError, errorDesc);
+        UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
+                   "SSDP_LIB - %s: Error in sendto(): %d, %s\n", iface.getfriendlyname().c_str(), lastError, errorDesc.c_str());
+        return;
+    }
+}
+
+#endif /* UPNP_ENABLE_IPV6 */
 
 void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser, const struct sockaddr_storage *dest_addr, void *)
 {
@@ -485,9 +576,28 @@ int SearchByTarget(int Mx, const char *St, const char *saddress, int port, void 
     std::unique_ptr<SearchSendJobWorker> sworker;
     int delay = 0;
     for (int i = 0; i < NUM_SSDP_COPY; i++) {
-        sworker = std::make_unique<SearchSendJobWorker>(ReqBufv4, ReqBufv6);
-        gTimerThread->schedule(TimerThread::SHORT_TERM, std::chrono::milliseconds(delay),
-                               nullptr, std::move(sworker));
+
+        // Search jobs
+        int netif_idx = 0;
+        for (const NetIF::Interface& netif: g_netifs) {
+            
+            if (gSsdpReqSocket4List[netif_idx] != INVALID_SOCKET) {
+                sworker = std::make_unique<SearchSendJobWorkerV4>(netif_idx, ReqBufv4);
+                gTimerThread->schedule(TimerThread::SHORT_TERM, std::chrono::milliseconds(delay),
+                                       nullptr, std::move(sworker));
+            }
+
+#ifdef UPNP_ENABLE_IPV6
+            if (gSsdpReqSocket6List[netif_idx] != INVALID_SOCKET) {
+                sworker = std::make_unique<SearchSendJobWorkerV6>(netif_idx, ReqBufv6);
+                gTimerThread->schedule(TimerThread::SHORT_TERM, std::chrono::milliseconds(delay),
+                                       nullptr, std::move(sworker));
+            }
+#endif /* UPNP_ENABLE_IPV6 */
+
+            netif_idx++;
+        }
+
         delay += SSDP_PAUSE;
     }
     return UPNP_E_SUCCESS;
