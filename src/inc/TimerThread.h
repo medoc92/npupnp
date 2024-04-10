@@ -65,7 +65,7 @@ public:
         REL_SEC
     };
 
-    enum Duration {
+    enum Duration : uint16_t {
         SHORT_TERM,
         PERSISTENT
     };
