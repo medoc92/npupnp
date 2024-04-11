@@ -106,13 +106,17 @@ inline std::string uri_asurlstr(const uri_type& u)
         surl += "//";
         surl += u.hostport.text;
     }
-    if (u.path.empty())
-        surl += "/";
-    else 
+    if (!u.path.empty())
         surl += u.path;
     if (!u.query.empty()) {
-        surl += "?";
+        if (u.path.empty())
+            surl.push_back('/');
+        surl.push_back('?');
         surl += u.query;
+    }
+    if (!u.fragment.empty()) {
+        surl.push_back('#');
+        surl += u.fragment;
     }
     return surl;
 }

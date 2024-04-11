@@ -288,7 +288,11 @@ std::string remove_dots(const std::string& in)
         return in;
     }
     bool isabs = in[0] == '/';
-    bool endslash = in.back() == '/';
+    auto sz = in.size();
+    bool endslash = in.back() == '/' || 
+        (sz >= 2 && in[sz-2] == '/' && in[sz-1] == '.') ||
+        (sz >= 3 && in[sz-3] == '/' && in[sz-2] == '.'&& in[sz-1] == '.')
+        ;
     std::string::size_type pos = 0;
     while (pos != std::string::npos) {
         std::string::size_type epos = in.find_first_of(markers, pos);
@@ -306,10 +310,11 @@ std::string remove_dots(const std::string& in)
             // Do nothing, // or /./ are ignored
         } else if (elt == "..") {
             if (vpath.empty()) {
-                // This is an error: trying to go behind /
-                return {};
+                // This is an error: trying to go behind /? Or rather, just ignore?
+                // return {};
+            } else {
+                vpath.pop_back();
             }
-            vpath.pop_back();
         } else {
             vpath.push_back(std::move(elt));
         }
@@ -324,19 +329,17 @@ std::string remove_dots(const std::string& in)
     return out;
 }
 
-std::string resolve_rel_url(
-    const std::string& base_url, const std::string& rel_url)
+std::string resolve_rel_url(const std::string& base_url, const std::string& rel_url)
 {
     uri_type base;
     uri_type rel;
     uri_type url;
-
+    // std::cerr << "resolve_rel_url [" << base_url << "] [" << rel_url << "]\n";
     // Base can't be empty, it needs at least a scheme.
     if (base_url.empty()) {
         return {};
     }
-    if ((parse_uri(base_url, &base) != UPNP_E_SUCCESS)
-        || (base.type != URITP_ABSOLUTE)) {
+    if ((parse_uri(base_url, &base) != UPNP_E_SUCCESS) || (base.type != URITP_ABSOLUTE)) {
         return {};
     }
     if (rel_url.empty())
@@ -346,8 +349,8 @@ std::string resolve_rel_url(
         return {};
     }
 
-    rel.path = remove_dots(rel.path);
-
+    //std::cerr << "base parse: path [" << base.path << "] frag [" << base.fragment << "]\n" << 
+    //    "rel parse: path [" << rel.path << "] frag [" << rel.fragment << "]\n";
     if (rel.type == URITP_ABSOLUTE) {
         return uri_asurlstr(rel);
     }
@@ -383,15 +386,19 @@ std::string resolve_rel_url(
                     url.path = base.path + rel.path;
                 } else {
                     if (base.path.back() == '/') {
-                        base.path.pop_back();
+                        url.path = base.path + rel.path;
+                    } else {
+                        std::string::size_type pos = base.path.rfind('/');
+                        url.path = base.path.substr(0, pos+1) + rel.path;
                     }
-                    std::string::size_type pos = base.path.rfind('/');
-                    url.path = base.path.substr(0, pos+1) + rel.path;
                 }
                 url.query = rel.query;
             }
         }
     }
+    url.path = remove_dots(url.path);
+    url.fragment = rel.fragment;
+
     return uri_asurlstr(url);
 }
 
