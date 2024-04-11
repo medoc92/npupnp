@@ -6,13 +6,6 @@ MINOR=`echo $VERSION | cut -d. -f 2`
 PATCH=`echo $VERSION | cut -d. -f 3`
 
 
-sed -i -E -e '/^#define[ \t]+PACKAGE_VERSION/c\'\
-"#define PACKAGE_VERSION \"$VERSION\"" \
--e '/^#define[ \t]+PACKAGE_STRING/c\'\
-"#define PACKAGE_STRING \"libnpupnp $VERSION\"" \
-windows/autoconfig-windows.h macos/autoconfig-macos.h
-
-
 sed -i -E -e '/^#define[ \t]+NPUPNP_VERSION_STRING/c\'\
 "#define NPUPNP_VERSION_STRING \"$VERSION\"" \
 -e '/^#define[ \t]+NPUPNP_VERSION_MAJOR/c\'\
