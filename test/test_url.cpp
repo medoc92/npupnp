@@ -57,8 +57,8 @@ static const struct test RFC3986[] = {
     TEST(NULL,     NULL,  NULL, UPNP_E_INVALID_PARAM),
     TEST(ABS_URL1, NULL,  NULL, UPNP_E_INVALID_PARAM),
     TEST("foo",    "bar", NULL, UPNP_E_INVALID_URL),
+    TEST(NULL,     ABS_URL1, NULL, UPNP_E_INVALID_PARAM),
     /* Custom */
-    TEST(NULL,     ABS_URL1, ABS_URL1),
     TEST(ABS_URL1, ABS_URL2, ABS_URL2),
     TEST(ABS_URL1, "",       ABS_URL1),
     TEST(ABS_URL1, REL_URL1, "http://localhost/path2"),
@@ -122,10 +122,13 @@ static const struct test RFC3986[] = {
 int
 main (int argc, char* argv[])
 {
-    int i, ret = 0;
+    int ret = 0;
 
-    for (i = 0; i < ARRAY_SIZE(RFC3986); i++)
+    for (unsigned int i = 0; i < ARRAY_SIZE(RFC3986); i++) {
         ret += result(&RFC3986[i]);
+        if (ret)
+            break;
+    }
 
     exit (ret ? EXIT_FAILURE : EXIT_SUCCESS);
 }

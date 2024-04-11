@@ -50,17 +50,16 @@ main (int argc, char* argv[])
      */
     printf ("\n");
     
-    printf ("UPNP_VERSION_STRING = \"%s\"\n", UPNP_VERSION_STRING);
-    printf ("UPNP_VERSION_MAJOR  = %d\n",      UPNP_VERSION_MAJOR);
-    printf ("UPNP_VERSION_MINOR  = %d\n",      UPNP_VERSION_MINOR);
-    printf ("UPNP_VERSION_PATCH  = %d\n",      UPNP_VERSION_PATCH);
-    printf ("UPNP_VERSION        = %d\n",      UPNP_VERSION);
+    printf ("NPUPNP_VERSION_STRING = \"%s\"\n", NPUPNP_VERSION_STRING);
+    printf ("NPUPNP_VERSION_MAJOR  = %d\n",      NPUPNP_VERSION_MAJOR);
+    printf ("NPUPNP_VERSION_MINOR  = %d\n",      NPUPNP_VERSION_MINOR);
+    printf ("NPUPNP_VERSION_PATCH  = %d\n",      NPUPNP_VERSION_PATCH);
     
-    if ( sscanf (UPNP_VERSION_STRING, "%d.%d.%d", &a, &b, &c) != 3 ||
-         a != UPNP_VERSION_MAJOR ||
-         b != UPNP_VERSION_MINOR ||
-         c != UPNP_VERSION_PATCH ) {
-        printf ("** ERROR malformed UPNP_VERSION_STRING\n");
+    if ( sscanf (NPUPNP_VERSION_STRING, "%d.%d.%d", &a, &b, &c) != 3 ||
+         a != NPUPNP_VERSION_MAJOR ||
+         b != NPUPNP_VERSION_MINOR ||
+         c != NPUPNP_VERSION_PATCH ) {
+        printf ("** ERROR malformed NPUPNP_VERSION_STRING\n");
         exit (EXIT_FAILURE);
     }
 

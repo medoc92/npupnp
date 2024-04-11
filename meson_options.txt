@@ -51,3 +51,8 @@ option('unspecified_server', type : 'boolean',
   value : false,
   description : 'unspecified SERVER header',
 )
+
+option('testmains', type : 'boolean',
+  value : false,
+  description : 'build small programs exercising misc. functions',
+)

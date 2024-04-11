@@ -165,3 +165,7 @@ libnpupnp_dep = declare_dependency(
   include_directories: libnpupnp_incdir,
   link_with: libnpupnp,
 )
+
+if get_option('testmains')
+    subdir('test')
+endif
