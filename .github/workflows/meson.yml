@@ -47,10 +47,8 @@ jobs:
           meson compile -C "${{github.workspace}}/build" --verbose
   VisualStudio:
     runs-on: windows-latest
-    name: MSVC-${{matrix.deps}}-${{matrix.platform}}
     strategy:
       matrix:
-        deps: ['forcefallback', 'default']
         platform: ['x64', 'x86']
     steps:
       - uses: actions/checkout@v4
@@ -67,7 +65,7 @@ jobs:
         env:
           CXXFLAGS: '/analyze'
         run: |
-          meson setup "${{github.workspace}}/build" --wrap-mode=${{matrix.deps}} -Dwarning_level=3 -Dcpp_std=c++latest
+          meson setup "${{github.workspace}}/build" --wrap-mode=forcefallback -Dwarning_level=3 -Dcpp_std=c++latest
           meson compile -C "${{github.workspace}}/build" --verbose
   VisualStudio-clang-cl:
     runs-on: windows-latest
