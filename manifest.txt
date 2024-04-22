@@ -185,12 +185,11 @@ subprojects/curl.wrap
 subprojects/expat.wrap
 subprojects/libmicrohttpd.wrap
 test/
-test/Makefile.am
-test/Makefile.in
+test/meson.build
 test/test_description.cpp
-test/test_init.c
+test/test_init.cpp
 test/test_netif.cpp
-test/test_url.c
+test/test_url.cpp
 windows/
 windows/autoconfig-windows.h
 windows/upnpconfig-windows.h
