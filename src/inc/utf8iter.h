@@ -169,7 +169,7 @@ private:
 
     // Update current char length in object state, check
     // for errors
-    inline void update_cl() {
+    void update_cl() {
         m_cl = 0;
         if (m_pos >= m_sp->length())
             return;
@@ -186,7 +186,7 @@ private:
         }
     }
 
-    inline bool checkvalidat(std::string::size_type p, int l) const {
+    bool checkvalidat(std::string::size_type p, int l) const {
         switch (l) {
         case 1: 
             return uint8_t((*m_sp)[p]) < 128;
@@ -210,7 +210,7 @@ private:
     }
 
     // Get character byte length at specified position. Returns 0 for error.
-    inline int get_cl(std::string::size_type p) const {
+    int get_cl(std::string::size_type p) const {
         unsigned int z = uint8_t((*m_sp)[p]);
         if (z <= 127) {
             return 1;
@@ -229,7 +229,7 @@ private:
     }
 
     // Compute value at given position. No error checking.
-    inline unsigned int getvalueat(std::string::size_type p, int l) const {
+    unsigned int getvalueat(std::string::size_type p, int l) const {
         switch (l) {
         case 1: 
 #ifdef UTF8ITER_CHECK
