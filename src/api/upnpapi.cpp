@@ -809,33 +809,6 @@ EXPORT_SPEC int UpnpSetHostValidateCallback(
     return UpnpSetWebRequestHostValidateCallback(callback, cookie);
 }
 
-EXPORT_SPEC unsigned short UpnpGetServerPort()
-{
-    if (UpnpSdkInit != 1)
-        return 0U;
-
-    return LOCAL_PORT_V4;
-}
-
-EXPORT_SPEC unsigned short UpnpGetServerPort6()
-{
-#ifdef UPNP_ENABLE_IPV6
-    if (UpnpSdkInit != 1)
-        return 0U;
-
-    return LOCAL_PORT_V6;
-#else
-    return 0;
-#endif
-}
-EXPORT_SPEC unsigned short UpnpGetServerUlaGuaPort6()
-{
-#ifdef UPNP_ENABLE_IPV6
-    return 0;
-#else
-    return 0;
-#endif
-}
 
 EXPORT_SPEC std::string UpnpGetUrlHostPortForClient(const struct sockaddr_storage* clsock)
 {
@@ -860,6 +833,34 @@ EXPORT_SPEC std::string UpnpGetUrlHostPortForClient(const struct sockaddr_storag
     }
 
     return prefix + hostaddr.straddr() + (prefix.empty() ? "" : "]") + ":" + lltodecstr(port);
+}
+
+EXPORT_SPEC unsigned short UpnpGetServerPort()
+{
+    if (UpnpSdkInit != 1)
+        return 0U;
+
+    return LOCAL_PORT_V4;
+}
+
+EXPORT_SPEC unsigned short UpnpGetServerPort6()
+{
+#ifdef UPNP_ENABLE_IPV6
+    if (UpnpSdkInit != 1)
+        return 0U;
+
+    return LOCAL_PORT_V6;
+#else
+    return 0;
+#endif
+}
+EXPORT_SPEC unsigned short UpnpGetServerUlaGuaPort6()
+{
+#ifdef UPNP_ENABLE_IPV6
+        return 0;
+#else
+        return 0;
+#endif
 }
 
 EXPORT_SPEC const char *UpnpGetServerIpAddress()
