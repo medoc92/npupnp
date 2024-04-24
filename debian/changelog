@@ -1,4 +1,4 @@
-libnpupnp (6.2.0-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+libnpupnp (6.1.2-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Removed autotools build system, now using meson.
 
