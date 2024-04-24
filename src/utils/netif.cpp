@@ -38,6 +38,7 @@
 
 #include "netif.h"
 #include "smallut.h"
+#include "genut.h"
 
 #include <algorithm>
 #include <cstring>
@@ -904,6 +905,30 @@ const Interface *Interfaces::interfaceForAddress(
 const Interface* Interfaces::interfaceForAddress(const IPAddr& addr, IPAddr& hostaddr)
 {
     return interfaceForAddress(addr, m->interfaces, hostaddr);
+}
+
+void getLastError(int& errorCode, std::string errorDesc)
+{
+    errorCode = 0;
+    errorDesc = "";
+    char errorBuffer[256];
+#ifdef _WIN32
+    errorCode = WSAGetLastError();
+    errorBuffer[0] = '\0';
+    FormatMessage(
+        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL,
+        errorCode,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        errorBuffer,
+        sizeof(errorBuffer),
+        NULL);
+    errorDesc = errorBuffer;
+#else
+    errorCode = errno;
+    posix_strerror_r(errorCode, errorBuffer, sizeof(errorBuffer) - 1);
+    errorDesc = errorBuffer;
+#endif /* _WIN32 */
 }
 
 } /* namespace NetIF */

@@ -228,6 +228,8 @@ private:
     std::unique_ptr<Internal> m;
 };
 
+void getLastError(int& errorCode, std::string errorDesc);
+
 } /* namespace NetIF */
 
 #endif /* _NETIF_H_INCLUDED_ */

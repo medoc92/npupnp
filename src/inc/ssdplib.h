@@ -104,15 +104,6 @@ struct SsdpEntity {
 #endif
 };
 
-/* Globals */
-#ifdef INCLUDE_CLIENT_APIS
-extern std::vector<SOCKET> gSsdpReqSocket4List;
-#ifdef UPNP_ENABLE_IPV6
-extern std::vector<SOCKET> gSsdpReqSocket6List;
-#endif /* UPNP_ENABLE_IPV6 */
-#endif /* INCLUDE_CLIENT_APIS */
-
-
 // Reasons for calling AvertiseAndReply
 enum SSDPDevMessageType {MSGTYPE_SHUTDOWN, MSGTYPE_ADVERTISEMENT, MSGTYPE_REPLY};
 

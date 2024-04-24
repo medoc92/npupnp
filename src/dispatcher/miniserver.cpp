@@ -470,10 +470,7 @@ void MiniServerJobWorker::work()
     int ret;
     int stopSock = 0;
 
-    //
-    // Compute maxMiniSock
-    //
-
+    // Compute max fd for select() call
     maxMiniSock = 0;
     maxMiniSock = std::max(maxMiniSock, miniSocket->miniServerStopSock);
     maxMiniSock = std::max(maxMiniSock, miniSocket->ssdpSock4);
@@ -482,20 +479,17 @@ void MiniServerJobWorker::work()
         maxMiniSock = std::max(maxMiniSock, miniSocket->ssdpSock6UlaGua);
     }
 #ifdef INCLUDE_CLIENT_APIS
-    for (SOCKET socket : miniSocket->ssdpReqSock4List) { maxMiniSock = std::max(maxMiniSock, socket); }
- 
+    for (SOCKET socket : miniSocket->ssdpReqSock4List) {
+        maxMiniSock = std::max(maxMiniSock, socket);
+    }
 #ifdef UPNP_ENABLE_IPV6
     if (using_ipv6())
-        for (SOCKET socket : miniSocket->ssdpReqSock6List) { maxMiniSock = std::max(maxMiniSock, socket); }
+        for (SOCKET socket : miniSocket->ssdpReqSock6List) {
+            maxMiniSock = std::max(maxMiniSock, socket);
+        }
 #endif /* UPNP_ENABLE_IPV6 */
-
 #endif /* INCLUDE_CLIENT_APIS */
-
     ++maxMiniSock;
-
-    //
-    // Notify miniserver started running
-    //
 
     {
         std::scoped_lock lck(gMServStateMutex);
@@ -503,59 +497,29 @@ void MiniServerJobWorker::work()
         gMServStateCV.notify_all();
     }
 
-    //
     // Server main loop
-    //
-
     while (!stopSock) {
-        //
-        // Reset fd's
-        //
-
         FD_ZERO(&rdSet);
         FD_ZERO(&expSet);
-
-        //
-        // Set fd's
-        //
-
-        // Stop socket
         FD_SET(miniSocket->miniServerStopSock, &expSet);
         FD_SET(miniSocket->miniServerStopSock, &rdSet);
-
-        // Ssdp socket v4
         fdset_if_valid(miniSocket->ssdpSock4, &rdSet);
-
-        // Ssdp socket v6
         if (using_ipv6()) {
             fdset_if_valid(miniSocket->ssdpSock6, &rdSet);
             fdset_if_valid(miniSocket->ssdpSock6UlaGua, &rdSet);
         }
-
 #ifdef INCLUDE_CLIENT_APIS
-        int netif_idx = 0;
-        for (const NetIF::Interface& netif: g_netifs) {
-
-            // Req sockets v4
-            SOCKET socketV4 = miniSocket->ssdpReqSock4List[netif_idx];
-            fdset_if_valid(socketV4, &rdSet);
-
-#ifdef UPNP_ENABLE_IPV6
-            if (using_ipv6()) {
-                // Req sockets v6
-                SOCKET socketV6 = miniSocket->ssdpReqSock6List[netif_idx];
-                fdset_if_valid(socketV4, &rdSet);
-            }
-#endif /* UPNP_ENABLE_IPV6 */
-
-            netif_idx++;
+        for (SOCKET socket : miniSocket->ssdpReqSock4List) {
+            fdset_if_valid(socket, &rdSet);
         }
-            
+#ifdef UPNP_ENABLE_IPV6
+        if (using_ipv6()) {
+            for (SOCKET socket : miniSocket->ssdpReqSock6List) {
+                fdset_if_valid(socket, &rdSet);
+            }
+        }
+#endif /* UPNP_ENABLE_IPV6 */
 #endif /* INCLUDE_CLIENT_APIS */
-
-        //
-        // Select
-        //
 
         ret = select(static_cast<int>(maxMiniSock), &rdSet, nullptr, &expSet, nullptr);
         if (ret == SOCKET_ERROR && errno == EINTR) {
@@ -564,46 +528,30 @@ void MiniServerJobWorker::work()
         if (ret == SOCKET_ERROR) {
             posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
             UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-                        "miniserver: select(): %s\n", errorBuffer);
+                       "miniserver: select(): %s\n", errorBuffer);
             continue;
         }
 
+        // Read select'ed sockets
 #ifdef INCLUDE_CLIENT_APIS
-
-        //
-        // Read
-        //
-
-        netif_idx = 0;
-        for (const NetIF::Interface& netif: g_netifs) {
-            
-            // Socket req v4
-            SOCKET socketV4 = miniSocket->ssdpReqSock4List[netif_idx];
-            ssdp_read(socketV4, &rdSet);
-
+        for (SOCKET socket : miniSocket->ssdpReqSock4List) {
+            ssdp_read(socket, &rdSet);
+        }
 #ifdef UPNP_ENABLE_IPV6
             if (using_ipv6()) {
-                // Socket req v6
-                SOCKET socketV6 = miniSocket->ssdpReqSock6List[netif_idx];
-                ssdp_read(socketV6, &rdSet);
+                for (SOCKET socket : miniSocket->ssdpReqSock6List) {
+                    ssdp_read(socket, &rdSet);
+                }
             }
 #endif /* UPNP_ENABLE_IPV6 */
-
-            netif_idx++;
-        }
-
 #endif /* INCLUDE_CLIENT_APIS */
 
-        // Ssdp socket v4    
         ssdp_read(miniSocket->ssdpSock4, &rdSet);
-
-        // Ssdp socket v4
         if (using_ipv6()) {
             ssdp_read(miniSocket->ssdpSock6, &rdSet);
             ssdp_read(miniSocket->ssdpSock6UlaGua, &rdSet);
         }
 
-        // Stop socket
         stopSock = receive_from_stopSock(miniSocket->miniServerStopSock, &rdSet);
     }
 
@@ -769,6 +717,20 @@ static void mhdlogger(void *, const char *fmt, va_list ap)
     vsnprintf(buf, 1023, fmt, ap);
     buf[1023] = 0;
     UpnpPrintf(UPNP_DEBUG, MSERV, __FILE__, __LINE__, "microhttpd: %s\n", buf);
+}
+
+static std::vector<SOCKET> nosockets;
+std::vector<SOCKET>& miniServerGetReqSocks4()
+{
+    if (nullptr == miniSocket)
+        return nosockets;
+    return miniSocket->ssdpReqSock4List;
+}
+std::vector<SOCKET>& miniServerGetReqSocks6()
+{
+    if (nullptr == miniSocket)
+        return nosockets;
+    return miniSocket->ssdpReqSock6List;
 }
 
 /* @param[input,output] listen_port4/6 listening ports for incoming HTTP. */

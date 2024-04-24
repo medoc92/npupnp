@@ -73,17 +73,19 @@ public:
 /* Worker to send the search messages. */
 class SearchSendJobWorker : public JobWorker {
 public:
-    explicit SearchSendJobWorker(int index, std::string reqBuf)
-        :Index(index), ReqBuff(std::move(reqBuf)) {}
-    std::string ReqBuff;
-    int Index;
+    explicit SearchSendJobWorker(const NetIF::Interface& _iface, SOCKET& _sockRef, std::string reqBuf)
+        : iface(_iface), sockRef(_sockRef), ReqBuff(std::move(reqBuf)) {}
 
+    const NetIF::Interface& iface;
+    SOCKET& sockRef;
+    std::string ReqBuff;
+    bool socketReady();
 };
 
 class SearchSendJobWorkerV4 : public SearchSendJobWorker {
 public:
-    explicit SearchSendJobWorkerV4(int index, std::string reqBuf)
-        : SearchSendJobWorker(index, std::move(reqBuf)) {}
+    explicit SearchSendJobWorkerV4(const NetIF::Interface& iface, SOCKET& sockRef, std::string reqBuf)
+        : SearchSendJobWorker(iface, sockRef, std::move(reqBuf)) {}
 
     void work() override;
 };
@@ -91,53 +93,22 @@ public:
 #ifdef UPNP_ENABLE_IPV6
 class SearchSendJobWorkerV6 : public SearchSendJobWorker {
 public:
-    explicit SearchSendJobWorkerV6(int index, std::string reqBuf)
-        : SearchSendJobWorker(index, std::move(reqBuf)) {}
+    explicit SearchSendJobWorkerV6(const NetIF::Interface& iface, SOCKET& sockRef, std::string reqBuf)
+        : SearchSendJobWorker(iface, sockRef, std::move(reqBuf)) {}
 
     void work() override;
 };
 #endif /* UPNP_ENABLE_IPV6 */
 
-//
-// TODO: Move in dedicated utils
-//
-
-static void GetLastError(int& errorCode, std::string errorDesc)
-{
-    errorCode = 0;
-    errorDesc = "";
-    char errorBuffer[ERROR_BUFFER_LEN];
-#ifdef _WIN32
-    errorCode = WSAGetLastError();
-    errorBuffer[0] = '\0';
-    FormatMessage(
-        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-        NULL,
-        errorCode,
-        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-        errorBuffer,
-        sizeof(errorBuffer),
-        NULL);
-    errorDesc = errorBuffer;
-#else
-    errorCode = errno;
-    posix_strerror_r(lastError, errorBuffer, ERROR_BUFFER_LEN);
-    errorDesc = errorBuffer;
-#endif /* _WIN32 */
-}
-
-void SearchSendJobWorkerV4::work()
+bool SearchSendJobWorker::socketReady()
 {
     fd_set wrSet;
     FD_ZERO(&wrSet);
 
-    const NetIF::Interface& iface = g_netifs[Index];
-    SOCKET& sockRef = gSsdpReqSocket4List[Index];
-    
     if (sockRef == INVALID_SOCKET) {
         UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
                    "SSDP_LIB - %s: socket is invalid !\n", iface.getfriendlyname().c_str());
-        return;
+        return false;
     }
 
     FD_SET(sockRef, &wrSet);
@@ -145,44 +116,52 @@ void SearchSendJobWorkerV4::work()
     // max_fd is ignored under windows. Just set it to not -1.
     int max_fd = 0;
 #else
-    int max_fd = std::max(max_fd, Socket);
+    int max_fd = sockRef;
 #endif
 
     int ret = select(max_fd + 1, nullptr, &wrSet, nullptr, nullptr);
     if (ret == -1) {
         int lastError;
         std::string errorDesc;
-        GetLastError(lastError, errorDesc);
+        NetIF::getLastError(lastError, errorDesc);
         UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
-                   "SSDP_LIB - %s: Error in select():  %d, %s\n", iface.getfriendlyname().c_str(), lastError, errorDesc.c_str());
+                   "SSDP_LIB - %s: Error in select():  %d, %s\n", iface.getfriendlyname().c_str(),
+                   lastError, errorDesc.c_str());
         UpnpCloseSocket(sockRef);
-        return;
+        return false;
     }
 
-    if (!FD_ISSET(sockRef, &wrSet))
-    {
+    if (!FD_ISSET(sockRef, &wrSet)) {
         UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
                    "SSDP_LIB - %s: socket not set after select!\n", iface.getfriendlyname().c_str());
-        return;
+        return false;
     }
+    return true;
+}
 
+void SearchSendJobWorkerV4::work()
+{
+    if (!socketReady())
+        return;
+    
     struct sockaddr_storage ssv4 = {};
     auto destAddr4 = reinterpret_cast<struct sockaddr_in *>(&ssv4);
     destAddr4->sin_family = static_cast<sa_family_t>(AF_INET);
     inet_pton(AF_INET, SSDP_IP, &destAddr4->sin_addr);
     destAddr4->sin_port = htons(SSDP_PORT);
-    UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
-               ">>> SSDP SEND M-SEARCH >>>\n%s\n%s\n", iface.getfriendlyname().c_str(), ReqBuff.c_str());
-    ret = sendto(sockRef, ReqBuff.c_str(), ReqBuff.size(), 0,
-            reinterpret_cast<struct sockaddr *>(destAddr4), sizeof(struct sockaddr_in));
+    UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
+               ">>> SSDP SEND M-SEARCH >>>\n%s\n%s\n", iface.getfriendlyname().c_str(),
+               ReqBuff.c_str());
+    auto ret = sendto(sockRef, ReqBuff.c_str(), ReqBuff.size(), 0,
+                      reinterpret_cast<struct sockaddr *>(destAddr4), sizeof(struct sockaddr_in));
 
     if (ret == -1) {
         int lastError;
         std::string errorDesc;
-        GetLastError(lastError, errorDesc);
+        NetIF::getLastError(lastError, errorDesc);
         UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
-                   "SSDP_LIB - %s: Error in sendto(): %d, %s\n", iface.getfriendlyname().c_str(), lastError, errorDesc.c_str());
-
+                   "SSDP_LIB - %s: Error in sendto(): %d, %s\n", iface.getfriendlyname().c_str(),
+                   lastError, errorDesc.c_str());
         return;
     }
 }
@@ -190,42 +169,8 @@ void SearchSendJobWorkerV4::work()
 #ifdef UPNP_ENABLE_IPV6
 void SearchSendJobWorkerV6::work()
 {
-    fd_set wrSet;
-    FD_ZERO(&wrSet);
-    
-    const NetIF::Interface& iface = g_netifs[Index];
-    SOCKET& sockRef = gSsdpReqSocket6List[Index];
-
-    if (sockRef == INVALID_SOCKET) {
-        UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
-                   "SSDP_LIB - %s: socket is invalid !\n", iface.getfriendlyname().c_str());
+    if (!socketReady())
         return;
-    }
-
-    FD_SET(sockRef, &wrSet);
-#ifdef _WIN32
-    // max_fd is ignored under windows. Just set it to not -1.
-    int max_fd = 0;
-#else
-    int max_fd = std::max(max_fd, Socket);
-#endif
-
-    int ret = select(max_fd + 1, nullptr, &wrSet, nullptr, nullptr);
-    if (ret == -1) {
-        int lastError;
-        std::string errorDesc;
-        GetLastError(lastError, errorDesc);
-        UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
-                   "SSDP_LIB - %s: Error in select():  %d, %s\n", iface.getfriendlyname().c_str(), lastError, errorDesc.c_str());
-        UpnpCloseSocket(sockRef);
-        return;
-    }
-
-    if (!FD_ISSET(sockRef, &wrSet)) {
-        UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
-                   "SSDP_LIB - %s: socket not set after select!\n", iface.getfriendlyname().c_str());
-        return;
-    }
 
     struct sockaddr_storage ssv6 = {};
     auto destAddr6 = reinterpret_cast<struct sockaddr_in6*>(&ssv6);
@@ -234,23 +179,25 @@ void SearchSendJobWorkerV6::work()
     destAddr6->sin6_port = htons(SSDP_PORT);
     destAddr6->sin6_scope_id = iface.getindex();
     UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__,
-               ">>> SSDP SEND M-SEARCH >>>\n%s\n%s\n", iface.getfriendlyname().c_str(), ReqBuff.c_str());
-    ret = sendto(sockRef, ReqBuff.c_str(), ReqBuff.size(), 0,
-                 reinterpret_cast<struct sockaddr*>(destAddr6), sizeof(struct sockaddr_in6));
+               ">>> SSDP SEND M-SEARCH >>>\n%s\n%s\n", iface.getfriendlyname().c_str(),
+               ReqBuff.c_str());
+    auto ret = sendto(sockRef, ReqBuff.c_str(), ReqBuff.size(), 0,
+                      reinterpret_cast<struct sockaddr*>(destAddr6), sizeof(struct sockaddr_in6));
 
     if (ret == -1) {
         int lastError;
         std::string errorDesc;
-        GetLastError(lastError, errorDesc);
+        NetIF::getLastError(lastError, errorDesc);
         UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
-                   "SSDP_LIB - %s: Error in sendto(): %d, %s\n", iface.getfriendlyname().c_str(), lastError, errorDesc.c_str());
+                   "SSDP_LIB - %s: Error in sendto(): %d, %s\n", iface.getfriendlyname().c_str(),
+                   lastError, errorDesc.c_str());
         return;
     }
 }
-
 #endif /* UPNP_ENABLE_IPV6 */
 
-void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser, const struct sockaddr_storage *dest_addr, void *)
+void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser, const struct sockaddr_storage *dest_addr,
+                            void *)
 {
     int handle;
     struct Handle_Info *ctrlpt_info = nullptr;
@@ -572,31 +519,43 @@ int SearchByTarget(int Mx, const char *St, const char *saddress, int port, void 
 
     HandleUnlock();
 
-    // Schedule sending the packets.
+    // Sanity checks
+    if (g_netifs.size() != miniServerGetReqSocks4().size()) {
+        UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
+                   "g_netifs and SsdpReqSocket4 array sizes differ\n");
+        return UPNP_E_INTERNAL_ERROR;
+    }                
+#ifdef UPNP_ENABLE_IPV6
+    if (g_netifs.size() != miniServerGetReqSocks6().size()) {
+        UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
+                   "g_netifs and SsdpReqSocket6 array sizes differ\n");
+        return UPNP_E_INTERNAL_ERROR;
+    }                
+#endif // UPNP_ENABLE_IPV6
+    
+    // Schedule sending the search packets.
     std::unique_ptr<SearchSendJobWorker> sworker;
     int delay = 0;
     for (int i = 0; i < NUM_SSDP_COPY; i++) {
 
-        // Search jobs
-        int netif_idx = 0;
-        for (const NetIF::Interface& netif: g_netifs) {
-            
-            if (gSsdpReqSocket4List[netif_idx] != INVALID_SOCKET) {
-                sworker = std::make_unique<SearchSendJobWorkerV4>(netif_idx, ReqBufv4);
-                gTimerThread->schedule(TimerThread::SHORT_TERM, std::chrono::milliseconds(delay),
-                                       nullptr, std::move(sworker));
-            }
-
-#ifdef UPNP_ENABLE_IPV6
-            if (gSsdpReqSocket6List[netif_idx] != INVALID_SOCKET) {
-                sworker = std::make_unique<SearchSendJobWorkerV6>(netif_idx, ReqBufv6);
-                gTimerThread->schedule(TimerThread::SHORT_TERM, std::chrono::milliseconds(delay),
-                                       nullptr, std::move(sworker));
-            }
-#endif /* UPNP_ENABLE_IPV6 */
-
-            netif_idx++;
+        for (unsigned int ifidx = 0; ifidx < g_netifs.size(); ifidx++) {
+            SOCKET& sockRef{miniServerGetReqSocks4()[ifidx]};
+            if (sockRef == INVALID_SOCKET)
+                continue;
+            sworker = std::make_unique<SearchSendJobWorkerV4>(g_netifs[ifidx], sockRef, ReqBufv4);
+            gTimerThread->schedule(TimerThread::SHORT_TERM, std::chrono::milliseconds(delay),
+                                   nullptr, std::move(sworker));
         }
+#ifdef UPNP_ENABLE_IPV6
+        for (unsigned int ifidx = 0; ifidx < g_netifs.size(); ifidx++) {
+            SOCKET& sockRef{miniServerGetReqSocks6()[ifidx]};
+            if (sockRef == INVALID_SOCKET)
+                continue;
+            sworker = std::make_unique<SearchSendJobWorkerV6>(g_netifs[ifidx], sockRef, ReqBufv6);
+            gTimerThread->schedule(TimerThread::SHORT_TERM, std::chrono::milliseconds(delay),
+                                   nullptr, std::move(sworker));
+        }
+#endif /* UPNP_ENABLE_IPV6 */
 
         delay += SSDP_PAUSE;
     }

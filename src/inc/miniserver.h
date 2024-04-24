@@ -70,12 +70,14 @@ struct MiniServerSockArray {
         maybeClose(ssdpSock6);
         maybeClose(ssdpSock6UlaGua);
 #ifdef INCLUDE_CLIENT_APIS
-        for (SOCKET socket:ssdpReqSock4List) { maybeClose(socket); }
-
+        for (SOCKET socket: ssdpReqSock4List) {
+            maybeClose(socket);
+        }
 #ifdef UPNP_ENABLE_IPV6
-        for (SOCKET socket:ssdpReqSock6List) { maybeClose(socket); }
+        for (SOCKET socket: ssdpReqSock6List) {
+            maybeClose(socket);
+        }
 #endif /* UPNP_ENABLE_IPV6 */
-
 #endif /* INCLUDE_CLIENT_APIS */
     }
 
@@ -147,5 +149,9 @@ int StartMiniServer(
  * \return Always returns 0.
  */
 int StopMiniServer();
+
+// Retrieve the sockets arrays used for CP SSDP search requests
+std::vector<SOCKET>& miniServerGetReqSocks4();
+std::vector<SOCKET>& miniServerGetReqSocks6();
 
 #endif /* MINISERVER_H */
