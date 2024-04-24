@@ -907,14 +907,14 @@ const Interface* Interfaces::interfaceForAddress(const IPAddr& addr, IPAddr& hos
     return interfaceForAddress(addr, m->interfaces, hostaddr);
 }
 
-void getLastError(int& errorCode, std::string errorDesc)
+void getLastError(std::string errorDesc, int* errp)
 {
-    errorCode = 0;
+    int errorCode = 0;
     errorDesc = "";
     char errorBuffer[256];
+    errorBuffer[0] = 0;
 #ifdef _WIN32
     errorCode = WSAGetLastError();
-    errorBuffer[0] = '\0';
     FormatMessage(
         FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
         NULL,
@@ -929,6 +929,8 @@ void getLastError(int& errorCode, std::string errorDesc)
     posix_strerror_r(errorCode, errorBuffer, sizeof(errorBuffer) - 1);
     errorDesc = errorBuffer;
 #endif /* _WIN32 */
+    if (errp)
+        *errp = errorCode;
 }
 
 } /* namespace NetIF */

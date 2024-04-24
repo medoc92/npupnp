@@ -123,7 +123,7 @@ bool SearchSendJobWorker::socketReady()
     if (ret == -1) {
         int lastError;
         std::string errorDesc;
-        NetIF::getLastError(lastError, errorDesc);
+        NetIF::getLastError(errorDesc, &lastError);
         UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
                    "SSDP_LIB - %s: Error in select():  %d, %s\n", iface.getfriendlyname().c_str(),
                    lastError, errorDesc.c_str());
@@ -158,7 +158,7 @@ void SearchSendJobWorkerV4::work()
     if (ret == -1) {
         int lastError;
         std::string errorDesc;
-        NetIF::getLastError(lastError, errorDesc);
+        NetIF::getLastError(errorDesc, &lastError);
         UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
                    "SSDP_LIB - %s: Error in sendto(): %d, %s\n", iface.getfriendlyname().c_str(),
                    lastError, errorDesc.c_str());
@@ -187,7 +187,7 @@ void SearchSendJobWorkerV6::work()
     if (ret == -1) {
         int lastError;
         std::string errorDesc;
-        NetIF::getLastError(lastError, errorDesc);
+        NetIF::getLastError(errorDesc, &lastError);
         UpnpPrintf(UPNP_ERROR, SSDP, __FILE__, __LINE__,
                    "SSDP_LIB - %s: Error in sendto(): %d, %s\n", iface.getfriendlyname().c_str(),
                    lastError, errorDesc.c_str());

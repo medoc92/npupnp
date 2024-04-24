@@ -358,10 +358,10 @@ static int create_ssdp_sock_v4(SOCKET *ssdpSock)
     return UPNP_E_SUCCESS;
 
 error_handler:
-    char errorBuffer[ERROR_BUFFER_LEN];
-    posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
+    std::string errorDesc;
+    NetIF::getLastError(errorDesc);
     UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-               "%s: %s\n", errorcause.c_str(), errorBuffer);
+               "%s: %s\n", errorcause.c_str(), errorDesc.c_str());
     if (*ssdpSock != INVALID_SOCKET) {
         UpnpCloseSocket(*ssdpSock);
     }
@@ -436,9 +436,10 @@ static int create_ssdp_sock_reqv4(const std::string& sadrv4, SOCKET* ssdpReqSock
     return UPNP_E_SUCCESS;
 
 error_handler:
-    char errorBuffer[ERROR_BUFFER_LEN];
-    posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-    UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__, "%s: %s\n", errorcause.c_str(), errorBuffer);
+    std::string errorDesc;
+    NetIF::getLastError(errorDesc);
+    UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__, "%s: %s\n", errorcause.c_str(),
+               errorDesc.c_str());
     if (*ssdpReqSock != INVALID_SOCKET) {
         UpnpCloseSocket(*ssdpReqSock);
     }
@@ -517,9 +518,10 @@ static int create_ssdp_sock_v6(bool isulagua, SOCKET *ssdpSock)
     return UPNP_E_SUCCESS;
 
 error_handler:
-    char errorBuffer[ERROR_BUFFER_LEN];
-    posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-    UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__, "%s: %s\n", errorcause.c_str(), errorBuffer);
+    std::string errorDesc;
+    NetIF::getLastError(errorDesc);
+    UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__, "%s: %s\n", errorcause.c_str(),
+               errorDesc.c_str());
     if (*ssdpSock != INVALID_SOCKET) {
         UpnpCloseSocket(*ssdpSock);
     }
@@ -592,9 +594,10 @@ static int create_ssdp_sock_reqv6(int index, SOCKET* ssdpReqSock, int port)
     return UPNP_E_SUCCESS;
 
 error_handler:
-    char errorBuffer[ERROR_BUFFER_LEN];
-    posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-    UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__, "%s: %s\n", errorcause.c_str(), errorBuffer);
+    std::string errorDesc;
+    NetIF::getLastError(errorDesc);
+    UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__, "%s: %s\n", errorcause.c_str(),
+               errorDesc.c_str());
     if (*ssdpReqSock != INVALID_SOCKET) {
         UpnpCloseSocket(*ssdpReqSock);
     }

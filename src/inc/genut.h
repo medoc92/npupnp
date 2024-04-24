@@ -37,9 +37,6 @@
 
 extern size_t upnp_strlcpy(char *dst, const char *src, size_t dsize);
 
-/* Size of the errorBuffer variable, passed to the strerror_r() function */
-#define ERROR_BUFFER_LEN size_t(256)
-
 #if !defined(_WIN32)
 inline char *_check_strerror_r(int, char *errbuf) {
     return errbuf;

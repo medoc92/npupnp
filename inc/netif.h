@@ -228,7 +228,7 @@ private:
     std::unique_ptr<Internal> m;
 };
 
-void getLastError(int& errorCode, std::string errorDesc);
+void getLastError(std::string errorDesc, int *errorCode = nullptr);
 
 } /* namespace NetIF */
 

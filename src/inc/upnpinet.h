@@ -8,16 +8,12 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
-typedef ADDRESS_FAMILY sa_family_t;
-
 #define UpnpCloseSocket(s)  do {closesocket(s); s = INVALID_SOCKET;} while(0)
-#define UPNP_SOCK_GET_LAST_ERROR() WSAGetLastError()
 
 #else /* ! _WIN32 -> */
 
 /*** Windows compatibility macros */
 #define UpnpCloseSocket(s) do {close(s); s = -1;} while(0)
-#define UPNP_SOCK_GET_LAST_ERROR() errno
 /* SOCKET is typedefd by the system and unsigned on Win32 */
 typedef int SOCKET;
 #define INVALID_SOCKET (-1)

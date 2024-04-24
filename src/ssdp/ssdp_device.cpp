@@ -330,9 +330,10 @@ static int sendPackets(SOCKET sock, struct sockaddr_storage *daddr, int cnt, std
                     reinterpret_cast<struct sockaddr*>(daddr), socklen);
 
         if (rc == -1) {
-            char errorBuffer[ERROR_BUFFER_LEN];
-            posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-            UpnpPrintf(UPNP_INFO,SSDP,__FILE__,__LINE__,"sendPackets: sendto: %s\n", errorBuffer);
+            std::string errorDesc;
+            NetIF::getLastError(errorDesc);
+            UpnpPrintf(UPNP_INFO,SSDP,__FILE__,__LINE__,
+                       "sendPackets: sendto: %s\n", errorDesc.c_str());
             return UPNP_E_SOCKET_WRITE;
         }
     }
@@ -847,10 +848,9 @@ int AdvertiseAndReply(UpnpDevice_Handle Hnd, SSDPDevMessageType tp, int Exp,
 
 exitfunc:
     if (ret != UPNP_E_SUCCESS) {
-        char errorBuffer[ERROR_BUFFER_LEN];
-        posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-        UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
-                   "sendPackets: %s\n", errorBuffer);
+        std::string errorDesc;
+        NetIF::getLastError(errorDesc);
+        UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__, "sendPackets: %s\n", errorDesc.c_str());
         return UPNP_E_NETWORK_ERROR;
     }
     if (sock != INVALID_SOCKET)

@@ -463,7 +463,6 @@ public:
  */
 void MiniServerJobWorker::work()
 {
-    char errorBuffer[ERROR_BUFFER_LEN];
     fd_set expSet;
     fd_set rdSet;
     SOCKET maxMiniSock;
@@ -526,9 +525,10 @@ void MiniServerJobWorker::work()
             continue;
         }
         if (ret == SOCKET_ERROR) {
-            posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
+            std::string errorDesc;
+            NetIF::getLastError(errorDesc);
             UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
-                       "miniserver: select(): %s\n", errorBuffer);
+                       "miniserver: select(): %s\n", errorDesc.c_str());
             continue;
         }
 
@@ -606,15 +606,15 @@ static int get_port(
  */
 static int get_miniserver_stopsock(MiniServerSockArray *out)
 {
-    char errorBuffer[ERROR_BUFFER_LEN];
     struct sockaddr_in stop_sockaddr;
     int ret = 0;
 
     out->miniServerStopSock = socket(AF_INET, SOCK_DGRAM, 0);
     if (out->miniServerStopSock == INVALID_SOCKET) {
-        posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
+        std::string errorDesc;
+        NetIF::getLastError(errorDesc);
         UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
-                   "miniserver: stopsock: socket(): %s\n", errorBuffer);
+                   "miniserver: stopsock: socket(): %s\n", errorDesc.c_str());
         return UPNP_E_OUTOF_SOCKET;
     }
     /* Bind to local socket. */
@@ -645,20 +645,21 @@ static int get_miniserver_stopsock(MiniServerSockArray *out)
 
 static int available_port(int reqport)
 {
-    char errorBuffer[ERROR_BUFFER_LEN];
     SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock == INVALID_SOCKET) {
-        posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
+        std::string errorDesc;
+        NetIF::getLastError(errorDesc);
         UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
-                   "miniserver: socket(): %s\n", errorBuffer);
+                   "miniserver: socket(): %s\n", errorDesc.c_str());
         return UPNP_E_OUTOF_SOCKET;
     }
     int onOff = 1;
     if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
                    reinterpret_cast<char *>(&onOff), sizeof(onOff)) < 0) {
-        posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
+        std::string errorDesc;
+        NetIF::getLastError(errorDesc);
         UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
-                   "miniserver: reuseaddr: %s\n", errorBuffer);
+                   "miniserver: reuseaddr: %s\n", errorDesc.c_str());
     }
 
     int port = reqport <= 0 ? APPLICATION_LISTENING_PORT : reqport;
@@ -675,9 +676,11 @@ static int available_port(int reqport)
             break;
         }
         bool eaddrinuse{false};
+        int lastError;
+        std::string errorDesc;
+        NetIF::getLastError(errorDesc, &lastError);
 #if defined(_WIN32)
-        int error = WSAGetLastError();
-        eaddrinuse = (error == WSAEADDRINUSE || error == WSAEACCES);
+        eaddrinuse = (lastError == WSAEADDRINUSE || lastError == WSAEACCES);
 #else
         eaddrinuse = (errno == EADDRINUSE);
 #endif
@@ -685,14 +688,8 @@ static int available_port(int reqport)
             port++;
             continue;
         }
-#ifdef _WIN32
         UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
-                   "miniserver: bind(): WSA error %d\n", error);
-#else
-        posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
-        UpnpPrintf(UPNP_CRITICAL, MSERV, __FILE__, __LINE__,
-                   "miniserver: bind(): %s\n", errorBuffer);
-#endif
+                   "miniserver: bind(): %s\n", errorDesc.c_str());
         ret = UPNP_E_SOCKET_BIND;
         break;
     }
@@ -836,7 +833,6 @@ out:
 
 int StopMiniServer()
 {
-    char errorBuffer[ERROR_BUFFER_LEN];
     socklen_t socklen = sizeof (struct sockaddr_in);
     SOCKET sock;
     struct sockaddr_in stopaddr;
@@ -854,9 +850,10 @@ int StopMiniServer()
 
     sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock == INVALID_SOCKET) {
-        posix_strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
+        std::string errorDesc;
+        NetIF::getLastError(errorDesc);
         UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
-                   "StopMiniserver: socket(): %s\n", errorBuffer);
+                   "StopMiniserver: socket(): %s\n", errorDesc.c_str());
         return 0;
     }
     stopaddr.sin_family = static_cast<sa_family_t>(AF_INET);
