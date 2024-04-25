@@ -36,6 +36,7 @@ nnn * Redistribution and use in source and binary forms, with or without
 #ifdef INCLUDE_CLIENT_APIS
 #if EXCLUDE_SSDP == 0
 
+#include <algorithm>
 #include <chrono>
 #include <cstring>
 #include <iostream>
@@ -427,6 +428,7 @@ static int CreateClientRequestPacket(
 
 class SearchExpiredJobWorker : public JobWorker {
 public:
+    SearchExpiredJobWorker(int id) : m_id(id) {}
     void work() override;
     int m_id;
 };
@@ -511,7 +513,7 @@ int SearchByTarget(int Mx, const char *St, const char *saddress, int port, void 
         HandleUnlock();
         return UPNP_E_INTERNAL_ERROR;
     }
-    auto worker = std::make_unique<SearchExpiredJobWorker>();
+    auto worker = std::make_unique<SearchExpiredJobWorker>(0);
     int *idp = &(worker->m_id);
     gTimerThread->schedule(TimerThread::SHORT_TERM, TimerThread::REL_SEC, Mx ? Mx + 1 : 2,
                            idp, std::move(worker));
