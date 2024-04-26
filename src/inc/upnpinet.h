@@ -8,6 +8,7 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
+typedef ADDRESS_FAMILY sa_family_t;
 #define UpnpCloseSocket(s)  do {closesocket(s); s = INVALID_SOCKET;} while(0)
 
 #else /* ! _WIN32 -> */
