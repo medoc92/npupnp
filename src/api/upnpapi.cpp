@@ -1007,7 +1007,7 @@ static int registerRootDeviceAllForms(
                "Root Device URL for legacy CPs: %s\n", HInfo->LowerDescURL);
     HInfo->HType = HND_DEVICE;
     HInfo->Callback = Fun;
-    HInfo->Cookie = reinterpret_cast<char*>(const_cast<void*>(Cookie));
+    HInfo->Cookie = const_cast<void*>(Cookie);
     HInfo->MaxAge = DEFAULT_MAXAGE;
     HInfo->MaxSubscriptions = UPNP_INFINITE;
     HInfo->MaxSubscriptionTimeOut = UPNP_INFINITE;

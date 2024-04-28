@@ -74,12 +74,9 @@ struct Handle_Info
 {
     Handle_Info() = default;
     ~Handle_Info() = default;
-    /*! . */
     Upnp_Handle_Type HType{HND_INVALID};
-    /*! Callback function pointer. */
     Upnp_FunPtr  Callback{nullptr};
-    /*! . */
-    char* Cookie{nullptr};
+    void* Cookie{nullptr};
 
     /* Device Only */
 #ifdef INCLUDE_DEVICE_APIS
