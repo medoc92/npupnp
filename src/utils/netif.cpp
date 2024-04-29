@@ -604,18 +604,18 @@ Interfaces::Internal::Internal()
 
 #else /* _WIN32 ->*/
 
-static bool wchartoutf8(const wchar_t* in, std::string& out, size_t wlen)
+static bool wchartoutf8(const wchar_t* in, std::string& out, int wlen)
 {
     out.clear();
     if (nullptr == in) {
         return true;
     }
     if (wlen == 0) {
-        wlen = wcslen(in);
+        wlen = (int)wcslen(in);
     }
     int flags = WC_ERR_INVALID_CHARS;
     int bytes = ::WideCharToMultiByte(CP_UTF8, flags, in, wlen, nullptr, 0, nullptr, nullptr);
-    if (bytes <= 0) {
+    if ((int)bytes <= 0) {
         LOGERR("wchartoutf8: conversion error1\n");
         fwprintf(stderr, L"wchartoutf8: conversion error1 for [%s]\n", in);
         return false;
@@ -911,7 +911,7 @@ void getLastError(std::string errorDesc, int* errp)
 {
     int errorCode = 0;
     errorDesc = "";
-    char errorBuffer[256];
+    wchar_t errorBuffer[256];
     errorBuffer[0] = 0;
 #ifdef _WIN32
     errorCode = WSAGetLastError();
@@ -923,7 +923,7 @@ void getLastError(std::string errorDesc, int* errp)
         errorBuffer,
         sizeof(errorBuffer),
         NULL);
-    errorDesc = errorBuffer;
+    wchartoutf8(errorBuffer, errorDesc, 0);
 #else
     errorCode = errno;
     posix_strerror_r(errorCode, errorBuffer, sizeof(errorBuffer) - 1);
