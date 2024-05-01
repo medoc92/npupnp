@@ -98,15 +98,14 @@ initialize the library:
 - @ref UpnpInitWithOptions() is the new npupnp way and has a more adaptable
   interface.
 
-For the two last functions, the network adapter name can be specified as
-follows:
+For the two last functions, the network adapter name can be specified as follows:
 
 - Empty (nullptr or empty string): the library will choose the first non
   loopback adapter (and having an IPV6 address if the flag is set).
 - "*": the library will use all possible network adapters.
 - Space-separated adapter names: the library will try to use the specified
-  adapter. Under Windows, the name can be either the friendly or the system
-  adapter name. If an adapter name contains space characters, you will need
+  adapters. Under Windows, the names can be either the friendly or the system
+  adapter names. If an adapter name contains space characters, you will need
   to quote it with double quotes.
 
 
