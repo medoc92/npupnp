@@ -915,7 +915,7 @@ void getLastError(std::string errorDesc, int* errp)
     wchar_t errorBuffer[256];
     errorBuffer[0] = 0;
     errorCode = WSAGetLastError();
-    FormatMessage(
+    FormatMessageW(
         FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
         NULL,
         errorCode,
