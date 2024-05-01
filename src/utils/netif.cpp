@@ -911,9 +911,9 @@ void getLastError(std::string errorDesc, int* errp)
 {
     int errorCode = 0;
     errorDesc = "";
+#ifdef _WIN32
     wchar_t errorBuffer[256];
     errorBuffer[0] = 0;
-#ifdef _WIN32
     errorCode = WSAGetLastError();
     FormatMessage(
         FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -925,6 +925,8 @@ void getLastError(std::string errorDesc, int* errp)
         NULL);
     wchartoutf8(errorBuffer, errorDesc, 0);
 #else
+    char errorBuffer[256];
+    errorBuffer[0] = 0;
     errorCode = errno;
     posix_strerror_r(errorCode, errorBuffer, sizeof(errorBuffer) - 1);
     errorDesc = errorBuffer;
