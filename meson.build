@@ -2,7 +2,7 @@ project(
   'libnpupnp',
   'cpp',
   license: 'BSD-3-Clause',
-  version: '6.1.2',
+  version: '6.1.3',
   default_options: 'cpp_std=c++17',
   meson_version: '>=0.49',
 )
@@ -13,7 +13,7 @@ project(
 npupnp_soversion = '13'
 # This is just to change the lib file name when the version changes without changing the API, and
 # I'm not quite sure that it is really necessary
-npupnp_soversion_minor = '.2.0'
+npupnp_soversion_minor = '.2.1'
 
 cpp = meson.get_compiler('cpp')
 deps = []
