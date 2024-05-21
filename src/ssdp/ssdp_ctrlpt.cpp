@@ -36,6 +36,7 @@ nnn * Redistribution and use in source and binary forms, with or without
 #ifdef INCLUDE_CLIENT_APIS
 #if EXCLUDE_SSDP == 0
 
+#include <algorithm>
 #include <chrono>
 #include <cstring>
 #include <iostream>

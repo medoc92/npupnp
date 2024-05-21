@@ -42,7 +42,7 @@
 #if EXCLUDE_WEB_SERVER == 0
 
 #include "webserver.h"
-
+#include <algorithm>
 #include <map>
 #include <unordered_map>
 #include <mutex>

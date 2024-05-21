@@ -32,6 +32,7 @@
 
 #include "config.h"
 
+#include <algorithm>
 #include <array>
 #include <mutex>
 #include <sstream>
