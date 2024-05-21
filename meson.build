@@ -9,8 +9,11 @@ project(
 
 # Change this only when the library interface would become incompatible with a binary linked with a
 # previous version. A change should also result in changing the Debian binary package name so that
-# both library versions can cohexist on a system.
-npupnp_soversion = 13
+# both library versions can coexist on a system.
+npupnp_soversion = '13'
+# This is just to change the lib file name when the version changes without changing the API, and
+# I'm not quite sure that it is really necessary
+npupnp_soversion_minor = '.2.0'
 
 cpp = meson.get_compiler('cpp')
 deps = []
@@ -136,6 +139,7 @@ libnpupnp = library(
   npupnp_sources,
   gnu_symbol_visibility: 'hidden',
   name_prefix: '',
+  version: npupnp_soversion + npupnp_soversion_minor,
   soversion: host_machine.system() == 'windows' ? '' : npupnp_soversion,
   include_directories: libnpupnp_incdir,
   dependencies: deps,
