@@ -604,41 +604,6 @@ Interfaces::Internal::Internal()
 
 #else /* _WIN32 ->*/
 
-static bool wchartoutf8(const wchar_t* in, std::string& out, int wlen)
-{
-    out.clear();
-    if (nullptr == in) {
-        return true;
-    }
-    if (wlen == 0) {
-        wlen = (int)wcslen(in);
-    }
-    int flags = WC_ERR_INVALID_CHARS;
-    int bytes = ::WideCharToMultiByte(CP_UTF8, flags, in, wlen, nullptr, 0, nullptr, nullptr);
-    if ((int)bytes <= 0) {
-        LOGERR("wchartoutf8: conversion error1\n");
-        fwprintf(stderr, L"wchartoutf8: conversion error1 for [%s]\n", in);
-        return false;
-    }
-    auto cp = static_cast<char *>(malloc(bytes+1));
-    if (nullptr == cp) {
-        LOGERR("wchartoutf8: malloc failed\n");
-        return false;
-    }
-    bytes = ::WideCharToMultiByte(CP_UTF8, flags, in, wlen, cp, bytes, nullptr, nullptr);
-    if (bytes <= 0) {
-        LOGERR("wchartoutf8: CONVERSION ERROR2\n");
-        free(cp);
-        return false;
-    }
-    cp[bytes] = 0;
-    out = cp;
-    free(cp);
-    //fwprintf(stderr, L"wchartoutf8: in: [%s]\n", in);
-    //fprintf(stderr, "wchartoutf8: out:  [%s]\n", out.c_str());
-    return true;
-}
-
 static uint32_t netprefixlentomask(uint8_t pfxlen)
 {
     return pfxlen ? htonl(UINT32_MAX << (32 - pfxlen)) : 0;

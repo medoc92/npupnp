@@ -41,6 +41,7 @@ endif
 add_project_arguments('-DNOMINMAX', language: 'cpp')
 add_project_arguments('-DSMALLUT_NO_REGEX', language: 'cpp')
 add_project_arguments('-DSMALLUT_EXTERNAL_INSTANTIATIONS', language: 'cpp')
+add_project_arguments('-DMDU_INCLUDE_LOG=<string>', language: 'cpp')
 
 add_project_arguments(
   cpp.get_supported_arguments(
