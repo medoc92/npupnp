@@ -132,7 +132,9 @@ bool utf8towchar(const std::string& in, wchar_t *out, int obytescap)
         return false;
     }
     if (wcharcnt + 1 >  int(wcharsavail)) {
+#ifdef LOGERR
         LOGERR("utf8towchar: not enough space\n");
+#endif
         return false;
     }
     wcharcnt = MultiByteToWideChar(
