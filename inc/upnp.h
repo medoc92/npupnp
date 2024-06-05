@@ -784,7 +784,7 @@ EXPORT_SPEC int UpnpInit(
  * This call is synchronous.
  *
  * @param ifName The interface name(s) to use by the UPnP SDK operations, as a
- * space-separated list. Use double quotes or backslashes escapes
+ * space-separated list (utf-8). Use double quotes or backslashes escapes
  * if there are space characters inside the interface name. Use a
  * single "*" character to use all available interfaces.
  * \c NULL or empty to use the first suitable interface.
@@ -825,7 +825,7 @@ EXPORT_SPEC int UpnpInit2(
  *
  * This call is synchronous.
  *
- * @param ifnames The interface name(s) as a as a vector of strings, to avoid any quoting
+ * @param ifnames The interface name(s) as a as a vector of UTF-8 strings, to avoid any quoting
  * headaches. Leave empty for using the first found interface. Set a single "*" element for using
  * all interfaces.
  * @param DestPort local port to listen on for incoming connections.
@@ -865,11 +865,10 @@ EXPORT_SPEC int UpnpInit2(
  *
  * This call is synchronous.
  *
- * @param ifnames The interface name(s) to use by the UPnP SDK operations, as a
- * quoted space-separated list. Use double quotes or backslashes escapes
- * if there are space characters inside the interface name. Use a
- * single "*" character to use all available interfaces.
- * \c NULL or empty to use the first suitable interface.
+ * @param ifnames The interface name(s) to use for the UPnP SDK operations, as a quoted
+ * space-separated list (utf-8 string). Use double quotes or backslashes escapes if there
+ * are space characters inside the interface name(s). Use a single "*" character to use all
+ * available interfaces. Use \c NULL or empty to use the first suitable interface.
  * @param DestPort local port to listen on for incoming connections.
  * \c 0 will pick the first free port at or above the configured default.
  * @param flags A bitfield of @ref Upnp_InitFlag values.
@@ -878,20 +877,18 @@ EXPORT_SPEC int UpnpInit2(
  *
  * @return An integer representing one of the following:
  *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
- *     \li \c UPNP_E_OUTOF_MEMORY: Insufficient resources exist 
- *             to initialize the SDK.
+ *     \li \c UPNP_E_OUTOF_MEMORY: Insufficient resources exist to initialize the SDK.
  *     \li \c UPNP_E_INIT: The SDK is already initialized. 
- *     \li \c UPNP_E_INIT_FAILED: The SDK initialization 
- *             failed for an unknown reason.
+ *     \li \c UPNP_E_INIT_FAILED: The SDK initialization  failed for an unknown reason.
  *     \li \c UPNP_E_SOCKET_BIND: An error occurred binding a socket.
  *     \li \c UPNP_E_LISTEN: An error occurred listening to a socket.
  *     \li \c UPNP_E_OUTOF_SOCKET: An error ocurred creating a socket.
  *     \li \c UPNP_E_INTERNAL_ERROR: An internal error ocurred.
- *     \li \c UPNP_E_INVALID_INTERFACE: IfName is invalid or does not
- *             have a valid IPv4 or IPv6 addresss configured.
+ *     \li \c UPNP_E_INVALID_INTERFACE: IfName is invalid or does not have a valid IPv4 or IPv6 
+ *                   address configured.
  */
 EXPORT_SPEC int UpnpInitWithOptions( 
-    const char *IfName,
+    const char *IfNames,
     unsigned short DestPort,
     /** Bitmask of Upnp_InitFlag values */
     unsigned int flags,
