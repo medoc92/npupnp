@@ -174,7 +174,7 @@ std::unique_ptr<wchar_t[]> utf8towchar(const std::string& in)
 #endif
         return std::unique_ptr<wchar_t[]>();
     }
-    buf.get()[wcharcnt] = 0;
+    buf[wcharcnt] = 0;
     return buf;
 }
 #endif // _WIN32
