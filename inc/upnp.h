@@ -1944,6 +1944,21 @@ EXPORT_SPEC int UpnpSetWebRequestHostValidateCallback(
 EXPORT_SPEC int UpnpSetHostValidateCallback(
     WebCallback_HostValidate callback, void *cookie);
 
+/*!
+ * \brief Assign the Access-Control-Allow-Origin specfied by the input
+ * const char* cors_string parameterto the global CORS string
+ *
+ * \note This function is not available when the web server is not compiled
+ * 	into the UPnP Library.
+ *
+ * \return An integer representing one of the following:
+ *       \li \c UPNP_E_SUCCESS: The operation completed successfully.
+ *       \li \c UPNP_E_INVALID_ARGUMENT: \b rootDir is an invalid directory.
+ */
+EXPORT_SPEC int UpnpSetWebServerCorsString(
+    /*! [in] String having the Access-Control-Allow-Origin string. */
+    const char *corsString);
+
 
 /** Handle returned by the @ref VDCallback_Open virtual directory function. */
 typedef void *UpnpWebFileHandle;
