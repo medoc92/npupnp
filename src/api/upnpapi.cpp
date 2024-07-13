@@ -2016,6 +2016,17 @@ int UpnpSetWebServerRootDir(const char *rootDir)
 
     return web_server_set_root_dir(rootDir);
 }
+
+int UpnpSetWebServerCorsString(const char *corsString)
+{
+    if (UpnpSdkInit == 0)
+        return UPNP_E_FINISH;
+    if ((corsString == NULL) || (strlen(corsString) == 0)) {
+        return UPNP_E_INVALID_PARAM;
+    }
+
+    return web_server_set_cors(corsString);
+}
 #endif /* INTERNAL_WEB_SERVER */
 
 

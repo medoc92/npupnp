@@ -75,6 +75,16 @@ int web_server_set_root_dir(
     /*! [in] String having the root directory for the document. */
     const char* root_dir);
 
+/*!
+ * \brief Assign the Access-Control-Allow-Origin specfied by the input
+ * const char* cors_string parameterto the global CORS string
+ *
+ * \return Integer.
+ */
+int web_server_set_cors(
+    /*! [in] String having the Access-Control-Allow-Origin string. */
+    const char *cors_string);
+
 /* Add a locally served path */
 int web_server_set_localdoc(
     const std::string& path, const std::string& data, time_t last_modified);

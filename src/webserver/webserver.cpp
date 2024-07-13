@@ -192,6 +192,9 @@ static const std::unordered_map<std::string_view, std::string_view> gEncodedMedi
   possibly the virtual dir and/or the localDocs). */
 static std::string gDocumentRootDir;
 
+/*! Global variable. A string which is set in the header field. */
+static std::string gWebServerCorsString;
+
 struct LocalDoc {
     std::string data;
     time_t last_modified{};
@@ -293,6 +296,11 @@ int web_server_set_root_dir(const char *root_dir)
     return 0;
 }
 
+int web_server_set_cors(const char *cors_string)
+{
+    gWebServerCorsString = cors_string;
+    return 0;
+}
 
 int web_server_add_virtual_dir(
     const char *dirname, const void *cookie, const void **oldcookie)
@@ -591,6 +599,9 @@ static int process_request(
     }
     if (RespInstr->AcceptLanguageHeader[0] && WEB_SERVER_CONTENT_LANGUAGE[0]) {
         headers["content-language"] = WEB_SERVER_CONTENT_LANGUAGE;
+    }
+    if (!gWebServerCorsString.empty()) {
+        headers["Access-Control-Allow-Origin"] = gWebServerCorsString;
     }
     {
         std::string date = make_date_string(0);
