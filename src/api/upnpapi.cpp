@@ -2021,7 +2021,7 @@ int UpnpSetWebServerCorsString(const char *corsString)
 {
     if (UpnpSdkInit == 0)
         return UPNP_E_FINISH;
-    if ((corsString == NULL) || (strlen(corsString) == 0)) {
+    if ((corsString == nullptr) || (strlen(corsString) == 0)) {
         return UPNP_E_INVALID_PARAM;
     }
 

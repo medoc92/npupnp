@@ -1953,7 +1953,7 @@ EXPORT_SPEC int UpnpSetHostValidateCallback(
  *
  * \return An integer representing one of the following:
  *       \li \c UPNP_E_SUCCESS: The operation completed successfully.
- *       \li \c UPNP_E_INVALID_ARGUMENT: \b rootDir is an invalid directory.
+ *       \li \c UPNP_E_INVALID_ARGUMENT: \b corsString is an invalid directory.
  */
 EXPORT_SPEC int UpnpSetWebServerCorsString(
     /*! [in] String having the Access-Control-Allow-Origin string. */
