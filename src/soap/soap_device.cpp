@@ -344,8 +344,7 @@ static int get_mpost_acton_hdrval(MHDTransaction *mhdt, std::string& val)
  *
  * \return UPNP_E_SUCCESS if OK, error number on failure.
  */
-static int check_soapaction_hdr(
-    MHDTransaction *mhdt, soap_devserv_t *soap_info)
+static int check_soapaction_hdr(MHDTransaction *mhdt, soap_devserv_t *soap_info)
 {
     int ret_code;
     std::string header;
@@ -366,24 +365,34 @@ static int check_soapaction_hdr(
     /* error by default */
     ret_code = SREQ_BAD_HDR_FORMAT;
 
-    /* The header value is something like: "urn:av-open...:Playlist:1#Id"  */
-    if (header[0] != '\"') {
-        return ret_code;
-    }
-
+    /* The header value is something like: "urn:av-open...:Playlist:1#Id" */
     std::string::size_type hash_pos = header.find('#');
     if (hash_pos == std::string::npos) {
         return ret_code;
     }
-    char anm[201];
-    if (sscanf(header.c_str() + hash_pos+1, "%200[^\"]", anm) != 1) {
-        return ret_code;
-    }
-    soap_info->action_name = anm;
 
-    /* check service type */
-    std::string serv_type = header.substr(1, hash_pos-1);
-    size_t cp1_diff = serv_type.rfind(':');
+    // Note: the UPnP standard says that this header value MUST be quoted with double quotes.
+    // Both npupnp and pupnp used to only check for a starting double quote, and accept a missing
+    // ending double quote.
+    // We are now even more lenient (following the pupnp lead, they made the same change), and
+    // accept an unquoted value,
+    std::string::size_type startadjust{1};
+    if (header[0] != '"') {
+        startadjust = 0;
+    }
+    std::string::size_type endadjust{1};
+    if (header.back() != '"') {
+        endadjust = 0;
+    }
+
+    // Action name: between the hash and the end (eos or double quote).
+    soap_info->action_name = header.substr(hash_pos + 1, header.size() - hash_pos - 1 - endadjust);
+
+    /* Service type: between start or double quote, and hash */
+    auto serv_type = header.substr(startadjust, hash_pos - startadjust);
+
+    /* Check service type */
+    auto cp1_diff = serv_type.rfind(':');
     if (std::string::npos == cp1_diff) {
         return ret_code;
     }
