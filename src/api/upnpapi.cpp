@@ -407,9 +407,16 @@ static int WinsockInit(void)
 }
 #endif /* _WIN32 */
 
-/* Initializes the global threadm pools used by the UPnP SDK. */
-static int UpnpInitThreadPools()
+/* Initializes the global thread pools used by the UPnP SDK. */
+static int initThreadPools()
 {
+    // We are actually unable to delete the pools. So init once and never delete. We'd need to first
+    // wait for all temp tasks to exit, then have a way to tell the permanent ones to exit too
+    // (esp. timer thread). See comments in ThreadPool.cpp ~ThreadPool().
+    static int init{0};
+    if (init)
+        return UPNP_E_SUCCESS;
+    
     ThreadPoolAttr attr;
 
     attr.maxThreads = MAX_THREADS;
@@ -426,6 +433,7 @@ static int UpnpInitThreadPools()
             return UPNP_E_INIT_FAILED;
         }
     }
+    init = 1;
     return UPNP_E_SUCCESS;
 }
 
@@ -476,9 +484,9 @@ static int UpnpInitPreamble()
     HandleUnlock();
 
     /* Initialize SDK global thread pools. */
-    retVal = UpnpInitThreadPools();
+    retVal = initThreadPools();
     if (retVal != UPNP_E_SUCCESS) {
-        std::cerr << "UpnpInitThreadPools failed\n";
+        std::cerr << "initThreadPools failed\n";
         return retVal;
     }
 
@@ -693,7 +701,7 @@ breakloop:
 }
 
 
-#ifdef DEBUG
+#if 0
 /*!
  * \brief Prints thread pool statistics.
  */
@@ -741,12 +749,7 @@ void PrintThreadPoolStats(
                stats.totalWorkTime,
                stats.totalIdleTime);
 }
-#else
-static void PrintThreadPoolStats(
-    ThreadPool*, const char*, int, const char*)
-{
-}
-#endif /* DEBUG */
+#endif
 
 EXPORT_SPEC int UpnpFinish()
 {
@@ -783,10 +786,17 @@ EXPORT_SPEC int UpnpFinish()
 #if EXCLUDE_WEB_SERVER == 0
     web_server_destroy();
 #endif
+
+    
+#if 0
+    // Don't try to delete the thread pools, this does not work at the moment. See comments in
+    // initThreadPools and ThreadPool.cpp ~ThreadPool()
     for (const auto& [t, d] : o_threadpools) {
         t->shutdown();
         PrintThreadPoolStats(t, __FILE__, __LINE__, d);
     }
+#endif
+    
     /* remove all virtual dirs */
     UpnpRemoveAllVirtualDirs();
     UpnpSdkInit = 0;
