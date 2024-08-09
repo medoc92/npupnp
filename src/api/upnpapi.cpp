@@ -1492,6 +1492,7 @@ static int searchAsyncUniMulti(
     if (checkLockHandle(HND_CLIENT, hnd, &SInfo, true) == HND_INVALID) {
         return UPNP_E_INVALID_HANDLE;
     }
+    HandleUnlock();
     if (mx == 0) {
         // unicast. Need address
         if (nullptr == shost || shost[0] == 0) {
@@ -1504,7 +1505,6 @@ static int searchAsyncUniMulti(
         }
     }
 
-    HandleUnlock();
     return SearchByTarget(mx, target, shost, port, cookie);
 }
 
