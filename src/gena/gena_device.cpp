@@ -3,7 +3,7 @@
  * Copyright (c) 2000-2003 Intel Corporation
  * All rights reserved.
  * Copyright (c) 2012 France Telecom All rights reserved.
- * Copyright (c) 2020 J.F. Dockes <jf@dockes.org>
+ * Copyright (c) 2020-2024 J.F. Dockes <jf@dockes.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -58,21 +58,16 @@ static constexpr auto XML_PROPERTYSET_HEADER =
  */
 int genaUnregisterDevice(UpnpDevice_Handle device_handle)
 {
-    int ret = 0;
     struct Handle_Info *handle_info;
 
-    HandleLock();
+    HANDLELOCK();
     if (GetHandleInfo(device_handle, &handle_info) != HND_DEVICE) {
         UpnpPrintf(UPNP_CRITICAL, GENA, __FILE__, __LINE__,
             "genaUnregisterDevice: BAD Handle: %d\n", device_handle);
-        ret = UPNP_E_INVALID_HANDLE;
-    } else {
-        clearServiceTable(handle_info->serviceTable);
-        ret = UPNP_E_SUCCESS;
+        return UPNP_E_INVALID_HANDLE;
     }
-    HandleUnlock();
-
-    return ret;
+    clearServiceTable(handle_info->serviceTable);
+    return UPNP_E_SUCCESS;
 }
 
 /*!
@@ -237,41 +232,32 @@ void GenaNotifyJobWorker::work()
     int return_code;
     struct Handle_Info *handle_info;
 
-    /* This should be a HandleLock and not a HandleReadLock otherwise if there
-     * is a lot of notifications, then multiple threads will acquire a read
-     * lock and the thread which sends the notification will be blocked forever
-     * on the HandleLock at the end of this function. */
-    /*HandleReadLock(); */
-    HandleLock();
-    /* validate context */
+    {
+        HANDLELOCK();
+        /* validate context */
+        if (GetHandleInfo(m_input->device_handle, &handle_info) != HND_DEVICE) {
+            return;
+        }
 
-    if (GetHandleInfo(m_input->device_handle, &handle_info) != HND_DEVICE) {
-        HandleUnlock();
-        return;
+        if (!(service = FindServiceId(handle_info->serviceTable, m_input->servId, m_input->UDN)) ||
+            !service->active ||
+            !(sub = GetSubscriptionSID(m_input->sid, service)) ||
+            copy_subscription(sub, &sub_copy) != UPNP_E_SUCCESS) {
+            return;
+        }
     }
-
-    if (!(service = FindServiceId(handle_info->serviceTable, m_input->servId, m_input->UDN)) ||
-        !service->active ||
-        !(sub = GetSubscriptionSID(m_input->sid, service)) ||
-        copy_subscription(sub, &sub_copy) != UPNP_E_SUCCESS) {
-        HandleUnlock();
-        return;
-    }
-
-    HandleUnlock();
 
     /* send the notify */
     return_code = genaNotify(m_input->propertySet, &sub_copy);
-    HandleLock();
+
+    HANDLELOCK();
     if (GetHandleInfo(m_input->device_handle, &handle_info) != HND_DEVICE) {
-        HandleUnlock();
         return;
     }
     /* validate context */
     if (!(service = FindServiceId(handle_info->serviceTable, m_input->servId, m_input->UDN)) ||
         !service->active ||
         !(sub = GetSubscriptionSID(m_input->sid, service))) {
-        HandleUnlock();
         return;
     }
     sub->ToSendEventKey++;
@@ -297,8 +283,6 @@ void GenaNotifyJobWorker::work()
     // managed by a ThreadPool Job (potentially creating a mem leak).
     if (return_code == GENA_E_NOTIFY_UNACCEPTED_REMOVE_SUB)
         RemoveSubscriptionSID(m_input->sid, service);
-
-    HandleUnlock();
 }
 
 
@@ -319,7 +303,7 @@ int genaInitNotifyXML(
     UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
                "genaInitNotifyXML: props: %s\n", propertySet.c_str());
 
-    HandleLock();
+    HANDLELOCK();
 
     if (GetHandleInfo(device_handle, &handle_info) != HND_DEVICE) {
         line = __LINE__;
@@ -359,7 +343,6 @@ int genaInitNotifyXML(
     }
 
 ExitFunction:
-    HandleUnlock();
     UpnpPrintf(UPNP_ALL, GENA, __FILE__, line, "genaInitNotifyCommon: ret %d\n", ret);
     return ret;
 }
@@ -439,7 +422,7 @@ int genaNotifyAllXML(
     UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
                "genaNotifyAllXML: props: %s\n", propertySet.c_str());
 
-    HandleLock();
+    HANDLELOCK();
 
     if (GetHandleInfo(device_handle, &handle_info) != HND_DEVICE) {
         line = __LINE__;
@@ -478,7 +461,6 @@ int genaNotifyAllXML(
     }
 
 ExitFunction:
-    HandleUnlock();
     UpnpPrintf(UPNP_ALL, GENA, __FILE__, line, "genaNotifyAllCommon: ret = %d\n", ret);
     return ret;
 }
@@ -697,98 +679,92 @@ void gena_process_subscription_request(MHDTransaction *mhdt)
     UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
                "SubscriptionRequest for event URL path: %s\n",mhdt->url.c_str());
 
-    HandleLock();
-
-    if (GetDeviceHandleInfoForPath(
-            mhdt->url, &device_handle, &handle_info, &service) != HND_DEVICE) {
-        http_SendStatusResponse(mhdt, HTTP_INTERNAL_SERVER_ERROR);
-        HandleUnlock();
-        return;
-    }
-
-    if (service == nullptr || !service->active) {
-        http_SendStatusResponse(mhdt, HTTP_NOT_FOUND);
-        HandleUnlock();
-        return;
-    }
-
-    UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
-               "Subscription Request: current subscriptions count %d max %d\n",
-               service->TotalSubscriptions, handle_info->MaxSubscriptions);
-
-    /* too many subscriptions */
-    if (handle_info->MaxSubscriptions != -1 &&
-        service->TotalSubscriptions >= handle_info->MaxSubscriptions) {
-        http_SendStatusResponse(mhdt, HTTP_INTERNAL_SERVER_ERROR);
-        HandleUnlock();
-        return;
-    }
-
-    std::vector<std::string> tmpUrls;
-    /* check for valid callbacks */
+    Upnp_Subscription_Request request_struct;
     {
-        auto itcb = mhdt->headers.find("callback");
-        if (itcb == mhdt->headers.end()) {
-            http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
-            HandleUnlock();
+        HANDLELOCK();
+
+        if (GetDeviceHandleInfoForPath(
+                mhdt->url, &device_handle, &handle_info, &service) != HND_DEVICE) {
+            http_SendStatusResponse(mhdt, HTTP_INTERNAL_SERVER_ERROR);
             return;
         }
-        return_code = create_url_list(mhdt, itcb->second, &tmpUrls);
-        if (return_code != UPNP_E_SUCCESS) {
-            http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
-            HandleUnlock();
+
+        if (service == nullptr || !service->active) {
+            http_SendStatusResponse(mhdt, HTTP_NOT_FOUND);
             return;
         }
-    }
 
-    /* generate new subscription */
-    auto sub = service->subscriptionList.emplace(service->subscriptionList.end());
-    if (sub == service->subscriptionList.end()) {
-        http_SendStatusResponse(mhdt, HTTP_INTERNAL_SERVER_ERROR);
-        HandleUnlock();
-        return;
-    }
+        UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
+                   "Subscription Request: current subscriptions count %d max %d\n",
+                   service->TotalSubscriptions, handle_info->MaxSubscriptions);
 
-    sub->DeliveryURLs = tmpUrls;
-    /* set the timeout */
-    if (!timeout_header_value(mhdt->headers, &time_out)) {
-        time_out = GENA_DEFAULT_TIMEOUT;
-    }
-
-    /* replace infinite timeout with max timeout, if possible */
-    if (handle_info->MaxSubscriptionTimeOut != -1) {
-        if (time_out == -1 || time_out > handle_info->MaxSubscriptionTimeOut) {
-            time_out = handle_info->MaxSubscriptionTimeOut;
+        /* too many subscriptions */
+        if (handle_info->MaxSubscriptions != -1 &&
+            service->TotalSubscriptions >= handle_info->MaxSubscriptions) {
+            http_SendStatusResponse(mhdt, HTTP_INTERNAL_SERVER_ERROR);
+            return;
         }
+
+        std::vector<std::string> tmpUrls;
+        /* check for valid callbacks */
+        {
+            auto itcb = mhdt->headers.find("callback");
+            if (itcb == mhdt->headers.end()) {
+                http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
+                return;
+            }
+            return_code = create_url_list(mhdt, itcb->second, &tmpUrls);
+            if (return_code != UPNP_E_SUCCESS) {
+                http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
+                return;
+            }
+        }
+
+        /* generate new subscription */
+        auto sub = service->subscriptionList.emplace(service->subscriptionList.end());
+        if (sub == service->subscriptionList.end()) {
+            http_SendStatusResponse(mhdt, HTTP_INTERNAL_SERVER_ERROR);
+            return;
+        }
+
+        sub->DeliveryURLs = tmpUrls;
+        /* set the timeout */
+        if (!timeout_header_value(mhdt->headers, &time_out)) {
+            time_out = GENA_DEFAULT_TIMEOUT;
+        }
+
+        /* replace infinite timeout with max timeout, if possible */
+        if (handle_info->MaxSubscriptionTimeOut != -1) {
+            if (time_out == -1 || time_out > handle_info->MaxSubscriptionTimeOut) {
+                time_out = handle_info->MaxSubscriptionTimeOut;
+            }
+        }
+        if (time_out >= 0) {
+            sub->expireTime = time(nullptr) + time_out;
+        } else {
+            /* infinite time */
+            sub->expireTime = 0;
+        }
+
+        /* generate SID */
+        sub->sid = std::string("uuid:") + gena_sid_uuid();
+
+        /* respond OK */
+        if (respond_ok(mhdt, time_out, &(*sub), handle_info->productversion) != UPNP_E_SUCCESS) {
+            service->subscriptionList.pop_back();
+            return;
+        }
+        service->TotalSubscriptions++;
+        UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__, "Subscription Request granted\n");
+
+        /* finally generate callback for init table dump */
+        request_struct = Upnp_Subscription_Request{
+            service->serviceId.c_str(), service->UDN.c_str(), sub->sid};
+
+        /* copy callback */
+        callback_fun = handle_info->Callback;
+        cookie = handle_info->Cookie;
     }
-    if (time_out >= 0) {
-        sub->expireTime = time(nullptr) + time_out;
-    } else {
-        /* infinite time */
-        sub->expireTime = 0;
-    }
-
-    /* generate SID */
-    sub->sid = std::string("uuid:") + gena_sid_uuid();
-
-    /* respond OK */
-    if (respond_ok(mhdt, time_out, &(*sub), handle_info->productversion) != UPNP_E_SUCCESS) {
-        service->subscriptionList.pop_back();
-        HandleUnlock();
-        return;
-    }
-    service->TotalSubscriptions++;
-    UpnpPrintf(UPNP_DEBUG, GENA, __FILE__, __LINE__,
-               "Subscription Request granted\n");
-
-    /* finally generate callback for init table dump */
-    Upnp_Subscription_Request request_struct{service->serviceId.c_str(), service->UDN.c_str(), sub->sid};
-
-    /* copy callback */
-    callback_fun = handle_info->Callback;
-    cookie = handle_info->Cookie;
-
-    HandleUnlock();
 
     /* make call back with request struct */
     /* in the future should find a way of mainting that the handle */
@@ -820,12 +796,11 @@ void gena_process_subscription_renewal_request(MHDTransaction *mhdt)
 
     Upnp_SID sid = itsid->second;
 
-    HandleLock();
+    HANDLELOCK();
 
     if (GetDeviceHandleInfoForPath(
             mhdt->url, &device_handle, &handle_info, &service) != HND_DEVICE ) {
         http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
-        HandleUnlock();
         return;
     }
 
@@ -833,7 +808,6 @@ void gena_process_subscription_renewal_request(MHDTransaction *mhdt)
     if(service == nullptr || !service->active ||
        ((sub = GetSubscriptionSID( sid, service )) == nullptr)) {
         http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
-        HandleUnlock();
         return;
     }
 
@@ -846,7 +820,6 @@ void gena_process_subscription_renewal_request(MHDTransaction *mhdt)
        service->TotalSubscriptions > handle_info->MaxSubscriptions ) {
         http_SendStatusResponse(mhdt, HTTP_INTERNAL_SERVER_ERROR);
         RemoveSubscriptionSID(sub->sid, service);
-        HandleUnlock();
         return;
     }
     /* set the timeout */
@@ -868,12 +841,9 @@ void gena_process_subscription_renewal_request(MHDTransaction *mhdt)
         sub->expireTime = time(nullptr) + time_out;
     }
 
-    if (respond_ok(mhdt, time_out, sub, handle_info->productversion)
-        != UPNP_E_SUCCESS) {
+    if (respond_ok(mhdt, time_out, sub, handle_info->productversion) != UPNP_E_SUCCESS) {
         RemoveSubscriptionSID(sub->sid, service);
     }
-
-    HandleUnlock();
 }
 
 
@@ -900,26 +870,22 @@ void gena_process_unsubscribe_request(MHDTransaction *mhdt)
     }
     Upnp_SID sid = itsid->second;
 
-    HandleLock();
+    HANDLELOCK();
 
     if (GetDeviceHandleInfoForPath(
             mhdt->url, &device_handle, &handle_info, &service) != HND_DEVICE) {
         http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
-        HandleUnlock();
         return;
     }
 
     /* validate service */
     if (service == nullptr || !service->active || GetSubscriptionSID(sid, service) == nullptr) {
         http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
-        HandleUnlock();
         return;
     }
 
     RemoveSubscriptionSID(sid, service);
     http_SendStatusResponse(mhdt, HTTP_OK);
-
-    HandleUnlock();
 }
 
 #endif /* INCLUDE_DEVICE_APIS */

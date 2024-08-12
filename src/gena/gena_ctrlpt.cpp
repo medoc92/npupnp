@@ -136,17 +136,18 @@ void AutoRenewSubscriptionJobWorker::work()
 #endif
 
     if (send_callback) {
-        HandleReadLock();
+        Upnp_FunPtr callback_fun;
         struct Handle_Info *handle_info;
-        if (GetHandleInfo(handle, &handle_info) != HND_CLIENT) {
-            HandleUnlock();
-            return;
+        void *cookie;
+        {
+            HANDLELOCK();
+            if (GetHandleInfo(handle, &handle_info) != HND_CLIENT) {
+                return;
+            }
+            callback_fun = handle_info->Callback;
+            cookie = handle_info->Cookie;
         }
-
-        /* make callback */
-        Upnp_FunPtr callback_fun = handle_info->Callback;
-        HandleUnlock();
-        callback_fun(eventType, &sub, handle_info->Cookie);
+        callback_fun(eventType, &sub, cookie);
     }
 }
 
@@ -406,67 +407,64 @@ static int gena_subscribe(
 
 int genaUnregisterClient(UpnpClient_Handle client_handle)
 {
-    int return_code = UPNP_E_SUCCESS;
-    struct Handle_Info *handle_info = nullptr;
-
+    struct Handle_Info *handle_info;
+    int timeoutms;
+    ClientSubscription sub_copy;
+    
     while (true) {
-        HandleLock();
+        {
+            HANDLELOCK();
 
-        if (GetHandleInfo(client_handle, &handle_info) != HND_CLIENT) {
-            HandleUnlock();
-            return UPNP_E_INVALID_HANDLE;
-        }
-        if (handle_info->ClientSubList.empty()) {
-            return_code = UPNP_E_SUCCESS;
-            break;
-        }
-        ClientSubscription sub_copy = handle_info->ClientSubList.front();
-        handle_info->ClientSubList.remove_if(
-            [sub_copy] (const ClientSubscription& e) {return e.SID == sub_copy.SID;});
+            if (GetHandleInfo(client_handle, &handle_info) != HND_CLIENT) {
+                return UPNP_E_INVALID_HANDLE;
+            }
+            if (handle_info->ClientSubList.empty()) {
+                break;
+            }
+            sub_copy = handle_info->ClientSubList.front();
+            handle_info->ClientSubList.remove_if(
+                [sub_copy] (const ClientSubscription& e) {return e.SID == sub_copy.SID;});
 
-        auto timeoutms = handle_info->SubsOpsTimeoutMS;
-        HandleUnlock();
+            timeoutms = handle_info->SubsOpsTimeoutMS;
+        }
 
         gena_unsubscribe(sub_copy.eventURL, sub_copy.SID, timeoutms);
         clientCancelRenew(&sub_copy);
     }
 
-    handle_info->ClientSubList.clear();
-    HandleUnlock();
-
-    return return_code;
+    return UPNP_E_SUCCESS;
 }
 
 
 int genaUnSubscribe(UpnpClient_Handle client_handle, const std::string& in_sid)
 {
-    /* validate handle and sid */
-    HandleLock();
     struct Handle_Info *handle_info;
-    if (GetHandleInfo(client_handle, &handle_info) != HND_CLIENT) {
-        HandleUnlock();
-        return UPNP_E_INVALID_HANDLE;
+    int timeoutms;
+    ClientSubscription sub_copy;
+    {
+        /* validate handle and sid */
+        HANDLELOCK();
+        if (GetHandleInfo(client_handle, &handle_info) != HND_CLIENT) {
+            return UPNP_E_INVALID_HANDLE;
+        }
+        auto sub = std::find_if(handle_info->ClientSubList.begin(), handle_info->ClientSubList.end(),
+                                [in_sid](const ClientSubscription& e){return e.SID == in_sid;});
+        if (handle_info->ClientSubList.end() == sub) {
+            return UPNP_E_INVALID_SID;
+        }
+        timeoutms = handle_info->SubsOpsTimeoutMS;
+        sub_copy = *sub;
     }
-    auto sub = std::find_if(handle_info->ClientSubList.begin(), handle_info->ClientSubList.end(),
-                            [in_sid](const ClientSubscription& e){return e.SID == in_sid;});
-    if (handle_info->ClientSubList.end() == sub) {
-        HandleUnlock();
-        return UPNP_E_INVALID_SID;
-    }
-    auto timeoutms = handle_info->SubsOpsTimeoutMS;
-    auto sub_copy = *sub;
-    HandleUnlock();
+
     gena_unsubscribe(sub_copy.eventURL, sub_copy.SID, timeoutms);
     clientCancelRenew(&sub_copy);
 
-    HandleLock();
+    HANDLELOCK();
     if (GetHandleInfo(client_handle, &handle_info) != HND_CLIENT) {
-        HandleUnlock();
         return UPNP_E_INVALID_HANDLE;
     }
     handle_info->ClientSubList.remove_if(
         [in_sid] (const ClientSubscription& e) {return e.SID == in_sid;});
-    HandleUnlock();
 
     return UPNP_E_SUCCESS;
 }
@@ -486,44 +484,43 @@ int genaSubscribe(
     
     out_sid->clear();
 
-    HandleReadLock();
-    /* validate handle */
-    if (GetHandleInfo(client_handle, &handle_info) != HND_CLIENT) {
-        return_code = UPNP_E_INVALID_HANDLE;
-        SubscribeLock();
-        goto error_handler;
+    {
+        HANDLELOCK();
+        /* validate handle */
+        if (GetHandleInfo(client_handle, &handle_info) != HND_CLIENT) {
+            return UPNP_E_INVALID_HANDLE;
+        }
+        timeoutms = handle_info->SubsOpsTimeoutMS;
     }
-    timeoutms = handle_info->SubsOpsTimeoutMS;
-    HandleUnlock();
 
     /* subscribe */
     SubscribeLock();
     return_code = gena_subscribe(PublisherURL, TimeOut, std::string(), &SID, timeoutms);
-    HandleLock();
     if (return_code != UPNP_E_SUCCESS) {
         UpnpPrintf(UPNP_ERROR, GENA, __FILE__, __LINE__,
                    "genaSubscribe: subscribe error, return %d\n", return_code);
         goto error_handler;
     }
 
-    if(GetHandleInfo(client_handle, &handle_info) != HND_CLIENT) {
-        return_code = UPNP_E_INVALID_HANDLE;
-        goto error_handler;
+    {
+        HANDLELOCK();
+        if(GetHandleInfo(client_handle, &handle_info) != HND_CLIENT) {
+            return_code = UPNP_E_INVALID_HANDLE;
+            goto error_handler;
+        }
+
+        /* create event url */
+        EventURL = PublisherURL;
+        out_sid->assign(SID);
+        handle_info->ClientSubList.emplace_front(-1, std::move(SID), std::move(EventURL));
+
+        /* schedule expiration event */
+        return_code = ScheduleGenaAutoRenew(client_handle, *TimeOut,
+                                            &handle_info->ClientSubList.front());
     }
 
-    /* create event url */
-    EventURL = PublisherURL;
-    out_sid->assign(SID);
-    handle_info->ClientSubList.emplace_front(-1, std::move(SID), std::move(EventURL));
-
-    /* schedule expiration event */
-    return_code = ScheduleGenaAutoRenew(client_handle, *TimeOut,
-                                        &handle_info->ClientSubList.front());
-
 error_handler:
-    HandleUnlock();
     SubscribeUnlock();
-
     return return_code;
 }
 
@@ -533,38 +530,37 @@ int genaRenewSubscription(
     const std::string& in_sid,
     int *TimeOut)
 {
-    HandleLock();
-
-    /* validate handle and sid */
     struct Handle_Info *handle_info;
-    if (GetHandleInfo(client_handle, &handle_info) != HND_CLIENT) {
-        HandleUnlock();
-        return UPNP_E_INVALID_HANDLE;
+    int timeoutms;
+    ClientSubscription sub_copy;
+    {
+        HANDLELOCK();
+
+        /* validate handle and sid */
+        if (GetHandleInfo(client_handle, &handle_info) != HND_CLIENT) {
+            return UPNP_E_INVALID_HANDLE;
+        }
+
+        auto sub = std::find_if(handle_info->ClientSubList.begin(), handle_info->ClientSubList.end(),
+                                [in_sid](const ClientSubscription& e){return e.SID == in_sid;});
+        if (handle_info->ClientSubList.end() == sub) {
+            return UPNP_E_INVALID_SID;
+        }
+        timeoutms = handle_info->SubsOpsTimeoutMS;
+
+        /* remove old events */
+        gTimerThread->remove(sub->renewEventId);
+
+        sub->renewEventId = -1;
+        sub_copy = *sub;
     }
-
-    auto sub = std::find_if(handle_info->ClientSubList.begin(), handle_info->ClientSubList.end(),
-                            [in_sid](const ClientSubscription& e){return e.SID == in_sid;});
-    if (handle_info->ClientSubList.end() == sub) {
-        HandleUnlock();
-        return UPNP_E_INVALID_SID;
-    }
-    auto timeoutms = handle_info->SubsOpsTimeoutMS;
-
-    /* remove old events */
-    gTimerThread->remove(sub->renewEventId);
-
-    sub->renewEventId = -1;
-    ClientSubscription sub_copy = *sub;
-
-    HandleUnlock();
 
     std::string SID;
     int return_code = gena_subscribe(sub_copy.eventURL, TimeOut, sub_copy.SID, &SID, timeoutms);
 
-    HandleLock();
+    HANDLELOCK();
 
     if (GetHandleInfo(client_handle, &handle_info) != HND_CLIENT) {
-        HandleUnlock();
         return UPNP_E_INVALID_HANDLE;
     }
 
@@ -573,16 +569,14 @@ int genaRenewSubscription(
         handle_info->ClientSubList.remove_if(
             [in_sid] (const ClientSubscription& e) {return e.SID == in_sid;});
         clientCancelRenew(&sub_copy);
-        HandleUnlock();
         return return_code;
     }
 
     /* get subscription */
-    sub = std::find_if(handle_info->ClientSubList.begin(), handle_info->ClientSubList.end(),
-                       [in_sid](const ClientSubscription& e){return e.SID == in_sid;});
+    auto sub = std::find_if(handle_info->ClientSubList.begin(), handle_info->ClientSubList.end(),
+                            [in_sid](const ClientSubscription& e){return e.SID == in_sid;});
     if (handle_info->ClientSubList.end() == sub) {
         clientCancelRenew(&sub_copy);
-        HandleUnlock();
         return UPNP_E_INVALID_SID;
     }
 
@@ -597,7 +591,6 @@ int genaRenewSubscription(
     }
     clientCancelRenew(&sub_copy);
 
-    HandleUnlock();
     return return_code;
 }
 
@@ -695,14 +688,14 @@ void gena_process_notification_event(MHDTransaction *mhdt)
                    mhdt->postdata.c_str());
         return;
     }
-    HandleLock();
+    globalHndLock.lock();
 
     /* get client info */
     struct Handle_Info *handle_info;
     UpnpClient_Handle client_handle;
     if (GetClientHandleInfo(&client_handle, &handle_info) != HND_CLIENT) {
         http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
-        HandleUnlock();
+        globalHndLock.unlock();
         return;
     }
 
@@ -716,19 +709,19 @@ void gena_process_notification_event(MHDTransaction *mhdt)
             /*   (if we are in the middle) */
             /* this is to avoid mistakenly rejecting the first event if we  */
             /*   receive it before the subscription response */
-            HandleUnlock();
+            globalHndLock.unlock();
 
             /* try and get Subscription Lock  */
             /*   (in case we are in the process of subscribing) */
             SubscribeLock();
 
             /* get HandleLock again */
-            HandleLock();
+            globalHndLock.lock();
 
             if (GetClientHandleInfo(&client_handle,&handle_info) != HND_CLIENT) {
                 http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
                 SubscribeUnlock();
-                HandleUnlock();
+                globalHndLock.unlock();
                 return;
             }
 
@@ -738,7 +731,7 @@ void gena_process_notification_event(MHDTransaction *mhdt)
             if (handle_info->ClientSubList.end() == subscription) {
                 http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
                 SubscribeUnlock();
-                HandleUnlock();
+                globalHndLock.unlock();
                 return;
             }
 
@@ -749,7 +742,7 @@ void gena_process_notification_event(MHDTransaction *mhdt)
                        "but event key not 0 (%d)\n", eventKey);
 
             http_SendStatusResponse(mhdt, HTTP_PRECONDITION_FAILED);
-            HandleUnlock();
+            globalHndLock.unlock();
             return;
         }
     }
@@ -767,7 +760,7 @@ void gena_process_notification_event(MHDTransaction *mhdt)
     auto callback = handle_info->Callback;
     auto cookie = handle_info->Cookie;
 
-    HandleUnlock();
+    globalHndLock.unlock();
 
     /* make callback with event struct */
     /* In future, should find a way of mainting */

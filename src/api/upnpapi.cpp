@@ -83,7 +83,7 @@ struct VirtualDirCallbacks virtualDirCallback;
 // Mutex to synchronize handles (root device or control point
 // handle). This used to be an rwlock but this was probably not worth
 // the trouble given the small expected contention level
-std::mutex GlobalHndRWLock;
+std::mutex globalHndLock;
 
 /*! Initialization mutex. */
 static std::mutex gSDKInitMutex;
@@ -479,9 +479,10 @@ static int UpnpInitPreamble()
 #endif /* UPNP_HAVE_OPTSSDP */
 
     /* Initializes the handle list. */
-    HandleLock();
-    HandleTable = {};
-    HandleUnlock();
+    {
+        HANDLELOCK();
+        HandleTable = {};
+    }
 
     /* Initialize SDK global thread pools. */
     retVal = initThreadPools();
@@ -938,17 +939,27 @@ static int FreeHandle(int handleindex)
     return UPNP_E_INVALID_HANDLE;
 }
 
-static int checkLockHandle(Upnp_Handle_Type tp, int Hnd,
-                           struct Handle_Info **HndInfo, bool readlock=false)
+Upnp_Handle_Type GetHandleInfo(UpnpClient_Handle Hnd, struct Handle_Info **HndInfo)
 {
-    if (readlock) {
-        HandleReadLock();
-    } else {
-        HandleLock();
+    if (Hnd < 1 || Hnd >= NUM_HANDLE) {
+        UpnpPrintf(UPNP_ERROR, API, __FILE__, __LINE__, "GetHandleInfo: out of range\n");
+        return HND_INVALID;
     }
+    if (HandleTable[Hnd] == nullptr) {
+        // Don't print anything, we sometimes walk the table
+        //UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "GetHandleInfo: HTable[%d] is NULL\n", Hnd);
+        return HND_INVALID;
+    }
+
+    if (HndInfo) 
+        *HndInfo = HandleTable[Hnd];
+    return HandleTable[Hnd]->HType;
+}
+
+static int checkHandle(Upnp_Handle_Type tp, int Hnd, struct Handle_Info **HndInfo = nullptr)
+{
     Upnp_Handle_Type actualtp = GetHandleInfo(Hnd, HndInfo);
     if (actualtp == HND_INVALID || (tp != HND_INVALID && tp != actualtp)) {
-        HandleUnlock();
         return HND_INVALID;
     }
     return actualtp;
@@ -968,45 +979,40 @@ static int registerRootDeviceAllForms(
     const char *LowerDescUrl)
 {
     struct Handle_Info *HInfo = nullptr;
-    int retVal = 0;
 #if EXCLUDE_GENA == 0
     int hasServiceTable = 0;
 #endif /* EXCLUDE_GENA */
     auto description = const_cast<char *>(description_const);
 
-    HandleLock();
+    HANDLELOCK();
 
     UpnpPrintf(UPNP_INFO,API,__FILE__,__LINE__, "registerRootDeviceAllF\n");
 
     if (UpnpSdkInit != 1) {
-        retVal = UPNP_E_FINISH;
-        goto exit_function;
+        return UPNP_E_FINISH;
     }
 
     if (Hnd == nullptr || Fun == nullptr ||
         description == nullptr ||*description == 0) {
-        retVal = UPNP_E_INVALID_PARAM;
-        goto exit_function;
+        return UPNP_E_INVALID_PARAM;
     }
 
     *Hnd = GetFreeHandle();
     if (*Hnd == UPNP_E_OUTOF_HANDLE) {
-        retVal = UPNP_E_OUTOF_MEMORY;
-        goto exit_function;
+        return UPNP_E_OUTOF_MEMORY;
     }
 
     HInfo = new(std::nothrow) Handle_Info;
     if (HInfo == nullptr) {
-        retVal = UPNP_E_OUTOF_MEMORY;
-        goto exit_function;
+        return UPNP_E_OUTOF_MEMORY;
     }
     HandleTable[*Hnd] = HInfo;
 
-    retVal = GetDescDocumentAndURL(
+    int retVal = GetDescDocumentAndURL(
         descriptionType, description, AF_INET, HInfo->devdesc, HInfo->DescURL);
     if (retVal != UPNP_E_SUCCESS) {
         FreeHandle(*Hnd);
-        goto exit_function;
+        return retVal;
     }
 
     if (LowerDescUrl == nullptr)
@@ -1038,11 +1044,7 @@ static int registerRootDeviceAllForms(
     }
 #endif /* EXCLUDE_GENA */
 
-    retVal = UPNP_E_SUCCESS;
-
-exit_function:
-    HandleUnlock();
-    return retVal;
+    return UPNP_E_SUCCESS;
 }
 
 EXPORT_SPEC int UpnpRegisterRootDevice(
@@ -1068,18 +1070,19 @@ EXPORT_SPEC int UpnpRegisterRootDevice4(
 
 EXPORT_SPEC int UpnpDeviceSetProduct(UpnpDevice_Handle Hnd, const char *product, const char *version)
 {
-    struct Handle_Info *HInfo = nullptr;
     if (UpnpSdkInit != 1) {
         return UPNP_E_INVALID_HANDLE;
     }
     if (nullptr==product || 0== *product || nullptr==version || 0== *version) {
         return UPNP_E_INVALID_PARAM;
     }
-    if (checkLockHandle(HND_INVALID, Hnd, &HInfo) == HND_INVALID) {
+
+    struct Handle_Info *HInfo;
+    HANDLELOCK();
+    if (checkHandle(HND_INVALID, Hnd, &HInfo) == HND_INVALID) {
         return UPNP_E_INVALID_HANDLE;
     }
     HInfo->productversion = std::string(product) + "/" + std::string(version);
-    HandleUnlock();
     return UPNP_E_SUCCESS;
 }
 
@@ -1104,27 +1107,28 @@ EXPORT_SPEC int UpnpUnRegisterRootDeviceLowPower(UpnpDevice_Handle Hnd, int Powe
         return UPNP_E_INVALID_HANDLE;
 #endif
 
-    if (checkLockHandle(HND_INVALID, Hnd, &HInfo) == HND_INVALID) {
-        return UPNP_E_INVALID_HANDLE;
+    {
+        HANDLELOCK();
+        if (checkHandle(HND_INVALID, Hnd, &HInfo) == HND_INVALID) {
+            return UPNP_E_INVALID_HANDLE;
+        }
+        HInfo->PowerState = PowerState;
+        if (SleepPeriod < 0)
+            SleepPeriod = -1;
+        HInfo->SleepPeriod = SleepPeriod;
+        HInfo->RegistrationState = RegistrationState;
     }
-    HInfo->PowerState = PowerState;
-    if (SleepPeriod < 0)
-        SleepPeriod = -1;
-    HInfo->SleepPeriod = SleepPeriod;
-    HInfo->RegistrationState = RegistrationState;
-    HandleUnlock();
 
 #if EXCLUDE_SSDP == 0
     SsdpEntity sd;
     retVal = AdvertiseAndReply(Hnd, MSGTYPE_SHUTDOWN,HInfo->MaxAge, nullptr, sd);
 #endif
 
-    if (checkLockHandle(HND_INVALID, Hnd, &HInfo) == HND_INVALID) {
+    HANDLELOCK();
+    if (checkHandle(HND_INVALID, Hnd, &HInfo) == HND_INVALID) {
         return UPNP_E_INVALID_HANDLE;
     }
     FreeHandle(Hnd);
-    HandleUnlock();
-
     return retVal;
 }
 #endif /* INCLUDE_DEVICE_APIS */
@@ -1140,18 +1144,15 @@ int UpnpRegisterClient(Upnp_FunPtr Fun, const void *Cookie, UpnpClient_Handle *H
     if (Fun == nullptr || Hnd == nullptr)
         return UPNP_E_INVALID_PARAM;
 
-    HandleLock();
+    HANDLELOCK();
     if (UpnpSdkClientRegistered) {
-        HandleUnlock();
         return UPNP_E_ALREADY_REGISTERED;
     }
     if ((*Hnd = GetFreeHandle()) == UPNP_E_OUTOF_HANDLE) {
-        HandleUnlock();
         return UPNP_E_OUTOF_MEMORY;
     }
     HInfo = new(std::nothrow) Handle_Info;
     if (HInfo == nullptr) {
-        HandleUnlock();
         return UPNP_E_OUTOF_MEMORY;
     }
     HInfo->HType = HND_CLIENT;
@@ -1164,7 +1165,6 @@ int UpnpRegisterClient(Upnp_FunPtr Fun, const void *Cookie, UpnpClient_Handle *H
 #endif
     HandleTable[*Hnd] = HInfo;
     UpnpSdkClientRegistered = 1;
-    HandleUnlock();
 
     return UPNP_E_SUCCESS;
 }
@@ -1185,18 +1185,20 @@ int UpnpUnRegisterClient(UpnpClient_Handle Hnd)
     if (UpnpSdkInit != 1)
         return UPNP_E_FINISH;
 
-    HandleLock();
-    if (!UpnpSdkClientRegistered) {
-        HandleUnlock();
-        return UPNP_E_INVALID_HANDLE;
+    {
+        HANDLELOCK();
+        if (!UpnpSdkClientRegistered) {
+            return UPNP_E_INVALID_HANDLE;
+        }
     }
-    HandleUnlock();
 
 #if EXCLUDE_GENA == 0
     if (genaUnregisterClient(Hnd) != UPNP_E_SUCCESS)
         return UPNP_E_INVALID_HANDLE;
 #endif
-    if (checkLockHandle(HND_INVALID, Hnd, &HInfo) == HND_INVALID) {
+
+    HANDLELOCK();
+    if (checkHandle(HND_INVALID, Hnd, &HInfo) == HND_INVALID) {
         return UPNP_E_INVALID_HANDLE;
     }
     /* clean up search list */
@@ -1204,7 +1206,6 @@ int UpnpUnRegisterClient(UpnpClient_Handle Hnd)
 
     FreeHandle(Hnd);
     UpnpSdkClientRegistered = 0;
-    HandleUnlock();
 
     return UPNP_E_SUCCESS;
 }
@@ -1433,28 +1434,31 @@ int UpnpSendAdvertisementLowPower(
         return UPNP_E_FINISH;
     }
 
-    if (checkLockHandle(HND_DEVICE, Hnd, &SInfo) == HND_INVALID) {
-        return UPNP_E_INVALID_HANDLE;
+    {
+        HANDLELOCK();
+        if (checkHandle(HND_DEVICE, Hnd, &SInfo) == HND_INVALID) {
+            return UPNP_E_INVALID_HANDLE;
+        }
+        Exp = 90;
+        if(Exp < 1)
+            Exp = DEFAULT_MAXAGE;
+        if(Exp <= AUTO_ADVERTISEMENT_TIME * 2)
+            Exp = (AUTO_ADVERTISEMENT_TIME + 1) * 2;
+        SInfo->MaxAge = Exp;
+        SInfo->PowerState = PowerState;
+        if (SleepPeriod < 0)
+            SleepPeriod = -1;
+        SInfo->SleepPeriod = SleepPeriod;
+        SInfo->RegistrationState = RegistrationState;
     }
-    Exp = 90;
-    if(Exp < 1)
-        Exp = DEFAULT_MAXAGE;
-    if(Exp <= AUTO_ADVERTISEMENT_TIME * 2)
-        Exp = (AUTO_ADVERTISEMENT_TIME + 1) * 2;
-    SInfo->MaxAge = Exp;
-    SInfo->PowerState = PowerState;
-    if (SleepPeriod < 0)
-        SleepPeriod = -1;
-    SInfo->SleepPeriod = SleepPeriod;
-    SInfo->RegistrationState = RegistrationState;
-    HandleUnlock();
+
     SsdpEntity sd;
     int retVal = AdvertiseAndReply(Hnd, MSGTYPE_ADVERTISEMENT, Exp, nullptr, sd);
-
     if(retVal != UPNP_E_SUCCESS)
         return retVal;
 
-    if (checkLockHandle(HND_DEVICE, Hnd, &SInfo) == HND_INVALID) {
+    HANDLELOCK();
+    if (checkHandle(HND_DEVICE, Hnd, &SInfo) == HND_INVALID) {
         return UPNP_E_INVALID_HANDLE;
     }
 #ifdef SSDP_PACKET_DISTRIBUTE
@@ -1465,9 +1469,7 @@ int UpnpSendAdvertisementLowPower(
     auto worker = std::make_unique<AutoAdvertiseJobWorker>(Hnd, Exp);
     retVal = gTimerThread->schedule(TimerThread::SHORT_TERM, TimerThread::REL_SEC, thetime,
                                     nullptr, std::move(worker));
-    HandleUnlock();
     return retVal;
-
 }
 #endif /* EXCLUDE_SSDP == 0 */
 #endif /* INCLUDE_DEVICE_APIS */
@@ -1488,11 +1490,13 @@ static int searchAsyncUniMulti(
         return UPNP_E_INVALID_PARAM;
     }
 
-    struct Handle_Info *SInfo = nullptr;
-    if (checkLockHandle(HND_CLIENT, hnd, &SInfo, true) == HND_INVALID) {
-        return UPNP_E_INVALID_HANDLE;
+    {
+        HANDLELOCK();
+        if (checkHandle(HND_CLIENT, hnd) == HND_INVALID) {
+            return UPNP_E_INVALID_HANDLE;
+        }
     }
-    HandleUnlock();
+
     if (mx == 0) {
         // unicast. Need address
         if (nullptr == shost || shost[0] == 0) {
@@ -1552,11 +1556,11 @@ int UpnpSetMaxSubscriptions(UpnpDevice_Handle Hnd, int MaxSubscriptions)
         return UPNP_E_INVALID_HANDLE;
     }
 
-    if (checkLockHandle(HND_DEVICE, Hnd, &SInfo) == HND_INVALID) {
+    HANDLELOCK();
+    if (checkHandle(HND_DEVICE, Hnd, &SInfo) == HND_INVALID) {
         return UPNP_E_INVALID_HANDLE;
     }
     SInfo->MaxSubscriptions = MaxSubscriptions;
-    HandleUnlock();
 
     return UPNP_E_SUCCESS;
 }
@@ -1566,8 +1570,6 @@ int UpnpSetMaxSubscriptions(UpnpDevice_Handle Hnd, int MaxSubscriptions)
 #ifdef INCLUDE_DEVICE_APIS
 int UpnpSetMaxSubscriptionTimeOut(UpnpDevice_Handle Hnd, int MaxSubscriptionTimeOut)
 {
-    struct Handle_Info *SInfo = nullptr;
-
     if (UpnpSdkInit != 1) {
         return UPNP_E_FINISH;
     }
@@ -1576,73 +1578,60 @@ int UpnpSetMaxSubscriptionTimeOut(UpnpDevice_Handle Hnd, int MaxSubscriptionTime
         return UPNP_E_INVALID_HANDLE;
     }
 
-    if (checkLockHandle(HND_DEVICE, Hnd, &SInfo) == HND_INVALID) {
+    struct Handle_Info *SInfo = nullptr;
+    HANDLELOCK();
+    if (checkHandle(HND_DEVICE, Hnd, &SInfo) == HND_INVALID) {
         return UPNP_E_INVALID_HANDLE;
     }
 
     SInfo->MaxSubscriptionTimeOut = MaxSubscriptionTimeOut;
-    HandleUnlock();
 
     return UPNP_E_SUCCESS;
-
 }
 #endif /* INCLUDE_DEVICE_APIS */
 
 #ifdef INCLUDE_CLIENT_APIS
 int UpnpSubsOpsTimeoutMs(UpnpClient_Handle Hnd, int TimeOutMS)
 {
-    int retVal;
     struct Handle_Info *SInfo = nullptr;
 
     if (UpnpSdkInit != 1) {
-        retVal = UPNP_E_FINISH;
-        goto exit_function;
+        return UPNP_E_FINISH;
     }
 
     if (TimeOutMS <= 0) {
-        retVal = UPNP_E_INVALID_PARAM;
-        goto exit_function;
+        return UPNP_E_INVALID_PARAM;
     }
 
-    if (checkLockHandle(HND_CLIENT, Hnd, &SInfo, true) == HND_INVALID) {
-        retVal = UPNP_E_INVALID_HANDLE;
-        goto exit_function;
+    HANDLELOCK();
+    if (checkHandle(HND_CLIENT, Hnd, &SInfo) == HND_INVALID) {
+        return UPNP_E_INVALID_HANDLE;
     }
     SInfo->SubsOpsTimeoutMS = TimeOutMS;
-    HandleUnlock();
 
-    retVal = UPNP_E_SUCCESS;
-
-exit_function:
-    return retVal;
+    return UPNP_E_SUCCESS;
 }
 
 int UpnpSubscribe(UpnpClient_Handle Hnd, const char *EvtUrl, int *TimeOut, Upnp_SID& SubsId)
 {
-    int retVal;
-    struct Handle_Info *SInfo = nullptr;
-
     UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "UpnpSubscribe\n");
 
     if (UpnpSdkInit != 1) {
-        retVal = UPNP_E_FINISH;
-        goto exit_function;
+        return UPNP_E_FINISH;
     }
 
     if (EvtUrl == nullptr || TimeOut == nullptr) {
-        retVal = UPNP_E_INVALID_PARAM;
-        goto exit_function;
+        return UPNP_E_INVALID_PARAM;
     }
 
-    if (checkLockHandle(HND_CLIENT, Hnd, &SInfo, true) == HND_INVALID) {
-        retVal = UPNP_E_INVALID_HANDLE;
-        goto exit_function;
+    {
+        HANDLELOCK();
+        if (checkHandle(HND_CLIENT, Hnd) == HND_INVALID) {
+            return UPNP_E_INVALID_HANDLE;
+        }
     }
-    HandleUnlock();
 
-    retVal = genaSubscribe(Hnd, EvtUrl, TimeOut, &SubsId);
-
-exit_function:
+    int retVal = genaSubscribe(Hnd, EvtUrl, TimeOut, &SubsId);
     UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "UpnpSubscribe: retVal=%d\n", retVal);
     return retVal;
 }
@@ -1652,28 +1641,21 @@ exit_function:
 #ifdef INCLUDE_CLIENT_APIS
 int UpnpUnSubscribe(UpnpClient_Handle Hnd, const Upnp_SID& SubsId)
 {
-    struct Handle_Info *SInfo = nullptr;
-    int retVal;
-    std::string SubsIdTmp;
-
     UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "UpnpUnSubscribe\n");
 
     if (UpnpSdkInit != 1) {
-        retVal = UPNP_E_FINISH;
-        goto exit_function;
+        return UPNP_E_FINISH;
     }
 
-    SubsIdTmp = SubsId;
-
-    if (checkLockHandle(HND_CLIENT, Hnd, &SInfo, true) == HND_INVALID) {
-        retVal = UPNP_E_INVALID_HANDLE;
-        goto exit_function;
+    {
+        HANDLELOCK();
+        if (checkHandle(HND_CLIENT, Hnd) == HND_INVALID) {
+            return UPNP_E_INVALID_HANDLE;
+        }
     }
-    HandleUnlock();
 
-    retVal = genaUnSubscribe(Hnd, SubsIdTmp);
-
-exit_function:
+    std::string SubsIdTmp = SubsId;
+    int retVal = genaUnSubscribe(Hnd, SubsIdTmp);
     UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "UpnpUnSubscribe, retVal=%d\n", retVal);
     return retVal;
 }
@@ -1683,34 +1665,26 @@ exit_function:
 #ifdef INCLUDE_CLIENT_APIS
 int UpnpRenewSubscription(UpnpClient_Handle Hnd, int *TimeOut, const Upnp_SID& SubsId)
 {
-    struct Handle_Info *SInfo = nullptr;
-    int retVal;
-    std::string SubsIdTmp;
-
-    UpnpPrintf(UPNP_ALL, API, __FILE__,__LINE__,"UpnpRenewSubscription\n");
+    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "UpnpRenewSubscription\n");
 
     if (UpnpSdkInit != 1) {
-        retVal = UPNP_E_FINISH;
-        goto exit_function;
+        return  UPNP_E_FINISH;
     }
 
     if (TimeOut == nullptr) {
-        retVal = UPNP_E_INVALID_PARAM;
-        goto exit_function;
+        return UPNP_E_INVALID_PARAM;
     }
-    SubsIdTmp = SubsId;
 
-    if (checkLockHandle(HND_CLIENT, Hnd, &SInfo, true) == HND_INVALID) {
-        retVal = UPNP_E_INVALID_HANDLE;
-        goto exit_function;
+    {
+        HANDLELOCK();
+        if (checkHandle(HND_CLIENT, Hnd) == HND_INVALID) {
+            return UPNP_E_INVALID_HANDLE;
+        }
     }
-    HandleUnlock();
 
-    retVal = genaRenewSubscription(Hnd, SubsIdTmp, TimeOut);
-
-exit_function:
-    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
-               "UpnpRenewSubscription, retVal=%d\n", retVal);
+    std::string SubsIdTmp = SubsId;
+    int retVal = genaRenewSubscription(Hnd, SubsIdTmp, TimeOut);
+    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "UpnpRenewSubscription, retVal=%d\n", retVal);
     return retVal;
 }
 #endif /* INCLUDE_CLIENT_APIS */
@@ -1719,9 +1693,6 @@ exit_function:
 int UpnpNotify(UpnpDevice_Handle Hnd, const char *DevID, const char *ServName,
                const char **VarName, const char **NewVal, int cVariables)
 {
-    struct Handle_Info *SInfo = nullptr;
-    int retVal;
-
     if (UpnpSdkInit != 1) {
         return UPNP_E_FINISH;
     }
@@ -1732,14 +1703,15 @@ int UpnpNotify(UpnpDevice_Handle Hnd, const char *DevID, const char *ServName,
 
     UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "UpnpNotify\n");
 
-    if (checkLockHandle(HND_DEVICE, Hnd, &SInfo, true) == HND_INVALID) {
-        return UPNP_E_INVALID_HANDLE;
+    {
+        HANDLELOCK();
+        if (checkHandle(HND_DEVICE, Hnd) == HND_INVALID) {
+            return UPNP_E_INVALID_HANDLE;
+        }
     }
 
-    HandleUnlock();
-    retVal = genaNotifyAll(Hnd, const_cast<char*>(DevID), const_cast<char*>(ServName),
-                           const_cast<char**>(VarName), const_cast<char**>(NewVal), cVariables);
-
+    int retVal = genaNotifyAll(Hnd, const_cast<char*>(DevID), const_cast<char*>(ServName),
+                               const_cast<char**>(VarName), const_cast<char**>(NewVal), cVariables);
     UpnpPrintf(UPNP_ALL,API,__FILE__,__LINE__,"UpnpNotify ret %d\n", retVal);
     return retVal;
 }
@@ -1747,9 +1719,6 @@ int UpnpNotify(UpnpDevice_Handle Hnd, const char *DevID, const char *ServName,
 int UpnpNotifyXML(UpnpDevice_Handle Hnd, const char *DevID,
                   const char *ServName, const std::string& propset)
 {
-    struct Handle_Info *SInfo = nullptr;
-    int retVal;
-
     if (UpnpSdkInit != 1) {
         return UPNP_E_FINISH;
     }
@@ -1759,13 +1728,15 @@ int UpnpNotifyXML(UpnpDevice_Handle Hnd, const char *DevID,
 
     UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "UpnpNotifyXML\n");
 
-    if (checkLockHandle(HND_DEVICE, Hnd, &SInfo, true) == HND_INVALID) {
-        return UPNP_E_INVALID_HANDLE;
+    {
+        HANDLELOCK();
+        if (checkHandle(HND_DEVICE, Hnd) == HND_INVALID) {
+            return UPNP_E_INVALID_HANDLE;
+        }
     }
-
-    HandleUnlock();
-    retVal = genaNotifyAllXML(Hnd, const_cast<char*>(DevID), const_cast<char*>(ServName), propset);
-
+    
+    int retVal = genaNotifyAllXML(Hnd, const_cast<char*>(DevID), const_cast<char*>(ServName),
+                                  propset);
     UpnpPrintf(UPNP_ALL,API,__FILE__,__LINE__, "UpnpNotifyXML ret %d\n", retVal);
     return retVal;
 }
@@ -1775,9 +1746,6 @@ int UpnpAcceptSubscription(
     const char **VarName, const char **NewVal, int cVariables,
     const Upnp_SID& SubsId)
 {
-    int ret = 0;
-    struct Handle_Info *SInfo = nullptr;
-
     UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "UpnpAcceptSubscription\n");
 
     if (UpnpSdkInit != 1) {
@@ -1787,15 +1755,16 @@ int UpnpAcceptSubscription(
         return UPNP_E_INVALID_PARAM;
     }
 
-    if (checkLockHandle(HND_DEVICE, Hnd, &SInfo, true) == HND_INVALID) {
-        return UPNP_E_INVALID_HANDLE;
+    {
+        HANDLELOCK();
+        if (checkHandle(HND_DEVICE, Hnd) == HND_INVALID) {
+            return UPNP_E_INVALID_HANDLE;
+        }
     }
-
-    HandleUnlock();
-    ret = genaInitNotifyVars(
+    
+    int ret = genaInitNotifyVars(
         Hnd, const_cast<char*>(DevID), const_cast<char*>(ServName), const_cast<char**>(VarName),
         const_cast<char**>(NewVal), cVariables, SubsId);
-
     UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "UpnpAcceptSubscription, ret = %d\n", ret);
     return ret;
 }
@@ -1803,8 +1772,6 @@ int UpnpAcceptSubscription(
 int UpnpAcceptSubscriptionXML(UpnpDevice_Handle Hnd, const char *DevID, const char *ServName,
                               const std::string& propertyset, const Upnp_SID& SubsId)
 {
-    int ret = 0;
-    struct Handle_Info *SInfo = nullptr;
 
     UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "UpnpAcceptSubscriptionXML\n");
 
@@ -1815,12 +1782,14 @@ int UpnpAcceptSubscriptionXML(UpnpDevice_Handle Hnd, const char *DevID, const ch
         return UPNP_E_INVALID_PARAM;
     }
 
-    if (checkLockHandle(HND_DEVICE, Hnd, &SInfo, true) == HND_INVALID) {
-        return UPNP_E_INVALID_HANDLE;
+    {
+        HANDLELOCK();
+        if (checkHandle(HND_DEVICE, Hnd) == HND_INVALID) {
+            return UPNP_E_INVALID_HANDLE;
+        }
     }
-
-    HandleUnlock();
-    ret = genaInitNotifyXML(
+    
+    int ret = genaInitNotifyXML(
         Hnd, const_cast<char*>(DevID), const_cast<char*>(ServName), propertyset, SubsId);
 
     UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "UpnpAcceptSubscriptionXML, ret = %d\n", ret);
@@ -1851,18 +1820,19 @@ int UpnpSendAction(
     int *errcodep,
     std::string&  errdesc)
 {
-    struct Handle_Info *SInfo = nullptr;
-
     if (UpnpSdkInit != 1) {
         return UPNP_E_FINISH;
     }
     if (actionURL.empty() || serviceType.empty() || actionName.empty()) {
         return UPNP_E_INVALID_PARAM;
     }
-    if (checkLockHandle(HND_CLIENT, Hnd, &SInfo, true) == HND_INVALID) {
-        return UPNP_E_INVALID_HANDLE;
+    {
+        HANDLELOCK();
+        if (checkHandle(HND_CLIENT, Hnd) == HND_INVALID) {
+            return UPNP_E_INVALID_HANDLE;
+        }
     }
-    HandleUnlock();
+
     return SoapSendAction(headerString, actionURL, serviceType, actionName,
                           actionParams, response, errcodep, errdesc);
 }
@@ -1978,23 +1948,6 @@ Upnp_Handle_Type GetDeviceHandleInfoForPath(
     return HND_INVALID;
 }
 
-
-Upnp_Handle_Type GetHandleInfo(UpnpClient_Handle Hnd, struct Handle_Info **HndInfo)
-{
-    if (Hnd < 1 || Hnd >= NUM_HANDLE) {
-        UpnpPrintf(UPNP_ERROR, API, __FILE__, __LINE__, "GetHandleInfo: out of range\n");
-        return HND_INVALID;
-    }
-    if (HandleTable[Hnd] == nullptr) {
-        // Don't print anything, we sometimes walk the table
-        //UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__, "GetHandleInfo: HTable[%d] is NULL\n", Hnd);
-        return HND_INVALID;
-    }
-
-    if (HndInfo) 
-        *HndInfo = HandleTable[Hnd];
-    return HandleTable[Hnd]->HType;
-}
 
 int PrintHandleInfo(UpnpClient_Handle Hnd)
 {

@@ -38,10 +38,12 @@
 #include "upnp.h"
 
 struct ClientSubscription {
-    int renewEventId;
+    int renewEventId{0};
     std::string SID;
     std::string eventURL;
-    ClientSubscription(int id, std::string sid, std::string eURL) : renewEventId(id), SID(std::move(sid)), eventURL(std::move(eURL)) {}
+    ClientSubscription() {};
+    ClientSubscription(int id, std::string sid, std::string eURL)
+        : renewEventId(id), SID(std::move(sid)), eventURL(std::move(eURL)) {}
     ~ClientSubscription() = default;
     ClientSubscription(const ClientSubscription& other) = default;
     ClientSubscription& operator=(const ClientSubscription& other) {

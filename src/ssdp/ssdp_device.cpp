@@ -118,18 +118,19 @@ void ssdp_handle_device_request(const SSDPPacketParser& parser, struct sockaddr_
     // random delay based on the MX header of the search packet.
     start = 0;
     for (;;) {
-        HandleLock();
-        /* device info. */
-        switch (GetDeviceHandleInfo(start, &handle, &dev_info)) {
-        case HND_DEVICE:
-            break;
-        default:
-            HandleUnlock();
-            /* no info found. */
-            return;
+        int maxAge;
+        {
+            HANDLELOCK();
+            /* device info. */
+            switch (GetDeviceHandleInfo(start, &handle, &dev_info)) {
+            case HND_DEVICE:
+                break;
+            default:
+                /* no info found. */
+                return;
+            }
+            maxAge = dev_info->MaxAge;
         }
-        int maxAge = dev_info->MaxAge;
-        HandleUnlock();
 
         UpnpPrintf(UPNP_DEBUG, API, __FILE__, __LINE__, "MAX-AGE        =  %d\n", maxAge);
         UpnpPrintf(UPNP_DEBUG, API, __FILE__, __LINE__, "MX       =  %d\n", mx);
@@ -614,30 +615,43 @@ static int AdvertiseAndReplyOneDest(
 {
     int retVal = UPNP_E_SUCCESS;
     int NumCopy = 0;
-    std::vector<const UPnPDeviceDesc*> alldevices;
+    std::vector<UPnPDeviceDesc> alldevices;
     bool isNotify = (tp == MSGTYPE_ADVERTISEMENT || tp == MSGTYPE_SHUTDOWN);
-
-    /* Use a read lock */
-    HandleReadLock();
-    struct Handle_Info *SInfo = nullptr;
-    if (GetHandleInfo(Hnd, &SInfo) != HND_DEVICE) {
-        HandleUnlock();
-        return UPNP_E_INVALID_HANDLE;
+    struct Handle_Info *SInfoPtr;
+    struct Handle_Info SInfo;
+    std::string location, lowerloc;
+    
+    {
+        // We make copies of everything with the handle table lock held, so as not to hold it while
+        // sending the advertisements. Not sure that this is actually useful.
+        HANDLELOCK();
+        if (GetHandleInfo(Hnd, &SInfoPtr) != HND_DEVICE) {
+            return UPNP_E_INVALID_HANDLE;
+        }
+        SInfo.MaxAge = SInfoPtr->MaxAge;
+        SInfo.PowerState = SInfoPtr->PowerState;
+        SInfo.SleepPeriod = SInfoPtr->SleepPeriod;
+        SInfo.RegistrationState = SInfoPtr->RegistrationState;
+        SInfo.productversion = SInfoPtr->productversion;
+        memcpy(SInfo.DescURL, SInfoPtr->DescURL, LINE_SIZE);
+        memcpy(SInfo.LowerDescURL, SInfoPtr->LowerDescURL, LINE_SIZE);
+        // Store pointers to the root and embedded devices in a single vector
+        // for later convenience of mostly identical processing.
+        alldevices.push_back(SInfoPtr->devdesc);
+        for (const auto& dev : SInfoPtr->devdesc.embedded) {
+            alldevices.push_back(dev);
+        }
+        location = SInfoPtr->DescURL;
+        replaceLochost(location, lochost);
+        lowerloc = SInfoPtr->LowerDescURL;
+        replaceLochost(lowerloc, lochost);
     }
 
-    int defaultExp = SInfo->MaxAge;
-    SSDPCommonData sscd{sock, DestAddr, SSDPPwrState{SInfo->PowerState, SInfo->SleepPeriod, SInfo->RegistrationState}, SInfo->productversion};
-    std::string location{SInfo->DescURL};
-    replaceLochost(location, lochost);
-    std::string lowerloc{SInfo->LowerDescURL};
-    replaceLochost(lowerloc, lochost);
+    int defaultExp = SInfo.MaxAge;
+    SSDPCommonData sscd{sock, DestAddr,
+                        SSDPPwrState{SInfo.PowerState, SInfo.SleepPeriod,
+                                     SInfo.RegistrationState}, SInfo.productversion};
 
-    // Store pointers to the root and embedded devices in a single vector
-    // for later convenience of mostly identical processing.
-    alldevices.push_back(&SInfo->devdesc);
-    for (const auto& dev : SInfo->devdesc.embedded) {
-        alldevices.push_back(&dev);
-    }
 
     /* send advertisements/replies */
     while (NumCopy == 0 || (isNotify && NumCopy < NUM_SSDP_COPY)) {
@@ -647,8 +661,8 @@ static int AdvertiseAndReplyOneDest(
 
         for (auto& devp : alldevices) {
             bool isroot = &devp == &(*alldevices.begin());
-            const char *devType = devp->deviceType.c_str();
-            const char *UDNstr = devp->UDN.c_str();
+            const char *devType = devp.deviceType.c_str();
+            const char *UDNstr = devp.UDN.c_str();
             if (isNotify) {
                 DeviceAdvertisementOrShutdown(sscd, tp, devType,  isroot, UDNstr, location, Exp);
             } else {
@@ -715,7 +729,7 @@ static int AdvertiseAndReplyOneDest(
              * is directly traversed as a child of its parent device. This
              * ensures that the service's alive message uses the UDN of
              * the parent device. */
-            for (const auto& service : devp->services) {
+            for (const auto& service : devp.services) {
                 const char *servType = service.serviceType.c_str();
                 UpnpPrintf(UPNP_DEBUG, SSDP, __FILE__, __LINE__, "ServiceType = %s\n", servType);
                 if (isNotify) {
@@ -766,7 +780,6 @@ static int AdvertiseAndReplyOneDest(
     }
 
     UpnpPrintf(UPNP_ALL, SSDP, __FILE__, __LINE__, "AdvertiseAndReply1 exit\n");
-    HandleUnlock();
     return retVal;
 }
 

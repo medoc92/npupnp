@@ -52,9 +52,6 @@
 #include "upnp.h"
 #include "upnpdescription.h"
 
-#define MAX_INTERFACES 256
-
-#define DEV_LIMIT 200
 
 #define DEFAULT_MX 5
 
@@ -119,7 +116,6 @@ struct Handle_Info
     Handle_Info& operator=(const Handle_Info& rhs) = delete;
 };
 
-extern std::mutex GlobalHndRWLock;
 
 /*!
  * \brief Get handle information.
@@ -133,29 +129,10 @@ Upnp_Handle_Type GetHandleInfo(
     struct Handle_Info **HndInfo);
 
 
-#define HandleLock() HandleWriteLock()
+// Global lock for the handle table
+extern std::mutex globalHndLock;
 
-
-#ifdef DEBUG_LOCKS
-#define HandleWriteLock()  \
-    UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Trying a write lock\n"); \
-    GlobalHndRWLock.lock();                                                \
-    UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Write lock acquired\n");
-
-#define HandleReadLock()  \
-    UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Trying a read lock\n"); \
-    GlobalHndRWLock.lock();                                                \
-    UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Read lock acquired\n");
-
-#define HandleUnlock() \
-    UpnpPrintf(UPNP_INFO, API,__FILE__, __LINE__, "Trying Unlock\n"); \
-    GlobalHndRWLock.unlock();                                            \
-    UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__, "Unlocked rwlock\n");
-#else /* !DEBUG_LOCKS-> */
-#define HandleWriteLock()  GlobalHndRWLock.lock()
-#define HandleReadLock()   GlobalHndRWLock.lock()
-#define HandleUnlock()     GlobalHndRWLock.unlock()
-#endif
+#define HANDLELOCK() std::scoped_lock<std::mutex> hdllock(globalHndLock)
 
 /*!
  * \brief Get client handle info.
@@ -246,8 +223,6 @@ extern ThreadPool gSendThreadPool;
 extern ThreadPool gMiniServerThreadPool;
 
 extern struct VirtualDirCallbacks virtualDirCallback;
-
-void UpnpThreadDistribution(struct UpnpNonblockParam * Param);
 
 int PrintHandleInfo(UpnpClient_Handle Hnd);
 

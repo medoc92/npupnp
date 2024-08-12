@@ -290,12 +290,11 @@ static int get_dev_service(const MHDTransaction *mhdt, soap_devserv_t *soap_info
     int device_hnd;
     service_info *serv_info;
 
-    HandleReadLock();
+    HANDLELOCK();
 
     auto hdltp = GetDeviceHandleInfoForPath(mhdt->url, &device_hnd, &hdlinfo, &serv_info);
 
     if (hdltp != HND_DEVICE || nullptr == serv_info) {
-        HandleUnlock();
         UpnpPrintf(UPNP_ERROR, SOAP, __FILE__, __LINE__, "get_dev_service: client not found.\n");
         return -1;
     }
@@ -306,7 +305,6 @@ static int get_dev_service(const MHDTransaction *mhdt, soap_devserv_t *soap_info
     soap_info->callback = hdlinfo->Callback;
     soap_info->cookie = hdlinfo->Cookie;
     soap_info->productversion = hdlinfo->productversion;
-    HandleUnlock();
     return 0;
 }
 

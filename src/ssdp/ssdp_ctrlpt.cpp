@@ -74,7 +74,7 @@ public:
 /* Worker to send the search messages. */
 class SearchSendJobWorker : public JobWorker {
 public:
-    explicit SearchSendJobWorker(const NetIF::Interface& _iface, SOCKET& _sockRef, std::string reqBuf)
+    explicit SearchSendJobWorker(const NetIF::Interface& _iface, SOCKET& _sockRef,std::string reqBuf)
         : iface(_iface), sockRef(_sockRef), ReqBuff(std::move(reqBuf)) {}
 
     const NetIF::Interface& iface;
@@ -85,7 +85,7 @@ public:
 
 class SearchSendJobWorkerV4 : public SearchSendJobWorker {
 public:
-    explicit SearchSendJobWorkerV4(const NetIF::Interface& iface, SOCKET& sockRef, std::string reqBuf)
+    explicit SearchSendJobWorkerV4(const NetIF::Interface& iface, SOCKET& sockRef,std::string reqBuf)
         : SearchSendJobWorker(iface, sockRef, std::move(reqBuf)) {}
 
     void work() override;
@@ -213,16 +213,16 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser, const struct sockaddr_stor
     void *ctrlpt_cookie;
     int matched = 0;
 
-    /* Get client info. We are assuming that there can be only one
-       client supported at a time */
-    HandleReadLock();
-    if (GetClientHandleInfo(&handle, &ctrlpt_info) != HND_CLIENT) {
-        HandleUnlock();
-        return;
+    {    
+        HANDLELOCK();
+        /* Get client info. We are assuming that there can be only one
+           client supported at a time */
+        if (GetClientHandleInfo(&handle, &ctrlpt_info) != HND_CLIENT) {
+            return;
+        }
+        ctrlpt_callback = ctrlpt_info->Callback;
+        ctrlpt_cookie = ctrlpt_info->Cookie;
     }
-    ctrlpt_callback = ctrlpt_info->Callback;
-    ctrlpt_cookie = ctrlpt_info->Cookie;
-    HandleUnlock();
 
     param.ErrCode = UPNP_E_SUCCESS;
     /* MAX-AGE, assume error */
@@ -335,50 +335,50 @@ void ssdp_handle_ctrlpt_msg(SSDPPacketParser& parser, const struct sockaddr_stor
             strlen(param.Location) == 0 || !usn_found || !st_found) {
             return;    /* bad reply */
         }
-        /* check each current search */
-        HandleLock();
-        if (GetClientHandleInfo(&handle, &ctrlpt_info) != HND_CLIENT) {
-            HandleUnlock();
-            return;
+        {
+            /* check each current search */
+            HANDLELOCK();
+            if (GetClientHandleInfo(&handle, &ctrlpt_info) != HND_CLIENT) {
+                return;
+            }
+            size_t stlen = strlen(parser.st);
+            for (const auto& searchArg : ctrlpt_info->SsdpSearchList) {
+                /* check for match of ST header and search target */
+                switch (searchArg.requestType) {
+                case SSDP_ALL:
+                    matched = 1;
+                    break;
+                case SSDP_ROOTDEVICE:
+                    matched = (event.RequestType == SSDP_ROOTDEVICE);
+                    break;
+                case SSDP_DEVICEUDN:
+                    matched = !strncmp(searchArg.searchTarget.c_str(), parser.st, stlen);
+                    break;
+                case SSDP_DEVICETYPE:
+                {
+                    size_t m = std::min(stlen, searchArg.searchTarget.size());
+                    matched = !strncmp(searchArg.searchTarget.c_str(), parser.st, m);
+                    break;
+                }
+                case SSDP_SERVICE:
+                {
+                    size_t m = std::min(stlen, searchArg.searchTarget.size());
+                    matched = !strncmp(searchArg.searchTarget.c_str(), parser.st, m);
+                    break;
+                }
+                default:
+                    matched = 0;
+                    break;
+                }
+                if (matched) {
+                    /* schedule call back */
+                    auto threadData = std::make_unique<ResultData>(param, searchArg.cookie,
+                                                                   ctrlpt_callback);
+                    auto worker = std::make_unique<SearchResultJobWorker>(std::move(threadData));
+                    gRecvThreadPool.addJob(std::move(worker));
+                }
+            }
         }
-        size_t stlen = strlen(parser.st);
-        for (const auto& searchArg : ctrlpt_info->SsdpSearchList) {
-            /* check for match of ST header and search target */
-            switch (searchArg.requestType) {
-            case SSDP_ALL:
-                matched = 1;
-                break;
-            case SSDP_ROOTDEVICE:
-                matched = (event.RequestType == SSDP_ROOTDEVICE);
-                break;
-            case SSDP_DEVICEUDN:
-                matched = !strncmp(searchArg.searchTarget.c_str(), parser.st, stlen);
-                break;
-            case SSDP_DEVICETYPE:
-            {
-                size_t m = std::min(stlen, searchArg.searchTarget.size());
-                matched = !strncmp(searchArg.searchTarget.c_str(), parser.st, m);
-                break;
-            }
-            case SSDP_SERVICE:
-            {
-                size_t m = std::min(stlen, searchArg.searchTarget.size());
-                matched = !strncmp(searchArg.searchTarget.c_str(), parser.st, m);
-                break;
-            }
-            default:
-                matched = 0;
-                break;
-            }
-            if (matched) {
-                /* schedule call back */
-                auto threadData = std::make_unique<ResultData>(param, searchArg.cookie, ctrlpt_callback);
-                auto worker = std::make_unique<SearchResultJobWorker>(std::move(threadData));
-                gRecvThreadPool.addJob(std::move(worker));
-            }
-        }
-
-        HandleUnlock();
     }
 }
 
@@ -435,30 +435,31 @@ public:
 
 void SearchExpiredJobWorker::work()
 {
-    HandleLock();
-
     int handle;
     struct Handle_Info *ctrlpt_info;
-    if (GetClientHandleInfo(&handle, &ctrlpt_info) != HND_CLIENT) {
-        HandleUnlock();
-        return;
-    }
+    Upnp_FunPtr ctrlpt_callback;
+    void *cookie;
+    bool found{false};
+    {
+        HANDLELOCK();
+        if (GetClientHandleInfo(&handle, &ctrlpt_info) != HND_CLIENT) {
+            return;
+        }
 
-    Upnp_FunPtr ctrlpt_callback = ctrlpt_info->Callback;
-    void* cookie = nullptr;
-    int found = 0;
-    int id = m_id;
-    auto it = std::find_if(
-        ctrlpt_info->SsdpSearchList.begin(),
-        ctrlpt_info->SsdpSearchList.end(),
-        [id](const auto& item) { return item.timeoutEventId == id; });
+        ctrlpt_callback = ctrlpt_info->Callback;
+        cookie = nullptr;
+        int id = m_id;
+        auto it = std::find_if(
+            ctrlpt_info->SsdpSearchList.begin(),
+            ctrlpt_info->SsdpSearchList.end(),
+            [id](const auto& item) { return item.timeoutEventId == id; });
 
-    if (it != ctrlpt_info->SsdpSearchList.end()) {
-        cookie = it->cookie;
-        found = 1;
-        ctrlpt_info->SsdpSearchList.erase(it);
+        if (it != ctrlpt_info->SsdpSearchList.end()) {
+            cookie = it->cookie;
+            found = true;
+            ctrlpt_info->SsdpSearchList.erase(it);
+        }
     }
-    HandleUnlock();
 
     if (found)
         ctrlpt_callback(UPNP_DISCOVERY_SEARCH_TIMEOUT, nullptr, cookie);
@@ -506,20 +507,19 @@ int SearchByTarget(int Mx, const char *St, const char *saddress, int port, void 
 
     /* Add the search criteria and callback to the list and schedule a timeout event to remove
        it when the search window closes */
-    HandleLock();
-    int handle;
-    struct Handle_Info *ctrlpt_info;
-    if (GetClientHandleInfo(&handle, &ctrlpt_info) != HND_CLIENT) {
-        HandleUnlock();
-        return UPNP_E_INTERNAL_ERROR;
+    {
+        HANDLELOCK();
+        int handle;
+        struct Handle_Info *ctrlpt_info;
+        if (GetClientHandleInfo(&handle, &ctrlpt_info) != HND_CLIENT) {
+            return UPNP_E_INTERNAL_ERROR;
+        }
+        auto worker = std::make_unique<SearchExpiredJobWorker>(0);
+        int *idp = &(worker->m_id);
+        gTimerThread->schedule(TimerThread::SHORT_TERM, TimerThread::REL_SEC, Mx ? Mx + 1 : 2,
+                               idp, std::move(worker));
+        ctrlpt_info->SsdpSearchList.emplace_back(*idp, St, Cookie, requestType);
     }
-    auto worker = std::make_unique<SearchExpiredJobWorker>(0);
-    int *idp = &(worker->m_id);
-    gTimerThread->schedule(TimerThread::SHORT_TERM, TimerThread::REL_SEC, Mx ? Mx + 1 : 2,
-                           idp, std::move(worker));
-    ctrlpt_info->SsdpSearchList.emplace_back(*idp, St, Cookie, requestType);
-
-    HandleUnlock();
 
     // Sanity checks
     if (g_netifs.size() != miniServerGetReqSocks4().size()) {
