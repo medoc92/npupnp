@@ -45,6 +45,7 @@
   UpnpUnRegisterRootDevice(int)
   UpnpAcceptSubscriptionXML(int, char const*, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
   UpnpSetVirtualDirCallbacks(UpnpVirtualDirCallbacks*)
+  UpnpSetWebServerCorsString(char const*)
   UpnpGetUrlHostPortForClient[abi:cxx11](sockaddr_storage const*)
   UpnpSetHostValidateCallback(int (*)(char const*, void*), void*)
   UpnpGetServerUlaGuaIp6Address()

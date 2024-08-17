@@ -2,7 +2,7 @@ project(
   'libnpupnp',
   'cpp',
   license: 'BSD-3-Clause',
-  version: '6.1.2',
+  version: '6.2.0',
   default_options: 'cpp_std=c++17',
   meson_version: '>=0.49',
 )
@@ -11,9 +11,10 @@ project(
 # previous version. A change should also result in changing the Debian binary package name so that
 # both library versions can coexist on a system.
 npupnp_soversion = '13'
-# This is just to change the lib file name when the version changes without changing the API, and
-# I'm not quite sure that it is really necessary
-npupnp_soversion_minor = '.2.0'
+# To keep consistent with autoconf:
+#  Interface added (backward compat): increment first number, set last to 0
+#  Release with only internal changes: increment last number
+npupnp_soversion_minor = '.3.0'
 
 cpp = meson.get_compiler('cpp')
 deps = []

@@ -1,3 +1,14 @@
+libnpupnp (6.2.0-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
+
+  * Improved multi-interface search: send M-SEARCH on all configured
+    interfaces instead of relying on routing.
+  * Add interface method to set an Access-Control-Allow-Origin header
+    on webserver responses.
+  * Accept unquoted values in SOAPACTION headers.
+  * Misc small fixes
+  
+ -- Jean-Francois Dockes <jf@dockes.org>  Sat, 17 Aug 2024 09:02:00 +0200
+
 libnpupnp (6.1.2-1~ppaPPAVERS~SERIES1) SERIES; urgency=low
 
   * Removed autotools build system, now using meson.
